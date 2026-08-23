@@ -1,0 +1,8 @@
+{
+    "name": "@uhifadhilabs/patrol-module",
+    "description": "Front-end assets of the Patrols module — mapped into hosts via AssetMapper.",
+    "license": "proprietary",
+    "symfony": {
+        "importmap": {}
+    }
+}
