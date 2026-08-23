@@ -8,6 +8,7 @@ use UhifadhiLabs\PatrolBundle\Repository\ObservationRepository;
 use UhifadhiLabs\PatrolBundle\Repository\PatrolRepository;
 use UhifadhiLabs\PatrolBundle\Service\GeoService;
 use UhifadhiLabs\PatrolBundle\Service\GpxParser;
+use UhifadhiLabs\PatrolBundle\Service\PatrolDashboardService;
 use UhifadhiLabs\PatrolBundle\Service\TrackIngestService;
 
 /*
@@ -38,6 +39,8 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('patrol.gpx_parser', GpxParser::class)
         ->args([service('patrol.geo')]);
+
+    $services->set('patrol.dashboard', PatrolDashboardService::class);
 
     $services->set('patrol.track_ingest', TrackIngestService::class)
         ->args([
