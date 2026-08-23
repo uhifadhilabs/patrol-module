@@ -11,6 +11,7 @@ A [uhifadhi](https://github.com/uhifadhilabs) module bundle.
 - [Configuration](#configuration)
 - [Screens](#screens)
 - [Ingest — one service, two doors](#ingest--one-service-two-doors)
+- [Design decisions](#design-decisions)
 - [Development](#development)
 
 ## What it does
@@ -69,6 +70,13 @@ when@test: { patrol: { dev_tools: true } }
 `TrackIngestService` is the single parsing/validation path. The upload screen
 feeds it today; a mobile tracker app POSTs to the same service via the API
 endpoint later. Neither door re-implements parsing.
+
+## Design decisions
+
+Deliberate modeling choices (station as string, free-text team, deferred
+photos, honest sources, live tracking as a v2 third door) are recorded with
+their revisit triggers in [docs/design-decisions.md](docs/design-decisions.md).
+**Read it before changing the model** — none of them is an oversight.
 
 ## Development
 
