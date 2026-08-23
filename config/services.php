@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use UhifadhiLabs\PatrolBundle\Controller\PatrolController;
+use UhifadhiLabs\PatrolBundle\Controller\PatrolDetailController;
 use UhifadhiLabs\PatrolBundle\Repository\ObservationRepository;
 use UhifadhiLabs\PatrolBundle\Repository\PatrolRepository;
 use UhifadhiLabs\PatrolBundle\Service\GeoService;
@@ -85,4 +86,15 @@ return static function (ContainerConfigurator $container): void {
         ->public();
 
     $services->alias(PatrolController::class, 'patrol.controller.dashboard')->public();
+
+    $services->set('patrol.controller.detail', PatrolDetailController::class)
+        ->args([
+            service('twig'),
+            service('patrol.geo'),
+            param('patrol.types'),
+            param('patrol.observation_categories'),
+        ])
+        ->public();
+
+    $services->alias(PatrolDetailController::class, 'patrol.controller.detail')->public();
 };

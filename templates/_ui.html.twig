@@ -1,0 +1,61 @@
+{# Bits the two detail screens share (settled designs "detail" and
+   "observation"): the plate viewer chrome, the design's explicit lowercase
+   dates and the per-type track colour. The dashboard keeps its own copies —
+   this file exists for the detail genre, and the two screens must never drift
+   apart from each other. #}
+
+{% macro type_label(key, types) %}{{ types[key].label|default(key)|lower }}{% endmacro %}
+
+{% macro category_label(key, categories) %}{{ categories[key].label|default(key)|lower }}{% endmacro %}
+
+{# Explicit and lowercase, like the design's meta rows: "sat 22 aug · 06:10". #}
+{% macro stamp(value) %}
+    {%- if value -%}{{ value|date('D j M')|lower }} · {{ value|date('H:i') }}{%- else -%}—{%- endif -%}
+{% endmacro %}
+
+{# The history rows read the other way round: "12:41 · 22 aug". #}
+{% macro log_stamp(value) %}
+    {%- if value -%}{{ value|date('H:i') }} · {{ value|date('j M')|lower }}{%- else -%}—{%- endif -%}
+{% endmacro %}
+
+{% macro duration(patrol) %}
+    {%- if patrol.startedAt and patrol.endedAt -%}
+        {%- set mins = ((patrol.endedAt.timestamp - patrol.startedAt.timestamp) / 60)|round(0, 'floor') -%}
+        {{ (mins // 60) }} h {{ '%02d'|format(mins % 60) }}
+    {%- else -%}—{%- endif -%}
+{% endmacro %}
+
+{% macro distance(patrol) %}
+    {%- if patrol.distanceKm is not null -%}{{ patrol.distanceKm|number_format(1) }} km{%- else -%}—{%- endif -%}
+{% endmacro %}
+
+{% macro person_name(user) %}
+    {%- if user -%}{{ user.firstName|first }}. {{ user.lastName }}{%- else -%}—{%- endif -%}
+{% endmacro %}
+
+{# The detail plates' viewer: the same satellite frame the dashboard uses (zoom
+   column, layers menu, fullscreen, scale pill, source label) around a canvas the
+   Stimulus controller takes over.
+   TODO(track-plate controller): assets/controllers/track-plate — draw the track
+   from the payload on the Leaflet basemap, then the observation position(s) as
+   numbered amber rings (the patrol screen) or one ring with the track faded for
+   context (the observation screen). #}
+{% macro viewer(payload, label, olId, olSrc, olScale, extraClass) %}
+    <div class="patrol-viewer patrol-plate-viewer {{ extraClass|default('') }}"
+         {{ stimulus_controller('@uhifadhilabs/patrol-bundle/track-plate', {payload: payload}) }}>
+        <div class="patrol-canvas" data-patrol-track-plate role="img" aria-label="{{ label }}"></div>
+        <span class="patrol-ol patrol-ol-id">{{ olId }}</span>
+        <span class="patrol-ol patrol-ol-src">{{ olSrc }}</span>
+        <span class="patrol-ol patrol-ol-scale">{{ olScale }} ⎯⎯⎯</span>
+        <div class="patrol-zoomui">
+            <b>+</b>
+            <b>−</b>
+            <b class="on" title="Base layer: satellite or map"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg></b>
+            <b title="Fullscreen — legend floats bottom-right"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></b>
+        </div>
+        <div class="patrol-laymenu">
+            <b class="on">Satellite</b>
+            <b>Map</b>
+        </div>
+    </div>
+{% endmacro %}

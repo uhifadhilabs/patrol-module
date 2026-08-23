@@ -1,0 +1,138 @@
+{# One patrol (settled design: the patrols module, main-screen direction
+   "detail"): the track plate beside the meta + history sidebar, with the
+   observations logged en route across the bottom at plate width.
+
+   View-only by ruling — the design carries no edit controls here. Every
+   binding comes from the Patrol/Observation entities and the deployment's
+   patrol.types / patrol.observation_categories vocabulary, never from code. #}
+{% extends '@UhifadhiLabsPatrol/base.html.twig' %}
+
+{% import '@UhifadhiLabsPatrol/_ui.html.twig' as ui %}
+
+{# Same cycled palette, same order as the dashboard: this patrol's type reads
+   in the identical colour on the coverage map and on this plate. #}
+{% set trackColors = ['#3ED9A8', '#5FA8E0', '#E0954F'] %}
+{% set typeColor = types|keys|reduce((carry, key) => carry|merge({(key): trackColors[carry|length % trackColors|length]}), {}) %}
+{% set trackColor = typeColor[patrol.type]|default(trackColors[0]) %}
+{% set typeLabel = types[patrol.type].label|default(patrol.type) %}
+
+{% block title %}Patrol {{ patrol.ref }} — {{ patrol.station ?: typeLabel }}{% endblock %}
+
+{% block patrol_page %}
+<div class="crumb"><a href="{{ path('dashboard_index') }}">uhifadhi</a> / <a href="{{ path('dashboard_index') }}">areas</a> / <a href="{{ path('dashboard_area_show', {uuid: area.uuid}) }}">{{ area.name|lower }}</a> / <a href="{{ path('dashboard_area_modules_grid', {uuid: area.uuid}) }}">modules</a> / <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / {{ patrol.ref|lower }}</div>
+
+<div class="pghead">
+    <div>
+        <h1 class="pg">Patrol {{ patrol.ref }} — {{ patrol.station ?: typeLabel }}</h1>
+        {# The design's subtitle, assembled from what this patrol actually
+           knows — a segment with no data is omitted, never rendered empty. #}
+        {% set segments = [] %}
+        {% set segments = segments|merge([typeLabel|lower ~ ' patrol']) %}
+        {% if patrol.lead %}{% set segments = segments|merge([ui.person_name(patrol.lead)|trim]) %}{% endif %}
+        {% if patrol.team %}{% set segments = segments|merge(['+ ' ~ patrol.team]) %}{% endif %}
+        {% if patrol.startedAt and patrol.endedAt %}
+            {% set segments = segments|merge([patrol.startedAt|date('D j M')|lower ~ ' ' ~ patrol.startedAt|date('H:i') ~ '–' ~ patrol.endedAt|date('H:i')]) %}
+        {% elseif patrol.startedAt %}
+            {% set segments = segments|merge([patrol.startedAt|date('D j M')|lower ~ ' ' ~ patrol.startedAt|date('H:i')]) %}
+        {% endif %}
+        {% if patrol.distanceKm is not null %}{% set segments = segments|merge([patrol.distanceKm|number_format(1) ~ ' km']) %}{% endif %}
+        {% if observations|length %}{% set segments = segments|merge([observations|length ~ (observations|length == 1 ? ' observation' : ' observations')]) %}{% endif %}
+        <p class="pgsub">{{ segments|join(' · ') }}.</p>
+    </div>
+    <div class="pgact patrol-pgact">
+        {# Only a GPX-born patrol has a recorded track to export; a sketched
+           manual route must never be offered as one (docs/design-decisions.md §4).
+           TODO(patrol_export): the GPX export response (route patrol_export). #}
+        {% if patrol.source.value == 'gpx' %}
+            <a class="tgl patrol-act" href="#"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export GPX</a>
+        {% endif %}
+    </div>
+</div>
+
+<a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}" class="backbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>All patrols</a>
+
+<div class="patrol-detail-row">
+    <div class="c patrol-plate" data-patrol-track>
+        <span class="tab"><span class="idx">PL·01</span>Track plate<span class="src">· {{ patrol.ref }} · satellite · live</span></span>
+        <span class="lib">{{ patrol.source.value == 'gpx' ? 'gpx track' : (patrol.source.value == 'api' ? 'api track' : 'sketched route') }}</span>
+        {{ ui.viewer(
+            payload,
+            'Patrol ' ~ patrol.ref ~ ' track',
+            patrol.ref ~ ' · ' ~ (patrol.station ?: '—') ~ ' · ' ~ typeLabel|lower,
+            'satellite · live · numbered rings = observations',
+            '500 m',
+            'patrol-plate-viewer-tall'
+        ) }}
+        <div class="patrol-legend">
+            <span class="chip patrol-tchip" style="--patrol-track: {{ trackColor }}">track</span>
+            <span class="chip warn">observation</span>
+            <span class="chip idle">● start · ○ end</span>
+        </div>
+    </div>
+
+    <div class="patrol-side">
+        <div class="c" data-patrol-meta>
+            <span class="tab"><span class="idx">PL·02</span>Patrol meta<span class="src">· {{ patrol.source.value == 'gpx' ? 'from GPX + form' : 'from the patrol form' }}</span></span>
+            <div class="patrol-meta-r"><span>id</span><b>{{ patrol.ref }}</b></div>
+            <div class="patrol-meta-r"><span>type</span><b>{{ typeLabel|lower }}</b></div>
+            <div class="patrol-meta-r"><span>station</span><b>{{ patrol.station ?: '—' }}</b></div>
+            <div class="patrol-meta-r"><span>lead</span><b>{{ ui.person_name(patrol.lead) }}</b></div>
+            <div class="patrol-meta-r"><span>team</span><b>{{ patrol.team ?: '—' }}</b></div>
+            <div class="patrol-meta-r"><span>started</span><b>{{ ui.stamp(patrol.startedAt) }}</b></div>
+            <div class="patrol-meta-r"><span>ended</span><b>{{ ui.stamp(patrol.endedAt) }}</b></div>
+            <div class="patrol-meta-r"><span>duration</span><b>{{ ui.duration(patrol) }}</b></div>
+            <div class="patrol-meta-r"><span>distance</span><b>{{ ui.distance(patrol) }}</b></div>
+            {% if avgSpeedKmh is not null %}
+                <div class="patrol-meta-r"><span>avg speed</span><b>{{ avgSpeedKmh|number_format(1) }} km/h</b></div>
+            {% endif %}
+            {# The design names the tracker device here ("GPX · tracker T-04");
+               the bundle stores no device identity, so the row states the
+               source honestly instead of inventing one. #}
+            <div class="patrol-meta-r"><span>source</span><b>{{ patrol.source.value == 'gpx' ? 'GPX · imported' : (patrol.source.value == 'api' ? 'API' : 'manual entry') }}</b></div>
+            {% if patrol.pointCount is not null %}
+                <div class="patrol-meta-r"><span>gps points</span><b>{{ patrol.pointCount|number_format }} · {{ patrol.gapCount }} {{ patrol.gapCount == 1 ? 'gap' : 'gaps' }}</b></div>
+            {% endif %}
+        </div>
+
+        {# DEFERRED(audit-trail): the design's history is an append-only audit
+           trail (imports, transcriptions, incident links) and the bundle has no
+           audit-log entity yet — see the roadmap. The ONE entry derivable from
+           the record itself is rendered, with no actor because none is stored. #}
+        <div class="c" data-patrol-history>
+            <span class="tab"><span class="idx">PL·03</span>History<span class="src">· audit trail · append-only</span></span>
+            <div class="rln">
+                <span class="d">{{ ui.log_stamp(patrol.createdAt) }}</span>
+                <span>{{ patrol.source.value == 'gpx' ? 'track imported from GPX' : (patrol.source.value == 'api' ? 'received through the ingest API' : 'logged manually') }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="patrol-detail-row patrol-detail-row-bottom">
+    <div class="c patrol-plate" data-patrol-observations>
+        <span class="tab"><span class="idx">PL·04</span>Observations<span class="src">· {{ observations|length }} · logged en route</span></span>
+        {% for row in observations %}
+            <div class="patrol-obs-r">
+                <span class="patrol-obs-n">{{ row.n }}</span>
+                <span class="patrol-obs-t">{{ row.observation.loggedAt ? row.observation.loggedAt|date('H:i') : '—' }}</span>
+                <span class="patrol-obs-bd">
+                    <span class="chip warn patrol-obs-chip">{{ ui.category_label(row.observation.category, categories) }}</span>{{ row.observation.note }}
+                    {# DEFERRED(photos): the design's sub-line ends "· 2 photos";
+                       observations carry no photo entity yet
+                       (docs/design-decisions.md §3), so the count is omitted
+                       rather than faked. #}
+                    <em>{{ row.dms ?: 'no position recorded' }}</em>
+                </span>
+                <a class="open-btn patrol-obs-open" href="{{ path('patrol_observation_show', {uuid: area.uuid, patrol: patrol.uuid, observation: row.observation.uuid}) }}">Open →</a>
+            </div>
+        {% else %}
+            <div class="patrol-obs-r patrol-obs-empty">
+                <span class="patrol-obs-bd">No observations were logged on this patrol.</span>
+            </div>
+        {% endfor %}
+    </div>
+    {# The design's empty right-hand column: the bottom row matches the plate
+       width, the sidebar column stays clear. #}
+    <div class="patrol-side patrol-side-spacer"></div>
+</div>
+{% endblock %}

@@ -134,3 +134,60 @@
 .patrol-dc.patrol-today .patrol-dn { color: rgb(var(--c-acc)); }
 .patrol-daypill { text-decoration: none; }
 .patrol-daypill .chip { cursor: pointer; }
+
+/* ---- detail screens: plate + sidebar ----------------------------------- */
+/* The settled layout for both detail screens: a plate card (flex 2) beside a
+   sidebar (flex 1.1) holding meta THEN history; the wide bottom row matches the
+   plate width with an empty spacer under the sidebar. */
+.patrol-detail-row { display: flex; gap: 16px; align-items: stretch; flex-wrap: wrap; }
+.patrol-detail-row-bottom { margin-top: 16px; }
+.patrol-plate { flex: 2; min-width: 420px; display: flex; flex-direction: column; }
+.patrol-side { flex: 1.1; min-width: 300px; display: flex; flex-direction: column; gap: 16px; }
+.patrol-side > .c { margin-bottom: 0; }
+.patrol-side-spacer { gap: 0; }
+/* Inside a plate the viewer fills the remaining card height (so plate and
+   sidebar end level) instead of keeping the dashboard's fixed aspect ratio. */
+.patrol-plate .patrol-plate-viewer { flex: 1; aspect-ratio: auto; min-height: min(46vh, 440px); }
+/* The track plate is the taller of the two (the design's 58vh vs 46vh). */
+.patrol-plate .patrol-plate-viewer-tall { min-height: min(58vh, 560px); }
+.patrol-ol-id { left: 10px; top: 10px; }
+
+/* ---- meta rows (PL·02) -------------------------------------------------- */
+.patrol-meta-r {
+    display: flex; justify-content: space-between; gap: 12px; padding: 7px 0;
+    border-bottom: 1px dashed var(--c-ln);
+}
+.patrol-meta-r:last-child { border-bottom: 0; }
+.patrol-meta-r b { font: 600 11px var(--font-mono); color: rgb(var(--c-tx)); text-align: right; }
+.patrol-meta-r span {
+    font: 500 9.5px var(--font-mono); color: rgb(var(--c-dim)); text-transform: uppercase;
+    letter-spacing: .08em; padding-top: 2px; flex: none;
+}
+
+/* ---- observation rows (PL·04 on the patrol detail) ---------------------- */
+/* The design marks a populated row as clickable (its Open → is the affordance
+   that acts); the empty-state row is not. */
+.patrol-obs-r {
+    display: flex; gap: 10px; padding: 9px 0; align-items: flex-start;
+    border-bottom: 1px dashed var(--c-ln); cursor: pointer;
+}
+.patrol-obs-r.patrol-obs-empty { cursor: default; }
+.patrol-obs-r:last-child { border-bottom: 0; }
+/* The dashed amber ring, numbered — the same number the plate draws on the map. */
+.patrol-obs-n {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px dashed rgb(var(--c-warn)); color: rgb(var(--c-warn));
+    display: grid; place-items: center; font: 700 9px var(--font-mono); flex: none; margin-top: 1px;
+}
+.patrol-obs-t { font: 600 9.5px var(--font-mono); color: rgb(var(--c-dim)); min-width: 40px; padding-top: 3px; }
+.patrol-obs-bd { flex: 1; font-size: 12.5px; line-height: 1.5; color: rgb(var(--c-tx)); }
+.patrol-obs-bd em {
+    display: block; font: 500 9.5px var(--font-mono); color: rgb(var(--c-dim));
+    font-style: normal; margin-top: 2px;
+}
+.patrol-obs-chip { margin-right: 6px; }
+.patrol-obs-open { align-self: center; }
+.patrol-obs-empty .patrol-obs-bd { color: rgb(var(--c-fog)); }
+
+/* ---- the verbatim note (PL·03 on the observation detail) ---------------- */
+.patrol-quote { font-size: 13px; line-height: 1.65; margin-top: 4px; color: rgb(var(--c-tx)); }

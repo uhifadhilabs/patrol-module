@@ -236,8 +236,7 @@
                                     <span class="chip idle">—</span>
                                 {% endif %}
                             </td>
-                            {# TODO(patrol_show): the patrol detail screen (route patrol_show). #}
-                            <td class="patrol-right"><a class="open-btn" href="#">Open →</a></td>
+                            <td class="patrol-right"><a class="open-btn" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">Open →</a></td>
                         </tr>
                     {% else %}
                         <tr><td colspan="9">No patrols recorded yet.</td></tr>
@@ -261,8 +260,7 @@
                             <span class="patrol-n">{{ ui.started(patrol) }} · {{ ui.distance(patrol) }}</span>
                             {% if patrol.observations|length %}<span class="chip warn">{{ patrol.observations|length }} obs</span>{% endif %}
                             <span class="patrol-spacer"></span>
-                            {# TODO(patrol_show): the patrol detail screen (route patrol_show). #}
-                            <a class="open-btn" href="#">Open →</a>
+                            <a class="open-btn" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">Open →</a>
                         </div>
                     {% else %}
                         <p class="patrol-empty">No patrols recorded yet.</p>
@@ -362,8 +360,7 @@
                         <div class="patrol-dc{{ cell.outside ? ' patrol-out' }}{{ cell.today ? ' patrol-today' }}">
                             <span class="patrol-dn">{{ cell.date|date('j') }}</span>
                             {% for patrol in cell.patrols %}
-                                {# TODO(patrol_show): the patrol detail screen (route patrol_show). #}
-                                <a class="patrol-daypill" href="#"><span class="chip patrol-tchip" style="--patrol-track: {{ typeColor[patrol.type]|default(trackColors[0]) }}">{{ patrol.ref }}</span></a>
+                                <a class="patrol-daypill" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}"><span class="chip patrol-tchip" style="--patrol-track: {{ typeColor[patrol.type]|default(trackColors[0]) }}">{{ patrol.ref }}</span></a>
                             {% endfor %}
                             {# DEFERRED(planned): the design shows "planned" pills on
                                future days; the bundle has no planned-patrol concept. #}

@@ -1,0 +1,102 @@
+{# One observation (settled design: the patrols module, main-screen direction
+   "observation"): the location plate beside the meta + note + history sidebar,
+   with the photos card across the bottom at plate width.
+
+   View-only by ruling — the design carries no edit or upload controls here. #}
+{% extends '@UhifadhiLabsPatrol/base.html.twig' %}
+
+{% import '@UhifadhiLabsPatrol/_ui.html.twig' as ui %}
+
+{# The parent patrol's track colour, cycled exactly as on the dashboard and the
+   patrol detail plate — the same track must never change colour between them. #}
+{% set trackColors = ['#3ED9A8', '#5FA8E0', '#E0954F'] %}
+{% set typeColor = types|keys|reduce((carry, key) => carry|merge({(key): trackColors[carry|length % trackColors|length]}), {}) %}
+{% set trackColor = typeColor[patrol.type]|default(trackColors[0]) %}
+{% set typeLabel = types[patrol.type].label|default(patrol.type) %}
+{% set categoryLabel = categories[observation.category].label|default(observation.category) %}
+
+{% block title %}Observation {{ n }} — {{ categoryLabel }}{% endblock %}
+
+{% block patrol_page %}
+<div class="crumb"><a href="{{ path('dashboard_index') }}">uhifadhi</a> / <a href="{{ path('dashboard_index') }}">areas</a> / <a href="{{ path('dashboard_area_show', {uuid: area.uuid}) }}">{{ area.name|lower }}</a> / <a href="{{ path('dashboard_area_modules_grid', {uuid: area.uuid}) }}">modules</a> / <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / <a href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">{{ patrol.ref|lower }}</a> / obs {{ n }}</div>
+
+<div class="pghead">
+    <div>
+        <h1 class="pg">Observation {{ n }} — {{ categoryLabel }}</h1>
+        <p class="pgsub">{{ categoryLabel|lower }} · {{ patrol.ref }} {{ typeLabel|lower }} patrol · {{ ui.stamp(observation.loggedAt) }} · {{ ui.person_name(observation.recordedBy) }}</p>
+    </div>
+    <div class="pgact">
+        {# TODO(incidents-module): filing an observation as an incident needs the
+           incidents module, which does not exist yet. #}
+        <a class="cta" href="#">File as incident →</a>
+    </div>
+</div>
+
+<a href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}" class="backbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Patrol {{ patrol.ref }}</a>
+
+<div class="patrol-detail-row">
+    <div class="c patrol-plate" data-patrol-location>
+        <span class="tab"><span class="idx">PL·01</span>Location<span class="src">· on the {{ patrol.ref }} track · satellite · live</span></span>
+        <span class="lib">observation</span>
+        {{ ui.viewer(
+            payload,
+            'Observation ' ~ n ~ ' on patrol ' ~ patrol.ref,
+            'obs ' ~ n ~ ' · ' ~ categoryLabel|lower ~ (observation.loggedAt ? ' · ' ~ observation.loggedAt|date('H:i') : ''),
+            'satellite · live · track shown for context',
+            '100 m'
+        ) }}
+        <div class="patrol-legend">
+            <span class="chip warn">observation</span>
+            <span class="chip patrol-tchip" style="--patrol-track: {{ trackColor }}">patrol track</span>
+        </div>
+    </div>
+
+    <div class="patrol-side">
+        <div class="c" data-patrol-observation-meta>
+            <span class="tab"><span class="idx">PL·02</span>Observation meta</span>
+            <div class="patrol-meta-r"><span>observation</span><b>{{ n }} of {{ total }} · {{ patrol.ref }}</b></div>
+            <div class="patrol-meta-r"><span>category</span><b>{{ categoryLabel|lower }}</b></div>
+            <div class="patrol-meta-r"><span>logged</span><b>{{ ui.stamp(observation.loggedAt) }}</b></div>
+            <div class="patrol-meta-r"><span>position</span><b>{{ dms ?: '—' }}</b></div>
+            {# DEFERRED(gps-accuracy): the design's "accuracy · ± 4 m · tracker T-04"
+               row needs a per-point accuracy and a device identity the bundle
+               stores for neither observations nor patrols. #}
+            <div class="patrol-meta-r"><span>recorded by</span><b>{{ ui.person_name(observation.recordedBy) }}</b></div>
+            {# DEFERRED(photos): the design's "photos · 2" row — no photo entity
+               yet (docs/design-decisions.md §3). #}
+            {# DEFERRED(incident-link): the design's status row says what became
+               of the observation ("linked to incident draft"); that state lives
+               in the incidents module, which does not exist yet. #}
+            <div class="patrol-meta-r"><span>status</span><b>—</b></div>
+        </div>
+
+        <div class="c" data-patrol-note>
+            <span class="tab"><span class="idx">PL·03</span>Note<span class="src">· field record · verbatim</span></span>
+            <div class="patrol-quote">{% if observation.note %}&ldquo;{{ observation.note }}&rdquo;{% else %}No note was recorded with this observation.{% endif %}</div>
+        </div>
+
+        {# DEFERRED(audit-trail): as on the patrol detail — no audit-log entity
+           yet, so only the entry derivable from the record itself is shown. #}
+        <div class="c" data-patrol-history>
+            <span class="tab"><span class="idx">PL·04</span>History<span class="src">· audit trail · append-only</span></span>
+            <div class="rln">
+                <span class="d">{{ ui.log_stamp(observation.loggedAt ?: observation.createdAt) }}</span>
+                <span>observation logged en route{% if observation.recordedBy %} by {{ ui.person_name(observation.recordedBy) }}{% endif %}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="patrol-detail-row patrol-detail-row-bottom">
+    <div class="c patrol-plate" data-patrol-photos>
+        <span class="tab"><span class="idx">PL·05</span>Photos<span class="src">· from the field</span></span>
+        {# DEFERRED(photos): decision #3 in docs/design-decisions.md — photos need
+           a storage decision the bundle cannot make alone, so there is no photo
+           entity yet. The card keeps its place and states where photos will
+           live; no placeholder images, and no add control (detail pages are
+           view-only). #}
+        <div class="use">Photos taken at an observation attach here and travel with it when it is filed as an incident.</div>
+    </div>
+    <div class="patrol-side patrol-side-spacer"></div>
+</div>
+{% endblock %}
