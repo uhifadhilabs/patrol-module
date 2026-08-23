@@ -94,6 +94,16 @@ final class TestKernel extends Kernel
             'paths' => [\dirname(__DIR__).'/Integration/Fixtures/templates'],
         ]);
 
+        // Public aliases so tests can fetch the bundle's private services, keyed
+        // by class name for readability (see IntegrationTestCase). Needed only
+        // until controllers reference them.
+        foreach ([
+            \UhifadhiLabs\PatrolBundle\Service\TrackIngestService::class => 'patrol.track_ingest',
+            \UhifadhiLabs\PatrolBundle\Service\GpxParser::class => 'patrol.gpx_parser',
+        ] as $class => $serviceId) {
+            $container->services()->alias('test_public.'.$class, $serviceId)->public();
+        }
+
         $container->extension('patrol', [
             'dev_tools' => true, // this IS the test env — the recipe enables it via when@test
             // Synthetic example vocabulary (never a client's).

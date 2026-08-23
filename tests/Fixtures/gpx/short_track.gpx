@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="handheld-tracker" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>Morning walking round</name>
+    <trkseg>
+      <trkpt lat="-1.0000" lon="-30.0000"><time>2026-03-01T06:00:00Z</time></trkpt>
+      <trkpt lat="-1.0005" lon="-30.0010"><time>2026-03-01T06:05:00Z</time></trkpt>
+      <trkpt lat="-1.0010" lon="-30.0025"><time>2026-03-01T06:20:00Z</time></trkpt>
+      <trkpt lat="-1.0030" lon="-30.0030"><time>2026-03-01T06:25:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>
