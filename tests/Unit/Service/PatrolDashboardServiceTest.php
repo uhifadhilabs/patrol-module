@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Tests\Unit\Service;
+namespace UhifadhiLabs\Patrol\Tests\Unit\Service;
 
 use PHPUnit\Framework\TestCase;
 use Uhifadhi\Spatial\Entity\AreaOfInterest;
-use UhifadhiLabs\PatrolBundle\Entity\Observation;
-use UhifadhiLabs\PatrolBundle\Entity\Patrol;
-use UhifadhiLabs\PatrolBundle\Enum\PatrolSourceEnum;
-use UhifadhiLabs\PatrolBundle\Service\PatrolDashboardService;
+use UhifadhiLabs\Patrol\Entity\Observation;
+use UhifadhiLabs\Patrol\Entity\Patrol;
+use UhifadhiLabs\Patrol\Enum\PatrolSourceEnum;
+use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
 
 /**
  * The dashboard's data contract — everything the widget screen binds, computed

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Tests\Integration\Service;
+namespace UhifadhiLabs\Patrol\Tests\Integration\Service;
 
 use Uhifadhi\Access\Entity\User;
 use Uhifadhi\Spatial\Entity\AreaOfInterest;
-use UhifadhiLabs\PatrolBundle\Entity\Observation;
-use UhifadhiLabs\PatrolBundle\Entity\Patrol;
-use UhifadhiLabs\PatrolBundle\Enum\PatrolSourceEnum;
-use UhifadhiLabs\PatrolBundle\Service\TrackIngestService;
-use UhifadhiLabs\PatrolBundle\Tests\Integration\IntegrationTestCase;
+use UhifadhiLabs\Patrol\Entity\Observation;
+use UhifadhiLabs\Patrol\Entity\Patrol;
+use UhifadhiLabs\Patrol\Enum\PatrolSourceEnum;
+use UhifadhiLabs\Patrol\Service\TrackIngestService;
+use UhifadhiLabs\Patrol\Tests\Integration\IntegrationTestCase;
 
 final class TrackIngestServiceTest extends IntegrationTestCase
 {

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Service;
+namespace UhifadhiLabs\Patrol\Service;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Uhifadhi\Access\Entity\User;
 use Uhifadhi\Spatial\Entity\AreaOfInterest;
-use UhifadhiLabs\PatrolBundle\Entity\Patrol;
-use UhifadhiLabs\PatrolBundle\Enum\PatrolSourceEnum;
-use UhifadhiLabs\PatrolBundle\Model\ParsedTrack;
+use UhifadhiLabs\Patrol\Entity\Patrol;
+use UhifadhiLabs\Patrol\Enum\PatrolSourceEnum;
+use UhifadhiLabs\Patrol\Model\ParsedTrack;
 
 /**
  * THE ingest path — one service, two doors. The upload screen feeds it today;
@@ -37,7 +37,7 @@ final class TrackIngestService
     /**
      * Parse and persist a patrol from a GPX document.
      *
-     * @throws \UhifadhiLabs\PatrolBundle\Exception\InvalidGpxException
+     * @throws \UhifadhiLabs\Patrol\Exception\InvalidGpxException
      */
     public function ingest(
         string $gpxXml,

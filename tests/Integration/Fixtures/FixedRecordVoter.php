@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Tests\Integration\Fixtures;
+namespace UhifadhiLabs\Patrol\Tests\Integration\Fixtures;
 
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 use Uhifadhi\Access\Entity\User;
-use UhifadhiLabs\PatrolBundle\Controller\PatrolRecordController;
+use UhifadhiLabs\Patrol\Controller\PatrolRecordController;
 
 /**
  * Test stand-in for the HOST's permission voter: the bundle only DECLARES

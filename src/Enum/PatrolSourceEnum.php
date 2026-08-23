@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Enum;
+namespace UhifadhiLabs\Patrol\Enum;
 
 /**
  * Where a patrol record came from. A sketched manual route must never

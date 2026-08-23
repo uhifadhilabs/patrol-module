@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\DependencyInjection;
+namespace UhifadhiLabs\Patrol\DependencyInjection;
 
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\NodeDefinition;

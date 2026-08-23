@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Model;
+namespace UhifadhiLabs\Patrol\Model;
 
 /**
  * What a GPX file actually contained, before anything is saved: the points in

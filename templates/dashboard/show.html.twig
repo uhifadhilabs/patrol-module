@@ -79,7 +79,7 @@
    are free strings with no coordinates (docs/design-decisions.md §1). #}
 {% macro viewer(payload, label, menuOpen) %}
     <div class="patrol-viewer"
-         {{ stimulus_controller('@uhifadhilabs/patrol-bundle/coverage-map', {payload: payload}) }}>
+         {{ stimulus_controller('@uhifadhilabs/patrol-module/coverage-map', {payload: payload}) }}>
         <div class="patrol-canvas" data-patrol-coverage-map role="img" aria-label="{{ label }}"></div>
         <span class="patrol-ol patrol-ol-src">satellite · live · tracks this month</span>
         <span class="patrol-ol patrol-ol-scale">5 km ⎯⎯⎯</span>

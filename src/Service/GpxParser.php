@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Service;
+namespace UhifadhiLabs\Patrol\Service;
 
-use UhifadhiLabs\PatrolBundle\Exception\InvalidGpxException;
-use UhifadhiLabs\PatrolBundle\Model\ParsedTrack;
+use UhifadhiLabs\Patrol\Exception\InvalidGpxException;
+use UhifadhiLabs\Patrol\Model\ParsedTrack;
 
 /**
  * Reads a GPX 1.0/1.1 document into a {@see ParsedTrack}: points in document

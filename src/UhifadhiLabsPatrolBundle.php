@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle;
+namespace UhifadhiLabs\Patrol;
 
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
-use UhifadhiLabs\PatrolBundle\Controller\PatrolRecordController;
-use UhifadhiLabs\PatrolBundle\DependencyInjection\PatrolConfiguration;
-use UhifadhiLabs\PatrolBundle\Module\PatrolModuleProvider;
-use UhifadhiLabs\PatrolBundle\Repository\PatrolRepository;
+use UhifadhiLabs\Patrol\Controller\PatrolRecordController;
+use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
+use UhifadhiLabs\Patrol\Module\PatrolModuleProvider;
+use UhifadhiLabs\Patrol\Repository\PatrolRepository;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
@@ -49,7 +49,7 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
             $container->extension('framework', [
                 'asset_mapper' => [
                     'paths' => [
-                        __DIR__.'/../assets' => '@uhifadhilabs/patrol-bundle',
+                        __DIR__.'/../assets' => '@uhifadhilabs/patrol-module',
                     ],
                 ],
             ]);
@@ -64,7 +64,7 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
                         'UhifadhiLabsPatrol' => [
                             'type' => 'attribute',
                             'dir' => __DIR__.'/Entity',
-                            'prefix' => 'UhifadhiLabs\\PatrolBundle\\Entity',
+                            'prefix' => 'UhifadhiLabs\\Patrol\\Entity',
                             'is_bundle' => false,
                         ],
                     ],

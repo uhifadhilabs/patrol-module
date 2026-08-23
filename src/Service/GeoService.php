@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Service;
+namespace UhifadhiLabs\Patrol\Service;
 
 /**
  * Small geodesy helpers the bundle owns. Pure math — no I/O, no state — so it

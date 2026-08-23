@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Controller;
+namespace UhifadhiLabs\Patrol\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
@@ -19,12 +19,12 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Twig\Environment;
 use Uhifadhi\Access\Entity\User;
 use Uhifadhi\Spatial\Entity\AreaOfInterest;
-use UhifadhiLabs\PatrolBundle\Entity\Patrol;
-use UhifadhiLabs\PatrolBundle\Enum\PatrolSourceEnum;
-use UhifadhiLabs\PatrolBundle\Exception\InvalidGpxException;
-use UhifadhiLabs\PatrolBundle\Repository\PatrolRepository;
-use UhifadhiLabs\PatrolBundle\Service\PatrolDashboardService;
-use UhifadhiLabs\PatrolBundle\Service\TrackIngestService;
+use UhifadhiLabs\Patrol\Entity\Patrol;
+use UhifadhiLabs\Patrol\Enum\PatrolSourceEnum;
+use UhifadhiLabs\Patrol\Exception\InvalidGpxException;
+use UhifadhiLabs\Patrol\Repository\PatrolRepository;
+use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
+use UhifadhiLabs\Patrol\Service\TrackIngestService;
 
 /**
  * The two screens that CREATE patrols (settled designs "import" and "log"):
@@ -32,7 +32,7 @@ use UhifadhiLabs\PatrolBundle\Service\TrackIngestService;
  *
  * Both are entirely about recording, so both — GET included — require the one
  * permission this module declares, "patrols.record". The bundle DECLARES the
- * requirement (see {@see \UhifadhiLabs\PatrolBundle\Module\PatrolModuleProvider});
+ * requirement (see {@see \UhifadhiLabs\Patrol\Module\PatrolModuleProvider});
  * the host's voter decides who holds it. Installing a module may never hand
  * existing users a new power, so the bundle grants it to nobody.
  *

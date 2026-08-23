@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Module;
+namespace UhifadhiLabs\Patrol\Module;
 
 use UhifadhiLabs\ModuleContracts\ModulePermission;
 use UhifadhiLabs\ModuleContracts\ModuleProviderInterface;
 use UhifadhiLabs\ModuleContracts\ModuleProviderTrait;
-use UhifadhiLabs\PatrolBundle\Controller\PatrolRecordController;
+use UhifadhiLabs\Patrol\Controller\PatrolRecordController;
 
 /**
  * Declares the one module this bundle contributes — "Patrols". It owns its

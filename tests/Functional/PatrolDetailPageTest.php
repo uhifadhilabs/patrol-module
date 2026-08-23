@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Tests\Functional;
+namespace UhifadhiLabs\Patrol\Tests\Functional;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -10,9 +10,9 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Uhifadhi\Access\Entity\User;
 use Uhifadhi\Spatial\Entity\AreaOfInterest;
-use UhifadhiLabs\PatrolBundle\Entity\Observation;
-use UhifadhiLabs\PatrolBundle\Entity\Patrol;
-use UhifadhiLabs\PatrolBundle\Enum\PatrolSourceEnum;
+use UhifadhiLabs\Patrol\Entity\Observation;
+use UhifadhiLabs\Patrol\Entity\Patrol;
+use UhifadhiLabs\Patrol\Enum\PatrolSourceEnum;
 
 /**
  * The patrol detail screen: the track plate and its payload, the meta rows,
@@ -131,10 +131,10 @@ final class PatrolDetailPageTest extends WebTestCase
 
         // PL·01 — the plate carries the Stimulus controller and a payload with
         // the track plus the positioned observations as numbered rings.
-        $plate = $crawler->filter('[data-controller="uhifadhilabs--patrol-bundle--track-plate"]');
+        $plate = $crawler->filter('[data-controller="uhifadhilabs--patrol-module--track-plate"]');
         self::assertCount(1, $plate);
         $payload = json_decode(
-            (string) $plate->attr('data-uhifadhilabs--patrol-bundle--track-plate-payload-value'),
+            (string) $plate->attr('data-uhifadhilabs--patrol-module--track-plate-payload-value'),
             true,
         );
         self::assertIsArray($payload);

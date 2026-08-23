@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Service;
+namespace UhifadhiLabs\Patrol\Service;
 
-use UhifadhiLabs\PatrolBundle\Entity\Patrol;
-use UhifadhiLabs\PatrolBundle\Model\PatrolDashboard;
+use UhifadhiLabs\Patrol\Entity\Patrol;
+use UhifadhiLabs\Patrol\Model\PatrolDashboard;
 
 /**
  * Computes the dashboard's data contract from plain entities. Pure — "now" is

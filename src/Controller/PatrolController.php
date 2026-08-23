@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Controller;
+namespace UhifadhiLabs\Patrol\Controller;
 
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\HttpFoundation\Response;
@@ -10,8 +10,8 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Twig\Environment;
 use Uhifadhi\Spatial\Entity\AreaOfInterest;
-use UhifadhiLabs\PatrolBundle\Repository\PatrolRepository;
-use UhifadhiLabs\PatrolBundle\Service\PatrolDashboardService;
+use UhifadhiLabs\Patrol\Repository\PatrolRepository;
+use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
 
 /**
  * The patrols widget dashboard for one area: KPIs, the coverage map, the patrol

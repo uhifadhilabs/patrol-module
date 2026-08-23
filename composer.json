@@ -1,5 +1,5 @@
 {
-    "name": "uhifadhilabs/patrol-bundle",
+    "name": "uhifadhilabs/patrol-module",
     "description": "Patrols: field patrol effort as first-class records — GPX track ingest, en-route observations with photos, coverage mapping and a per-user widget dashboard.",
     "type": "symfony-bundle",
     "keywords": [
@@ -37,12 +37,12 @@
     },
     "autoload": {
         "psr-4": {
-            "UhifadhiLabs\\PatrolBundle\\": "src/"
+            "UhifadhiLabs\\Patrol\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "UhifadhiLabs\\PatrolBundle\\Tests\\": "tests/",
+            "UhifadhiLabs\\Patrol\\Tests\\": "tests/",
             "Uhifadhi\\Access\\Entity\\": "tests/Fixtures/Uhifadhi/Access/Entity/",
             "Uhifadhi\\Spatial\\Entity\\": "tests/Fixtures/Uhifadhi/Spatial/Entity/"
         }

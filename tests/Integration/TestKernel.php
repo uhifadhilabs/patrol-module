@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Tests\Integration;
+namespace UhifadhiLabs\Patrol\Tests\Integration;
 
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use FundiStadi\PostGISBundle\FundiStadiPostGISBundle;
@@ -15,8 +15,8 @@ use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 use Symfony\UX\StimulusBundle\StimulusBundle;
 use Uhifadhi\Access\Entity\User;
-use UhifadhiLabs\PatrolBundle\Tests\Integration\Fixtures\FixedRecordVoter;
-use UhifadhiLabs\PatrolBundle\UhifadhiLabsPatrolBundle;
+use UhifadhiLabs\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
+use UhifadhiLabs\Patrol\UhifadhiLabsPatrolBundle;
 
 /**
  * Smallest possible host app for integration tests: framework + doctrine +
@@ -105,8 +105,8 @@ final class TestKernel extends Kernel
         // by class name for readability (see IntegrationTestCase). Needed only
         // until controllers reference them.
         foreach ([
-            \UhifadhiLabs\PatrolBundle\Service\TrackIngestService::class => 'patrol.track_ingest',
-            \UhifadhiLabs\PatrolBundle\Service\GpxParser::class => 'patrol.gpx_parser',
+            \UhifadhiLabs\Patrol\Service\TrackIngestService::class => 'patrol.track_ingest',
+            \UhifadhiLabs\Patrol\Service\GpxParser::class => 'patrol.gpx_parser',
         ] as $class => $serviceId) {
             $container->services()->alias('test_public.'.$class, $serviceId)->public();
         }
@@ -140,11 +140,11 @@ final class TestKernel extends Kernel
 
     public function getCacheDir(): string
     {
-        return sys_get_temp_dir().'/patrol-bundle-tests/cache';
+        return sys_get_temp_dir().'/patrol-module-tests/cache';
     }
 
     public function getLogDir(): string
     {
-        return sys_get_temp_dir().'/patrol-bundle-tests/log';
+        return sys_get_temp_dir().'/patrol-module-tests/log';
     }
 }

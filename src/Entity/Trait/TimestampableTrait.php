@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Entity\Trait;
+namespace UhifadhiLabs\Patrol\Entity\Trait;
 
 use Doctrine\ORM\Mapping as ORM;
 

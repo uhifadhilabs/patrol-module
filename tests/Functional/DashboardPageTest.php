@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Tests\Functional;
+namespace UhifadhiLabs\Patrol\Tests\Functional;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -10,8 +10,8 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Uhifadhi\Access\Entity\User;
 use Uhifadhi\Spatial\Entity\AreaOfInterest;
-use UhifadhiLabs\PatrolBundle\Entity\Observation;
-use UhifadhiLabs\PatrolBundle\Entity\Patrol;
+use UhifadhiLabs\Patrol\Entity\Observation;
+use UhifadhiLabs\Patrol\Entity\Patrol;
 
 /**
  * The patrols widget dashboard: the KPI strip, the coverage map payload, the
@@ -151,10 +151,10 @@ final class DashboardPageTest extends WebTestCase
 
         // Coverage map: both viewers carry the Stimulus controller, and the
         // payload holds the area boundary plus every track.
-        $maps = $crawler->filter('[data-controller="uhifadhilabs--patrol-bundle--coverage-map"]');
+        $maps = $crawler->filter('[data-controller="uhifadhilabs--patrol-module--coverage-map"]');
         self::assertCount(2, $maps);
         $payload = json_decode(
-            (string) $maps->first()->attr('data-uhifadhilabs--patrol-bundle--coverage-map-payload-value'),
+            (string) $maps->first()->attr('data-uhifadhilabs--patrol-module--coverage-map-payload-value'),
             true,
         );
         self::assertIsArray($payload);

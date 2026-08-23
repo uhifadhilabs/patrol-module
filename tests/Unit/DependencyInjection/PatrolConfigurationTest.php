@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Tests\Unit\DependencyInjection;
+namespace UhifadhiLabs\Patrol\Tests\Unit\DependencyInjection;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\Definition\Processor;
-use UhifadhiLabs\PatrolBundle\DependencyInjection\PatrolConfiguration;
+use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
 
 final class PatrolConfigurationTest extends TestCase
 {

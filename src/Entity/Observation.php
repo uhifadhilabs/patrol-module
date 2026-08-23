@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Entity;
+namespace UhifadhiLabs\Patrol\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Access\Entity\User;
-use UhifadhiLabs\PatrolBundle\Entity\Trait\TimestampableTrait;
-use UhifadhiLabs\PatrolBundle\Repository\ObservationRepository;
+use UhifadhiLabs\Patrol\Entity\Trait\TimestampableTrait;
+use UhifadhiLabs\Patrol\Repository\ObservationRepository;
 
 /**
  * A georeferenced field note logged en route — the patrol's eyes: a category

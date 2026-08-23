@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Repository;
+namespace UhifadhiLabs\Patrol\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Uhifadhi\Spatial\Entity\AreaOfInterest;
-use UhifadhiLabs\PatrolBundle\Entity\Patrol;
+use UhifadhiLabs\Patrol\Entity\Patrol;
 
 /**
  * @extends ServiceEntityRepository<Patrol>

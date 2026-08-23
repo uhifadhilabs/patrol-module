@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use UhifadhiLabs\PatrolBundle\Controller\PatrolController;
-use UhifadhiLabs\PatrolBundle\Controller\PatrolDetailController;
-use UhifadhiLabs\PatrolBundle\Repository\ObservationRepository;
-use UhifadhiLabs\PatrolBundle\Repository\PatrolRepository;
-use UhifadhiLabs\PatrolBundle\Service\GeoService;
-use UhifadhiLabs\PatrolBundle\Service\GpxParser;
-use UhifadhiLabs\PatrolBundle\Service\PatrolDashboardService;
-use UhifadhiLabs\PatrolBundle\Service\TrackIngestService;
+use UhifadhiLabs\Patrol\Controller\PatrolController;
+use UhifadhiLabs\Patrol\Controller\PatrolDetailController;
+use UhifadhiLabs\Patrol\Repository\ObservationRepository;
+use UhifadhiLabs\Patrol\Repository\PatrolRepository;
+use UhifadhiLabs\Patrol\Service\GeoService;
+use UhifadhiLabs\Patrol\Service\GpxParser;
+use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
+use UhifadhiLabs\Patrol\Service\TrackIngestService;
 
 /*
  * The bundle's static service wiring.

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Tests\Unit\Service;
+namespace UhifadhiLabs\Patrol\Tests\Unit\Service;
 
 use PHPUnit\Framework\TestCase;
-use UhifadhiLabs\PatrolBundle\Exception\InvalidGpxException;
-use UhifadhiLabs\PatrolBundle\Service\GpxParser;
+use UhifadhiLabs\Patrol\Exception\InvalidGpxException;
+use UhifadhiLabs\Patrol\Service\GpxParser;
 
 final class GpxParserTest extends TestCase
 {

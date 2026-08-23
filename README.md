@@ -1,4 +1,4 @@
-# uhifadhilabs/patrol-bundle
+# uhifadhilabs/patrol-module
 
 Field patrol effort as first-class records: GPX track ingest, en-route
 observations with photos, coverage mapping and a per-user widget dashboard.
@@ -32,7 +32,7 @@ A [uhifadhi](https://github.com/uhifadhilabs) module bundle.
 ## Installation
 
 ```bash
-composer require uhifadhilabs/patrol-bundle
+composer require uhifadhilabs/patrol-module
 ```
 
 The bundle maps its own entities and ships its own assets (AssetMapper) —

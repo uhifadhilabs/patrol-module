@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Tests\Unit\Module;
+namespace UhifadhiLabs\Patrol\Tests\Unit\Module;
 
 use PHPUnit\Framework\TestCase;
-use UhifadhiLabs\PatrolBundle\Controller\PatrolRecordController;
-use UhifadhiLabs\PatrolBundle\Module\PatrolModuleProvider;
+use UhifadhiLabs\Patrol\Controller\PatrolRecordController;
+use UhifadhiLabs\Patrol\Module\PatrolModuleProvider;
 
 final class PatrolModuleProviderTest extends TestCase
 {

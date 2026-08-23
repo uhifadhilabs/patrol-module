@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Model;
+namespace UhifadhiLabs\Patrol\Model;
 
-use UhifadhiLabs\PatrolBundle\Entity\Patrol;
+use UhifadhiLabs\Patrol\Entity\Patrol;
 
 /**
  * Everything the dashboard screen binds, in one immutable bag — computed by
- * {@see \UhifadhiLabs\PatrolBundle\Service\PatrolDashboardService}, consumed by
+ * {@see \UhifadhiLabs\Patrol\Service\PatrolDashboardService}, consumed by
  * the dashboard and widget-library templates (both render the same widgets).
  */
 final readonly class PatrolDashboard

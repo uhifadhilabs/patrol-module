@@ -42,7 +42,7 @@
    context (the observation screen). #}
 {% macro viewer(payload, label, olId, olSrc, olScale, extraClass) %}
     <div class="patrol-viewer patrol-plate-viewer {{ extraClass|default('') }}"
-         {{ stimulus_controller('@uhifadhilabs/patrol-bundle/track-plate', {payload: payload}) }}>
+         {{ stimulus_controller('@uhifadhilabs/patrol-module/track-plate', {payload: payload}) }}>
         <div class="patrol-canvas" data-patrol-track-plate role="img" aria-label="{{ label }}"></div>
         <span class="patrol-ol patrol-ol-id">{{ olId }}</span>
         <span class="patrol-ol patrol-ol-src">{{ olSrc }}</span>

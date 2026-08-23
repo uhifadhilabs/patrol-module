@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace UhifadhiLabs\PatrolBundle\Tests\Unit\Service;
+namespace UhifadhiLabs\Patrol\Tests\Unit\Service;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use UhifadhiLabs\PatrolBundle\Service\GeoService;
+use UhifadhiLabs\Patrol\Service\GeoService;
 
 /**
  * The position helpers behind the observation rows and the observation meta
