@@ -17,5 +17,13 @@ return (new PhpCsFixer\Config())
         // Keep inline `/** @var … */` hints (before return/assignment) as docblocks —
         // phpstan reads them; the default rule would downgrade them to `/* … */`.
         'phpdoc_to_comment' => ['ignored_tags' => ['var']],
+        'header_comment' => ['header' => <<<'EOF'
+This file is part of the UhifadhiLabs Patrol Module.
+
+(c) Ezekiel Mjema <https://github.com/eemjema>
+
+For the full copyright and license information, please view the LICENSE
+file that was distributed with this source code.
+EOF],
     ])
     ->setFinder($finder);
