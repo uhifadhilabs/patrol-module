@@ -46,23 +46,44 @@
     {%- if user -%}{{ user.firstName|first }}{{ user.lastName|first }}{%- else -%}··{%- endif -%}
 {% endmacro %}
 
-{# One filter row drives the map AND the log (the design places it on both
-   widgets). Counts are live; the filtering itself is not wired yet.
-   TODO(patrol_filtering): make the chips, the station menu and the period chip
-   actually filter the map + log.
+{# One filter row drives the map AND the log (the design's own caption). The
+   chips publish a `patrol:filter` document event; every coverage map and every
+   patrol list on the page answers it, and every other chip row re-marks itself,
+   so the row above the map and the row above the log always agree.
+
+   The counts stay server-rendered: filtering is a way of LOOKING at the month,
+   not a different month.
+   The type pills and the station menu both filter, client-side; each type pill
+   wears the colour of the tracks it filters, straight from typeColors().
+   TODO(patrol_period): the "this month ▾" chip still only labels the period —
+   changing it means fetching a different month, not hiding rows.
    DEFERRED(zones): the design's "zone ▾" chip needs a zone concept the bundle
    does not have — omitted rather than rendered dead. #}
-{% macro filters(dashboard, types) %}
-    <div class="patrol-chiprow">
-        <span class="mchip on">all · {{ dashboard.totalCount }}</span>
+{% macro filters(dashboard, types, typeColor) %}
+    <div class="patrol-chiprow" {{ stimulus_controller('@uhifadhilabs/patrol-module/filters') }}>
+        <button type="button" class="mchip on" data-patrol-type="all" aria-pressed="true"
+                {{ stimulus_target('@uhifadhilabs/patrol-module/filters', 'chip') }}
+                {{ stimulus_action('@uhifadhilabs/patrol-module/filters', 'choose') }}>all · {{ dashboard.totalCount }}</button>
         {% for key, type in types %}
-            <span class="mchip">{{ type.label|lower }} · {{ dashboard.typeCounts[key]|default(0) }}</span>
+            {# The pill wears the colour of the tracks it filters — the one
+               typeColors() map, never a second palette (the map-legend rule). #}
+            <button type="button" class="mchip patrol-tfilter" data-patrol-type="{{ key }}" aria-pressed="false"
+                    style="--patrol-track: {{ _self.color(typeColor, key) }}"
+                    {{ stimulus_target('@uhifadhilabs/patrol-module/filters', 'chip') }}
+                    {{ stimulus_action('@uhifadhilabs/patrol-module/filters', 'choose') }}><i></i>{{ type.label|lower }} · {{ dashboard.typeCounts[key]|default(0) }}</button>
         {% endfor %}
-        <details class="patrol-menu">
-            <summary class="mchip patrol-ghost">station ▾</summary>
+        <details class="patrol-menu" {{ stimulus_target('@uhifadhilabs/patrol-module/filters', 'stationMenu') }}>
+            <summary class="mchip patrol-ghost"><span {{ stimulus_target('@uhifadhilabs/patrol-module/filters', 'stationLabel') }}>station ▾</span></summary>
             <div class="patrol-menu-list">
+                {% if dashboard.stations|length %}
+                    <button type="button" class="patrol-menu-item on" data-patrol-station="all"
+                            {{ stimulus_target('@uhifadhilabs/patrol-module/filters', 'station') }}
+                            {{ stimulus_action('@uhifadhilabs/patrol-module/filters', 'chooseStation') }}>all stations</button>
+                {% endif %}
                 {% for station in dashboard.stations %}
-                    <span class="patrol-menu-item">{{ station }}</span>
+                    <button type="button" class="patrol-menu-item" data-patrol-station="{{ station }}"
+                            {{ stimulus_target('@uhifadhilabs/patrol-module/filters', 'station') }}
+                            {{ stimulus_action('@uhifadhilabs/patrol-module/filters', 'chooseStation') }}>{{ station }}</button>
                 {% else %}
                     <span class="patrol-menu-item patrol-menu-empty">no stations yet</span>
                 {% endfor %}
@@ -73,52 +94,53 @@
 {% endmacro %}
 
 {# The coverage viewer: the design's satellite frame (zoom column, layers menu,
-   fullscreen, scale pill, source label) around a canvas the Stimulus controller
-   takes over. The payload — the area boundary plus every patrol that HAS a
-   track — is built here rather than by the caller, so both viewers on the
-   dashboard and both on the library page carry exactly the same one. Both
-   geometries travel as GeoJSON text (the column type), parsed by the controller.
-   TODO(coverage-map controller): assets/controllers/coverage-map —
-   draw the boundary + every track from the payload on the Leaflet basemap.
-   DEFERRED(station-markers): the design labels each station on the map; stations
-   are free strings with no coordinates (docs/design-decisions.md §1). #}
-{% macro viewer(area, dashboard, typeColor, label, menuOpen) %}
-    {% set payload = {
-        boundary: area.geom,
-        patrols: dashboard.patrols|filter(patrol => patrol.track is not empty)|map(patrol => {
-            uuid: patrol.uuid.toRfc4122,
-            type: patrol.type,
-            color: _self.color(typeColor, patrol.type)|trim,
-            track: patrol.track,
-        })|reduce((carry, entry) => carry|merge([entry]), []),
-    } %}
+   fullscreen, source label) around a canvas the Stimulus controller turns into
+   a real Leaflet map — self-hosted, `window.L`, the SAME tile sources the host's
+   area map uses.
+
+   The payload is built by PatrolDashboardService::coveragePayload (boundary +
+   every patrol that actually recorded a track), so the dashboard's two maps and
+   the library's previews cannot be handed different data, and its shape is
+   unit-tested rather than assembled here in Twig.
+
+   The layer menu is CLOSED until the layers pill is clicked (the design file
+   draws it open for convenience; closed-by-default is the ruling).
+
+   Station markers carry the design's labels; a station has no coordinates of its
+   own (docs/design-decisions.md §1), so each is placed at the first recorded
+   point of a patrol that set out from it — see coveragePayload. #}
+{% macro viewer(payload, label) %}
     <div class="patrol-viewer"
          {{ stimulus_controller('@uhifadhilabs/patrol-module/coverage-map', {payload: payload}) }}>
-        <div class="patrol-canvas" data-patrol-coverage-map role="img" aria-label="{{ label }}"></div>
+        <div class="patrol-canvas" data-patrol-coverage-map role="img" aria-label="{{ label }}"
+             {{ stimulus_target('@uhifadhilabs/patrol-module/coverage-map', 'canvas') }}></div>
         <span class="patrol-ol patrol-ol-src">satellite · live · tracks this month</span>
-        <span class="patrol-ol patrol-ol-scale">5 km ⎯⎯⎯</span>
         <div class="patrol-zoomui">
-            <b>+</b>
-            <b>−</b>
-            <b class="on" title="Base layer: satellite or map"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg></b>
-            <b title="Fullscreen — legend floats bottom-right"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></b>
+            <b role="button" tabindex="0" title="Zoom in" aria-label="Zoom in"
+               {{ stimulus_action('@uhifadhilabs/patrol-module/coverage-map', 'zoomIn') }}>+</b>
+            <b role="button" tabindex="0" title="Zoom out" aria-label="Zoom out"
+               {{ stimulus_action('@uhifadhilabs/patrol-module/coverage-map', 'zoomOut') }}>−</b>
+            <b role="button" tabindex="0" aria-expanded="false" title="Base layer: satellite or map"
+               {{ stimulus_target('@uhifadhilabs/patrol-module/coverage-map', 'layerBtn') }}
+               {{ stimulus_action('@uhifadhilabs/patrol-module/coverage-map', 'toggleLayers') }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg></b>
+            <b role="button" tabindex="0" title="Fullscreen — legend floats bottom-right" aria-label="Fullscreen"
+               {{ stimulus_action('@uhifadhilabs/patrol-module/coverage-map', 'expand') }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></b>
         </div>
-        {% if menuOpen %}
-            <div class="patrol-laymenu">
-                <b class="on">Satellite</b>
-                <b>Map</b>
-            </div>
-        {% endif %}
+        <div class="patrol-laymenu" hidden {{ stimulus_target('@uhifadhilabs/patrol-module/coverage-map', 'layerMenu') }}>
+            <b class="on" role="button" tabindex="0" data-patrol-base="satellite"
+               {{ stimulus_action('@uhifadhilabs/patrol-module/coverage-map', 'showBase') }}>Satellite</b>
+            <b role="button" tabindex="0" data-patrol-base="osm"
+               {{ stimulus_action('@uhifadhilabs/patrol-module/coverage-map', 'showBase') }}>Map</b>
+        </div>
     </div>
 {% endmacro %}
 
 {# The map legend, identical under both viewers (host convention: every layer
-   ships a legend, and the same layer reads the same everywhere).
-   DEFERRED(station-markers): no "station" entry while stations have no
-   coordinates to plot. #}
+   ships a legend, and the same layer reads the same everywhere). #}
 {% macro legend(types, typeColor) %}
     <div class="patrol-legend">
         {% for key in types|keys %}{{ _self.type_chip(key, types, typeColor) }}{% endfor %}
-        <span class="patrol-note">patrol tracks may cross the boundary · in fullscreen this legend floats bottom-right (host convention)</span>
+        <span class="chip idle patrol-stationkey"><i></i>station</span>
+        <span class="patrol-note">patrol tracks may cross the boundary · a station sits where its patrols set out · in fullscreen this legend floats bottom-right (host convention)</span>
     </div>
 {% endmacro %}

@@ -138,6 +138,9 @@ final class ObservationDetailPageTest extends WebTestCase
         self::assertIsArray($payload);
         self::assertIsString($payload['track'] ?? null);
         self::assertStringContainsString('LineString', json_encode($payload['track'], \JSON_THROW_ON_ERROR));
+        // The area outline travels with the plate here too.
+        self::assertIsString($payload['boundary'] ?? null);
+        self::assertStringContainsString('MultiPolygon', $payload['boundary']);
         $ring = $payload['observation'] ?? null;
         self::assertIsArray($ring);
         self::assertSame(2, $ring['n'] ?? null);

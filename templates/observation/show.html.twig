@@ -42,8 +42,7 @@
             payload,
             'Observation ' ~ n ~ ' on patrol ' ~ patrol.ref,
             'obs ' ~ n ~ ' · ' ~ categoryLabel|lower ~ (observation.loggedAt ? ' · ' ~ observation.loggedAt|date('H:i') : ''),
-            'satellite · live · track shown for context',
-            '100 m'
+            'satellite · live · track shown for context'
         ) }}
         <div class="patrol-legend">
             <span class="chip warn">observation</span>

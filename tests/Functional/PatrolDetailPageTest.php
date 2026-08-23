@@ -156,8 +156,18 @@ final class PatrolDetailPageTest extends WebTestCase
         $ring = $rings[0];
         self::assertIsArray($ring);
         self::assertSame(1, $ring['n'] ?? null);
-        self::assertSame('maintenance', $ring['category'] ?? null);
+        // The deployment's WORD for the category, never the stored key: the ring
+        // tooltip reads like the chip under it.
+        self::assertSame('Maintenance need', $ring['category'] ?? null);
         self::assertStringContainsString('Point', json_encode($ring, \JSON_THROW_ON_ERROR));
+        // A ring is a way into its observation page.
+        self::assertIsString($ring['url'] ?? null);
+        self::assertStringContainsString('/observations/', $ring['url']);
+        // The plate draws the area outline the track is read against, and the
+        // track wears this patrol type's one colour.
+        self::assertIsString($payload['boundary'] ?? null);
+        self::assertStringContainsString('MultiPolygon', $payload['boundary']);
+        self::assertIsString($payload['color'] ?? null);
         self::assertStringContainsString($this->patrol->getRef().' · North post · walking round', $crawler->filter('.patrol-ol-id')->text());
 
         // PL·02 — meta rows, including the computed duration and average speed

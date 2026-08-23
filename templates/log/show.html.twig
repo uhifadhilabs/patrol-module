@@ -68,11 +68,10 @@
         <span class="tab"><span class="idx">PL·02</span>Route sketch<span class="src">· click to add points · double-click to finish</span></span>
         <span class="lib">optional</span>
         {{ ui.viewer(
-            {'track': null},
+            {'boundary': area.geom, 'track': null},
             'Route sketch',
             'no points yet',
             'sketched route · dashed until saved',
-            '500 m',
             'patrol-plate-viewer-tall'
         ) }}
         <div class="use"><b>Sketch, don’t fake precision</b> — a hand-drawn route is stored as a sketch, clearly distinct from GPX tracks; distance shows as approximate.</div>

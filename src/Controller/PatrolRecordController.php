@@ -179,7 +179,12 @@ final class PatrolRecordController
                 // Kept for the confirm submit; never echoed as anything but a
                 // hidden value.
                 'gpxData' => null !== $gpxXml ? base64_encode($gpxXml) : null,
-                'payload' => null !== $track ? ['track' => $track->toGeoJson()] : ['track' => null],
+                // The area outline is drawn under the parsed track, so an
+                // imported file can be seen to land inside the area.
+                'payload' => [
+                    'boundary' => $area->getGeom(),
+                    'track' => $track?->toGeoJson(),
+                ],
                 'gapThresholdMinutes' => $this->gapThresholdMinutes,
                 'error' => $error,
             ]),

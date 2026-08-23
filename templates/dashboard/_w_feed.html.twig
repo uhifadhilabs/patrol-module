@@ -1,10 +1,15 @@
-{# Widget "feed" — the patrol feed beside its mini-map (PL·07 + PL·08). #}
+{# Widget "feed" — the patrol feed beside its mini-map (PL·07 + PL·08). Hovering
+   a feed row spotlights that patrol's track on the map next to it, which is
+   what the design's "hover a row to highlight" caption promises. #}
 {% import '@UhifadhiLabsPatrol/dashboard/_ui.html.twig' as ui %}
 <div class="grid g32 patrol-flush">
-    <div class="c" data-patrol-feed>
+    <div class="c" data-patrol-feed {{ stimulus_controller('@uhifadhilabs/patrol-module/rows') }}>
         <span class="tab"><span class="idx">PL·07</span>Patrol feed<span class="src">· latest first</span></span>
         {% for patrol in dashboard.patrols %}
-            <div class="patrol-feed-row">
+            <div class="patrol-feed-row" data-patrol="{{ patrol.uuid.toRfc4122 }}" data-patrol-type="{{ patrol.type }}" data-patrol-station="{{ patrol.station }}"
+                 {{ stimulus_target('@uhifadhilabs/patrol-module/rows', 'row') }}
+                 {{ stimulus_action('@uhifadhilabs/patrol-module/rows', 'hover', 'mouseenter') }}
+                 {{ stimulus_action('@uhifadhilabs/patrol-module/rows', 'unhover', 'mouseleave') }}>
                 <span class="patrol-avatar">{{ ui.initials(patrol.lead) }}</span>
                 <span class="patrol-who">{{ patrol.ref }}<em>{{ patrol.station ?: '—' }} · {{ ui.lead_name(patrol.lead) }}</em></span>
                 {{ ui.type_chip(patrol.type, types, typeColor) }}
@@ -16,11 +21,14 @@
         {% else %}
             <p class="patrol-empty">No patrols recorded yet.</p>
         {% endfor %}
+        {% if dashboard.patrols|length %}
+            <p class="patrol-empty patrol-hidden" {{ stimulus_target('@uhifadhilabs/patrol-module/rows', 'empty') }}>No patrols of that type this month.</p>
+        {% endif %}
     </div>
 
     <div class="c">
         <span class="tab"><span class="idx">PL·08</span>Tracks<span class="src">· hover a row to highlight</span></span>
-        {{ ui.viewer(area, dashboard, typeColor, 'Patrol tracks', false) }}
+        {{ ui.viewer(coveragePayload, 'Patrol tracks') }}
         {{ ui.legend(types, typeColor) }}
     </div>
 </div>

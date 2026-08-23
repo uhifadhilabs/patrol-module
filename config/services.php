@@ -116,6 +116,7 @@ return static function (ContainerConfigurator $container): void {
     $services->set('patrol.controller.detail', PatrolDetailController::class)
         ->args([
             service('twig'),
+            service('router'),
             service('patrol.geo'),
             param('patrol.types'),
             param('patrol.observation_categories'),

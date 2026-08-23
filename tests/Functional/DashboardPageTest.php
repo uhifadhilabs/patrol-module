@@ -132,8 +132,12 @@ final class DashboardPageTest extends WebTestCase
 
         // Patrol log: one row per patrol, with the ref, the explicit lowercase
         // start ("sat 22 aug · 06:10"), the observation chip and Open →.
-        self::assertCount(3, $crawler->filter('[data-patrol-log] tbody tr'));
-        $row = $crawler->filter('[data-patrol="'.$this->walkWithObservations->getUuid()->toRfc4122().'"]');
+        self::assertCount(3, $crawler->filter('[data-patrol-log] tbody tr[data-patrol]'));
+        // Plus one row the rows controller reveals when a filter hides them all.
+        self::assertCount(1, $crawler->filter('[data-patrol-log] tbody tr.patrol-hidden'));
+        // Scoped to the log: the feed row (PL·07) carries the same identity, so
+        // the coverage map can spotlight a track from either list.
+        $row = $crawler->filter('[data-patrol-log] [data-patrol="'.$this->walkWithObservations->getUuid()->toRfc4122().'"]');
         self::assertCount(1, $row);
         self::assertStringContainsString($this->walkWithObservations->getRef(), $row->text());
         self::assertSame(
@@ -173,5 +177,38 @@ final class DashboardPageTest extends WebTestCase
         // Only the two patrols that actually recorded a track are drawn.
         self::assertCount(2, $payload['patrols']);
         self::assertStringContainsString('LineString', json_encode($payload['patrols'], \JSON_THROW_ON_ERROR));
+        // Each drawn track knows which patrol it is (the map tooltip and the
+        // row-hover spotlight both need it) and which colour to wear.
+        foreach ($payload['patrols'] as $entry) {
+            self::assertIsArray($entry);
+            self::assertArrayHasKey('ref', $entry);
+            self::assertArrayHasKey('uuid', $entry);
+            self::assertArrayHasKey('color', $entry);
+        }
+
+        // The layer menu ships CLOSED — it opens from the layers pill.
+        self::assertCount(2, $crawler->filter('.patrol-laymenu[hidden]'));
+
+        // The filter chips are real buttons carrying the type they select, so
+        // one filter can drive the map AND the log.
+        $chips = $crawler->filter('[data-w="map"] .patrol-chiprow button[data-patrol-type]');
+        self::assertCount(3, $chips); // all + the two configured types
+        self::assertSame('all', $chips->first()->attr('data-patrol-type'));
+
+        // The feed rows (PL·07) carry the same identity as the log rows: the
+        // design's "hover a row to highlight" works from either list.
+        self::assertCount(3, $crawler->filter('[data-patrol-feed] [data-patrol][data-patrol-type]'));
+
+        // Station markers: the design labels each station on the map. A station
+        // has no coordinates of its own, so only stations whose patrols recorded
+        // a track can be placed — and the rows state their station so the
+        // station menu filters the list as well as the map.
+        self::assertIsArray($payload['stations'] ?? null);
+        self::assertSame(['South landing', 'North post'], array_column($payload['stations'], 'name'));
+        self::assertCount(
+            1,
+            $crawler->filter('[data-patrol-log] .patrol-chiprow button[data-patrol-station="North post"]'),
+        );
+        self::assertCount(3, $crawler->filter('[data-patrol-log] tbody tr[data-patrol-station]'));
     }
 }

@@ -127,6 +127,53 @@ final class PatrolWidgetServiceTest extends TestCase
         self::assertSame(12, $prefs['widgets']['log']['cols']);
     }
 
+    public function testAPartialOrderRanksTheUnlistedWidgetsAfterTheListedOnes(): void
+    {
+        // The posted layout is never trusted to be complete: a stale page, or a
+        // release that added a widget, posts only what it knows about.
+        $prefs = PatrolWidgetService::validate([
+            'order' => ['cal', 'chstation'],
+            'widgets' => ['cal' => ['on' => true, 'cols' => 12]],
+        ]);
+
+        // Listed first, in the posted order; the rest appended in catalogue order
+        // — never lost, never colliding for a position.
+        self::assertSame(
+            ['cal', 'chstation', 'kpis', 'map', 'log', 'feed', 'chweek'],
+            $prefs['order'],
+        );
+        // Every catalogue widget is stored, so the row is a complete picture.
+        $stored = array_keys($prefs['widgets']);
+        $catalogue = array_keys(PatrolWidgetService::CATALOGUE);
+        sort($stored);
+        sort($catalogue);
+        self::assertSame($catalogue, $stored);
+        // A widget the payload never named keeps its design default.
+        self::assertSame(['on' => true, 'cols' => 12], $prefs['widgets']['map']);
+    }
+
+    public function testARepeatedWidgetIdIsRankedOnce(): void
+    {
+        $prefs = PatrolWidgetService::validate(['order' => ['cal', 'cal', 'map'], 'widgets' => []]);
+
+        self::assertSame(['cal', 'map', 'kpis', 'log', 'feed', 'chweek', 'chstation'], $prefs['order']);
+    }
+
+    public function testAStoredOrderMissingAWidgetStillResolvesIt(): void
+    {
+        // The same tolerance on the way out: a row written before a widget existed
+        // must still render that widget, ranked after the ones it does list.
+        $widgets = PatrolWidgetService::merge([
+            'order' => ['cal', 'map'],
+            'widgets' => ['cal' => ['on' => true, 'cols' => 12]],
+        ]);
+
+        self::assertSame(
+            ['cal', 'map', 'kpis', 'log', 'feed', 'chweek', 'chstation'],
+            array_column($widgets, 'id'),
+        );
+    }
+
     public function testAnUnknownWidgetIdIsRejected(): void
     {
         $this->expectException(InvalidWidgetPreferenceException::class);

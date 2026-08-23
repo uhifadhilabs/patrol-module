@@ -60,6 +60,10 @@ final class TestKernel extends Kernel
             // loginUser() needs a stateful firewall and flashes need a session;
             // the mock file storage is the documented test-env choice.
             'session' => ['storage_factory_id' => 'session.storage.factory.mock_file'],
+            // The widget library's two writes carry a CSRF token, so the token
+            // manager must exist here as it does in a real host (FrameworkBundle
+            // only defines it when csrf_protection is on).
+            'csrf_protection' => ['enabled' => true],
         ]);
 
         // A minimal but REAL security setup (see uhakiki-bundle's TestKernel for

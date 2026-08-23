@@ -153,6 +153,11 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
                     service('patrol.dashboard'),
                     service('patrol.widget_service'),
                     service('security.token_storage'),
+                    // Both writes are state-changing and reachable by a signed-in
+                    // browser, so both carry a CSRF token. FrameworkBundle defines
+                    // this id whenever symfony/security-csrf is installed, which a
+                    // host running SecurityBundle already has.
+                    service('security.csrf.token_manager'),
                     param('patrol.types'),
                 ])
                 ->public();

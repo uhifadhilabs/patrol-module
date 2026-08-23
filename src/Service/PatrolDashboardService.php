@@ -55,6 +55,89 @@ final class PatrolDashboardService
     }
 
     /**
+     * Everything the coverage map (PL·05) draws, in one JSON-safe bag: the area
+     * boundary and one entry per patrol that actually RECORDED a route. Built
+     * here rather than in Twig so its shape is unit-tested, and so the dashboard
+     * and the widget library can never hand their maps different data.
+     *
+     * Both geometries travel as the GeoJSON text the geometry columns store
+     * (postgis-bundle types) — the Stimulus controller parses them.
+     *
+     * A hand-logged patrol has no geometry (docs/design-decisions.md §4): it is
+     * left out entirely rather than drawn as a guess, and its absence must not
+     * leave a hole in the list (the entries are appended, never keyed).
+     *
+     * Stations are free strings with no coordinates of their own
+     * (docs/design-decisions.md §1), so the design's labelled station markers
+     * are placed at the best evidence there is: the FIRST recorded point of a
+     * patrol that set out from that station. A station whose patrols were all
+     * hand-logged therefore gets no marker — an invented position would be worse
+     * than none.
+     *
+     * @param string|null                         $boundary the area's geom as GeoJSON text, null where the area has none
+     * @param array<string, array{label: string}> $types    the deployment's patrol.types map
+     *
+     * @return array{boundary: string|null, patrols: list<array{uuid: string, ref: string, type: string, station: string, color: string, track: string}>, stations: list<array{name: string, lon: float, lat: float}>}
+     */
+    public function coveragePayload(?string $boundary, PatrolDashboard $dashboard, array $types): array
+    {
+        $colors = self::typeColors($types);
+
+        $tracks = [];
+        /** @var array<string, array{name: string, lon: float, lat: float}> $stations */
+        $stations = [];
+        foreach ($dashboard->patrols as $patrol) {
+            $track = $patrol->getTrack();
+            if (null === $track || '' === $track) {
+                continue;
+            }
+            $station = $patrol->getStation() ?? '';
+            $tracks[] = [
+                'uuid' => $patrol->getUuid()->toRfc4122(),
+                'ref' => $patrol->getRef(),
+                'type' => $patrol->getType(),
+                'station' => $station,
+                'color' => $colors[$patrol->getType()] ?? self::TRACK_COLORS[0],
+                'track' => $track,
+            ];
+
+            if ('' === $station || isset($stations[$station])) {
+                continue;
+            }
+            $start = self::firstPoint($track);
+            if (null !== $start) {
+                $stations[$station] = ['name' => $station, 'lon' => $start[0], 'lat' => $start[1]];
+            }
+        }
+
+        return ['boundary' => $boundary, 'patrols' => $tracks, 'stations' => array_values($stations)];
+    }
+
+    /**
+     * The first vertex of a GeoJSON (Multi)LineString as [lon, lat]; null for
+     * anything else, so a malformed column never becomes a marker.
+     *
+     * @return array{0: float, 1: float}|null
+     */
+    private static function firstPoint(string $lineString): ?array
+    {
+        $decoded = json_decode($lineString, true);
+        if (!\is_array($decoded) || !\is_array($decoded['coordinates'] ?? null)) {
+            return null;
+        }
+        $point = $decoded['coordinates'][0] ?? null;
+        // A MultiLineString nests one level deeper.
+        if (\is_array($point) && \is_array($point[0] ?? null)) {
+            $point = $point[0];
+        }
+        if (!\is_array($point) || !is_numeric($point[0] ?? null) || !is_numeric($point[1] ?? null)) {
+            return null;
+        }
+
+        return [(float) $point[0], (float) $point[1]];
+    }
+
+    /**
      * @param list<Patrol>                        $patrols latest first
      * @param array<string, array{label: string}> $types   the deployment's patrol.types map
      */

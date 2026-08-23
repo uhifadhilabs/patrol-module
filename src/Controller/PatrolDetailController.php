@@ -17,12 +17,14 @@ use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Twig\Environment;
 use Uhifadhi\Entity\AreaOfInterest;
 use UhifadhiLabs\Patrol\Entity\Observation;
 use UhifadhiLabs\Patrol\Entity\Patrol;
 use UhifadhiLabs\Patrol\Service\GeoService;
+use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
 
 /**
  * The two patrol detail screens (settled designs "detail" and "observation"):
@@ -48,6 +50,7 @@ final class PatrolDetailController
      */
     public function __construct(
         private readonly Environment $twig,
+        private readonly UrlGeneratorInterface $urls,
         private readonly GeoService $geo,
         private readonly array $types,
         private readonly array $categories,
@@ -78,12 +81,25 @@ final class PatrolDetailController
             // The plate payload: the recorded track plus the positioned
             // observations, which the controller draws as numbered rings.
             'payload' => [
+                // The area outline travels with every plate: a track is read
+                // AGAINST it, and it is all the plate can draw when a
+                // hand-logged patrol recorded no route at all.
+                'boundary' => $area->getGeom(),
                 'track' => $patrol->getTrack(),
+                // The one colour this patrol's type is drawn in everywhere.
+                'color' => $this->trackColor($patrol),
                 'observations' => array_values(array_map(
-                    static fn (array $row): array => [
+                    fn (array $row): array => [
                         'n' => $row['n'],
                         'position' => $row['position'],
-                        'category' => $row['observation']->getCategory(),
+                        'category' => $this->categoryLabel($row['observation']->getCategory()),
+                        // Clicking a ring opens that observation, exactly as the
+                        // row beneath the plate does.
+                        'url' => $this->urls->generate('patrol_observation_show', [
+                            'uuid' => $area->getUuid(),
+                            'patrol' => $patrol->getUuid(),
+                            'observation' => $row['observation']->getUuid(),
+                        ]),
                     ],
                     array_filter($rows, static fn (array $row): bool => null !== $row['position']),
                 )),
@@ -130,11 +146,13 @@ final class PatrolDetailController
             // The parent track travels with the payload as context (drawn
             // faded), so the observation reads as a point ON the patrol.
             'payload' => [
+                'boundary' => $area->getGeom(),
                 'track' => $patrol->getTrack(),
+                'color' => $this->trackColor($patrol),
                 'observation' => [
                     'n' => $row['n'],
                     'position' => $row['position'],
-                    'category' => $observation->getCategory(),
+                    'category' => $this->categoryLabel($observation->getCategory()),
                 ],
             ],
         ]));
@@ -163,6 +181,24 @@ final class PatrolDetailController
         }
 
         return $rows;
+    }
+
+    /**
+     * The colour this patrol's TYPE is drawn in — the same value the dashboard
+     * chips, the charts and the legend use, so one patrol never changes colour
+     * between the coverage map and its own plate.
+     */
+    private function trackColor(Patrol $patrol): string
+    {
+        $colors = PatrolDashboardService::typeColors($this->types);
+
+        return $colors[$patrol->getType()] ?? PatrolDashboardService::TRACK_COLORS[0];
+    }
+
+    /** The deployment's word for a category — never the stored key. */
+    private function categoryLabel(string $category): string
+    {
+        return $this->categories[$category]['label'] ?? $category;
     }
 
     /** Distance over elapsed time, km/h — stated only when both are known. */

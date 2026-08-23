@@ -33,7 +33,17 @@
         {# Not in the design, which has no way back to the defaults; a layout you
            can only edit forwards is a trap, so the reset the routes provide is
            offered here. #}
-        <button type="button" class="tgl patrol-act" data-patrol-reset><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Reset to defaults</button>
+        {# Throwing the whole layout away asks first, through the host's reusable
+           confirm-modal controller — see assets/controllers/confirm_modal_controller.js
+           in the host. The bundle only states WHAT to ask; the host owns the
+           dialog, so every module asks the same way. #}
+        <button type="button" class="tgl patrol-act" data-patrol-reset
+                data-controller="confirm-modal"
+                data-action="click->confirm-modal#ask"
+                data-confirm-modal-title-value="Reset your widget layout?"
+                data-confirm-modal-message-value="Your patrols dashboard goes back to the default widgets, widths and order. Your own arrangement for this area is discarded. This cannot be undone."
+                data-confirm-modal-confirm-label-value="Reset layout"
+                data-confirm-modal-danger-value="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Reset to defaults</button>
         <a class="cta" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">← Back to dashboard</a>
     </div>
 </div>
@@ -45,9 +55,18 @@
 <div class="patrol-lib"
      data-patrol-widgets
      data-patrol-save-url="{{ path('patrol_widgets_save', {uuid: area.uuid}) }}"
-     data-patrol-reset-url="{{ path('patrol_widgets_reset', {uuid: area.uuid}) }}">
+     data-patrol-reset-url="{{ path('patrol_widgets_reset', {uuid: area.uuid}) }}"
+     data-patrol-csrf-token="{{ csrfToken }}">
+    {# Saving is optimistic, so a refused save has to say so: public/widgets.js
+       rolls the page back to the last layout the server accepted and fills this
+       notice. Rendered empty and hidden, never built in JavaScript, so its
+       styling lives in patrol.css like everything else. #}
+    <p class="patrol-libnotice" data-patrol-notice role="alert" hidden></p>
+    {# draggable="false" until the grip is pressed (public/widgets.js): a card
+       that is always draggable makes its own text unselectable and its chips
+       awkward to click, and the grip is the affordance the design draws. #}
     {% for widget in widgets %}
-        <div class="patrol-libw" data-patrol-widget="{{ widget.id }}" data-patrol-on="{{ widget.on ? '1' : '0' }}" data-patrol-cols="{{ widget.cols }}">
+        <div class="patrol-libw" draggable="false" data-patrol-widget="{{ widget.id }}" data-patrol-on="{{ widget.on ? '1' : '0' }}" data-patrol-cols="{{ widget.cols }}">
             <div class="patrol-libh">
                 <b class="patrol-grip" data-patrol-grip title="Drag to set the widget's place on the dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg></b>
                 <span class="patrol-libnm">{{ widget.label }}</span>
@@ -58,9 +77,22 @@
                         <button type="button" class="mchip patrol-sp{{ widget.cols == span ? ' on' }}" data-patrol-span="{{ span }}" data-patrol-chosen="{{ widget.cols == span ? 'on' : 'off' }}">{{ spanLabels[span] }}</button>
                     {% endfor %}
                 </span>
-                <button type="button" class="tgl patrol-libtgl" data-patrol-toggle>{{ widget.on ? 'Remove from dashboard' : 'Add to dashboard' }}</button>
+                {# Both icons ship; patrol.css shows the one that matches
+                   data-patrol-on, so toggling needs no icon logic in JS. At the
+                   narrowest span the label is hidden and the title carries it. #}
+                <button type="button" class="tgl patrol-libtgl" data-patrol-toggle title="{{ widget.on ? 'Remove from dashboard' : 'Add to dashboard' }}">
+                    <svg class="patrol-tglicon patrol-tglicon-add" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                    <svg class="patrol-tglicon patrol-tglicon-rm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+                    <span data-patrol-toggle-label>{{ widget.on ? 'Remove from dashboard' : 'Add to dashboard' }}</span>
+                </button>
             </div>
-            {{ include('@UhifadhiLabsPatrol/dashboard/_w_' ~ widget.id ~ '.html.twig') }}
+            {# The CARD carries the width (see .patrol-lib in patrol.css), so this
+               wrapper is full-bleed inside it and never shrinks the widget a
+               second time. It stays as the hook that dims a switched-off widget
+               without dimming its own controls. #}
+            <div class="patrol-libpv" data-patrol-preview>
+                {{ include('@UhifadhiLabsPatrol/dashboard/_w_' ~ widget.id ~ '.html.twig') }}
+            </div>
         </div>
     {% endfor %}
 </div>

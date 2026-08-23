@@ -70,6 +70,12 @@ final class PatrolController
         // and the calendar title are stated relative to the SAME instant.
         $now = new \DateTimeImmutable();
 
+        $dashboard = $this->dashboard->build(
+            $this->patrols->findByAreaLatestFirst($area),
+            $this->types,
+            $now,
+        );
+
         return new Response($this->twig->render('@UhifadhiLabsPatrol/dashboard/show.html.twig', [
             'area' => $area,
             'types' => $this->types,
@@ -80,11 +86,9 @@ final class PatrolController
             // Which widgets this person keeps, how wide, in what order — the
             // design's own layout until they change it in the widget library.
             'widgets' => $this->widgets->resolve($area->getUuid(), $this->userId()),
-            'dashboard' => $this->dashboard->build(
-                $this->patrols->findByAreaLatestFirst($area),
-                $this->types,
-                $now,
-            ),
+            'dashboard' => $dashboard,
+            // What the coverage map draws — boundary + every recorded track.
+            'coveragePayload' => $this->dashboard->coveragePayload($area->getGeom(), $dashboard, $this->types),
         ]));
     }
 

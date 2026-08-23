@@ -36,13 +36,31 @@
 }
 
 /* ---- widget library ---------------------------------------------------- */
-/* The editing surface: one row per widget, the real widget underneath its own
-   controls. Stacked full width on purpose — the library shows what a widget IS,
-   not how wide it will sit; the width chips state that. */
+/* The editing surface IS the dashboard layout with editing chrome on top: the
+   same twelve columns, the same fractions and the same breakpoint as
+   .patrol-wgrid, so two half-width widgets sit side by side here exactly as they
+   will there. The span is read from the card's data-patrol-cols rather than a
+   class, so a width chip — which already rewrites that attribute — re-lays the
+   library live, with no JavaScript of its own. */
 .patrol-libintro { margin-bottom: 22px; }
-.patrol-lib { display: block; }
-.patrol-libw { margin-bottom: 34px; }
-.patrol-libh { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; }
+.patrol-lib {
+    display: grid; grid-template-columns: repeat(12, 1fr);
+    gap: 34px 20px; align-items: start;
+}
+.patrol-libw { grid-column: span 12; min-width: 0; }
+.patrol-libw[data-patrol-cols="9"] { grid-column: span 9; }
+.patrol-libw[data-patrol-cols="6"] { grid-column: span 6; }
+.patrol-libw[data-patrol-cols="3"] { grid-column: span 3; }
+/* The notice speaks for the whole library, never for one column of it. */
+.patrol-libnotice { grid-column: span 12; }
+@media (max-width: 980px) {
+    /* The dashboard makes every widget full width here, so the library must
+       stop promising a layout this viewport never renders. !important for the
+       same reason .patrol-wgrid needs it: the span rules above are
+       attribute-scoped and would otherwise out-specify this. */
+    .patrol-libw { grid-column: span 12 !important; }
+}
+.patrol-libh { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 0 0 14px; }
 .patrol-libnm { font-family: "Archivo", system-ui, sans-serif; font-weight: 700; font-size: 15px; }
 /* The host's .tgl already draws the chip; the library only pushes it to the far
    end of its row, as the design does. */
@@ -60,6 +78,39 @@
 /* The host's .mchip is an inline element; as a <button> it needs the font and
    the pointer stated, nothing else. */
 .patrol-sp { padding: 2px 8px; font-size: 9.5px; font-family: inherit; cursor: pointer; }
+/* A refused save, said out loud. Same shape as the host's .auth-error so a
+   failure reads the same wherever it happens; [hidden] is honoured explicitly
+   because the display below would otherwise override it. */
+.patrol-libnotice {
+    border: 1px solid color-mix(in srgb, rgb(var(--c-fail)) 45%, transparent);
+    background: color-mix(in srgb, rgb(var(--c-fail)) 8%, transparent);
+    color: rgb(var(--c-fail));
+    border-radius: 10px; padding: 10px 13px; font-size: 12px; margin-bottom: 18px;
+    display: flex; align-items: center; gap: 8px;
+}
+.patrol-libnotice[hidden] { display: none; }
+
+/* The CARD owns the width now, so the preview is full-bleed inside it — never a
+   second shrink. It stays as the hook that dims a switched-off widget without
+   dimming the controls that switch it back on. */
+.patrol-libpv { min-width: 0; }
+.patrol-libw[data-patrol-on="0"] .patrol-libpv { opacity: .38; filter: grayscale(.55); }
+/* Off means off: the preview is a picture, not a live control surface. */
+.patrol-libw[data-patrol-on="0"] .patrol-libpv { pointer-events: none; }
+
+/* Chrome on a narrow card. The controls must survive a quarter-width column, so
+   the row wraps first, then sheds its least load-bearing parts: the "width"
+   caption goes, then the toggle's words — whose title attribute still carries
+   them, and whose icon says add-or-remove on its own. */
+.patrol-tglicon { width: 13px; height: 13px; flex: none; }
+.patrol-libw[data-patrol-on="1"] .patrol-tglicon-add,
+.patrol-libw[data-patrol-on="0"] .patrol-tglicon-rm { display: none; }
+.patrol-libw[data-patrol-cols="3"] .patrol-libnm { font-size: 13px; }
+.patrol-libw[data-patrol-cols="3"] .patrol-lblw,
+.patrol-libw[data-patrol-cols="6"] .patrol-lblw { display: none; }
+.patrol-libw[data-patrol-cols="3"] .patrol-libc { margin-left: 0; }
+.patrol-libw[data-patrol-cols="3"] [data-patrol-toggle-label] { display: none; }
+.patrol-libw[data-patrol-cols="3"] .patrol-libtgl { padding: 5px 8px; }
 
 /* ---- widget library: drag states --------------------------------------- */
 /* Three states, each answering a different question mid-drag: WHICH widget is in
@@ -76,17 +127,37 @@
 /* The ghost must not swallow the dragover events aimed at the cards under the
    cursor — without this the pointer never "reaches" its neighbours. */
 .patrol-libw.patrol-dragging * { pointer-events: none; }
+/* In grid flow the slot is a grid item, so it shows the FOOTPRINT the widget
+   will take — public/widgets.js copies the dragged card's span onto it. A
+   full-width bar between two half-width cards would promise the wrong landing. */
 .patrol-dropslot {
-    height: 12px;
-    margin-bottom: 34px;
+    grid-column: span 12;
+    min-height: 96px;
     border: 2px dashed rgb(var(--c-acc));
-    border-radius: 8px;
+    border-radius: 10px;
     background: color-mix(in srgb, rgb(var(--c-acc)) 16%, transparent);
+}
+.patrol-dropslot[data-patrol-cols="9"] { grid-column: span 9; }
+.patrol-dropslot[data-patrol-cols="6"] { grid-column: span 6; }
+.patrol-dropslot[data-patrol-cols="3"] { grid-column: span 3; }
+@media (max-width: 980px) {
+    .patrol-dropslot { grid-column: span 12 !important; }
 }
 .patrol-libw.patrol-droptarget {
     outline: 1px dashed color-mix(in srgb, rgb(var(--c-acc)) 55%, transparent);
     outline-offset: 8px;
     border-radius: 12px;
+}
+/* The transition half of the FLIP in public/widgets.js: the script measures the
+   move and writes the inverted transform (a per-element pixel offset no
+   stylesheet can hold), this rule plays it back. Added only for the length of a
+   slide, so a card that is not moving carries no transition at all.
+   Keep in step with SLIDE_MS in public/widgets.js. */
+.patrol-libw.patrol-sliding { transition: transform 160ms ease; }
+/* Belt and braces beside the script's own prefers-reduced-motion check: if the
+   class is ever applied, it still must not animate. */
+@media (prefers-reduced-motion: reduce) {
+    .patrol-libw.patrol-sliding { transition: none; }
 }
 
 /* ---- page header actions ---------------------------------------------- */
@@ -96,6 +167,22 @@
 
 /* ---- filter chip row + station menu ----------------------------------- */
 .patrol-chiprow { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 12px; align-items: center; }
+/* The type chips are real <button>s (they change what is on screen, and they
+   must be keyboard reachable); the host's .mchip is an inline span, so they
+   restate only the font and the pointer. */
+.patrol-chiprow > button.mchip { font-family: inherit; cursor: pointer; }
+/* A type pill wears the colour of the tracks it filters. --patrol-track is set
+   inline from typeColors(), so a palette change sweeps from that ONE map — the
+   legend, the chips, the charts and the tracks can never disagree. */
+.patrol-tfilter { display: inline-flex; align-items: center; gap: 6px; }
+.patrol-tfilter i { width: 7px; height: 7px; border-radius: 50%; background: var(--patrol-track); flex: none; }
+.patrol-tfilter:hover { border-color: color-mix(in srgb, var(--patrol-track) 55%, transparent); }
+.patrol-tfilter.on,
+.patrol-tfilter.on:hover {
+    color: var(--patrol-track);
+    border-color: var(--patrol-track);
+    background: color-mix(in srgb, var(--patrol-track) 12%, transparent);
+}
 /* The host has .mchip.on and .mchip.add but no dashed "not chosen yet" state. */
 .patrol-ghost { border-style: dashed; color: rgb(var(--c-fog)); cursor: pointer; }
 .patrol-menu { position: relative; display: inline-flex; }
@@ -111,6 +198,13 @@
     font-size: 11.5px; color: rgb(var(--c-tx)); padding: 5px 8px; border-radius: 7px;
     white-space: nowrap; cursor: pointer;
 }
+/* The station items are real <button>s (they change what is on screen); the
+   host's menu-item look is a span, so they restate the reset only. */
+button.patrol-menu-item {
+    font-family: inherit; text-align: left; border: 0; background: none; width: 100%;
+}
+.patrol-menu-item.on { background: rgb(var(--c-raised)); color: rgb(var(--c-acc)); }
+.patrol-menu.patrol-menu-chosen > summary { border-style: solid; color: rgb(var(--c-tx)); }
 .patrol-menu-item:hover { background: rgb(var(--c-raised)); }
 .patrol-menu-empty { color: rgb(var(--c-dim)); cursor: default; }
 .patrol-menu-empty:hover { background: none; }
@@ -120,23 +214,87 @@
    config, so its colour cannot be a fixed class. */
 .patrol-tchip { color: var(--patrol-track); border-color: color-mix(in srgb, var(--patrol-track) 45%, transparent); }
 .patrol-legend { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+/* The legend's station key wears the marker's own square, so the legend and the
+   map cannot describe stations differently. */
+.patrol-stationkey { display: inline-flex; align-items: center; gap: 6px; }
+.patrol-stationkey i { width: 7px; height: 7px; border-radius: 2px; background: #b9c8bd; flex: none; }
 .patrol-note { font: 500 9.5px var(--font-mono); color: rgb(var(--c-dim)); }
 .patrol-ref { font: 600 11px var(--font-mono); }
 .patrol-right { text-align: right; }
 .patrol-empty { font-size: 12px; color: rgb(var(--c-fog)); line-height: 1.5; }
 
 /* ---- the imagery viewer (fixed dark chrome over satellite tiles) -------- */
-/* Same plate proportions as the design's 760x600 frame, with a fixed dark
-   ground so tiles never flash the theme background while loading. */
-.patrol-viewer { position: relative; border-radius: 10px; overflow: hidden; background: #20241f; aspect-ratio: 760 / 600; isolation: isolate; }
+/* The design's own map height, read off its markup rather than eyeballed: the
+   dashboard's coverage frames (PL·05 and PL·08) are height:min(56vh,540px). A
+   Leaflet canvas needs a stated height anyway — with an aspect-ratio instead,
+   a wide widget grew far taller than the design.
+   The fixed dark ground stops tiles flashing the theme background while they
+   load. */
+.patrol-viewer {
+    position: relative; border-radius: 10px; overflow: hidden;
+    background: #20241f; height: min(56vh, 540px); isolation: isolate;
+}
 .patrol-canvas { position: absolute; inset: 0; isolation: isolate; }
+/* Leaflet paints its own ground; the plate's dark ground must show through
+   while tiles load, and the container must never be white in light theme. */
+.patrol-canvas .leaflet-container { width: 100%; height: 100%; background: #20241f; font: inherit; }
+/* The attribution and the live scale bar wear the design's overlay pill — the
+   scale replaces the design's static "500 m ⎯⎯⎯" label, which would be a lie on
+   a map that zooms. */
+.patrol-canvas .leaflet-control-attribution,
+.patrol-canvas .leaflet-control-scale-line {
+    font: 600 9px var(--font-mono); color: #eaf2ec; letter-spacing: .04em;
+    background: rgba(10, 14, 11, .72); border: 1px solid rgba(234, 242, 236, .18);
+    border-radius: 6px; padding: 3px 7px;
+}
+.patrol-canvas .leaflet-control-attribution a { color: #eaf2ec; }
+.patrol-canvas .leaflet-control-scale-line { border-top: 0; }
+.patrol-canvas .leaflet-tooltip {
+    font: 600 10px var(--font-mono); color: #eaf2ec; background: rgba(10, 14, 11, .88);
+    border: 1px solid rgba(234, 242, 236, .18); border-radius: 6px; box-shadow: none;
+}
+.patrol-canvas .leaflet-tooltip::before { display: none; }
+
+/* The scroll bargain: a plain wheel over a plate scrolls the page and flashes
+   this hint; Ctrl/⌘ + wheel zooms. In full screen the hint never appears,
+   because there the wheel zooms outright. */
+.patrol-wheelhint {
+    position: absolute; inset: 0; z-index: 7; display: grid; place-items: center;
+    font: 600 12px var(--font-mono); color: #eaf2ec; letter-spacing: .04em;
+    background: rgba(10, 14, 11, .55); pointer-events: none;
+    opacity: 0; transition: opacity 180ms ease;
+}
+.patrol-wheelhint.on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+    .patrol-wheelhint { transition: none; }
+}
+
+/* A station: the design's small light square with the station's name beside it
+   (fixed hexes — it sits on imagery, dark in both themes). Not interactive: a
+   station is a label on the map, and the chip menu is where it is chosen. */
+.patrol-station { display: flex; align-items: center; gap: 4px; white-space: nowrap; pointer-events: none; }
+.patrol-station i { width: 8px; height: 8px; border-radius: 2px; background: #b9c8bd; flex: none; }
+.patrol-station b {
+    font: 600 9px var(--font-mono); color: #d7e2d9;
+    text-shadow: 0 1px 2px rgba(10, 14, 11, .9);
+}
+
+/* An observation: the design's dashed amber ring with its number above it. The
+   amber is a fixed hex, not the theme's --c-warn, for the same reason the track
+   colours are fixed — it is drawn over imagery, which is dark in both themes. */
+.patrol-ring { display: grid; place-items: center; }
+.patrol-ring span {
+    display: grid; place-items: center; width: 14px; height: 14px;
+    border: 1.6px dashed #dba33f; border-radius: 50%;
+    font: 700 8px var(--font-mono); color: #dba33f;
+    background: rgba(10, 14, 11, .55);
+}
 .patrol-ol {
     position: absolute; z-index: 5; font: 600 10px var(--font-mono); color: #eaf2ec;
     background: rgba(10, 14, 11, .72); border: 1px solid rgba(234, 242, 236, .18);
     border-radius: 6px; padding: 4px 8px; letter-spacing: .04em; pointer-events: none;
 }
 .patrol-ol-src { left: 10px; bottom: 10px; }
-.patrol-ol-scale { right: 10px; bottom: 10px; }
 .patrol-zoomui { position: absolute; z-index: 6; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; }
 .patrol-zoomui b {
     width: 26px; height: 26px; display: grid; place-items: center;
@@ -145,6 +303,10 @@
 }
 .patrol-zoomui b svg { width: 14px; height: 14px; }
 .patrol-zoomui b.on { background: rgb(var(--c-acc)); color: rgb(var(--c-accT)); border-color: transparent; }
+/* Closed until the layers pill opens it: the design file draws the menu open for
+   convenience, but a menu that is always open is not a menu. `hidden` alone
+   loses to the display below, so it is stated. */
+.patrol-laymenu[hidden] { display: none; }
 .patrol-laymenu {
     position: absolute; z-index: 6; right: 44px; top: 74px;
     display: flex; flex-direction: column; gap: 2px; padding: 4px;
@@ -155,6 +317,24 @@
     color: #eaf2ec; padding: 5px 9px; border-radius: 6px; cursor: pointer;
 }
 .patrol-laymenu b.on { background: rgb(var(--c-acc)); color: rgb(var(--c-accT)); }
+
+/* ---- fullscreen: the whole widget card goes up ------------------------- */
+/* The chips and the legend are part of reading the map, so the card expands,
+   not the tiles alone — and the design says the legend floats bottom-right in
+   full screen (the host's own convention: every layer ships a legend). */
+.c:fullscreen { position: relative; display: flex; flex-direction: column; background: rgb(var(--c-cv)); padding: 16px; }
+.c:fullscreen .patrol-viewer { flex: 1; height: auto; min-height: 0; }
+.c:fullscreen .patrol-legend {
+    position: absolute; right: 26px; bottom: 26px; z-index: 8; margin: 0; max-width: 40ch;
+    background: rgba(10, 14, 11, .82); border: 1px solid rgba(234, 242, 236, .18);
+    border-radius: 10px; padding: 8px 10px;
+}
+.c:fullscreen .patrol-legend .patrol-note { color: rgba(234, 242, 236, .65); }
+
+/* ---- rows a filter can hide -------------------------------------------- */
+/* One class for a table row and a feed row alike: the rows controller toggles
+   it, and `hidden` alone would lose to the rows' own display rules. */
+.patrol-hidden { display: none !important; }
 
 /* ---- patrol feed rows (PL·07) ------------------------------------------ */
 /* Named patrol-* rather than reusing the host's .avatar/.who: the host's .who is
@@ -200,11 +380,10 @@
 .patrol-side { flex: 1.1; min-width: 300px; display: flex; flex-direction: column; gap: 16px; }
 .patrol-side > .c { margin-bottom: 0; }
 .patrol-side-spacer { gap: 0; }
-/* Inside a plate the viewer fills the remaining card height (so plate and
-   sidebar end level) instead of keeping the dashboard's fixed aspect ratio. */
-.patrol-plate .patrol-plate-viewer { flex: 1; aspect-ratio: auto; min-height: min(46vh, 440px); }
-/* The track plate is the taller of the two (the design's 58vh vs 46vh). */
-.patrol-plate .patrol-plate-viewer-tall { min-height: min(58vh, 560px); }
+/* Each plate keeps the design's own frame height rather than stretching to the
+   sidebar: the observation plate min(46vh,440px), the track plate min(58vh,560px). */
+.patrol-plate .patrol-plate-viewer { flex: none; height: min(46vh, 440px); }
+.patrol-plate .patrol-plate-viewer-tall { height: min(58vh, 560px); }
 .patrol-ol-id { left: 10px; top: 10px; }
 
 /* ---- meta rows (PL·02) -------------------------------------------------- */

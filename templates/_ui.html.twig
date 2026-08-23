@@ -34,28 +34,39 @@
 {% endmacro %}
 
 {# The detail plates' viewer: the same satellite frame the dashboard uses (zoom
-   column, layers menu, fullscreen, scale pill, source label) around a canvas the
-   Stimulus controller takes over.
-   TODO(track-plate controller): assets/controllers/track-plate — draw the track
-   from the payload on the Leaflet basemap, then the observation position(s) as
-   numbered amber rings (the patrol screen) or one ring with the track faded for
-   context (the observation screen). #}
-{% macro viewer(payload, label, olId, olSrc, olScale, extraClass) %}
+   column, layers menu, fullscreen, source label) around a canvas the track-plate
+   Stimulus controller turns into a real Leaflet map. It draws the area outline,
+   the track, ● start / ○ end and the numbered amber observation rings — or, on
+   the observation screen, one ring with the track faded for context.
+
+   The design's static scale label is gone: the plate zooms, so a fixed "500 m"
+   would be a lie. Leaflet's live scale bar sits in its place (patrol.css styles
+   it as the design's pill).
+
+   The layer menu is CLOSED until the layers pill is clicked. #}
+{% macro viewer(payload, label, olId, olSrc, extraClass) %}
     <div class="patrol-viewer patrol-plate-viewer {{ extraClass|default('') }}"
          {{ stimulus_controller('@uhifadhilabs/patrol-module/track-plate', {payload: payload}) }}>
-        <div class="patrol-canvas" data-patrol-track-plate role="img" aria-label="{{ label }}"></div>
+        <div class="patrol-canvas" data-patrol-track-plate role="img" aria-label="{{ label }}"
+             {{ stimulus_target('@uhifadhilabs/patrol-module/track-plate', 'canvas') }}></div>
         <span class="patrol-ol patrol-ol-id">{{ olId }}</span>
         <span class="patrol-ol patrol-ol-src">{{ olSrc }}</span>
-        <span class="patrol-ol patrol-ol-scale">{{ olScale }} ⎯⎯⎯</span>
         <div class="patrol-zoomui">
-            <b>+</b>
-            <b>−</b>
-            <b class="on" title="Base layer: satellite or map"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg></b>
-            <b title="Fullscreen — legend floats bottom-right"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></b>
+            <b role="button" tabindex="0" title="Zoom in" aria-label="Zoom in"
+               {{ stimulus_action('@uhifadhilabs/patrol-module/track-plate', 'zoomIn') }}>+</b>
+            <b role="button" tabindex="0" title="Zoom out" aria-label="Zoom out"
+               {{ stimulus_action('@uhifadhilabs/patrol-module/track-plate', 'zoomOut') }}>−</b>
+            <b role="button" tabindex="0" aria-expanded="false" title="Base layer: satellite or map"
+               {{ stimulus_target('@uhifadhilabs/patrol-module/track-plate', 'layerBtn') }}
+               {{ stimulus_action('@uhifadhilabs/patrol-module/track-plate', 'toggleLayers') }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg></b>
+            <b role="button" tabindex="0" title="Fullscreen — legend floats bottom-right" aria-label="Fullscreen"
+               {{ stimulus_action('@uhifadhilabs/patrol-module/track-plate', 'expand') }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></b>
         </div>
-        <div class="patrol-laymenu">
-            <b class="on">Satellite</b>
-            <b>Map</b>
+        <div class="patrol-laymenu" hidden {{ stimulus_target('@uhifadhilabs/patrol-module/track-plate', 'layerMenu') }}>
+            <b class="on" role="button" tabindex="0" data-patrol-base="satellite"
+               {{ stimulus_action('@uhifadhilabs/patrol-module/track-plate', 'showBase') }}>Satellite</b>
+            <b role="button" tabindex="0" data-patrol-base="osm"
+               {{ stimulus_action('@uhifadhilabs/patrol-module/track-plate', 'showBase') }}>Map</b>
         </div>
     </div>
 {% endmacro %}

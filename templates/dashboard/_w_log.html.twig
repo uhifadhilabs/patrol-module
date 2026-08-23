@@ -1,8 +1,8 @@
 {# Widget "log" — the patrol log table (PL·06). #}
 {% import '@UhifadhiLabsPatrol/dashboard/_ui.html.twig' as ui %}
-<div class="c" data-patrol-log>
+<div class="c" data-patrol-log {{ stimulus_controller('@uhifadhilabs/patrol-module/rows') }}>
     <span class="tab"><span class="idx">PL·06</span>Patrol log<span class="src">· patrol · latest {{ dashboard.patrols|length }}</span></span>
-    {{ ui.filters(dashboard, types) }}
+    {{ ui.filters(dashboard, types, typeColor) }}
     <table class="tbl">
         <thead>
             <tr>
@@ -19,7 +19,10 @@
         </thead>
         <tbody>
         {% for patrol in dashboard.patrols %}
-            <tr data-patrol="{{ patrol.uuid.toRfc4122 }}">
+            <tr data-patrol="{{ patrol.uuid.toRfc4122 }}" data-patrol-type="{{ patrol.type }}" data-patrol-station="{{ patrol.station }}"
+                {{ stimulus_target('@uhifadhilabs/patrol-module/rows', 'row') }}
+                {{ stimulus_action('@uhifadhilabs/patrol-module/rows', 'hover', 'mouseenter') }}
+                {{ stimulus_action('@uhifadhilabs/patrol-module/rows', 'unhover', 'mouseleave') }}>
                 <td><span class="mono patrol-ref">{{ patrol.ref }}</span></td>
                 <td>{{ ui.type_chip(patrol.type, types, typeColor) }}</td>
                 <td>{{ patrol.station ?: '—' }}</td>
@@ -39,6 +42,10 @@
         {% else %}
             <tr><td colspan="9">No patrols recorded yet.</td></tr>
         {% endfor %}
+        {% if dashboard.patrols|length %}
+            {# Shown by the rows controller when a filter hides every row. #}
+            <tr class="patrol-hidden" {{ stimulus_target('@uhifadhilabs/patrol-module/rows', 'empty') }}><td colspan="9">No patrols of that type this month.</td></tr>
+        {% endif %}
         </tbody>
     </table>
 </div>

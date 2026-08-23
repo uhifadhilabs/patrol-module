@@ -17,8 +17,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
+use UhifadhiLabs\Patrol\Controller\PatrolWidgetsController;
 use UhifadhiLabs\Patrol\Entity\Patrol;
 use UhifadhiLabs\Patrol\Entity\WidgetPreference;
 
@@ -119,7 +121,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
         // The preview IS the widget: the same partials the dashboard renders, with
         // live data — not a thumbnail.
         self::assertCount(1, $crawler->filter('[data-patrol-widget="kpis"] [data-kpi="month"]'));
-        self::assertCount(1, $crawler->filter('[data-patrol-widget="log"] [data-patrol-log] tbody tr'));
+        self::assertCount(1, $crawler->filter('[data-patrol-widget="log"] [data-patrol-log] tbody tr[data-patrol]'));
         self::assertCount(42, $crawler->filter('[data-patrol-widget="cal"] .patrol-dc'));
         self::assertStringContainsString('North post', (string) $crawler->filter('[data-patrol-widget="chstation"]')->text());
     }
@@ -190,7 +192,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
         ]);
         self::assertResponseStatusCodeSame(204);
 
-        $this->client->request('POST', $this->libraryUrl().'/reset');
+        $this->postReset();
         self::assertResponseStatusCodeSame(204);
 
         self::assertCount(0, $this->em->getRepository(WidgetPreference::class)->findAll());
@@ -217,14 +219,160 @@ final class WidgetLibraryFlowTest extends WebTestCase
     public function testABodyThatIsNotJsonIsRefused(): void
     {
         $this->client->loginUser($this->ranger);
+        $token = $this->csrfToken();
         $this->client->request(
             'POST',
             $this->libraryUrl(),
-            server: ['CONTENT_TYPE' => 'application/json'],
+            server: [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_CSRF_TOKEN' => $token,
+            ],
             content: 'not json at all',
         );
 
         self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testSavingWithoutACsrfTokenIsRefused(): void
+    {
+        $this->client->loginUser($this->ranger);
+        $this->postJson($this->libraryUrl(), [
+            'order' => ['cal'],
+            'widgets' => ['map' => ['on' => false, 'cols' => 12]],
+        ], token: '');
+
+        self::assertResponseStatusCodeSame(403);
+        self::assertCount(0, $this->em->getRepository(WidgetPreference::class)->findAll());
+    }
+
+    public function testSavingWithAnotherAreasCsrfTokenIsRefused(): void
+    {
+        $other = new AreaOfInterest()->setName('other reserve')->setGeom(
+            '{"type":"MultiPolygon","coordinates":[[[[1.0,1.0],[1.2,1.0],[1.2,1.2],[1.0,1.2],[1.0,1.0]]]]}',
+        );
+        $this->em->persist($other);
+        $this->em->flush();
+
+        $this->client->loginUser($this->ranger);
+        // The token is scoped per area, so one area's library cannot rearrange
+        // another's.
+        $crawler = $this->client->request('GET', '/areas/'.$other->getUuid()->toRfc4122().'/modules/patrols/widgets');
+        $otherToken = (string) $crawler->filter('[data-patrol-widgets]')->attr('data-patrol-csrf-token');
+
+        $this->postJson($this->libraryUrl(), [
+            'order' => ['cal'],
+            'widgets' => [],
+        ], token: $otherToken);
+
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testResettingWithoutACsrfTokenIsRefused(): void
+    {
+        $this->client->loginUser($this->ranger);
+        $this->postJson($this->libraryUrl(), [
+            'order' => ['cal'],
+            'widgets' => ['map' => ['on' => false, 'cols' => 12]],
+        ]);
+        self::assertResponseStatusCodeSame(204);
+
+        $this->postReset('');
+
+        self::assertResponseStatusCodeSame(403);
+        // The layout survived the refused reset.
+        self::assertCount(1, $this->em->getRepository(WidgetPreference::class)->findAll());
+    }
+
+    public function testTheLibraryCardsCarryTheChosenSpanSoTheyComposeLikeTheDashboard(): void
+    {
+        $this->client->loginUser($this->ranger);
+        $this->postJson($this->libraryUrl(), [
+            'order' => ['chweek', 'chstation', 'map'],
+            'widgets' => [
+                'chweek' => ['on' => true, 'cols' => 6],
+                'chstation' => ['on' => true, 'cols' => 6],
+                'map' => ['on' => true, 'cols' => 9],
+            ],
+        ]);
+        self::assertResponseStatusCodeSame(204);
+
+        $crawler = $this->client->request('GET', $this->libraryUrl());
+        $dashboard = $this->client->request('GET', $this->dashboardUrl());
+
+        // The CARD carries the span — patrol.css lays .patrol-lib out on the same
+        // twelve columns as the dashboard, so the two half-width charts sit side
+        // by side in the library exactly as they do on the dashboard.
+        $librarySpans = [];
+        $libraryCards = $crawler->filter('.patrol-lib > [data-patrol-widget]');
+        $librarySpans = array_combine(
+            $libraryCards->each(static fn (Crawler $card) => (string) $card->attr('data-patrol-widget')),
+            $libraryCards->each(static fn (Crawler $card) => (string) $card->attr('data-patrol-cols')),
+        );
+        self::assertSame('6', $librarySpans['chweek']);
+        self::assertSame('6', $librarySpans['chstation']);
+        self::assertSame('9', $librarySpans['map']);
+
+        // Same widths, same order, both screens — the library IS the dashboard
+        // layout with editing chrome.
+        $dashboardWidgets = $dashboard->filter('.patrol-wgrid > [data-w]');
+        $dashboardSpans = array_combine(
+            $dashboardWidgets->each(static fn (Crawler $widget) => (string) $widget->attr('data-w')),
+            $dashboardWidgets->each(static fn (Crawler $widget) => (string) $widget->attr('class')),
+        );
+        self::assertStringContainsString('patrol-w6', $dashboardSpans['chweek']);
+        self::assertStringContainsString('patrol-w6', $dashboardSpans['chstation']);
+        self::assertStringContainsString('patrol-w9', $dashboardSpans['map']);
+        self::assertSame(array_keys($librarySpans), array_keys($dashboardSpans));
+
+        // The preview wrapper survives as the dim-when-off hook, but no longer
+        // narrows anything — the card is the width now, so nothing shrinks twice.
+        self::assertCount(
+            \count(self::WIDGET_IDS),
+            $crawler->filter('[data-patrol-widget] > [data-patrol-preview]'),
+        );
+        // The chrome is the preview's sibling, never inside it, so switching a
+        // widget off dims the widget and not the control that switches it back.
+        self::assertCount(0, $crawler->filter('[data-patrol-preview] [data-patrol-toggle]'));
+    }
+
+    public function testASwitchedOffWidgetStaysInTheLibraryAtItsSpan(): void
+    {
+        $this->client->loginUser($this->ranger);
+        $this->postJson($this->libraryUrl(), [
+            'order' => [],
+            'widgets' => ['map' => ['on' => false, 'cols' => 6]],
+        ]);
+        self::assertResponseStatusCodeSame(204);
+
+        $crawler = $this->client->request('GET', $this->libraryUrl());
+
+        // Gone from the dashboard, still here to be switched back on — in flow,
+        // at its span, dimmed by patrol.css reading data-patrol-on.
+        $card = $crawler->filter('[data-patrol-widget="map"]');
+        self::assertCount(1, $card);
+        self::assertSame('0', $card->attr('data-patrol-on'));
+        self::assertSame('6', $card->attr('data-patrol-cols'));
+        self::assertSame('Add to dashboard', trim((string) $card->filter('[data-patrol-toggle-label]')->text()));
+        self::assertCount(0, $this->client->request('GET', $this->dashboardUrl())->filter('[data-w="map"]'));
+    }
+
+    public function testAPartialOrderKeepsEveryWidgetInItsDefaultPlace(): void
+    {
+        $this->client->loginUser($this->ranger);
+        // A stale client — it knows only three of the seven widgets. The four it
+        // never mentioned must survive, ranked after the ones it did, in their
+        // catalogue order.
+        $this->postJson($this->libraryUrl(), [
+            'order' => ['cal', 'chstation'],
+            'widgets' => ['cal' => ['on' => true, 'cols' => 12]],
+        ]);
+        self::assertResponseStatusCodeSame(204);
+
+        $crawler = $this->client->request('GET', $this->dashboardUrl());
+        self::assertSame(
+            ['cal', 'chstation', 'kpis', 'map', 'log', 'feed', 'chweek'],
+            $crawler->filter('.patrol-wgrid > [data-w]')->each(static fn ($w) => (string) $w->attr('data-w')),
+        );
     }
 
     public function testPreferencesAreNotReadableWithoutASignedInUser(): void
@@ -254,15 +402,46 @@ final class WidgetLibraryFlowTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-w="map"]'));
     }
 
-    /** @param array<string, mixed> $payload */
-    private function postJson(string $url, array $payload): void
+    /**
+     * The library's own save call: a JSON body plus the CSRF token the page
+     * rendered. Pass $token explicitly to post a wrong one (or none).
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function postJson(string $url, array $payload, ?string $token = null): void
     {
+        $server = ['CONTENT_TYPE' => 'application/json'];
+        $token ??= $this->csrfToken();
+        if ('' !== $token) {
+            $server['HTTP_'.str_replace('-', '_', strtoupper(PatrolWidgetsController::CSRF_HEADER))] = $token;
+        }
+
         $this->client->request(
             'POST',
             $url,
-            server: ['CONTENT_TYPE' => 'application/json'],
+            server: $server,
             content: json_encode($payload, \JSON_THROW_ON_ERROR),
         );
+    }
+
+    /** The reset call, which carries the same token as a save. */
+    private function postReset(?string $token = null): void
+    {
+        $server = [];
+        $token ??= $this->csrfToken();
+        if ('' !== $token) {
+            $server['HTTP_X_CSRF_TOKEN'] = $token;
+        }
+
+        $this->client->request('POST', $this->libraryUrl().'/reset', server: $server);
+    }
+
+    /** The token the library screen mints for this area, read the way a browser would. */
+    private function csrfToken(): string
+    {
+        $crawler = $this->client->request('GET', $this->libraryUrl());
+
+        return (string) $crawler->filter('[data-patrol-widgets]')->attr('data-patrol-csrf-token');
     }
 
     private function dashboardUrl(): string

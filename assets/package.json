@@ -3,6 +3,28 @@
     "description": "Front-end assets of the Patrols module — mapped into hosts via AssetMapper.",
     "license": "proprietary",
     "symfony": {
+        "controllers": {
+            "coverage-map": {
+                "main": "controllers/coverage_map_controller.js",
+                "fetch": "eager",
+                "enabled": true
+            },
+            "track-plate": {
+                "main": "controllers/track_plate_controller.js",
+                "fetch": "eager",
+                "enabled": true
+            },
+            "filters": {
+                "main": "controllers/filters_controller.js",
+                "fetch": "eager",
+                "enabled": true
+            },
+            "rows": {
+                "main": "controllers/rows_controller.js",
+                "fetch": "eager",
+                "enabled": true
+            }
+        },
         "importmap": {}
     }
 }

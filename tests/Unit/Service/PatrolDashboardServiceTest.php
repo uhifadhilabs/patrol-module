@@ -139,4 +139,98 @@ final class PatrolDashboardServiceTest extends TestCase
         self::assertTrue($byDate['2026-02-23']['outside']);
         self::assertFalse($byDate['2026-03-02']['outside']);
     }
+
+    /* ── the coverage map's payload ──────────────────────────────────────── */
+
+    public function testCoveragePayloadCarriesTheBoundaryAndEveryRecordedTrack(): void
+    {
+        $service = new PatrolDashboardService();
+        $walk = $this->patrol('walk', '2026-03-20T06:00:00Z', 10.0, 'North post');
+        $walk->setTrack('{"type":"LineString","coordinates":[[35.5,-3.2],[35.6,-3.3]]}');
+        $boat = $this->patrol('boat', '2026-03-19T06:00:00Z', 4.0);
+        $boat->setTrack('{"type":"LineString","coordinates":[[35.1,-3.1],[35.2,-3.15]]}');
+
+        $boundary = '{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.9,-3.0],[35.9,-3.6],[35.0,-3.6],[35.0,-3.0]]]]}';
+        $payload = $service->coveragePayload(
+            $boundary,
+            $service->build([$walk, $boat], self::TYPES, $this->now),
+            self::TYPES,
+        );
+
+        self::assertSame($boundary, $payload['boundary']);
+        self::assertCount(2, $payload['patrols']);
+        self::assertSame($walk->getUuid()->toRfc4122(), $payload['patrols'][0]['uuid']);
+        self::assertSame($walk->getRef(), $payload['patrols'][0]['ref']);
+        self::assertSame('walk', $payload['patrols'][0]['type']);
+        // The colour is the SAME one the chips, charts and legend use.
+        self::assertSame(PatrolDashboardService::typeColors(self::TYPES)['walk'], $payload['patrols'][0]['color']);
+        self::assertSame($walk->getTrack(), $payload['patrols'][0]['track']);
+        self::assertSame('boat', $payload['patrols'][1]['type']);
+    }
+
+    public function testCoveragePayloadLeavesOutPatrolsWithoutATrack(): void
+    {
+        $service = new PatrolDashboardService();
+        // A hand-logged patrol carries no geometry — it must not be drawn, and
+        // it must not break the payload either.
+        $sketch = $this->patrol('walk', '2026-03-20T06:00:00Z', 3.0);
+        $recorded = $this->patrol('boat', '2026-03-19T06:00:00Z', 4.0);
+        $recorded->setTrack('{"type":"LineString","coordinates":[[35.1,-3.1],[35.2,-3.15]]}');
+
+        $payload = $service->coveragePayload(
+            null,
+            $service->build([$sketch, $recorded], self::TYPES, $this->now),
+            self::TYPES,
+        );
+
+        self::assertNull($payload['boundary']);
+        self::assertCount(1, $payload['patrols']);
+        self::assertSame($recorded->getUuid()->toRfc4122(), $payload['patrols'][0]['uuid']);
+        // A list, never a gappy array: json_encode must emit [] not {"1":…}.
+        self::assertSame(range(0, \count($payload['patrols']) - 1), array_keys($payload['patrols']));
+    }
+
+    public function testCoveragePayloadOfAnAreaWithoutPatrolsStillCarriesTheBoundary(): void
+    {
+        $service = new PatrolDashboardService();
+        $boundary = '{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.9,-3.0],[35.9,-3.6],[35.0,-3.6],[35.0,-3.0]]]]}';
+
+        $payload = $service->coveragePayload($boundary, $service->build([], self::TYPES, $this->now), self::TYPES);
+
+        self::assertSame($boundary, $payload['boundary']);
+        self::assertSame([], $payload['patrols']);
+        self::assertSame([], $payload['stations']);
+    }
+
+    public function testCoveragePayloadPlacesEachStationAtWhereItsPatrolsSetOut(): void
+    {
+        $service = new PatrolDashboardService();
+        $north = $this->patrol('walk', '2026-03-20T06:00:00Z', 10.0, 'North post');
+        $north->setTrack('{"type":"LineString","coordinates":[[35.5,-3.2],[35.6,-3.3]]}');
+        // A second patrol from the same station: one marker, not two.
+        $northAgain = $this->patrol('boat', '2026-03-18T06:00:00Z', 5.0, 'North post');
+        $northAgain->setTrack('{"type":"LineString","coordinates":[[35.55,-3.25],[35.7,-3.4]]}');
+        $jetty = $this->patrol('boat', '2026-03-19T06:00:00Z', 4.0, 'Jetty');
+        $jetty->setTrack('{"type":"LineString","coordinates":[[35.1,-3.1],[35.2,-3.15]]}');
+        // No station, and a station whose patrol recorded no track: neither can
+        // be placed on a map, so neither is invented.
+        $anonymous = $this->patrol('walk', '2026-03-17T06:00:00Z', 2.0);
+        $anonymous->setTrack('{"type":"LineString","coordinates":[[35.9,-3.9],[35.95,-3.95]]}');
+        $unplaceable = $this->patrol('walk', '2026-03-16T06:00:00Z', 2.0, 'Sketch camp');
+
+        $payload = $service->coveragePayload(
+            null,
+            $service->build([$north, $northAgain, $jetty, $anonymous, $unplaceable], self::TYPES, $this->now),
+            self::TYPES,
+        );
+
+        self::assertSame([
+            ['name' => 'North post', 'lon' => 35.5, 'lat' => -3.2],
+            ['name' => 'Jetty', 'lon' => 35.1, 'lat' => -3.1],
+        ], $payload['stations']);
+        // Each track states its station too, so the station filter can drive the
+        // map the same way the type chips do.
+        self::assertSame('North post', $payload['patrols'][0]['station']);
+        self::assertSame('', $payload['patrols'][3]['station']);
+    }
 }
