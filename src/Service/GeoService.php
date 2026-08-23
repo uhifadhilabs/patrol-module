@@ -56,6 +56,37 @@ final class GeoService
     }
 
     /**
+     * The [lon, lat] pairs inside a GeoJSON LineString — the exact shape
+     * {@see \UhifadhiLabs\Patrol\Model\ParsedTrack::toGeoJson()} writes into the
+     * geometry column, read back for anything that has to walk the route (the
+     * GPX export, most of all).
+     *
+     * @return list<array{0: float, 1: float}>
+     */
+    public function lineCoordinates(string $geoJsonLineString): array
+    {
+        $decoded = json_decode($geoJsonLineString, true);
+        $type = \is_array($decoded) ? ($decoded['type'] ?? null) : null;
+        $coordinates = \is_array($decoded) ? ($decoded['coordinates'] ?? null) : null;
+
+        if ('LineString' !== $type || !\is_array($coordinates)) {
+            throw new \LogicException('Not a GeoJSON LineString: '.$geoJsonLineString);
+        }
+
+        $points = [];
+        foreach ($coordinates as $pair) {
+            $lon = \is_array($pair) ? ($pair[0] ?? null) : null;
+            $lat = \is_array($pair) ? ($pair[1] ?? null) : null;
+            if (!is_numeric($lon) || !is_numeric($lat)) {
+                throw new \LogicException('Not a GeoJSON LineString: '.$geoJsonLineString);
+            }
+            $points[] = [(float) $lon, (float) $lat];
+        }
+
+        return $points;
+    }
+
+    /**
      * A position the way a field record prints it — degrees, minutes, seconds
      * with hemisphere letters, latitude first: 3°11'42"S 35°28'10"E. The
      * observation rows and the observation meta plate both state coordinates

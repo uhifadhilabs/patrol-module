@@ -34,7 +34,10 @@ const OBSERVATION_SPAN_DEG = 0.015;
 
 export default class extends LeafletPlate {
     draw() {
-        const boundary = this.drawBoundary(this.payload.boundary, { faint: true });
+        // The scrim starts OFF on a detail plate: it opens deep inside the area,
+        // so dimming "outside" would darken imagery with no edge in frame to
+        // explain it. The DIM pill is still there to switch it on.
+        const boundary = this.drawBoundary(this.payload.boundary, { scrim: false });
 
         // One observation in the payload ⇒ the observation screen: the track is
         // context there, not the subject, so it is drawn back.
@@ -67,7 +70,8 @@ export default class extends LeafletPlate {
             }
         }
 
-        const rings = single ? [single] : (this.payload.observations ?? []);
+        const rings = this.rings(single);
+        let currentPoint = null;
         const ringPoints = [];
         for (const observation of rings) {
             const point = parseGeometry(observation.position);
@@ -77,27 +81,77 @@ export default class extends LeafletPlate {
             const latLng = [point.coordinates[1], point.coordinates[0]];
 
             // The design's dashed amber ring with the observation number in it.
+            // On the observation screen the sibling rings are drawn back, so the
+            // one being READ is obvious among them.
+            const faded = !observation.current;
             const ring = this.L.marker(latLng, {
                 icon: this.L.divIcon({
-                    className: 'patrol-ring',
-                    html: `<span>${observation.n}</span>`,
-                    iconSize: [22, 22],
-                    iconAnchor: [11, 11],
+                    className: faded ? 'patrol-ring patrol-ring-faded' : 'patrol-ring',
+                    html: '<span></span>',
+                    iconSize: faded ? [16, 16] : [22, 22],
+                    iconAnchor: faded ? [8, 8] : [11, 11],
                 }),
                 keyboard: false,
+                interactive: Boolean(observation.url) || !faded,
             }).addTo(this.map);
+            // Written as text, never interpolated into the icon HTML: everything
+            // in a payload came from a person or a database.
+            ring.getElement()?.querySelector('span')?.appendChild(document.createTextNode(String(observation.n)));
 
-            const label = observation.category ? `obs ${observation.n} · ${observation.category}` : `obs ${observation.n}`;
-            ring.bindTooltip(label);
+            const label = observation.category
+                ? `obs ${observation.n} · ${observation.category}`
+                : `obs ${observation.n}`;
+            ring.bindTooltip(faded ? `${label} — open` : label);
             if (observation.url) {
+                ring.getElement()?.classList.add('patrol-ring-link');
+                ring.getElement()?.setAttribute('title', label);
                 ring.on('click', () => {
                     window.location.href = observation.url;
                 });
             }
+
             ringPoints.push(latLng);
+            if (observation.current) {
+                currentPoint = latLng;
+            }
         }
 
-        this.openOnSubject({ single, trackLayer, ringPoints, boundary });
+        this.openOnSubject({ single, trackLayer, ringPoints, currentPoint, boundary });
+    }
+
+    /**
+     * Every ring this plate draws, normalised to one shape.
+     *
+     * The patrol screen sends `observations` — every positioned observation on
+     * the patrol, all of them the subject, so all of them full strength.
+     *
+     * The observation screen sends `observation` (the one being read) and, when
+     * the server offers it, `observations` — ALL of the patrol's observations,
+     * each flagged `current`, so a reader sees this one among its siblings and
+     * can click straight to any other. Both arrays use the same entry shape —
+     * {n, position, category, url, current} — and `position` may be null: an
+     * observation recorded without a fix still holds its number in the list, so
+     * it is listed but not drawn. A server that sends only the single
+     * observation still works.
+     */
+    rings(single) {
+        const siblings = (this.payload.observations ?? []).map((entry) => ({
+            n: entry.n,
+            position: entry.position,
+            category: entry.category,
+            url: entry.url,
+            // On the patrol screen nothing is "current" — every ring is subject.
+            current: single ? entry.current === true : true,
+        }));
+
+        if (!single) {
+            return siblings;
+        }
+
+        // Siblings when the server sends them; otherwise just the one being read.
+        return siblings.length > 0
+            ? siblings
+            : [{ n: single.n, position: single.position, category: single.category, current: true }];
     }
 
     /**
@@ -108,9 +162,12 @@ export default class extends LeafletPlate {
      *   3. the observations, when a patrol has positions but no route;
      *   4. the area boundary — the honest empty state for a hand-logged patrol.
      */
-    openOnSubject({ single, trackLayer, ringPoints, boundary }) {
-        if (single && ringPoints.length > 0) {
-            const [lat, lng] = ringPoints[0];
+    openOnSubject({ single, trackLayer, ringPoints, currentPoint, boundary }) {
+        // Always the CURRENT observation, never the first ring drawn: with the
+        // siblings on the map the first one is usually somebody else's.
+        const subject = currentPoint ?? ringPoints[0];
+        if (single && subject) {
+            const [lat, lng] = subject;
             const span = OBSERVATION_SPAN_DEG;
             this.fitTo(
                 this.L.latLngBounds([[lat - span, lng - span], [lat + span, lng + span]]),

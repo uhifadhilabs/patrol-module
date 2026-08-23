@@ -14,7 +14,9 @@ declare(strict_types=1);
 namespace UhifadhiLabs\Patrol\Controller;
 
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -24,6 +26,7 @@ use Uhifadhi\Entity\AreaOfInterest;
 use UhifadhiLabs\Patrol\Entity\Observation;
 use UhifadhiLabs\Patrol\Entity\Patrol;
 use UhifadhiLabs\Patrol\Service\GeoService;
+use UhifadhiLabs\Patrol\Service\GpxWriter;
 use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
 
 /**
@@ -52,6 +55,7 @@ final class PatrolDetailController
         private readonly Environment $twig,
         private readonly UrlGeneratorInterface $urls,
         private readonly GeoService $geo,
+        private readonly GpxWriter $gpx,
         private readonly array $types,
         private readonly array $categories,
     ) {
@@ -95,16 +99,78 @@ final class PatrolDetailController
                         'category' => $this->categoryLabel($row['observation']->getCategory()),
                         // Clicking a ring opens that observation, exactly as the
                         // row beneath the plate does.
-                        'url' => $this->urls->generate('patrol_observation_show', [
-                            'uuid' => $area->getUuid(),
-                            'patrol' => $patrol->getUuid(),
-                            'observation' => $row['observation']->getUuid(),
-                        ]),
+                        'url' => $this->observationUrl($area, $patrol, $row['observation']),
                     ],
                     array_filter($rows, static fn (array $row): bool => null !== $row['position']),
                 )),
             ],
         ]));
+    }
+
+    /**
+     * The recorded track back out as GPX — the same file a handheld would have
+     * written, so a patrol can be replayed in any GPS tool, and the platform is
+     * never a place data can only go in.
+     *
+     * Gated exactly as {@see show()} (area nesting is the access rule), plus the
+     * honesty rule: a patrol with no recorded route has nothing to export and is
+     * a 404, never an empty file. The detail page renders no button in that
+     * case, so the URL is never offered either.
+     */
+    #[Route(
+        '/areas/{uuid}/modules/patrols/{patrol}/export.gpx',
+        name: 'patrol_export_gpx',
+        requirements: ['uuid' => Requirement::UUID, 'patrol' => Requirement::UUID],
+        methods: ['GET'],
+    )]
+    public function exportGpx(
+        #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
+        #[MapEntity(mapping: ['patrol' => 'uuid'])] Patrol $patrol,
+    ): Response {
+        $this->assertPatrolBelongsTo($area, $patrol);
+
+        $track = $patrol->getTrack();
+        if (null === $track || !$patrol->hasRecordedTrack()) {
+            throw new NotFoundHttpException('That patrol recorded no track to export.');
+        }
+
+        // The observations ride along as waypoints, numbered and labelled the
+        // way the detail page numbers and labels them.
+        $waypoints = [];
+        foreach ($this->observationRows($patrol) as $row) {
+            if (null === $row['position']) {
+                continue;
+            }
+            $waypoints[] = [
+                'position' => $row['position'],
+                'name' => $row['n'].' · '.$this->categoryLabel($row['observation']->getCategory()),
+                'description' => $row['observation']->getNote(),
+                'time' => $row['observation']->getLoggedAt(),
+            ];
+        }
+
+        $typeLabel = $this->types[$patrol->getType()]['label'] ?? $patrol->getType();
+        $description = mb_strtolower($typeLabel).' patrol'
+            .(null !== $patrol->getStation() ? ' · '.$patrol->getStation() : '');
+
+        $document = $this->gpx->write(
+            'Patrol '.$patrol->getRef(),
+            $track,
+            $waypoints,
+            $patrol->getStartedAt(),
+            $description,
+        );
+
+        $response = new StreamedResponse(static function () use ($document): void {
+            echo $document;
+        });
+        $response->headers->set('Content-Type', 'application/gpx+xml; charset=UTF-8');
+        $response->headers->set('Content-Disposition', HeaderUtils::makeDisposition(
+            HeaderUtils::DISPOSITION_ATTACHMENT,
+            $patrol->getRef().'.gpx',
+        ));
+
+        return $response;
     }
 
     #[Route(
@@ -125,14 +191,27 @@ final class PatrolDetailController
 
         $rows = $this->observationRows($patrol);
         $row = null;
-        foreach ($rows as $candidate) {
+        $index = null;
+        foreach ($rows as $position => $candidate) {
             if ($candidate['observation']->getId() === $observation->getId()) {
                 $row = $candidate;
+                $index = $position;
             }
         }
-        if (null === $row) {
+        if (null === $row || null === $index) {
             throw new NotFoundHttpException('That observation is not part of this patrol.');
         }
+
+        // Circling the patrol's observations without going back up: the arrows
+        // WRAP (last → first), because a patrol's observations are a ring the
+        // reader walks, not a list with a dead end — the settled observation
+        // design says nothing either way, so the kinder reading wins. A patrol
+        // with a single observation has no ring and gets no arrows.
+        $total = \count($rows);
+        $siblings = $total > 1 ? [
+            'prev' => $this->observationLink($area, $patrol, $rows[($index - 1 + $total) % $total]),
+            'next' => $this->observationLink($area, $patrol, $rows[($index + 1) % $total]),
+        ] : ['prev' => null, 'next' => null];
 
         return new Response($this->twig->render('@UhifadhiLabsPatrol/observation/show.html.twig', [
             'area' => $area,
@@ -141,8 +220,10 @@ final class PatrolDetailController
             'types' => $this->types,
             'categories' => $this->categories,
             'n' => $row['n'],
-            'total' => \count($rows),
+            'total' => $total,
             'dms' => $row['dms'],
+            'prev' => $siblings['prev'],
+            'next' => $siblings['next'],
             // The parent track travels with the payload as context (drawn
             // faded), so the observation reads as a point ON the patrol.
             'payload' => [
@@ -154,6 +235,22 @@ final class PatrolDetailController
                     'position' => $row['position'],
                     'category' => $this->categoryLabel($observation->getCategory()),
                 ],
+                // EVERY observation of the patrol, in the same order the arrows
+                // walk, so the plate draws the whole ring and the reader can
+                // cycle by clicking a sibling as well as by the arrows. Exactly
+                // one entry is `current`. `position` is null where the record
+                // has none — the same honesty the rows keep; a consumer draws
+                // only what is positioned.
+                'observations' => array_map(
+                    fn (array $sibling): array => [
+                        'n' => $sibling['n'],
+                        'position' => $sibling['position'],
+                        'category' => $this->categoryLabel($sibling['observation']->getCategory()),
+                        'url' => $this->observationUrl($area, $patrol, $sibling['observation']),
+                        'current' => $sibling['observation']->getId() === $observation->getId(),
+                    ],
+                    $rows,
+                ),
             ],
         ]));
     }
@@ -181,6 +278,33 @@ final class PatrolDetailController
         }
 
         return $rows;
+    }
+
+    /** The one place the observation URL is spelled out. */
+    private function observationUrl(AreaOfInterest $area, Patrol $patrol, Observation $observation): string
+    {
+        return $this->urls->generate('patrol_observation_show', [
+            'uuid' => $area->getUuid(),
+            'patrol' => $patrol->getUuid(),
+            'observation' => $observation->getUuid(),
+        ]);
+    }
+
+    /**
+     * A neighbouring observation as the arrow needs it: where it goes, and the
+     * number the arrow announces ("previous: observation 3 of 3").
+     *
+     * @param array{n: int, observation: Observation, position: string|null, dms: string|null} $row
+     *
+     * @return array{n: int, url: string, category: string}
+     */
+    private function observationLink(AreaOfInterest $area, Patrol $patrol, array $row): array
+    {
+        return [
+            'n' => $row['n'],
+            'url' => $this->observationUrl($area, $patrol, $row['observation']),
+            'category' => $this->categoryLabel($row['observation']->getCategory()),
+        ];
     }
 
     /**

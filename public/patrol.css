@@ -283,6 +283,12 @@ button.patrol-menu-item {
    amber is a fixed hex, not the theme's --c-warn, for the same reason the track
    colours are fixed — it is drawn over imagery, which is dark in both themes. */
 .patrol-ring { display: grid; place-items: center; }
+/* A sibling observation on the observation screen: present, clickable, but
+   plainly not the one being read. */
+.patrol-ring-faded { opacity: .55; }
+.patrol-ring-faded span { width: 11px; height: 11px; border-width: 1.2px; font-size: 7px; }
+.patrol-ring-link { cursor: pointer; }
+.patrol-ring-link:hover { opacity: 1; }
 .patrol-ring span {
     display: grid; place-items: center; width: 14px; height: 14px;
     border: 1.6px dashed #dba33f; border-radius: 50%;
@@ -295,28 +301,12 @@ button.patrol-menu-item {
     border-radius: 6px; padding: 4px 8px; letter-spacing: .04em; pointer-events: none;
 }
 .patrol-ol-src { left: 10px; bottom: 10px; }
-.patrol-zoomui { position: absolute; z-index: 6; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; }
-.patrol-zoomui b {
-    width: 26px; height: 26px; display: grid; place-items: center;
-    background: rgba(10, 14, 11, .72); border: 1px solid rgba(234, 242, 236, .18);
-    border-radius: 6px; color: #eaf2ec; font: 600 13px var(--font-mono); cursor: pointer;
-}
-.patrol-zoomui b svg { width: 14px; height: 14px; }
-.patrol-zoomui b.on { background: rgb(var(--c-acc)); color: rgb(var(--c-accT)); border-color: transparent; }
-/* Closed until the layers pill opens it: the design file draws the menu open for
-   convenience, but a menu that is always open is not a menu. `hidden` alone
-   loses to the display below, so it is stated. */
-.patrol-laymenu[hidden] { display: none; }
-.patrol-laymenu {
-    position: absolute; z-index: 6; right: 44px; top: 74px;
-    display: flex; flex-direction: column; gap: 2px; padding: 4px;
-    background: rgba(10, 14, 11, .88); border: 1px solid rgba(234, 242, 236, .18); border-radius: 8px;
-}
-.patrol-laymenu b {
-    font: 700 10px var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
-    color: #eaf2ec; padding: 5px 9px; border-radius: 6px; cursor: pointer;
-}
-.patrol-laymenu b.on { background: rgb(var(--c-acc)); color: rgb(var(--c-accT)); }
+/* The chrome pills, the base-layer menu, the scroll hint and Leaflet's own
+   control/tooltip styling live in the HOST's app.css (.map-chrome*,
+   .map-chrome-host): one definition for every map on the platform. A module
+   must never ship a second copy of platform chrome.
+   What stays here is patrol's own: the plate frame, the rings, the stations,
+   the legend and the full-screen behaviour of this widget's chips. */
 
 /* ---- fullscreen: the whole widget card goes up ------------------------- */
 /* The chips and the legend are part of reading the map, so the card expands,
@@ -330,6 +320,26 @@ button.patrol-menu-item {
     border-radius: 10px; padding: 8px 10px;
 }
 .c:fullscreen .patrol-legend .patrol-note { color: rgba(234, 242, 236, .65); }
+/* The filter chips float TOP-LEFT in full screen, the mirror of the legend's
+   bottom-right — one filter still drives map AND log, and the log keeps the
+   choice for when the map shrinks back into the page. Patrol-specific: the
+   host's area map has no filter chips, so this belongs in patrol.css. */
+.c:fullscreen .patrol-chiprow {
+    position: absolute; left: 26px; top: 26px; z-index: 8; margin: 0; max-width: min(60ch, 60vw);
+    background: rgba(10, 14, 11, .82); border: 1px solid rgba(234, 242, 236, .18);
+    border-radius: 10px; padding: 8px 10px;
+}
+/* Over imagery the pills need the overlay's contrast, not the page card's.
+   The chosen chip keeps the ACCENT as its text colour, never --c-accT: on the
+   page that pairs with a solid accent fill, but here the fill is a 10% tint, so
+   on-accent text is near-black on near-nothing and the label vanishes. */
+.c:fullscreen .patrol-chiprow .mchip { color: #eaf2ec; border-color: rgba(234, 242, 236, .28); }
+.c:fullscreen .patrol-chiprow .mchip.on { color: rgb(var(--c-acc)); border-color: rgb(var(--c-acc)); }
+.c:fullscreen .patrol-chiprow .patrol-tfilter.on { color: var(--patrol-track); border-color: var(--patrol-track); }
+.c:fullscreen .patrol-menu-list { background: rgba(10, 14, 11, .95); border-color: rgba(234, 242, 236, .18); }
+.c:fullscreen .patrol-menu-item { color: #eaf2ec; }
+/* The card's own header has no place over a full-screen map. */
+.c:fullscreen > .tab, .c:fullscreen > .lib { display: none; }
 
 /* ---- rows a filter can hide -------------------------------------------- */
 /* One class for a table row and a feed row alike: the rows controller toggles
@@ -495,3 +505,88 @@ button.patrol-menu-item {
 
 /* ---- flash messages ----------------------------------------------------- */
 .patrol-flash { padding: 12px 16px; margin-bottom: 16px; }
+
+/* ---- calendar: month navigation + hover cards (PL·11) ------------------- */
+/* Appended block: everything the interactive calendar adds on top of the ported
+   grid above (.patrol-cal / .patrol-dc / .patrol-daypill, unchanged).
+
+   The month is fetched and swapped by the calendar Stimulus controller; the
+   hover card is PURE CSS on server-rendered markup, so it needs no JS at all —
+   including its edge handling, which is done with nth-child on the grid rather
+   than by measuring at runtime. */
+
+/* While a month is in flight: the grid dims, and nothing in it can be clicked
+   into a page that is about to be replaced. */
+.patrol-cal-busy .patrol-calmonth { opacity: .5; pointer-events: none; transition: opacity .12s ease-out; }
+
+/* ‹ › are real <button>s (they change what the widget shows, so they must be
+   keyboard reachable); the host's .mchip is an inline span, exactly as with the
+   filter chips above. */
+.patrol-calnav > button.mchip { font-family: inherit; cursor: pointer; }
+
+/* The pill anchors its own card. A day cell does not clip (no overflow rule on
+   .patrol-dc), so the card may spill over its neighbours. */
+.patrol-daypill { position: relative; display: block; max-width: 100%; }
+.patrol-daypill .chip { max-width: 100%; }
+
+.patrol-pop {
+    position: absolute; z-index: 40; top: calc(100% + 6px); left: 0;
+    display: block; width: max-content; min-width: 168px; max-width: 232px;
+    padding: 9px 11px 8px; border: 1px solid var(--c-ln2); border-radius: 9px;
+    background: rgb(var(--c-cv)); box-shadow: var(--shadow);
+    text-align: left; white-space: normal; cursor: pointer;
+    /* Hidden without being gone: opacity+visibility keeps it out of the hit test
+       until it is wanted, and lets it fade rather than jump. */
+    opacity: 0; visibility: hidden; transition: opacity .1s ease-out, visibility 0s linear .1s;
+}
+.patrol-daypill:hover .patrol-pop,
+.patrol-daypill:focus-visible .patrol-pop,
+.patrol-pop:hover { opacity: 1; visibility: visible; transition-delay: 0s; }
+/* A dimmed neighbouring-month cell must not dim its own hover card into
+   illegibility — the pill is still a real patrol. */
+.patrol-dc.patrol-out .patrol-daypill:hover { opacity: 1; }
+.patrol-dc:has(.patrol-daypill:hover) { z-index: 41; }
+
+.patrol-pop-head { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+.patrol-pop-ref { font: 600 10px var(--font-mono); color: rgb(var(--c-dim)); margin-left: auto; }
+.patrol-pop-who { display: block; font-size: 12px; font-weight: 600; color: rgb(var(--c-tx)); margin-bottom: 7px; }
+.patrol-pop-row {
+    display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
+    font-size: 10.5px; color: rgb(var(--c-fog)); padding: 1.5px 0;
+}
+.patrol-pop-row .mono { font: 600 10.5px var(--font-mono); color: rgb(var(--c-tx)); }
+.patrol-pop-open {
+    display: block; margin-top: 7px; padding-top: 6px; border-top: 1px solid var(--c-ln);
+    font: 600 10px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: rgb(var(--c-acc));
+}
+
+/* Edges, without measuring anything at runtime. The grid's first seven children
+   are the weekday headers, so a cell in the LAST column is every 7th child, and
+   the last two rows start at the 36th. */
+.patrol-cal > .patrol-dc:nth-child(7n) .patrol-pop,
+.patrol-cal > .patrol-dc:nth-child(7n-1) .patrol-pop { left: auto; right: 0; }
+.patrol-cal > .patrol-dc:nth-child(n+36) .patrol-pop { top: auto; bottom: calc(100% + 6px); }
+
+/* Coarse pointers have no hover: the pill still opens the patrol on tap, and the
+   card would only sit in the way. */
+@media (hover: none) {
+    .patrol-pop { display: none; }
+}
+
+/* ---- observation cycling (appended block — detail-surfaces work) --------- */
+/* Prev/next arrows in the observation page header, so the patrol's
+   observations can be circled without going back up to the patrol. They reuse
+   the host's .tgl chip chrome (border, radius, muted ink); only the grouping,
+   the square icon-button proportions and the "2 / 3" counter between them have
+   no host equivalent. */
+.patrol-obsnav { display: inline-flex; align-items: center; gap: 6px; margin-right: 12px; vertical-align: middle; }
+.patrol-obsnav-a { display: inline-flex; align-items: center; justify-content: center; padding: 5px 7px; text-decoration: none; }
+.patrol-obsnav-a:hover { color: rgb(var(--c-tx)); border-color: rgb(var(--c-acc)); }
+.patrol-obsnav-a svg { width: 15px; height: 15px; }
+.patrol-obsnav-c {
+    font: 600 9.5px var(--font-mono);
+    letter-spacing: .1em;
+    color: rgb(var(--c-dim));
+    min-width: 34px;
+    text-align: center;
+}

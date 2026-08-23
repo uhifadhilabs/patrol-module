@@ -42,7 +42,7 @@ export default class extends LeafletPlate {
     draw() {
         const bounds = this.L.latLngBounds([]);
 
-        const boundary = this.drawBoundary(this.payload.boundary, { fill: true });
+        const boundary = this.drawBoundary(this.payload.boundary);
         if (boundary) {
             bounds.extend(boundary.getBounds());
         }

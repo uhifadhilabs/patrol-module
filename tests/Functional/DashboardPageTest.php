@@ -119,11 +119,14 @@ final class DashboardPageTest extends WebTestCase
         self::assertSelectorTextContains('h1.pg', 'demo reserve — Patrols');
 
         // KPI strip: this month's count, its per-type breakdown, the distance
-        // sum, and the deferred coverage plate rendered as an em dash.
+        // sum, and PL·03's coverage as a whole percent. The two recorded tracks
+        // (~20 km between them) sweep a 2 km buffer over roughly a tenth of the
+        // ~1 100 km² fixture square — the plate says 9 %.
         self::assertSelectorTextContains('[data-kpi="month"] .kpi b', '3');
         self::assertSelectorTextContains('[data-kpi="month"] .kpi span', '2 walking round');
         self::assertSelectorTextContains('[data-kpi="distance"] .kpi b', '85');
-        self::assertSelectorTextContains('[data-kpi="coverage"] .kpi b', '—');
+        self::assertSelectorTextContains('[data-kpi="coverage"] .kpi b', '9%');
+        self::assertSelectorTextContains('[data-kpi="coverage"] .kpi span', 'of area within 2 km of a track');
         self::assertSelectorTextContains('[data-kpi="last"] .kpi span', $this->boat->getRef());
 
         // Filter chips: one per configured type, each with its live count.
@@ -186,8 +189,12 @@ final class DashboardPageTest extends WebTestCase
             self::assertArrayHasKey('color', $entry);
         }
 
-        // The layer menu ships CLOSED — it opens from the layers pill.
-        self::assertCount(2, $crawler->filter('.patrol-laymenu[hidden]'));
+        // The map controls are NOT server-rendered: the host's platform chrome
+        // module builds zoom, DIM, the base-layer menu and fullscreen into the
+        // frame, so neither repo keeps a copy of that markup. What this page
+        // must ship is the frame the chrome mounts into.
+        self::assertCount(2, $crawler->filter('.patrol-viewer .patrol-canvas'));
+        self::assertCount(0, $crawler->filter('.patrol-zoomui'));
 
         // The filter chips are real buttons carrying the type they select, so
         // one filter can drive the map AND the log.
@@ -210,5 +217,29 @@ final class DashboardPageTest extends WebTestCase
             $crawler->filter('[data-patrol-log] .patrol-chiprow button[data-patrol-station="North post"]'),
         );
         self::assertCount(3, $crawler->filter('[data-patrol-log] tbody tr[data-patrol-station]'));
+    }
+
+    /**
+     * PL·03 with nothing to measure: an area whose month holds only hand-logged
+     * patrols has no geometry to buffer, so the plate shows the design's empty
+     * state — an em dash and the same caption — never a false 0 %.
+     */
+    public function testTheCoverageKpiShowsTheEmptyStateWithoutARecordedTrack(): void
+    {
+        $bare = new AreaOfInterest()->setName('sketch reserve')->setGeom(
+            '{"type":"MultiPolygon","coordinates":[[[[12.2,-5.8],[12.5,-5.8],[12.5,-5.5],[12.2,-5.5],[12.2,-5.8]]]]}',
+        );
+        $this->em->persist($bare);
+        $this->em->persist(new Patrol($bare, 'walk')
+            ->setStation('North post')
+            ->setStartedAt(new \DateTimeImmutable('today 06:10'))
+            ->setDistanceKm(9.4));
+        $this->em->flush();
+
+        $this->client->request('GET', '/areas/'.$bare->getUuid()->toRfc4122().'/modules/patrols');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-kpi="coverage"] .kpi b', '—');
+        self::assertSelectorTextContains('[data-kpi="coverage"] .kpi span', 'of area within 2 km of a track');
     }
 }

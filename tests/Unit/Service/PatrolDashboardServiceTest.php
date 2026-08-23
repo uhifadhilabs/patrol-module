@@ -73,6 +73,31 @@ final class PatrolDashboardServiceTest extends TestCase
         self::assertSame('North post', $dashboard->lastPatrol->getStation());
     }
 
+    /**
+     * PL·03 is queried (PostGIS), not derived from the rows, so the service only
+     * carries it — and carries "unknown" as null rather than flattening it to
+     * 0.0, which the KPI would print as a false 0 %.
+     */
+    public function testCoverageIsCarriedThroughAndDefaultsToUnknown(): void
+    {
+        $patrols = [$this->patrol('walk', '2026-03-20T06:00:00Z', 1.0)];
+
+        self::assertNull(new PatrolDashboardService()->build($patrols, self::TYPES, $this->now)->coverageFraction);
+        self::assertSame(0.63, new PatrolDashboardService()->build($patrols, self::TYPES, $this->now, 0.63)->coverageFraction);
+    }
+
+    /**
+     * The window PL·03's query must be asked for is the very window PL·01 and
+     * PL·02 count in — half-open, from midnight on the first.
+     */
+    public function testMonthRangeIsTheWindowTheMonthKpisCountIn(): void
+    {
+        [$from, $until] = PatrolDashboardService::monthRange($this->now);
+
+        self::assertSame('2026-03-01 00:00:00', $from->format('Y-m-d H:i:s'));
+        self::assertSame('2026-04-01 00:00:00', $until->format('Y-m-d H:i:s'));
+    }
+
     public function testTypesWithoutPatrolsStillGetAChipCount(): void
     {
         $dashboard = new PatrolDashboardService()->build(
@@ -138,6 +163,81 @@ final class PatrolDashboardServiceTest extends TestCase
         self::assertFalse($byDate['2026-03-20']['today']);
         self::assertTrue($byDate['2026-02-23']['outside']);
         self::assertFalse($byDate['2026-03-02']['outside']);
+    }
+
+    /* ── an ARBITRARY month (the calendar's ‹ › navigation) ──────────────── */
+
+    public function testCalendarForGroupsAnArbitraryMonthByDay(): void
+    {
+        // August 2026 starts on a Saturday, so a Monday-start grid opens on
+        // Jul 27 and the month's first two days sit in the opening week.
+        $august = new \DateTimeImmutable('2026-08-01T00:00:00Z');
+        $cells = new PatrolDashboardService()->calendarFor([
+            // The BOUNDARIES: the very first and the very last day of the month.
+            $this->patrol('walk', '2026-08-01T06:00:00Z', 1.0),
+            $this->patrol('boat', '2026-08-31T18:30:00Z', 1.0),
+            $this->patrol('walk', '2026-08-31T05:00:00Z', 1.0),
+            // A neighbouring month's patrol: it still shows, on its own day, in
+            // the dimmed leading/trailing cells the grid draws anyway.
+            $this->patrol('walk', '2026-07-30T06:00:00Z', 1.0),
+        ], $august, $this->now);
+
+        self::assertCount(42, $cells);
+        self::assertSame('2026-07-27', $cells[0]['date']->format('Y-m-d'));
+
+        $byDate = [];
+        foreach ($cells as $cell) {
+            $byDate[$cell['date']->format('Y-m-d')] = $cell;
+        }
+        self::assertCount(1, $byDate['2026-08-01']['patrols']);
+        self::assertCount(2, $byDate['2026-08-31']['patrols']);
+        self::assertCount(1, $byDate['2026-07-30']['patrols']);
+        self::assertTrue($byDate['2026-07-30']['outside']);
+        self::assertFalse($byDate['2026-08-01']['outside']);
+        self::assertFalse($byDate['2026-08-31']['outside']);
+        // "Today" is a fact about the clock, not about the month on screen: a
+        // month that does not contain today rings nothing.
+        foreach ($cells as $cell) {
+            self::assertFalse($cell['today']);
+        }
+    }
+
+    public function testCalendarForRendersAnEmptyMonthAsAFullGridOfEmptyDays(): void
+    {
+        $cells = new PatrolDashboardService()->calendarFor(
+            [],
+            new \DateTimeImmutable('2027-02-01T00:00:00Z'),
+            $this->now,
+        );
+
+        self::assertCount(42, $cells);
+        // February 2027 starts on a Monday — the grid opens on the 1st itself.
+        self::assertSame('2027-02-01', $cells[0]['date']->format('Y-m-d'));
+        foreach ($cells as $cell) {
+            self::assertSame([], $cell['patrols']);
+        }
+    }
+
+    public function testCalendarForMarksTodayInTheMonthThatContainsIt(): void
+    {
+        $cells = new PatrolDashboardService()->calendarFor(
+            [],
+            new \DateTimeImmutable('2026-03-14T09:00:00Z'), // any instant in the month
+            $this->now,
+        );
+
+        $today = array_values(array_filter($cells, static fn (array $cell): bool => $cell['today']));
+        self::assertCount(1, $today);
+        self::assertSame('2026-03-21', $today[0]['date']->format('Y-m-d'));
+    }
+
+    public function testCalendarRangeIsTheGridTheCellsCover(): void
+    {
+        [$from, $until] = PatrolDashboardService::calendarRange(new \DateTimeImmutable('2026-08-17T13:45:00Z'));
+
+        self::assertSame('2026-07-27 00:00:00', $from->format('Y-m-d H:i:s'));
+        // Exclusive: the day after the grid's last cell (42 days on).
+        self::assertSame('2026-09-07 00:00:00', $until->format('Y-m-d H:i:s'));
     }
 
     /* ── the coverage map's payload ──────────────────────────────────────── */

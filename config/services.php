@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use UhifadhiLabs\Patrol\Controller\PatrolCalendarController;
 use UhifadhiLabs\Patrol\Controller\PatrolController;
 use UhifadhiLabs\Patrol\Controller\PatrolDetailController;
 use UhifadhiLabs\Patrol\Repository\ObservationRepository;
@@ -20,6 +21,7 @@ use UhifadhiLabs\Patrol\Repository\PatrolRepository;
 use UhifadhiLabs\Patrol\Repository\WidgetPreferenceRepository;
 use UhifadhiLabs\Patrol\Service\GeoService;
 use UhifadhiLabs\Patrol\Service\GpxParser;
+use UhifadhiLabs\Patrol\Service\GpxWriter;
 use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
 use UhifadhiLabs\Patrol\Service\PatrolWidgetService;
 use UhifadhiLabs\Patrol\Service\TrackIngestService;
@@ -51,6 +53,10 @@ return static function (ContainerConfigurator $container): void {
     $services->set('patrol.geo', GeoService::class);
 
     $services->set('patrol.gpx_parser', GpxParser::class)
+        ->args([service('patrol.geo')]);
+
+    // The inverse of the parser: a recorded track back out as a GPX file.
+    $services->set('patrol.gpx_writer', GpxWriter::class)
         ->args([service('patrol.geo')]);
 
     $services->set('patrol.dashboard', PatrolDashboardService::class);
@@ -113,11 +119,30 @@ return static function (ContainerConfigurator $container): void {
 
     $services->alias(PatrolController::class, 'patrol.controller.dashboard')->public();
 
+    /*
+     * The calendar's month fragment (PL·11 ‹ ›). Registered beside the dashboard
+     * rather than inside the bundle's SecurityBundle guard: it is a slice of the
+     * dashboard the same caller already reads, so it must exist wherever the
+     * dashboard does — including a host with no security, where the widget still
+     * renders and its ‹ › must still work.
+     */
+    $services->set('patrol.controller.calendar', PatrolCalendarController::class)
+        ->args([
+            service('twig'),
+            service(PatrolRepository::class),
+            service('patrol.dashboard'),
+            param('patrol.types'),
+        ])
+        ->public();
+
+    $services->alias(PatrolCalendarController::class, 'patrol.controller.calendar')->public();
+
     $services->set('patrol.controller.detail', PatrolDetailController::class)
         ->args([
             service('twig'),
             service('router'),
             service('patrol.geo'),
+            service('patrol.gpx_writer'),
             param('patrol.types'),
             param('patrol.observation_categories'),
         ])

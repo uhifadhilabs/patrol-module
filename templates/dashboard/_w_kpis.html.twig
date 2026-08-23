@@ -15,14 +15,19 @@
             <span>this month · from GPX</span>
         </div>
     </div>
-    {# DEFERRED(coverage): "% of the area within N km of a track" is a PostGIS
-       computation (buffer the tracks, intersect the boundary) the dashboard
-       service does not do yet. The plate ships with an em-dash so the design's
-       fourth KPI slot is not silently dropped. #}
+    {# PL·03 — the share of the area within 2 km of a track recorded this month
+       (PostGIS: buffer the month's tracks, union, clip to the boundary), stated
+       as the design's whole percent. Null is the empty state, not 0 %: an area
+       with no boundary, or a month whose patrols were all hand-logged, has
+       nothing to measure — see PatrolRepository::coverageFractionWithin(). #}
     <div class="c" data-kpi="coverage">
         <span class="tab"><span class="idx">PL·03</span>Coverage<span class="src">· 2 km buffer</span></span>
         <div class="kpi">
-            <b>—</b>
+            {% if dashboard.coverageFraction is not null %}
+                <b>{{ (dashboard.coverageFraction * 100)|round }}<em>%</em></b>
+            {% else %}
+                <b>—</b>
+            {% endif %}
             <span>of area within 2 km of a track</span>
         </div>
     </div>

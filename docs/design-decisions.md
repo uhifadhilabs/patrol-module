@@ -85,8 +85,19 @@ consumers of the same pipeline shape, on sibling topics.
 
 The patrol base template loads the HOST's self-hosted Leaflet
 (`asset('leaflet/leaflet.css'|'leaflet/leaflet.js')`), and the map controllers
-import the host's basemap module (`uhifadhi/basemaps`, an importmap specifier)
-for the satellite and street layers rather than defining tile sources here.
+import the host's map modules — `uhifadhi/basemaps` for the satellite and street
+layers, `uhifadhi/boundary` for how an area outline is drawn — rather than
+holding tile sources or boundary styling of their own. The bundle defines no
+boundary colour, weight or opacity anywhere: there is one definition, in the
+host, and nothing to keep in sync.
+
+The one thing each map decides for itself is whether the outside-the-area SCRIM
+is drawn. The coverage map (PL·05/PL·08) shows it, like the host's area map: it
+frames the whole area, and dimming the outside is what makes the boundary read
+at a glance. The detail and observation plates do NOT: they open deep inside the
+area at close zoom, where "outside" is not in frame at all and the scrim would
+only darken imagery for no gain. Both still draw the identical casing and jade
+line.
 
 **Why:** the platform rule is that the same layer renders identically wherever
 it appears — a patrol map and an area map must not disagree about what
@@ -96,5 +107,5 @@ happen. This bundle is a uhifadhi module: it already binds to the host's
 CDN, and never MapLibre (raster tiles + GeoJSON need no WebGL).
 
 **Revisit when:** the bundle is ever wanted in a non-uhifadhi host. Then the two
-asset paths and the basemap specifier become configuration, with the current
+asset paths and the two module specifiers become configuration, with the current
 values as defaults.

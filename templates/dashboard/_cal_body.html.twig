@@ -1,0 +1,78 @@
+{# The calendar's BODY for one month — the month header row and the 6×7 grid.
+
+   Rendered inline by the widget (_w_cal.html.twig) for the month the dashboard
+   opens on, and served on its own by PatrolCalendarController for every other
+   month the ‹ › controls ask for. ONE partial for both, so a fetched month can
+   never look different from the one the page shipped with.
+
+   Bindings: `cells` (42 cells from PatrolDashboardService::calendarFor) and
+   `month` (a \DateTimeImmutable inside the month on screen). Type colours come
+   from typeColors() via the ui.color macro — the single palette, never a second
+   one (the map-legend rule).
+
+   The root carries the month it IS: the Stimulus controller reads the label
+   back off it after a swap, so the card's "· august 2026" caption above the grid
+   stays in step without the JS formatting a date itself. #}
+{% import '@UhifadhiLabsPatrol/dashboard/_ui.html.twig' as ui %}
+<div class="patrol-calmonth"
+     data-patrol-cal-month="{{ month|date('Y-m') }}"
+     data-patrol-cal-label="{{ month|date('F Y')|lower }}">
+    {# Unbounded in both directions: there is no first or last month of patrols,
+       and an empty one renders as a full grid of empty days. #}
+    <div class="patrol-calnav">
+        <button type="button" class="mchip patrol-ghost" title="Previous month" aria-label="Previous month"
+                data-patrol-cal-goto="{{ month|date_modify('-1 month')|date('Y-m') }}"
+                {{ stimulus_action('@uhifadhilabs/patrol-module/calendar', 'go', 'click') }}>&lsaquo;</button>
+        <span class="mchip on">{{ month|date('F Y')|lower }}</span>
+        <button type="button" class="mchip patrol-ghost" title="Next month" aria-label="Next month"
+                data-patrol-cal-goto="{{ month|date_modify('+1 month')|date('Y-m') }}"
+                {{ stimulus_action('@uhifadhilabs/patrol-module/calendar', 'go', 'click') }}>&rsaquo;</button>
+    </div>
+    <div class="patrol-cal">
+        {% for day in ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] %}
+            <div class="patrol-dh">{{ day }}</div>
+        {% endfor %}
+        {% for cell in cells %}
+            <div class="patrol-dc{{ cell.outside ? ' patrol-out' }}{{ cell.today ? ' patrol-today' }}">
+                <span class="patrol-dn">{{ cell.date|date('j') }}</span>
+                {% for patrol in cell.patrols %}
+                    {# The pill IS the link: clicking anywhere on it — chip or the
+                       popover it opens — goes to that patrol's detail page, the
+                       same destination the log's "Open →" leads to. #}
+                    <a class="patrol-daypill" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">
+                        <span class="chip patrol-tchip" style="--patrol-track: {{ ui.color(typeColor, patrol.type) }}">{{ patrol.ref }}</span>
+                        {# The hover card. Server-rendered, not built in JS: every
+                           value here is already known, and a popover made of real
+                           markup reads to a screen reader and survives with JS off.
+                           Positioning is pure CSS (see patrol.css — the last column
+                           and the last two rows flip). Inline elements only: this
+                           lives inside an <a>. #}
+                        <span class="patrol-pop" role="note">
+                            <span class="patrol-pop-head">
+                                <span class="chip patrol-tchip" style="--patrol-track: {{ ui.color(typeColor, patrol.type) }}">{{ types[patrol.type].label|default(patrol.type)|lower }}</span>
+                                <span class="mono patrol-pop-ref">{{ patrol.ref }}</span>
+                            </span>
+                            {# Who was out: the design's own order — the team lead
+                               where one is recorded, else the named team, else the
+                               station the patrol set out from. #}
+                            <span class="patrol-pop-who">
+                                {%- if patrol.lead -%}{{ ui.lead_name(patrol.lead) }}
+                                {%- elseif patrol.team -%}{{ patrol.team }}
+                                {%- elseif patrol.station -%}{{ patrol.station }}
+                                {%- else -%}—{%- endif -%}
+                                {%- if patrol.station and patrol.lead %} · {{ patrol.station }}{% endif -%}
+                            </span>
+                            <span class="patrol-pop-row"><span>start</span><span class="mono">{% if patrol.startedAt %}{{ patrol.startedAt|date('H:i') }}{% else %}—{% endif %}</span></span>
+                            <span class="patrol-pop-row"><span>duration</span><span class="mono">{{ ui.duration(patrol) }}</span></span>
+                            <span class="patrol-pop-row"><span>distance</span><span class="mono">{{ ui.distance(patrol) }}</span></span>
+                            <span class="patrol-pop-row"><span>observations</span><span class="mono">{{ patrol.observations|length }}</span></span>
+                            <span class="patrol-pop-open">Open &rarr;</span>
+                        </span>
+                    </a>
+                {% endfor %}
+                {# DEFERRED(planned): the design shows "planned" pills on future
+                   days; the bundle has no planned-patrol concept. #}
+            </div>
+        {% endfor %}
+    </div>
+</div>

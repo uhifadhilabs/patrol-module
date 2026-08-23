@@ -168,6 +168,10 @@ final class PatrolDetailPageTest extends WebTestCase
         self::assertIsString($payload['boundary'] ?? null);
         self::assertStringContainsString('MultiPolygon', $payload['boundary']);
         self::assertIsString($payload['color'] ?? null);
+        // The controls are mounted by the host's platform chrome module, not
+        // rendered here; the plate ships the frame they mount into.
+        self::assertCount(1, $crawler->filter('.patrol-viewer .patrol-canvas'));
+        self::assertCount(0, $crawler->filter('.patrol-zoomui'));
         self::assertStringContainsString($this->patrol->getRef().' · North post · walking round', $crawler->filter('.patrol-ol-id')->text());
 
         // PL·02 — meta rows, including the computed duration and average speed

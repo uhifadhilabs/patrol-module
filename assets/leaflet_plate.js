@@ -1,5 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 import { satelliteLayer, streetLayer } from 'uhifadhi/basemaps';
+import { drawBoundary } from 'uhifadhi/boundary';
+import { mountMapChrome } from 'uhifadhi/map-chrome';
 
 /*
  * The shared imagery plate every patrol map is built on — the design's viewer
@@ -15,20 +17,19 @@ import { satelliteLayer, streetLayer } from 'uhifadhi/basemaps';
  * The two base layers come from the HOST's one basemap module
  * (`uhifadhi/basemaps`, an importmap specifier): satellite is Google's official
  * Map Tiles API, falling back to keyless imagery where no key is configured.
- * The module must not define a third opinion about what satellite looks like.
+ * The boundary comes from the host's `uhifadhi/boundary` the same way. The
+ * module must not hold a second opinion about what satellite or a boundary
+ * looks like — the same layer renders identically everywhere.
  *
  * Subclasses implement draw() — what this particular plate puts on the map —
  * and fitTo() is how they hand back the bounds to open on.
  */
 
-/* Fixed hexes, never theme tokens: everything here is drawn over satellite
-   imagery, which is dark in both themes. Same reasoning (and the same values)
-   as PatrolDashboardService::TRACK_COLORS. */
-export const BOUNDARY_LINE = 'rgba(234,242,236,.55)';
-export const BOUNDARY_LINE_FAINT = 'rgba(234,242,236,.35)';
-export const BOUNDARY_FILL = '#3ED9A8';
 /* The observation ring's amber lives in patrol.css (.patrol-ring) — it is drawn
-   as a DOM marker, not a canvas shape, so the stylesheet owns its colour. */
+   as a DOM marker, not a canvas shape, so the stylesheet owns its colour.
+   The boundary's colours are NOT defined here at all: they come from the host's
+   one boundary module (`uhifadhi/boundary`), so a boundary reads the same on an
+   area page and on a patrol plate. */
 
 /** Parse a geometry column's GeoJSON text; anything unusable is simply not drawn. */
 export function parseGeometry(text) {
@@ -64,7 +65,7 @@ export function endpoints(geometry) {
 }
 
 export default class extends Controller {
-    static targets = ['canvas', 'layerMenu', 'layerBtn'];
+    static targets = ['canvas'];
     static values = { payload: Object };
 
     connect() {
@@ -75,22 +76,10 @@ export default class extends Controller {
         }
         this.L = L;
 
-        // The design's chrome owns the corners, so Leaflet's own zoom control is
-        // off: the +/− pills call zoomIn/zoomOut instead.
-        // Wheel zoom is OFF until Ctrl (⌘ on a Mac) is held: a plate sits inside a
-        // scrolling page, and scrolling past a map must never zoom it. The same
-        // bargain Google Maps embeds make, and the hint says so.
-        this.map = L.map(this.canvasTarget, {
-            zoomControl: false,
-            attributionControl: true,
-            scrollWheelZoom: false,
-        });
-        // Imagery attribution is not optional — it rides bottom-right, styled as
-        // one of the design's pills (patrol.css).
-        this.map.attributionControl.setPrefix(false);
-        // A live scale bar replaces the design's static "500 m ⎯⎯⎯" label: the
-        // plate zooms, so a fixed number would be a lie.
-        L.control.scale({ imperial: false, position: 'bottomright' }).addTo(this.map);
+        // Controls, the live scale bar, attribution and the Ctrl/⌘-scroll bargain
+        // all come from the host's platform chrome module, mounted after draw().
+        this.map = L.map(this.canvasTarget, { zoomControl: false, attributionControl: true });
+        this.canvasTarget.classList.add('map-chrome-host');
 
         // The host's basemaps, not the module's own: the same imagery a person
         // sees on the area map, on every patrol map.
@@ -105,30 +94,27 @@ export default class extends Controller {
         this.map.setView([-3.2, 35.5], 8);
 
         this.payload = this.hasPayloadValue ? this.payloadValue : {};
-        this.draw();
+        // What is DRAWN must never be able to kill the map itself. A throw in
+        // draw() used to abort connect(), so a bad payload cost the zoom pills,
+        // the layer menu, fullscreen and the scroll bargain as well as the
+        // overlay — the whole plate went dead. Now the tiles and the chrome
+        // survive it and the console says what actually broke.
+        try {
+            this.draw();
+        } catch (error) {
+            console.error('[patrol] the map overlay failed to draw', error);
+        }
 
-        // Clicking anywhere else — the map, the page, another control — closes
-        // the layer menu, which is closed to begin with.
-        this.closeLayers = (event) => {
-            if (!this.hasLayerMenuTarget || this.layerMenuTarget.hidden) {
-                return;
-            }
-            if (this.layerMenuTarget.contains(event.target)) {
-                return;
-            }
-            if (this.hasLayerBtnTarget && this.layerBtnTarget.contains(event.target)) {
-                return; // the toggle handles itself
-            }
-            this.setLayerMenu(false);
-        };
-        document.addEventListener('click', this.closeLayers);
-        this.watchWheel();
-        this.dismissLayers = (event) => {
-            if (event.key === 'Escape') {
-                this.setLayerMenu(false);
-            }
-        };
-        document.addEventListener('keydown', this.dismissLayers);
+        // After draw(), so the DIM pill has this plate's scrim to switch.
+        // Fullscreen takes the whole widget card, not just the tiles: the filter
+        // chips and the legend are part of reading the map.
+        this.chrome = mountMapChrome(L, this.map, this.element, {
+            bases: this.bases,
+            scrim: this.scrimLayer,
+            scrimOn: Boolean(this.scrimLayer) && this.map.hasLayer(this.scrimLayer),
+            fullscreenTarget: this.element.closest('.c') ?? this.element,
+            onResize: () => this.refit(),
+        });
     }
 
     /*
@@ -137,83 +123,15 @@ export default class extends Controller {
      * container and Leaflet throws — the map then never builds.
      */
     disconnect() {
-        this.canvasTarget.removeEventListener('wheel', this.onWheel);
-        document.removeEventListener('fullscreenchange', this.onFullscreen);
-        document.removeEventListener('keydown', this.onModifier);
-        document.removeEventListener('keyup', this.onModifier);
-        clearTimeout(this.hintTimer);
-        document.removeEventListener('click', this.closeLayers);
-        document.removeEventListener('keydown', this.dismissLayers);
+        this.chrome?.destroy();
+        this.chrome = null;
+        // stop() before remove(): a zoom/pan animation still in flight fires its
+        // transitionend on a pane that remove() has already detached, and
+        // Leaflet throws "Cannot read properties of undefined (reading
+        // '_leaflet_pos')". Navigating away mid-zoom is an ordinary thing to do.
+        this.map?.stop();
         this.map?.remove();
         this.map = null;
-    }
-
-    /*
-     * Ctrl/⌘ + wheel zooms; a plain wheel scrolls the page and flashes the hint.
-     * In full screen there is no page behind the map, so a plain wheel zooms —
-     * the modifier exists only to protect the scroll it would otherwise steal.
-     */
-    watchWheel() {
-        this.onWheel = (event) => {
-            if (this.fullscreen) {
-                return;
-            }
-            if (event.ctrlKey || event.metaKey) {
-                this.map.scrollWheelZoom.enable();
-                this.hideHint();
-
-                return;
-            }
-            this.map.scrollWheelZoom.disable();
-            this.showHint();
-        };
-        this.canvasTarget.addEventListener('wheel', this.onWheel, { passive: true });
-
-        // Arm it on the key press, not on the first wheel tick — otherwise the
-        // first notch of a Ctrl+scroll is swallowed while the handler switches on.
-        this.onModifier = (event) => {
-            if (this.fullscreen || !this.map) {
-                return;
-            }
-            if (event.ctrlKey || event.metaKey) {
-                this.map.scrollWheelZoom.enable();
-            } else {
-                this.map.scrollWheelZoom.disable();
-            }
-        };
-        document.addEventListener('keydown', this.onModifier);
-        document.addEventListener('keyup', this.onModifier);
-
-        this.onFullscreen = () => {
-            this.fullscreen = document.fullscreenElement?.contains(this.element) ?? false;
-            if (this.fullscreen) {
-                this.map.scrollWheelZoom.enable();
-                this.hideHint();
-            } else {
-                this.map.scrollWheelZoom.disable();
-            }
-            this.map.invalidateSize();
-        };
-        document.addEventListener('fullscreenchange', this.onFullscreen);
-    }
-
-    showHint() {
-        if (!this.hint) {
-            this.hint = document.createElement('span');
-            this.hint.className = 'patrol-wheelhint';
-            // ⌘ on a Mac, Ctrl everywhere else — the key people actually press.
-            const mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
-            this.hint.textContent = mac ? 'Use ⌘ + scroll to zoom the map' : 'Use Ctrl + scroll to zoom the map';
-            this.element.appendChild(this.hint);
-        }
-        this.hint.classList.add('on');
-        clearTimeout(this.hintTimer);
-        this.hintTimer = setTimeout(() => this.hint?.classList.remove('on'), 1400);
-    }
-
-    hideHint() {
-        clearTimeout(this.hintTimer);
-        this.hint?.classList.remove('on');
     }
 
     /** What this plate draws. Subclasses override. */
@@ -229,85 +147,38 @@ export default class extends Controller {
      */
     fitTo(bounds, { padding = 26, maxZoom } = {}) {
         if (bounds && bounds.isValid()) {
+            // Remembered so the plate can re-frame the SAME subject when the
+            // viewport changes size (entering or leaving full screen).
+            this.lastFit = { bounds, padding, maxZoom };
             this.map.fitBounds(bounds, { padding: [padding, padding], maxZoom });
         }
     }
 
-    /** The area outline: the design's dashed hairline, no fill on a detail plate. */
-    drawBoundary(text, { faint = false, fill = false } = {}) {
-        const geometry = parseGeometry(text);
-        if (!geometry) {
-            return null;
-        }
-
-        return this.L.geoJSON(geometry, {
-            interactive: false,
-            style: {
-                color: faint ? BOUNDARY_LINE_FAINT : BOUNDARY_LINE,
-                weight: faint ? 1.2 : 1.4,
-                dashArray: '6 4',
-                fill,
-                fillColor: BOUNDARY_FILL,
-                fillOpacity: 0.05,
-            },
-        }).addTo(this.map);
-    }
-
-    /* ── the design's chrome ─────────────────────────────────────────────── */
-
-    zoomIn() {
-        this.map?.zoomIn();
-    }
-
-    zoomOut() {
-        this.map?.zoomOut();
-    }
-
-    /** The layers pill: the menu is closed by default and this is what opens it. */
-    toggleLayers(event) {
-        event?.stopPropagation();
-        this.setLayerMenu(this.hasLayerMenuTarget && this.layerMenuTarget.hidden);
-    }
-
-    setLayerMenu(open) {
-        if (!this.hasLayerMenuTarget) {
-            return;
-        }
-        this.layerMenuTarget.hidden = !open;
-        if (this.hasLayerBtnTarget) {
-            this.layerBtnTarget.classList.toggle('on', open);
-            this.layerBtnTarget.setAttribute('aria-expanded', open ? 'true' : 'false');
+    /** Re-frame whatever this plate last opened on. */
+    refit() {
+        if (this.lastFit) {
+            const { bounds, padding, maxZoom } = this.lastFit;
+            this.map?.fitBounds(bounds, { padding: [padding, padding], maxZoom });
         }
     }
 
-    /** Choose a base layer: it applies, it is marked, and the menu closes. */
-    showBase(event) {
-        const chosen = event.currentTarget.dataset.patrolBase;
-        Object.entries(this.bases).forEach(([name, layer]) => {
-            if (name === chosen) {
-                layer.addTo(this.map);
-            } else {
-                this.map.removeLayer(layer);
-            }
-        });
-        event.currentTarget.parentElement.querySelectorAll('b').forEach((b) => {
-            b.classList.toggle('on', b === event.currentTarget);
-        });
-        this.setLayerMenu(false);
-    }
-
-    /*
-     * Fullscreen takes the whole widget card, not just the tiles: the filter
-     * chips and the legend are part of reading the map, and the design says the
-     * legend floats bottom-right in full screen (patrol.css does that).
+    /**
+     * The area outline, in the platform's one boundary treatment: the
+     * outside-the-area scrim, a white casing and the jade line. It must be
+     * unmistakable where the area is, so there is no faint variant — every
+     * patrol map draws it exactly as the host's area map draws it.
+     *
+     * `scrim: false` is for the close-zoom detail plates: there the whole frame
+     * sits inside the area, so dimming "outside" dims nothing you can see and
+     * only darkens the imagery.
      */
-    expand() {
-        const frame = this.element.closest('.c') ?? this.element;
-        if (document.fullscreenElement) {
-            document.exitFullscreen();
-        } else if (frame.requestFullscreen) {
-            frame.requestFullscreen().catch(() => {});
-        }
-        // fullscreenchange re-sizes the map and switches the wheel bargain.
+    drawBoundary(text, { scrim = true } = {}) {
+        // One return value, and it is always a layer with getBounds() — see the
+        // contract note in the host's map_boundary.js. The DIM handle rides on
+        // it rather than being a second thing to destructure.
+        const boundary = drawBoundary(this.L, this.map, parseGeometry(text), { scrim });
+        this.scrimLayer = boundary?.scrimLayer ?? null;
+
+        return boundary;
     }
 }

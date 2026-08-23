@@ -40,11 +40,13 @@
         <p class="pgsub">{{ segments|join(' · ') }}.</p>
     </div>
     <div class="pgact patrol-pgact">
-        {# Only a GPX-born patrol has a recorded track to export; a sketched
-           manual route must never be offered as one (docs/design-decisions.md §4).
-           TODO(patrol_export): the GPX export response (route patrol_export). #}
-        {% if patrol.source.value == 'gpx' %}
-            <a class="tgl patrol-act" href="#"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export GPX</a>
+        {# Only a RECORDED track can be exported; a sketched manual route must
+           never be handed out as a .gpx, or it re-enters the world as a
+           recording (docs/design-decisions.md §4). The action is absent, not
+           disabled: there is no file here to be had later, so a greyed control
+           would promise one. The route enforces the same rule (404). #}
+        {% if patrol.hasRecordedTrack %}
+            <a class="tgl patrol-act" href="{{ path('patrol_export_gpx', {uuid: area.uuid, patrol: patrol.uuid}) }}" download="{{ patrol.ref }}.gpx"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export GPX</a>
         {% endif %}
     </div>
 </div>

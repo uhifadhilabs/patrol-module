@@ -23,6 +23,7 @@
     "require": {
         "php": ">=8.4",
         "ext-simplexml": "*",
+        "ext-xmlwriter": "*",
         "doctrine/dbal": "^4.0",
         "doctrine/doctrine-bundle": "^3.0",
         "doctrine/orm": "^3.5",

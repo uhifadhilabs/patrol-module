@@ -88,6 +88,13 @@ final class PatrolWidgetsController
             $this->patrols->findByAreaLatestFirst($area),
             $this->types,
             $now,
+            // The library previews the REAL KPI strip, so PL·03 is queried here
+            // exactly as the dashboard queries it.
+            $this->patrols->coverageFractionWithin(
+                $area,
+                PatrolDashboardService::COVERAGE_BUFFER_M,
+                ...PatrolDashboardService::monthRange($now),
+            ),
         );
 
         return new Response($this->twig->render('@UhifadhiLabsPatrol/widgets/show.html.twig', [

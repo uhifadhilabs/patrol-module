@@ -283,6 +283,18 @@ class Patrol
         return $this;
     }
 
+    /**
+     * Whether this patrol carries a RECORDED route — a GPX import or an API
+     * feed — as opposed to nothing at all or a hand-sketched line. Only a
+     * recorded route may be offered back as GPX: handing a sketch out as a
+     * .gpx file would let it re-enter the world as a recording
+     * (docs/design-decisions.md §4).
+     */
+    public function hasRecordedTrack(): bool
+    {
+        return null !== $this->track && PatrolSourceEnum::Manual !== $this->source;
+    }
+
     /** Display reference ("P-0142") — presentation only, derived from the id. */
     public function getRef(): string
     {

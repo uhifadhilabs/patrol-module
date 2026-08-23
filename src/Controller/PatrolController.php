@@ -74,6 +74,14 @@ final class PatrolController
             $this->patrols->findByAreaLatestFirst($area),
             $this->types,
             $now,
+            // PL·03 is the one month figure the loaded rows cannot answer: it is
+            // a PostGIS set operation over the month's tracks, asked for exactly
+            // the window the service counts in.
+            $this->patrols->coverageFractionWithin(
+                $area,
+                PatrolDashboardService::COVERAGE_BUFFER_M,
+                ...PatrolDashboardService::monthRange($now),
+            ),
         );
 
         return new Response($this->twig->render('@UhifadhiLabsPatrol/dashboard/show.html.twig', [

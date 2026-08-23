@@ -58,6 +58,9 @@ than shipping a second copy of it (see `docs/design-decisions.md` §6):
   `leaflet/leaflet.js` (`window.L`). No CDN, never MapLibre.
 - **Basemaps** under the importmap specifier `uhifadhi/basemaps`, exporting
   `satelliteLayer(L, map)` and `streetLayer(L)`.
+- **Boundary treatment** under `uhifadhi/boundary`, exporting `drawBoundary(L,
+  map, geojson, { scrim })` — the platform's one area outline: the
+  outside-the-area scrim, a white casing and the jade line.
 
 ## Configuration
 
@@ -83,6 +86,7 @@ when@test: { patrol: { dev_tools: true } }
 | Widget library (edit surface) | `patrol_widgets` |
 | Patrol detail | `patrol_show` |
 | Observation detail | `patrol_observation_show` |
+| Export a recorded track as GPX | `patrol_export_gpx` |
 | Import GPX | `patrol_import` |
 | Log patrol (manual) | `patrol_log` |
 

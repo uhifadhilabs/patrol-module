@@ -1,27 +1,14 @@
-{# Widget "cal" — the month calendar (PL·11). #}
-{% import '@UhifadhiLabsPatrol/dashboard/_ui.html.twig' as ui %}
-<div class="c" data-patrol-calendar>
-    <span class="tab"><span class="idx">PL·11</span>Patrol calendar<span class="src">· {{ now|date('F Y')|lower }}</span></span>
-    {# TODO(patrol_calendar_nav): ‹ › step to the previous/next month (the
-       dashboard service builds the CURRENT month only). #}
-    <div class="patrol-calnav">
-        <span class="mchip patrol-ghost">‹</span>
-        <span class="mchip on">{{ now|date('F Y')|lower }}</span>
-        <span class="mchip patrol-ghost">›</span>
-    </div>
-    <div class="patrol-cal">
-        {% for day in ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] %}
-            <div class="patrol-dh">{{ day }}</div>
-        {% endfor %}
-        {% for cell in dashboard.calendar %}
-            <div class="patrol-dc{{ cell.outside ? ' patrol-out' }}{{ cell.today ? ' patrol-today' }}">
-                <span class="patrol-dn">{{ cell.date|date('j') }}</span>
-                {% for patrol in cell.patrols %}
-                    <a class="patrol-daypill" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}"><span class="chip patrol-tchip" style="--patrol-track: {{ ui.color(typeColor, patrol.type) }}">{{ patrol.ref }}</span></a>
-                {% endfor %}
-                {# DEFERRED(planned): the design shows "planned" pills on future
-                   days; the bundle has no planned-patrol concept. #}
-            </div>
-        {% endfor %}
+{# Widget "cal" — the month calendar (PL·11).
+
+   The card and its caption stay here; the month itself (header row + grid) is
+   _cal_body.html.twig, which the ‹ › controls re-fetch from patrol_calendar and
+   swap in. The dashboard ships the CURRENT month already rendered, so the widget
+   is complete before any JavaScript runs. #}
+<div class="c" data-patrol-calendar
+     {{ stimulus_controller('@uhifadhilabs/patrol-module/calendar', {url: path('patrol_calendar', {uuid: area.uuid})}) }}>
+    <span class="tab"><span class="idx">PL&middot;11</span>Patrol calendar<span class="src">&middot; <span
+                {{ stimulus_target('@uhifadhilabs/patrol-module/calendar', 'label') }}>{{ now|date('F Y')|lower }}</span></span></span>
+    <div {{ stimulus_target('@uhifadhilabs/patrol-module/calendar', 'body') }}>
+        {{ include('@UhifadhiLabsPatrol/dashboard/_cal_body.html.twig', {cells: dashboard.calendar, month: now}) }}
     </div>
 </div>

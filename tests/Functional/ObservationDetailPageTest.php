@@ -38,7 +38,10 @@ final class ObservationDetailPageTest extends WebTestCase
     private AreaOfInterest $otherArea;
     private Patrol $patrol;
     private Patrol $otherPatrol;
+    private Patrol $lonePatrol;
     private Observation $observation;
+    private Observation $firstObservation;
+    private Observation $loneObservation;
 
     protected function setUp(): void
     {
@@ -75,17 +78,26 @@ final class ObservationDetailPageTest extends WebTestCase
         $this->em->persist($this->patrol);
 
         // Two observations, so the meta row can honestly say "2 of 2".
-        $this->em->persist(
-            new Observation($this->patrol, 'maintenance')
-                ->setNote('First note.')
-                ->setLoggedAt(new \DateTimeImmutable('today 06:48')),
-        );
+        $this->firstObservation = new Observation($this->patrol, 'maintenance')
+            ->setNote('First note.')
+            ->setLoggedAt(new \DateTimeImmutable('today 06:48'));
+        $this->em->persist($this->firstObservation);
         $this->observation = new Observation($this->patrol, 'maintenance')
             ->setNote('Fence line down over twenty metres; livestock crossing.')
             ->setPosition('{"type":"Point","coordinates":[12.28,-5.72]}')
             ->setLoggedAt(new \DateTimeImmutable('today 08:15'))
             ->setRecordedBy($recorder);
         $this->em->persist($this->observation);
+
+        // A patrol with exactly ONE observation: nothing to circle, so no arrows.
+        $this->lonePatrol = new Patrol($this->area, 'walk')
+            ->setSource(PatrolSourceEnum::Manual)
+            ->setStartedAt(new \DateTimeImmutable('today 05:00'));
+        $this->em->persist($this->lonePatrol);
+        $this->loneObservation = new Observation($this->lonePatrol, 'maintenance')
+            ->setNote('The only note.')
+            ->setLoggedAt(new \DateTimeImmutable('today 05:20'));
+        $this->em->persist($this->loneObservation);
 
         $this->otherPatrol = new Patrol($this->area, 'boat')
             ->setSource(PatrolSourceEnum::Manual)
@@ -176,6 +188,93 @@ final class ObservationDetailPageTest extends WebTestCase
         self::assertStringContainsString('Photos', $photos->text());
         self::assertCount(0, $photos->filter('img'));
         self::assertCount(0, $photos->filter('input'));
+    }
+
+    public function testTheArrowsCircleToTheNeighbouringObservations(): void
+    {
+        // The LAST of two: next wraps round to the first, prev walks back to it
+        // as well — a two-observation patrol is a ring of two.
+        $crawler = $this->client->request('GET', $this->url($this->area, $this->patrol, $this->observation));
+
+        self::assertResponseIsSuccessful();
+        $nav = $crawler->filter('.pgact .patrol-obsnav');
+        self::assertCount(1, $nav);
+        self::assertStringContainsString('2 / 2', $nav->text());
+
+        $first = $this->url($this->area, $this->patrol, $this->firstObservation);
+        self::assertSame($first, $nav->filter('a[rel="prev"]')->attr('href'));
+        self::assertSame($first, $nav->filter('a[rel="next"]')->attr('href'));
+    }
+
+    public function testTheArrowsWrapAtBothEnds(): void
+    {
+        // The FIRST of two: prev wraps backwards to the last one.
+        $crawler = $this->client->request('GET', $this->url($this->area, $this->patrol, $this->firstObservation));
+
+        self::assertResponseIsSuccessful();
+        $nav = $crawler->filter('.pgact .patrol-obsnav');
+        self::assertStringContainsString('1 / 2', $nav->text());
+
+        $last = $this->url($this->area, $this->patrol, $this->observation);
+        self::assertSame($last, $nav->filter('a[rel="prev"]')->attr('href'));
+        self::assertSame($last, $nav->filter('a[rel="next"]')->attr('href'));
+        // The arrows say where they go, for anyone not reading the chevrons.
+        self::assertStringContainsString(
+            'Previous observation: 2 of 2',
+            (string) $nav->filter('a[rel="prev"]')->attr('aria-label'),
+        );
+    }
+
+    public function testAPatrolWithASingleObservationOffersNoArrows(): void
+    {
+        $crawler = $this->client->request(
+            'GET',
+            $this->url($this->area, $this->lonePatrol, $this->loneObservation),
+        );
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('.patrol-obsnav'));
+    }
+
+    public function testThePlatePayloadCarriesEveryObservationWithExactlyOneCurrent(): void
+    {
+        $crawler = $this->client->request('GET', $this->url($this->area, $this->patrol, $this->observation));
+
+        self::assertResponseIsSuccessful();
+        $payload = json_decode(
+            (string) $crawler
+                ->filter('[data-controller="uhifadhilabs--patrol-module--track-plate"]')
+                ->attr('data-uhifadhilabs--patrol-module--track-plate-payload-value'),
+            true,
+        );
+        self::assertIsArray($payload);
+
+        // Every sibling travels with the plate, in the SAME order the arrows
+        // walk, so a ring can be clicked as well as arrowed to.
+        $siblings = $payload['observations'] ?? null;
+        self::assertIsArray($siblings);
+        self::assertCount(2, $siblings);
+        self::assertSame([1, 2], array_column($siblings, 'n'));
+        self::assertSame(
+            [
+                $this->url($this->area, $this->patrol, $this->firstObservation),
+                $this->url($this->area, $this->patrol, $this->observation),
+            ],
+            array_column($siblings, 'url'),
+        );
+        // Exactly one is the one being viewed.
+        self::assertSame([false, true], array_column($siblings, 'current'));
+        // The sibling with no recorded position says so rather than inventing one.
+        $sibling = $siblings[0];
+        self::assertIsArray($sibling);
+        self::assertArrayHasKey('position', $sibling);
+        self::assertNull($sibling['position']);
+
+        $current = $siblings[1];
+        self::assertIsArray($current);
+        self::assertIsString($current['position'] ?? null);
+        self::assertStringContainsString('Point', $current['position']);
+        self::assertSame('Maintenance need', $current['category'] ?? null);
     }
 
     public function testAnObservationReachedThroughAnotherPatrolIsNotFound(): void
