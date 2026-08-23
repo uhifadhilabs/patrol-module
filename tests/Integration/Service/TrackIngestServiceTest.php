@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace UhifadhiLabs\Patrol\Tests\Integration\Service;
 
-use Uhifadhi\Access\Entity\User;
-use Uhifadhi\Spatial\Entity\AreaOfInterest;
+use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Entity\User;
 use UhifadhiLabs\Patrol\Entity\Observation;
 use UhifadhiLabs\Patrol\Entity\Patrol;
 use UhifadhiLabs\Patrol\Enum\PatrolSourceEnum;

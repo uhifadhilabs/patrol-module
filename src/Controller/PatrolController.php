@@ -9,7 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Twig\Environment;
-use Uhifadhi\Spatial\Entity\AreaOfInterest;
+use Uhifadhi\Entity\AreaOfInterest;
 use UhifadhiLabs\Patrol\Repository\PatrolRepository;
 use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
 

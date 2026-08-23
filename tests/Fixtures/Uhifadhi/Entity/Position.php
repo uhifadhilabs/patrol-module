@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Uhifadhi\Access\Entity;
+namespace Uhifadhi\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * DEV/TEST-ONLY stub of uhifadhi's Uhifadhi\Access\Entity\Position — the reviewer's
+ * DEV/TEST-ONLY stub of uhifadhi's Uhifadhi\Entity\Position — the reviewer's
  * job title (e.g. "Ranger"), shown as the role sublabel under the reviewer's name on
  * the campaign dashboard's review team. Carried in autoload-dev so the User→Position
  * mapping resolves when the bundle is tested standalone; the real class replaces it

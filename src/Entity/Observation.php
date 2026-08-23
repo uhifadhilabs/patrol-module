@@ -6,7 +6,7 @@ namespace UhifadhiLabs\Patrol\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Access\Entity\User;
+use Uhifadhi\Entity\User;
 use UhifadhiLabs\Patrol\Entity\Trait\TimestampableTrait;
 use UhifadhiLabs\Patrol\Repository\ObservationRepository;
 

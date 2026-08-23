@@ -23,7 +23,7 @@ final class PatrolConfigurationTest extends TestCase
         PatrolConfiguration::define($builder->getRootNode());
 
         /** @var array<string, mixed> $processed */
-        $processed = (new Processor())->process($builder->buildTree(), ['patrol' => $config]);
+        $processed = new Processor()->process($builder->buildTree(), ['patrol' => $config]);
 
         return $processed;
     }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace UhifadhiLabs\Patrol\Tests\Unit\Service;
 
 use PHPUnit\Framework\TestCase;
-use Uhifadhi\Spatial\Entity\AreaOfInterest;
+use Uhifadhi\Entity\AreaOfInterest;
 use UhifadhiLabs\Patrol\Entity\Observation;
 use UhifadhiLabs\Patrol\Entity\Patrol;
 use UhifadhiLabs\Patrol\Enum\PatrolSourceEnum;

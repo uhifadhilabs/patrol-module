@@ -6,7 +6,7 @@ namespace UhifadhiLabs\Patrol\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Uhifadhi\Spatial\Entity\AreaOfInterest;
+use Uhifadhi\Entity\AreaOfInterest;
 use UhifadhiLabs\Patrol\Entity\Patrol;
 
 /**

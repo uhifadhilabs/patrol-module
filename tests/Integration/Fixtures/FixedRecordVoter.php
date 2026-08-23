@@ -7,7 +7,7 @@ namespace UhifadhiLabs\Patrol\Tests\Integration\Fixtures;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
-use Uhifadhi\Access\Entity\User;
+use Uhifadhi\Entity\User;
 use UhifadhiLabs\Patrol\Controller\PatrolRecordController;
 
 /**

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Uhifadhi\Access\Entity;
+namespace Uhifadhi\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
- * DEV/TEST-ONLY stub of uhifadhi's Uhifadhi\Access\Entity\User — carried in the bundle's
+ * DEV/TEST-ONLY stub of uhifadhi's Uhifadhi\Entity\User — carried in the bundle's
  * autoload-dev so the Patrol→User mapping resolves when the bundle is tested and
  * phpstan'd in isolation. NOT shipped (autoload-dev is dropped on install), so
  * inside uhifadhi the REAL User is loaded instead. It mirrors the real class for

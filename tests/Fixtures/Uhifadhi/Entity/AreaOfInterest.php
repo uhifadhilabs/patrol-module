@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Uhifadhi\Spatial\Entity;
+namespace Uhifadhi\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * DEV/TEST-ONLY stub of uhifadhi's Uhifadhi\Spatial\Entity\AreaOfInterest — carried
+ * DEV/TEST-ONLY stub of uhifadhi's Uhifadhi\Entity\AreaOfInterest — carried
  * in the bundle's autoload-dev so the Patrol→AreaOfInterest mapping resolves when
  * the bundle is tested and phpstan'd in isolation. NOT shipped (autoload-dev is
  * dropped on install), so inside uhifadhi the REAL AreaOfInterest is loaded instead.

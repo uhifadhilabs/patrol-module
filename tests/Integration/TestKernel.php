@@ -14,7 +14,7 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 use Symfony\UX\StimulusBundle\StimulusBundle;
-use Uhifadhi\Access\Entity\User;
+use Uhifadhi\Entity\User;
 use UhifadhiLabs\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 use UhifadhiLabs\Patrol\UhifadhiLabsPatrolBundle;
 
@@ -75,21 +75,14 @@ final class TestKernel extends Kernel
             'dbal' => [
                 'url' => '%env(PATROL_TEST_DATABASE_URL)%',
             ],
-            // Map the dev-only Uhifadhi\Access\Entity\User + Spatial\Entity\AreaOfInterest
-            // stubs so the Patrol→User and Patrol→AreaOfInterest relations resolve
-            // standalone (the real ones are used inside uhifadhi).
+            // Map the dev-only Uhifadhi\Entity stubs (User, Position, AreaOfInterest)
+            // so the Patrol relations resolve standalone (the real ones inside uhifadhi).
             'orm' => [
                 'mappings' => [
-                    'UhifadhiUserStub' => [
+                    'UhifadhiHostStubs' => [
                         'type' => 'attribute',
-                        'dir' => \dirname(__DIR__).'/Fixtures/Uhifadhi/Access/Entity',
-                        'prefix' => 'Uhifadhi\\Access\\Entity',
-                        'is_bundle' => false,
-                    ],
-                    'UhifadhiAreaStub' => [
-                        'type' => 'attribute',
-                        'dir' => \dirname(__DIR__).'/Fixtures/Uhifadhi/Spatial/Entity',
-                        'prefix' => 'Uhifadhi\\Spatial\\Entity',
+                        'dir' => \dirname(__DIR__).'/Fixtures/Uhifadhi/Entity',
+                        'prefix' => 'Uhifadhi\\Entity',
                         'is_bundle' => false,
                     ],
                 ],
