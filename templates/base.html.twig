@@ -1,0 +1,25 @@
+{# Bundle base: the host's shell plus patrol's own stylesheet. Every patrol page
+   extends this instead of the host layout directly, so the widget-dashboard
+   additions load only where the module renders — the host's own stylesheet
+   never references patrol. #}
+{% extends 'layout.html.twig' %}
+
+{# Symfony docs — https://symfony.com/doc/current/frontend/asset_mapper.html :
+   "All bundles that have a Resources/public/ or public/ directory will
+   automatically have that directory added as an asset path, using the namespace:
+   bundles/<BundleName>" — and under AssetMapper those assets are automatically
+   content-versioned. So public/patrol.css is served as
+   bundles/uhifadhilabspatrol/patrol.css with a digest, no assets:install. #}
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('bundles/uhifadhilabspatrol/patrol.css') }}">
+{% endblock %}
+
+{# The host layout expects each page to supply its own `.page` container (the
+   max-width + side padding wrapper the built-in pages use). Provide it once here
+   so every patrol page inherits the same margins; pages fill `patrol_page`. #}
+{% block content %}
+    <div class="page">
+        {% block patrol_page %}{% endblock %}
+    </div>
+{% endblock %}

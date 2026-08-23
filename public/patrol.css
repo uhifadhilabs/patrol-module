@@ -1,0 +1,136 @@
+/* Patrol screen styles — the widget-dashboard additions on top of the host's
+   design system. Everything the host already ships (.page, .c/.tab/.idx, .kpi,
+   .chip, .mchip, .tbl, .ch chart classes, .crumb/.pghead/.backbtn/.open-btn,
+   .map-frame/.map-btn) is REUSED, never redefined here; only what the host has
+   no equivalent for lives below, and every class is patrol-prefixed so it can
+   never collide with a host class (the host owns .page, .thumb, .map-legend,
+   .who — none of them is touched).
+
+   Colours come from the host tokens (rgb(var(--c-*))) so the module flips with
+   the theme; the imagery viewer keeps fixed dark chrome because it sits on
+   satellite tiles, and per-type track colours arrive as the inline custom
+   property --patrol-track (the deployment configures its own types, so the
+   colour cannot be a static class).
+
+   Shipped with the bundle and linked only where the module renders (see
+   templates/base.html.twig), so the host's stylesheet never mentions patrol. */
+
+/* ---- widget grid ------------------------------------------------------ */
+/* Twelve columns; each widget declares its span. Widths are per-user
+   preferences later (TODO(widget preferences) in the template) — the wrappers
+   already carry data-w, so only the class changes. */
+.patrol-wgrid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; }
+.patrol-wgrid > [data-w] { grid-column: span 12; min-width: 0; position: relative; }
+.patrol-wgrid > [data-w].patrol-w9 { grid-column: span 9; }
+.patrol-wgrid > [data-w].patrol-w6 { grid-column: span 6; }
+.patrol-wgrid > [data-w].patrol-w3 { grid-column: span 3; }
+.patrol-wgrid > [data-w] .patrol-winner { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+.patrol-wgrid > [data-w] .patrol-winner > .c,
+.patrol-wgrid > [data-w] .patrol-winner > .grid { flex: 1; min-height: 0; margin-bottom: 0; }
+/* The host's .grid carries a bottom margin; inside a widget the grid gap owns
+   the spacing instead. */
+.patrol-flush { margin-bottom: 0; }
+@media (max-width: 980px) {
+    .patrol-wgrid > [data-w] { grid-column: span 12 !important; }
+}
+
+/* ---- page header actions ---------------------------------------------- */
+.patrol-pgact { display: flex; gap: 10px; }
+.patrol-act { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; }
+.patrol-act svg { width: 16px; height: 16px; }
+
+/* ---- filter chip row + station menu ----------------------------------- */
+.patrol-chiprow { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 12px; align-items: center; }
+/* The host has .mchip.on and .mchip.add but no dashed "not chosen yet" state. */
+.patrol-ghost { border-style: dashed; color: rgb(var(--c-fog)); cursor: pointer; }
+.patrol-menu { position: relative; display: inline-flex; }
+.patrol-menu > summary { list-style: none; }
+.patrol-menu > summary::-webkit-details-marker { display: none; }
+.patrol-menu-list {
+    position: absolute; top: 32px; left: 0; z-index: 20; min-width: 180px;
+    display: flex; flex-direction: column; gap: 2px; padding: 8px;
+    background: rgb(var(--c-cv)); border: 1px solid var(--c-ln2);
+    border-radius: 10px; box-shadow: var(--shadow);
+}
+.patrol-menu-item {
+    font-size: 11.5px; color: rgb(var(--c-tx)); padding: 5px 8px; border-radius: 7px;
+    white-space: nowrap; cursor: pointer;
+}
+.patrol-menu-item:hover { background: rgb(var(--c-raised)); }
+.patrol-menu-empty { color: rgb(var(--c-dim)); cursor: default; }
+.patrol-menu-empty:hover { background: none; }
+
+/* ---- per-type chips, legends, notes ------------------------------------ */
+/* --patrol-track is set inline per element: the type vocabulary is deployment
+   config, so its colour cannot be a fixed class. */
+.patrol-tchip { color: var(--patrol-track); border-color: color-mix(in srgb, var(--patrol-track) 45%, transparent); }
+.patrol-legend { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+.patrol-note { font: 500 9.5px var(--font-mono); color: rgb(var(--c-dim)); }
+.patrol-ref { font: 600 11px var(--font-mono); }
+.patrol-right { text-align: right; }
+.patrol-empty { font-size: 12px; color: rgb(var(--c-fog)); line-height: 1.5; }
+
+/* ---- the imagery viewer (fixed dark chrome over satellite tiles) -------- */
+/* Same plate proportions as the design's 760x600 frame, with a fixed dark
+   ground so tiles never flash the theme background while loading. */
+.patrol-viewer { position: relative; border-radius: 10px; overflow: hidden; background: #20241f; aspect-ratio: 760 / 600; isolation: isolate; }
+.patrol-canvas { position: absolute; inset: 0; isolation: isolate; }
+.patrol-ol {
+    position: absolute; z-index: 5; font: 600 10px var(--font-mono); color: #eaf2ec;
+    background: rgba(10, 14, 11, .72); border: 1px solid rgba(234, 242, 236, .18);
+    border-radius: 6px; padding: 4px 8px; letter-spacing: .04em; pointer-events: none;
+}
+.patrol-ol-src { left: 10px; bottom: 10px; }
+.patrol-ol-scale { right: 10px; bottom: 10px; }
+.patrol-zoomui { position: absolute; z-index: 6; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.patrol-zoomui b {
+    width: 26px; height: 26px; display: grid; place-items: center;
+    background: rgba(10, 14, 11, .72); border: 1px solid rgba(234, 242, 236, .18);
+    border-radius: 6px; color: #eaf2ec; font: 600 13px var(--font-mono); cursor: pointer;
+}
+.patrol-zoomui b svg { width: 14px; height: 14px; }
+.patrol-zoomui b.on { background: rgb(var(--c-acc)); color: rgb(var(--c-accT)); border-color: transparent; }
+.patrol-laymenu {
+    position: absolute; z-index: 6; right: 44px; top: 74px;
+    display: flex; flex-direction: column; gap: 2px; padding: 4px;
+    background: rgba(10, 14, 11, .88); border: 1px solid rgba(234, 242, 236, .18); border-radius: 8px;
+}
+.patrol-laymenu b {
+    font: 700 10px var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
+    color: #eaf2ec; padding: 5px 9px; border-radius: 6px; cursor: pointer;
+}
+.patrol-laymenu b.on { background: rgb(var(--c-acc)); color: rgb(var(--c-accT)); }
+
+/* ---- patrol feed rows (PL·07) ------------------------------------------ */
+/* Named patrol-* rather than reusing the host's .avatar/.who: the host's .who is
+   its top-bar user chip (display:flex) and its .avatar is the 30px round chip —
+   both would fight this row's 24px square + stacked sub-line. */
+.patrol-feed-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--c-ln); cursor: pointer; }
+.patrol-feed-row:last-of-type { border-bottom: 0; }
+.patrol-avatar {
+    width: 24px; height: 24px; border-radius: 7px; background: rgb(var(--c-raised));
+    display: grid; place-items: center; font: 700 9px var(--font-mono); color: rgb(var(--c-fog)); flex: none;
+}
+.patrol-who { display: block; min-width: 132px; font-size: 12px; font-weight: 600; color: rgb(var(--c-tx)); }
+.patrol-who em { display: block; font: 500 9px var(--font-mono); color: rgb(var(--c-dim)); font-style: normal; margin-top: 1px; }
+.patrol-n { font: 600 10.5px var(--font-mono); color: rgb(var(--c-fog)); min-width: 120px; text-align: right; }
+.patrol-spacer { flex: 1; }
+
+/* ---- calendar (PL·11) --------------------------------------------------- */
+.patrol-calnav { display: flex; gap: 8px; align-items: center; margin-top: 2px; }
+.patrol-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; }
+.patrol-dh { font: 600 9.5px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: rgb(var(--c-fog)); padding: 2px 4px; }
+.patrol-dc {
+    border: 1px solid var(--c-ln); border-radius: 9px; min-height: 78px; padding: 22px 6px 6px;
+    position: relative; display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
+    background: color-mix(in srgb, rgb(var(--c-fog)) 3%, transparent);
+}
+.patrol-dn { position: absolute; top: 6px; right: 8px; font: 600 9.5px var(--font-mono); color: rgb(var(--c-dim)); }
+.patrol-dc.patrol-out { opacity: .4; }
+.patrol-dc.patrol-today {
+    border-color: color-mix(in srgb, rgb(var(--c-acc)) 55%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, rgb(var(--c-acc)) 25%, transparent);
+}
+.patrol-dc.patrol-today .patrol-dn { color: rgb(var(--c-acc)); }
+.patrol-daypill { text-decoration: none; }
+.patrol-daypill .chip { cursor: pointer; }

@@ -74,8 +74,8 @@ class Patrol
     #[ORM\Column(enumType: PatrolSourceEnum::class)]
     private PatrolSourceEnum $source = PatrolSourceEnum::Manual;
 
-    /** The route as GeoJSON LineString text (see postgis-bundle GeometryType). */
-    #[ORM\Column(type: 'geometry', nullable: true, options: ['geometry_type' => 'LineString', 'srid' => 4326])]
+    /** The route as GeoJSON LineString text (postgis-bundle `linestring` type). */
+    #[ORM\Column(type: 'linestring', nullable: true)]
     private ?string $track = null;
 
     #[ORM\Column(nullable: true)]

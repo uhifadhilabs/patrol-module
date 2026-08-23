@@ -1,0 +1,378 @@
+{# The patrols module as a widget dashboard (settled design: the patrols screen,
+   direction G "combined"). The dashboard itself stays CLEAN — no edit controls;
+   all editing (add/remove, width, drag order) happens in the widget library
+   reached via "Customize widgets".
+
+   Every binding comes from PatrolDashboard (src/Model/PatrolDashboard.php); the
+   patrol type vocabulary comes from the deployment's patrol.types config, never
+   from code. #}
+{% extends '@UhifadhiLabsPatrol/base.html.twig' %}
+
+{# Track colours are FIXED hexes, not theme tokens: tracks are drawn over
+   satellite imagery, and the same type must read identically on the map, in the
+   legend, in the charts and on the calendar. The design's three track colours,
+   cycled when a deployment configures more than three types. #}
+{% set trackColors = ['#3ED9A8', '#5FA8E0', '#E0954F'] %}
+{% set typeColor = types|keys|reduce((carry, key) => carry|merge({(key): trackColors[carry|length % trackColors|length]}), {}) %}
+
+{% macro type_chip(key, types, typeColor) %}
+    <span class="chip patrol-tchip" style="--patrol-track: {{ typeColor[key] }}">{{ types[key].label|default(key)|lower }}</span>
+{% endmacro %}
+
+{# Explicit, lowercase, like the design's tables: "sat 22 aug · 06:10". #}
+{% macro started(patrol) %}
+    {%- if patrol.startedAt -%}
+        {{ patrol.startedAt|date('D j M')|lower }} · {{ patrol.startedAt|date('H:i') }}
+    {%- else -%}—{%- endif -%}
+{% endmacro %}
+
+{% macro duration(patrol) %}
+    {%- if patrol.startedAt and patrol.endedAt -%}
+        {%- set mins = ((patrol.endedAt.timestamp - patrol.startedAt.timestamp) / 60)|round(0, 'floor') -%}
+        {{ (mins // 60) }} h {{ '%02d'|format(mins % 60) }}
+    {%- else -%}—{%- endif -%}
+{% endmacro %}
+
+{% macro distance(patrol) %}
+    {%- if patrol.distanceKm is not null -%}{{ patrol.distanceKm|number_format(1) }} km{%- else -%}—{%- endif -%}
+{% endmacro %}
+
+{% macro lead_name(user) %}
+    {%- if user -%}{{ user.firstName|first }}. {{ user.lastName }}{%- else -%}—{%- endif -%}
+{% endmacro %}
+
+{% macro initials(user) %}
+    {%- if user -%}{{ user.firstName|first }}{{ user.lastName|first }}{%- else -%}··{%- endif -%}
+{% endmacro %}
+
+{# One filter row drives the map AND the log (the design places it on both
+   widgets). Counts are live; the filtering itself is not wired yet.
+   TODO(patrol_filtering): make the chips, the station menu and the period chip
+   actually filter the map + log.
+   DEFERRED(zones): the design's "zone ▾" chip needs a zone concept the bundle
+   does not have — omitted rather than rendered dead. #}
+{% macro filters(dashboard, types) %}
+    <div class="patrol-chiprow">
+        <span class="mchip on">all · {{ dashboard.totalCount }}</span>
+        {% for key, type in types %}
+            <span class="mchip">{{ type.label|lower }} · {{ dashboard.typeCounts[key]|default(0) }}</span>
+        {% endfor %}
+        <details class="patrol-menu">
+            <summary class="mchip patrol-ghost">station ▾</summary>
+            <div class="patrol-menu-list">
+                {% for station in dashboard.stations %}
+                    <span class="patrol-menu-item">{{ station }}</span>
+                {% else %}
+                    <span class="patrol-menu-item patrol-menu-empty">no stations yet</span>
+                {% endfor %}
+            </div>
+        </details>
+        <span class="mchip patrol-ghost">this month ▾</span>
+    </div>
+{% endmacro %}
+
+{# The coverage viewer: the design's satellite frame (zoom column, layers menu,
+   fullscreen, scale pill, source label) around a canvas the Stimulus controller
+   takes over. TODO(coverage-map controller): assets/controllers/coverage-map —
+   draw the boundary + every track from the payload on the Leaflet basemap.
+   DEFERRED(station-markers): the design labels each station on the map; stations
+   are free strings with no coordinates (docs/design-decisions.md §1). #}
+{% macro viewer(payload, label, menuOpen) %}
+    <div class="patrol-viewer"
+         {{ stimulus_controller('@uhifadhilabs/patrol-bundle/coverage-map', {payload: payload}) }}>
+        <div class="patrol-canvas" data-patrol-coverage-map role="img" aria-label="{{ label }}"></div>
+        <span class="patrol-ol patrol-ol-src">satellite · live · tracks this month</span>
+        <span class="patrol-ol patrol-ol-scale">5 km ⎯⎯⎯</span>
+        <div class="patrol-zoomui">
+            <b>+</b>
+            <b>−</b>
+            <b class="on" title="Base layer: satellite or map"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg></b>
+            <b title="Fullscreen — legend floats bottom-right"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></b>
+        </div>
+        {% if menuOpen %}
+            <div class="patrol-laymenu">
+                <b class="on">Satellite</b>
+                <b>Map</b>
+            </div>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{% import _self as ui %}
+
+{% block title %}{{ area.name }} — Patrols{% endblock %}
+
+{% block patrol_page %}
+{# The map payload: the area boundary plus every patrol that HAS a track. Both
+   geometries travel as GeoJSON text (the column type), parsed by the controller. #}
+{% set mapPayload = {
+    boundary: area.geom,
+    patrols: dashboard.patrols|filter(patrol => patrol.track is not empty)|map(patrol => {
+        uuid: patrol.uuid.toRfc4122,
+        type: patrol.type,
+        color: typeColor[patrol.type]|default(trackColors[0]),
+        track: patrol.track,
+    })|reduce((carry, entry) => carry|merge([entry]), []),
+} %}
+
+<div class="crumb"><a href="{{ path('dashboard_index') }}">uhifadhi</a> / <a href="{{ path('dashboard_index') }}">areas</a> / <a href="{{ path('dashboard_area_show', {uuid: area.uuid}) }}">{{ area.name|lower }}</a> / <a href="{{ path('dashboard_area_modules_grid', {uuid: area.uuid}) }}">modules</a> / patrols</div>
+
+<div class="pghead">
+    <div>
+        <h1 class="pg">{{ area.name }} — Patrols</h1>
+        <p class="pgsub">Field patrol effort across the area — every track, observation and station at a glance.</p>
+    </div>
+    <div class="pgact patrol-pgact">
+        {# TODO(patrol_widgets): the widget-library screen (route patrol_widgets). #}
+        <a class="tgl patrol-act" href="#"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Customize widgets</a>
+        {# TODO(patrol_import): the GPX import screen (route patrol_import). #}
+        <a class="tgl patrol-act" href="#"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>Import GPX</a>
+        {# TODO(patrol_log): the manual log-a-patrol form (route patrol_log). #}
+        <a class="cta" href="#"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Log patrol</a>
+    </div>
+</div>
+
+<a href="{{ path('dashboard_area_modules_grid', {uuid: area.uuid}) }}" class="backbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>All modules</a>
+
+{# TODO(widget preferences): per-user on/off + width (the design's localStorage
+   pass over [data-w], later a stored preference). The wrappers carry data-w so
+   that task needs no template change. #}
+<div class="patrol-wgrid">
+
+    <div data-w="kpis">
+        <div class="patrol-winner">
+            <div class="grid g4 patrol-flush">
+                <div class="c" data-kpi="month">
+                    <span class="tab"><span class="idx">PL·01</span>Patrols<span class="src">· this month</span></span>
+                    <div class="kpi">
+                        <b>{{ dashboard.monthCount|number_format }}</b>
+                        <span>{% for key, type in types %}{{ dashboard.monthTypeCounts[key]|default(0) }} {{ type.label|lower }}{% if not loop.last %} · {% endif %}{% endfor %}</span>
+                    </div>
+                </div>
+                <div class="c" data-kpi="distance">
+                    <span class="tab"><span class="idx">PL·02</span>Distance<span class="src">· tracks</span></span>
+                    <div class="kpi hot">
+                        <b>{{ dashboard.monthDistanceKm|number_format }}<em>km</em></b>
+                        <span>this month · from GPX</span>
+                    </div>
+                </div>
+                {# DEFERRED(coverage): "% of the area within N km of a track" is a
+                   PostGIS computation (buffer the tracks, intersect the boundary)
+                   the dashboard service does not do yet. The plate ships with an
+                   em-dash so the design's fourth KPI slot is not silently dropped. #}
+                <div class="c" data-kpi="coverage">
+                    <span class="tab"><span class="idx">PL·03</span>Coverage<span class="src">· 2 km buffer</span></span>
+                    <div class="kpi">
+                        <b>—</b>
+                        <span>of area within 2 km of a track</span>
+                    </div>
+                </div>
+                <div class="c" data-kpi="last">
+                    <span class="tab"><span class="idx">PL·04</span>Last patrol<span class="src">· live</span></span>
+                    <div class="kpi">
+                        {% set last = dashboard.lastPatrol %}
+                        {% if last and last.startedAt %}
+                            <b>{{ ((now.timestamp - last.startedAt.timestamp) / 3600)|round(0, 'floor') }}<em>h ago</em></b>
+                            <span>{{ last.ref }} · {{ last.station ?: '—' }} · {{ types[last.type].label|default(last.type)|lower }}</span>
+                        {% else %}
+                            <b>—</b>
+                            <span>no patrols recorded yet</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div data-w="map">
+        <div class="patrol-winner">
+            <div class="c">
+                <span class="tab"><span class="idx">PL·05</span>Coverage<span class="src">· one filter drives map AND log</span></span>
+                {{ ui.filters(dashboard, types) }}
+                {{ ui.viewer(mapPayload, 'Patrol tracks', true) }}
+                <div class="patrol-legend">
+                    {% for key in types|keys %}{{ ui.type_chip(key, types, typeColor) }}{% endfor %}
+                    {# DEFERRED(station-markers): no "station" legend entry while
+                       stations have no coordinates to plot. #}
+                    <span class="patrol-note">patrol tracks may cross the boundary · in fullscreen this legend floats bottom-right (host convention)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div data-w="log">
+        <div class="patrol-winner">
+            <div class="c" data-patrol-log>
+                <span class="tab"><span class="idx">PL·06</span>Patrol log<span class="src">· patrol · latest {{ dashboard.patrols|length }}</span></span>
+                {{ ui.filters(dashboard, types) }}
+                <table class="tbl">
+                    <thead>
+                        <tr>
+                            <th>id</th>
+                            <th>type</th>
+                            <th>station</th>
+                            <th>lead</th>
+                            <th>start</th>
+                            <th class="num">duration</th>
+                            <th class="num">distance</th>
+                            <th>observations</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for patrol in dashboard.patrols %}
+                        <tr data-patrol="{{ patrol.uuid.toRfc4122 }}">
+                            <td><span class="mono patrol-ref">{{ patrol.ref }}</span></td>
+                            <td>{{ ui.type_chip(patrol.type, types, typeColor) }}</td>
+                            <td>{{ patrol.station ?: '—' }}</td>
+                            <td>{{ ui.lead_name(patrol.lead) }}</td>
+                            <td data-patrol-start>{{ ui.started(patrol) }}</td>
+                            <td class="num">{{ ui.duration(patrol) }}</td>
+                            <td class="num">{{ ui.distance(patrol) }}</td>
+                            <td>
+                                {% if patrol.observations|length %}
+                                    <span class="chip warn">{{ patrol.observations|length }} obs</span>
+                                {% else %}
+                                    <span class="chip idle">—</span>
+                                {% endif %}
+                            </td>
+                            {# TODO(patrol_show): the patrol detail screen (route patrol_show). #}
+                            <td class="patrol-right"><a class="open-btn" href="#">Open →</a></td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="9">No patrols recorded yet.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div data-w="feed">
+        <div class="patrol-winner">
+            <div class="grid g32 patrol-flush">
+                <div class="c" data-patrol-feed>
+                    <span class="tab"><span class="idx">PL·07</span>Patrol feed<span class="src">· latest first</span></span>
+                    {% for patrol in dashboard.patrols %}
+                        <div class="patrol-feed-row">
+                            <span class="patrol-avatar">{{ ui.initials(patrol.lead) }}</span>
+                            <span class="patrol-who">{{ patrol.ref }}<em>{{ patrol.station ?: '—' }} · {{ ui.lead_name(patrol.lead) }}</em></span>
+                            {{ ui.type_chip(patrol.type, types, typeColor) }}
+                            <span class="patrol-n">{{ ui.started(patrol) }} · {{ ui.distance(patrol) }}</span>
+                            {% if patrol.observations|length %}<span class="chip warn">{{ patrol.observations|length }} obs</span>{% endif %}
+                            <span class="patrol-spacer"></span>
+                            {# TODO(patrol_show): the patrol detail screen (route patrol_show). #}
+                            <a class="open-btn" href="#">Open →</a>
+                        </div>
+                    {% else %}
+                        <p class="patrol-empty">No patrols recorded yet.</p>
+                    {% endfor %}
+                </div>
+
+                <div class="c">
+                    <span class="tab"><span class="idx">PL·08</span>Tracks<span class="src">· hover a row to highlight</span></span>
+                    {{ ui.viewer(mapPayload, 'Patrol tracks', false) }}
+                    <div class="patrol-legend">
+                        {% for key in types|keys %}{{ ui.type_chip(key, types, typeColor) }}{% endfor %}
+                        {# DEFERRED(station-markers): see PL·05. #}
+                        <span class="patrol-note">patrol tracks may cross the boundary · in fullscreen this legend floats bottom-right (host convention)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div data-w="chweek" class="patrol-w6">
+        <div class="patrol-winner">
+            <div class="c" data-patrol-weekly>
+                <span class="tab"><span class="idx">PL·09</span>Patrols per week<span class="src">· by type</span></span>
+                {# Grouped bars, one per configured type, five Monday-start weeks.
+                   Geometry is the design's: baseline y=152, top y=24, group pitch
+                   82 from x=60; the axis maximum rounds up to a multiple of three
+                   so the three gridlines land on whole numbers. #}
+                {% set weekMax = types|length ? max(dashboard.weeklySeries|map(week => week.counts|length ? max(week.counts) : 0)) : 0 %}
+                {% set weekAxis = weekMax > 0 ? ((weekMax + 2) // 3) * 3 : 3 %}
+                {% set barW = min(16, max(4, (60 // (types|length ?: 1)) - 4)) %}
+                {% set pitch = barW + 4 %}
+                <svg class="ch" viewBox="0 0 470 176" xmlns="http://www.w3.org/2000/svg">
+                    {% for i in 0..3 %}
+                        {% set gy = (152 - i * 128 / 3)|round(1) %}
+                        <line class="grid" x1="44" y1="{{ gy }}" x2="460" y2="{{ gy }}"/>
+                        <text x="39" y="{{ (gy + 2.5)|round(1) }}" text-anchor="end">{{ (weekAxis * i / 3)|round }}</text>
+                    {% endfor %}
+                    <text class="annoS" x="14" y="14">patrols</text>
+                    {% for week in dashboard.weeklySeries %}
+                        {% set x0 = 60 + 82 * loop.index0 %}
+                        {% for key, count in week.counts %}
+                            {% set h = (count / weekAxis * 128)|round(1) %}
+                            <rect x="{{ x0 + pitch * loop.index0 }}" y="{{ (152 - h)|round(1) }}" width="{{ barW }}" height="{{ h }}" rx="1.2" fill="{{ typeColor[key]|default(trackColors[0]) }}"><title>{{ week.label }} · {{ types[key].label|default(key)|lower }}: {{ count }}</title></rect>
+                        {% endfor %}
+                        <text x="{{ (x0 + (types|length * pitch - 4) / 2)|round(1) }}" y="168" text-anchor="middle">{{ week.label }}</text>
+                    {% endfor %}
+                    <line class="ax" x1="44" y1="152" x2="460" y2="152"/>
+                </svg>
+                <div class="patrol-legend">
+                    {% for key in types|keys %}{{ ui.type_chip(key, types, typeColor) }}{% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div data-w="chstation" class="patrol-w6">
+        <div class="patrol-winner">
+            <div class="c" data-patrol-stations>
+                <span class="tab"><span class="idx">PL·10</span>Patrols by station<span class="src">· this month</span></span>
+                {# Horizontal bars, ranked, five rows like the design; the plot runs
+                   x=118..433 and the axis maximum rounds up to a multiple of three. #}
+                {% set stationRows = dashboard.stationSeries|slice(0, 5) %}
+                {% set stationMax = stationRows|length ? max(stationRows|map(row => row.count)) : 0 %}
+                {% set stationAxis = stationMax > 0 ? ((stationMax + 2) // 3) * 3 : 3 %}
+                <svg class="ch" viewBox="0 0 470 176" xmlns="http://www.w3.org/2000/svg">
+                    {% for i in 0..3 %}
+                        <line class="grid" x1="{{ 118 + i * 105 }}" y1="8" x2="{{ 118 + i * 105 }}" y2="166"/>
+                        <text x="{{ 118 + i * 105 }}" y="175" text-anchor="middle">{{ (stationAxis * i / 3)|round }}</text>
+                    {% endfor %}
+                    {% for row in stationRows %}
+                        {% set w = (row.count / stationAxis * 315)|round(1) %}
+                        <text x="112" y="{{ 25 + 31 * loop.index0 }}" text-anchor="end">{{ row.station }}</text>
+                        <rect x="118" y="{{ 12 + 31 * loop.index0 }}" width="{{ w }}" height="19" rx="3" fill="rgb(var(--c-acc))" opacity="{{ (0.95 - 0.12 * loop.index0)|round(2) }}"><title>{{ row.station }}: {{ row.count }}</title></rect>
+                        <text class="anno" x="{{ (124 + w)|round(1) }}" y="{{ 25 + 31 * loop.index0 }}">{{ row.count }}</text>
+                    {% endfor %}
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <div data-w="cal">
+        <div class="patrol-winner">
+            <div class="c" data-patrol-calendar>
+                <span class="tab"><span class="idx">PL·11</span>Patrol calendar<span class="src">· {{ now|date('F Y')|lower }}</span></span>
+                {# TODO(patrol_calendar_nav): ‹ › step to the previous/next month
+                   (the dashboard service builds the CURRENT month only). #}
+                <div class="patrol-calnav">
+                    <span class="mchip patrol-ghost">‹</span>
+                    <span class="mchip on">{{ now|date('F Y')|lower }}</span>
+                    <span class="mchip patrol-ghost">›</span>
+                </div>
+                <div class="patrol-cal">
+                    {% for day in ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] %}
+                        <div class="patrol-dh">{{ day }}</div>
+                    {% endfor %}
+                    {% for cell in dashboard.calendar %}
+                        <div class="patrol-dc{{ cell.outside ? ' patrol-out' }}{{ cell.today ? ' patrol-today' }}">
+                            <span class="patrol-dn">{{ cell.date|date('j') }}</span>
+                            {% for patrol in cell.patrols %}
+                                {# TODO(patrol_show): the patrol detail screen (route patrol_show). #}
+                                <a class="patrol-daypill" href="#"><span class="chip patrol-tchip" style="--patrol-track: {{ typeColor[patrol.type]|default(trackColors[0]) }}">{{ patrol.ref }}</span></a>
+                            {% endfor %}
+                            {# DEFERRED(planned): the design shows "planned" pills on
+                               future days; the bundle has no planned-patrol concept. #}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

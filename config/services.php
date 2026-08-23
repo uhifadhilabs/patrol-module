@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use UhifadhiLabs\PatrolBundle\Controller\PatrolController;
 use UhifadhiLabs\PatrolBundle\Repository\ObservationRepository;
 use UhifadhiLabs\PatrolBundle\Repository\PatrolRepository;
 use UhifadhiLabs\PatrolBundle\Service\GeoService;
@@ -63,4 +64,25 @@ return static function (ContainerConfigurator $container): void {
     $services->set(ObservationRepository::class)
         ->args([service('doctrine')])
         ->tag('doctrine.repository_service');
+
+    /*
+     * Controllers: plain classes (they extend nothing), explicit collaborators,
+     * prefixed ids. Routes reference "PatrolController::dashboard" and Symfony's
+     * controller resolver asks the container for that class name, so each gets the
+     * alias the best practices prescribe: "For public services, aliases should be
+     * created from the interface/class to the service id."
+     *
+     * @see https://symfony.com/doc/current/bundles/best_practices.html
+     * @see vendor/symfony/framework-bundle/Resources/config/routing.php
+     */
+    $services->set('patrol.controller.dashboard', PatrolController::class)
+        ->args([
+            service('twig'),
+            service(PatrolRepository::class),
+            service('patrol.dashboard'),
+            param('patrol.types'),
+        ])
+        ->public();
+
+    $services->alias(PatrolController::class, 'patrol.controller.dashboard')->public();
 };
