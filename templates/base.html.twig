@@ -20,6 +20,15 @@
    so every patrol page inherits the same margins; pages fill `patrol_page`. #}
 {% block content %}
     <div class="page">
+        {# Flashes render the way the host's own pages render them (a .c card
+           with the accent tick, above the page content) — a saved patrol must
+           read the same whichever screen the user came from. The style lives in
+           patrol.css rather than inline, unlike the host's copy. #}
+        {% for label, messages in app.flashes %}
+            {% for message in messages %}
+                <div class="c patrol-flash" data-patrol-flash="{{ label }}"><span class="acc">✓</span> {{ message }}</div>
+            {% endfor %}
+        {% endfor %}
         {% block patrol_page %}{% endblock %}
     </div>
 {% endblock %}

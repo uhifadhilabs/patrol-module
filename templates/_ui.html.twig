@@ -59,3 +59,50 @@
         </div>
     </div>
 {% endmacro %}
+
+{# ── the recording screens' shared fields ───────────────────────────────────
+   Both settled designs ("import" and "log") open their details card with the
+   same three rows — type, station, lead — so they live here once and can never
+   drift apart. Everything is native HTML: a reusable bundle must not require a
+   Stimulus controller to be installed before a patrol can be recorded. #}
+
+{# The design's type chips, as a radio group: one is always chosen, keyboard
+   reachable, and submitted without a line of JavaScript (patrol.css styles the
+   checked chip through :has()). The vocabulary is the deployment's
+   patrol.types, never a hardcoded list. #}
+{% macro type_chips(types, selected) %}
+    <div class="patrol-chipset">
+        {% for key, type in types %}
+            <label class="mchip patrol-chip-radio">
+                <input type="radio" name="type" value="{{ key }}"{{ (selected ?: types|keys|first) == key ? ' checked' : '' }}>{{ type.label|default(key)|lower }}
+            </label>
+        {% endfor %}
+    </div>
+{% endmacro %}
+
+{# The design shows the known stations as chips that fill this field when
+   clicked. A chip that writes into an input needs a JS controller, so the
+   native equivalent ships instead — a text input whose datalist offers exactly
+   those stations, still one keystroke away. Stations are free strings on the
+   patrol record, so the list is simply what this area has recorded.
+   TODO(station-chips): a Stimulus controller rendering them as clickable chips
+   as the design draws them. #}
+{% macro station_field(stations, value) %}
+    <input class="fld" type="text" name="station" list="patrol-stations" value="{{ value ?: '' }}" placeholder="station">
+    <datalist id="patrol-stations">
+        {% for station in stations %}<option value="{{ station }}"></option>{% endfor %}
+    </datalist>
+{% endmacro %}
+
+{# The design draws a text input here, but lead is a User relation on the
+   patrol (the detail screen prints "A. Alpha" from it), so a free-text name
+   would be unstorable. A select of the deployment's people is the faithful
+   control for that binding; "—" records no lead at all. #}
+{% macro lead_select(users, selected) %}
+    <select class="fld" name="lead">
+        <option value="">—</option>
+        {% for user in users %}
+            <option value="{{ user.id }}"{{ selected == user.id ? ' selected' : '' }}>{{ user.firstName }} {{ user.lastName }}</option>
+        {% endfor %}
+    </select>
+{% endmacro %}

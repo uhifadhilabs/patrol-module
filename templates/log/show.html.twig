@@ -1,0 +1,81 @@
+{# Log a patrol by hand (settled design: the patrols module, main-screen
+   direction "log"): the details card (PL·01) beside the route sketch (PL·02).
+   No file, no track — the record is stamped "manual" so it can never be
+   mistaken for a recorded one. #}
+{% extends '@UhifadhiLabsPatrol/base.html.twig' %}
+
+{% import '@UhifadhiLabsPatrol/_ui.html.twig' as ui %}
+
+{% block title %}{{ area.name }} — Patrols · log patrol{% endblock %}
+
+{% block patrol_page %}
+<div class="crumb"><a href="{{ path('dashboard_index') }}">uhifadhi</a> / <a href="{{ path('dashboard_index') }}">areas</a> / <a href="{{ path('dashboard_area_show', {uuid: area.uuid}) }}">{{ area.name|lower }}</a> / <a href="{{ path('dashboard_area_modules_grid', {uuid: area.uuid}) }}">modules</a> / <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / log</div>
+
+<div class="pghead">
+    <div>
+        <h1 class="pg">{{ area.name }} — Patrols · log patrol</h1>
+        <p class="pgsub">Record a patrol without a GPX file — details, observations, and an optional sketched route.</p>
+    </div>
+</div>
+
+<a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}" class="backbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>All patrols</a>
+
+<div class="grid g32">
+    <form class="c" method="post" action="{{ path('patrol_log', {uuid: area.uuid}) }}" data-patrol-log>
+        <span class="tab"><span class="idx">PL·01</span>Patrol details<span class="src">· manual entry · no GPX</span></span>
+        <div class="patrol-frow"><label>type</label>{{ ui.type_chips(types, form.type) }}</div>
+        <div class="patrol-frow"><label>station</label>{{ ui.station_field(stations, form.station) }}</div>
+        <div class="patrol-frow"><label>lead</label>{{ ui.lead_select(users, form.lead) }}</div>
+        <div class="patrol-frow"><label>team</label><input class="fld" type="text" name="team" value="{{ form.team ?: '' }}" placeholder="names, comma-separated"></div>
+        {# The design writes explicit dates into these fields ("sat 22 aug 2026 ·
+           05:55"); datetime-local is the native control that carries exactly
+           that — a date AND a time, no parsing guesswork. #}
+        <div class="patrol-frow"><label>started</label><input class="fld" type="datetime-local" name="startedAt" value="{{ form.startedAt ?: '' }}" required></div>
+        <div class="patrol-frow"><label>ended</label><input class="fld" type="datetime-local" name="endedAt" value="{{ form.endedAt ?: '' }}"></div>
+        {# The design's placeholder promises the distance is derived from the
+           sketched route; the sketch is deferred below, so the field states
+           plainly that it is optional rather than promising a derivation that
+           cannot happen yet. #}
+        <div class="patrol-frow"><label>distance</label><input class="fld" type="number" name="distanceKm" step="0.1" min="0" value="{{ form.distanceKm is not null ? form.distanceKm : '' }}" placeholder="km (optional)"></div>
+        <div class="patrol-frow"><label>note</label><input class="fld" type="text" name="note" value="{{ form.note ?: '' }}" placeholder="optional patrol note"></div>
+
+        {# DEFERRED(observations-repeater): the design logs observations inline
+           here, each with a time, a category chip, a note and a pin on the
+           sketch. Adding rows to a form needs the repeater the sketch pin
+           depends on, so observations are added from the patrol detail screen
+           instead; the section and its "+ add observation" chip render inert
+           so the intended shape stays visible. #}
+        <h2 class="zone patrol-zone">observations</h2>
+        <p class="patrol-empty">No observations yet — they are added to the patrol after it is saved.</p>
+        <div class="patrol-chipset patrol-inert" aria-disabled="true"><span class="mchip patrol-ghost">+ add observation</span></div>
+
+        {% if error %}
+            <p class="patrol-error" data-patrol-error>{{ error }}</p>
+        {% endif %}
+
+        <div class="patrol-save-row">
+            <a class="tgl patrol-cancel" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">Cancel</a>
+            <button class="cta" type="submit">Save patrol ⏎</button>
+        </div>
+    </form>
+
+    {# DEFERRED(route-sketch): the design lets a patrol's route be drawn by hand
+       (click to add points, double-click to finish) and stores it as a sketch,
+       distinct from a GPX track. That needs a drawing controller and a sketched
+       geometry the manual form can post; the card and its frame render empty
+       until then, so nothing on the page pretends a sketch was captured. #}
+    <div class="c patrol-plate" data-patrol-sketch>
+        <span class="tab"><span class="idx">PL·02</span>Route sketch<span class="src">· click to add points · double-click to finish</span></span>
+        <span class="lib">optional</span>
+        {{ ui.viewer(
+            {'track': null},
+            'Route sketch',
+            'no points yet',
+            'sketched route · dashed until saved',
+            '500 m',
+            'patrol-plate-viewer-tall'
+        ) }}
+        <div class="use"><b>Sketch, don’t fake precision</b> — a hand-drawn route is stored as a sketch, clearly distinct from GPX tracks; distance shows as approximate.</div>
+    </div>
+</div>
+{% endblock %}

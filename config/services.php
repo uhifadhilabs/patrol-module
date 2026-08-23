@@ -82,6 +82,7 @@ return static function (ContainerConfigurator $container): void {
             service(PatrolRepository::class),
             service('patrol.dashboard'),
             param('patrol.types'),
+            param('patrol.record_screens'),
         ])
         ->public();
 

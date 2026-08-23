@@ -15,6 +15,7 @@ use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 use Symfony\UX\StimulusBundle\StimulusBundle;
 use Uhifadhi\Access\Entity\User;
+use UhifadhiLabs\PatrolBundle\Tests\Integration\Fixtures\FixedRecordVoter;
 use UhifadhiLabs\PatrolBundle\UhifadhiLabsPatrolBundle;
 
 /**
@@ -63,6 +64,12 @@ final class TestKernel extends Kernel
                 'main' => ['lazy' => true, 'provider' => 'app_users'],
             ],
         ]);
+
+        // The HOST's permission voter, played by a fixture: the bundle declares
+        // "patrols.record" and grants it to nobody, so something has to decide
+        // who holds it. Tagged by hand — a reusable-bundle test kernel does not
+        // autoconfigure.
+        $container->services()->set(FixedRecordVoter::class)->tag('security.voter');
 
         $container->extension('doctrine', [
             'dbal' => [

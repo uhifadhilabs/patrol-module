@@ -32,13 +32,15 @@ use UhifadhiLabs\PatrolBundle\Service\PatrolDashboardService;
 final class PatrolController
 {
     /**
-     * @param array<string, array{label: string}> $types the deployment's patrol.types vocabulary
+     * @param array<string, array{label: string}> $types         the deployment's patrol.types vocabulary
+     * @param bool                                $recordScreens whether the recording screens exist in this host (they need SecurityBundle)
      */
     public function __construct(
         private readonly Environment $twig,
         private readonly PatrolRepository $patrols,
         private readonly PatrolDashboardService $dashboard,
         private readonly array $types,
+        private readonly bool $recordScreens = false,
     ) {
     }
 
@@ -55,6 +57,7 @@ final class PatrolController
             'area' => $area,
             'types' => $this->types,
             'now' => $now,
+            'recordScreens' => $this->recordScreens,
             'dashboard' => $this->dashboard->build(
                 $this->patrols->findByAreaLatestFirst($area),
                 $this->types,

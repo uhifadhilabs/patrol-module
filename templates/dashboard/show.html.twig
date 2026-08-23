@@ -125,10 +125,13 @@
     <div class="pgact patrol-pgact">
         {# TODO(patrol_widgets): the widget-library screen (route patrol_widgets). #}
         <a class="tgl patrol-act" href="#"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Customize widgets</a>
-        {# TODO(patrol_import): the GPX import screen (route patrol_import). #}
-        <a class="tgl patrol-act" href="#"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>Import GPX</a>
-        {# TODO(patrol_log): the manual log-a-patrol form (route patrol_log). #}
-        <a class="cta" href="#"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Log patrol</a>
+        {# The two recording screens exist only where the host runs SecurityBundle
+           (they enforce patrols.record — see UhifadhiLabsPatrolBundle), so the
+           links are rendered only when their routes do. #}
+        {% if recordScreens %}
+            <a class="tgl patrol-act" href="{{ path('patrol_import', {uuid: area.uuid}) }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>Import GPX</a>
+            <a class="cta" href="{{ path('patrol_log', {uuid: area.uuid}) }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Log patrol</a>
+        {% endif %}
     </div>
 </div>
 

@@ -191,3 +191,73 @@
 
 /* ---- the verbatim note (PL·03 on the observation detail) ---------------- */
 .patrol-quote { font-size: 13px; line-height: 1.65; margin-top: 4px; color: rgb(var(--c-tx)); }
+
+/* ---- the recording screens (import GPX / log patrol) -------------------- */
+/* The design's left-hand stack: two cards in the wide column of a .g32 grid. */
+.patrol-formcol { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.patrol-formcol > .c { margin-bottom: 0; }
+
+/* PL·01 on the import screen — the drop frame. It is a <label> around a real
+   file input, so the whole frame is clickable with no JavaScript at all. */
+.patrol-dropz {
+    border: 2px dashed var(--c-ln2);
+    border-radius: 12px;
+    padding: 28px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    color: rgb(var(--c-fog));
+    text-align: center;
+    cursor: pointer;
+}
+.patrol-dropz:hover { border-color: rgb(var(--c-acc)); }
+.patrol-dropz svg { width: 26px; height: 26px; }
+/* The native control stays in the flow (and keyboard reachable) but the frame
+   is the visible affordance the design draws. */
+.patrol-file { font: 500 11px var(--font-mono); color: rgb(var(--c-fog)); max-width: 100%; }
+.patrol-filechip {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    background: rgb(var(--c-raised));
+    border: 1px solid var(--c-ln2);
+    border-radius: 8px;
+    padding: 6px 11px;
+    font: 600 11px var(--font-mono);
+    color: rgb(var(--c-tx));
+}
+
+/* ---- form rows shared by both recording screens ------------------------ */
+.patrol-frow { display: grid; grid-template-columns: 130px 1fr; gap: 12px; align-items: center; padding: 7px 0; }
+.patrol-frow > label {
+    font: 600 9.5px var(--font-mono);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: rgb(var(--c-fog));
+}
+.patrol-chipset { display: flex; gap: 6px; flex-wrap: wrap; }
+/* The design's type chips are a single-choice control, so they ARE radios: the
+   input is visually hidden and :has() paints the chosen chip exactly like the
+   host's .mchip.on — a native control, no Stimulus needed to record a patrol. */
+.patrol-chip-radio { cursor: pointer; user-select: none; }
+.patrol-chip-radio input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.patrol-chip-radio:has(input:checked) {
+    color: rgb(var(--c-acc));
+    border-color: rgb(var(--c-acc));
+    background: color-mix(in srgb, rgb(var(--c-acc)) 10%, transparent);
+}
+.patrol-chip-radio:has(input:focus-visible) { outline: 2px solid rgb(var(--c-acc)); outline-offset: 2px; }
+/* A section the design draws but that records nothing yet — visible, and
+   plainly not usable. */
+.patrol-inert { opacity: .55; pointer-events: none; }
+.patrol-zone { margin: 22px 0 12px; }
+
+/* ---- save row + validation --------------------------------------------- */
+.patrol-save-row { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+.patrol-cancel { text-decoration: none; }
+.patrol-save-row .cta { border: 0; cursor: pointer; font-family: inherit; }
+.patrol-error { font-size: 12.5px; line-height: 1.5; color: rgb(var(--c-fail)); margin: 12px 2px 0; }
+
+/* ---- flash messages ----------------------------------------------------- */
+.patrol-flash { padding: 12px 16px; margin-bottom: 16px; }

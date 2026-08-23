@@ -9,8 +9,13 @@ use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
+use UhifadhiLabs\PatrolBundle\Controller\PatrolRecordController;
 use UhifadhiLabs\PatrolBundle\DependencyInjection\PatrolConfiguration;
 use UhifadhiLabs\PatrolBundle\Module\PatrolModuleProvider;
+use UhifadhiLabs\PatrolBundle\Repository\PatrolRepository;
+
+use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 /**
  * Patrols — field patrol effort as first-class records: GPX track ingest,
@@ -99,5 +104,47 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
         $builder->setParameter('patrol.observation_categories', \is_array($categories) ? $categories : []);
         $gap = $config['gap_threshold_minutes'] ?? 5.0;
         $builder->setParameter('patrol.gap_threshold_minutes', \is_float($gap) || \is_int($gap) ? (float) $gap : 5.0);
+
+        /*
+         * The two RECORDING screens (import GPX, log patrol) are registered ONLY
+         * inside this guard. They are the only screens that create patrols, so
+         * they must never exist unprotected: without symfony/security there is no
+         * authorization checker to enforce "patrols.record", and a host in that
+         * state gets no recording controller at all (the routes fail loudly)
+         * rather than an open write endpoint. See PatrolRecordController for why
+         * the check is in code and not an #[IsGranted] attribute.
+         *
+         * The guard asks whether SecurityBundle is actually in the kernel, read
+         * from the kernel.bundles parameter. Two other checks look right and are
+         * not: hasExtension('security') cannot be used here, because while an
+         * extension is loading the builder is a restricted
+         * MergeExtensionConfigurationContainerBuilder that does not expose other
+         * extensions; and interface_exists() only proves a class is autoloadable —
+         * security-core is one of this bundle's DEV dependencies, so it autoloads
+         * in our own test runs even when SecurityBundle is absent, and services
+         * would then reference security.* ids that do not exist. FrameworkExtension
+         * reads kernel.bundles for exactly this reason.
+         */
+        $bundles = $builder->hasParameter('kernel.bundles') ? $builder->getParameter('kernel.bundles') : [];
+        $hasSecurity = \is_array($bundles) && isset($bundles['SecurityBundle']);
+        // The dashboard offers "Import GPX" / "Log patrol" only where those
+        // routes exist, so a host without security shows no link into nowhere.
+        $builder->setParameter('patrol.record_screens', $hasSecurity);
+        if ($hasSecurity) {
+            $services->set('patrol.controller.record', PatrolRecordController::class)
+                ->args([
+                    service('twig'),
+                    service('router'),
+                    service('doctrine.orm.entity_manager'),
+                    service(PatrolRepository::class),
+                    service('patrol.dashboard'),
+                    service('patrol.track_ingest'),
+                    service('security.authorization_checker'),
+                    param('patrol.types'),
+                    param('patrol.gap_threshold_minutes'),
+                ])
+                ->public();
+            $services->alias(PatrolRecordController::class, 'patrol.controller.record')->public();
+        }
     }
 }

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace UhifadhiLabs\PatrolBundle\Module;
 
+use UhifadhiLabs\ModuleContracts\ModulePermission;
 use UhifadhiLabs\ModuleContracts\ModuleProviderInterface;
 use UhifadhiLabs\ModuleContracts\ModuleProviderTrait;
+use UhifadhiLabs\PatrolBundle\Controller\PatrolRecordController;
 
 /**
  * Declares the one module this bundle contributes — "Patrols". It owns its
@@ -49,5 +51,18 @@ final class PatrolModuleProvider implements ModuleProviderInterface
     public function entryRoute(): string
     {
         return 'patrol_dashboard';
+    }
+
+    /**
+     * Declared, never granted: the host folds this into its permission
+     * catalogue for admins to assign, and it vanishes with the module on
+     * uninstall. The value is the exact attribute the two recording screens
+     * (import GPX, log patrol) check.
+     *
+     * @return list<ModulePermission>
+     */
+    public function permissions(): array
+    {
+        return [new ModulePermission(PatrolRecordController::RECORD_PERMISSION, 'Patrols', 'Record')];
     }
 }

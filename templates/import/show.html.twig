@@ -1,0 +1,104 @@
+{# Import a GPX track (settled design: the patrols module, main-screen direction
+   "import"). ONE page in two steps, exactly as the design composes it: the
+   upload card (PL·01) and the patrol details card (PL·02) in the left column,
+   the parsed preview (PL·03) beside them once a file has been read.
+
+   Everything the file knows — time, distance, route, point count, gaps — comes
+   from TrackIngestService; the form contributes only what a file cannot know. #}
+{% extends '@UhifadhiLabsPatrol/base.html.twig' %}
+
+{% import '@UhifadhiLabsPatrol/_ui.html.twig' as ui %}
+
+{% block title %}{{ area.name }} — Patrols · import GPX{% endblock %}
+
+{% block patrol_page %}
+<div class="crumb"><a href="{{ path('dashboard_index') }}">uhifadhi</a> / <a href="{{ path('dashboard_index') }}">areas</a> / <a href="{{ path('dashboard_area_show', {uuid: area.uuid}) }}">{{ area.name|lower }}</a> / <a href="{{ path('dashboard_area_modules_grid', {uuid: area.uuid}) }}">modules</a> / <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / import</div>
+
+<div class="pghead">
+    <div>
+        <h1 class="pg">{{ area.name }} — Patrols · import GPX</h1>
+        <p class="pgsub">Upload a GPX track → preview what was parsed → confirm the patrol details and save.</p>
+    </div>
+</div>
+
+<a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}" class="backbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>All patrols</a>
+
+{# One form spans both cards: the file, the details and (after a parse) the
+   carried-over XML post together, so confirming never asks for the file twice. #}
+<form class="grid g32" method="post" enctype="multipart/form-data" action="{{ path('patrol_import', {uuid: area.uuid}) }}" data-patrol-import>
+    <div class="patrol-formcol">
+        <div class="c" data-patrol-upload>
+            <span class="tab"><span class="idx">PL·01</span>GPX file<span class="src">· step 1 · upload</span></span>
+            {# TODO(dropzone controller): assets/controllers/dropzone — drag-and-drop
+               onto this frame, which today is a styled label around a real file
+               input. The plain input works with no JavaScript at all. #}
+            <label class="patrol-dropz">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
+                <span>Drop a .gpx track here, or <span class="acc">browse</span></span>
+                <input class="patrol-file" type="file" name="gpx" accept=".gpx,application/gpx+xml">
+                {% if filename %}
+                    <span class="patrol-filechip">{{ filename }}{% if filesize %} · {{ (filesize / 1024)|round }} KB{% endif %}
+                        {% if track %}<span class="chip ok">parsed</span>{% else %}<span class="chip fail">invalid gpx</span>{% endif %}
+                    </span>
+                {% endif %}
+                <span class="patrol-note">the mobile tracker app will POST to this same endpoint — one ingest service, two doors</span>
+            </label>
+        </div>
+
+        <div class="c" data-patrol-details>
+            <span class="tab"><span class="idx">PL·02</span>Patrol details<span class="src">· step 2 · confirm</span></span>
+            <div class="patrol-frow"><label>type</label>{{ ui.type_chips(types, form.type) }}</div>
+            <div class="patrol-frow"><label>station</label>{{ ui.station_field(stations, form.station) }}</div>
+            <div class="patrol-frow"><label>lead</label>{{ ui.lead_select(users, form.lead) }}</div>
+            <div class="patrol-frow"><label>team</label><input class="fld" type="text" name="team" value="{{ form.team ?: '' }}" placeholder="A. Example, B. Example"></div>
+            <div class="patrol-frow"><label>notes</label><input class="fld" type="text" name="note" value="{{ form.note ?: '' }}" placeholder="optional patrol note"></div>
+
+            {# The parsed XML rides back with the confirm submit — the bundle has
+               no session it may rely on, so the file is carried, not re-asked. #}
+            {% if gpxData %}
+                <input type="hidden" name="gpxData" value="{{ gpxData }}">
+                <input type="hidden" name="filename" value="{{ filename }}">
+                <input type="hidden" name="filesize" value="{{ filesize }}">
+            {% endif %}
+
+            {% if error %}
+                <p class="patrol-error" data-patrol-error>{{ error }}</p>
+            {% endif %}
+
+            <div class="patrol-save-row">
+                <span class="patrol-note">time, distance and route come from the file</span>
+                <a class="tgl patrol-cancel" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">Cancel</a>
+                <button class="cta" type="submit" name="confirm" value="1">Import patrol ⏎</button>
+            </div>
+        </div>
+    </div>
+
+    {% if track %}
+        <div class="c patrol-plate" data-patrol-preview>
+            <span class="tab"><span class="idx">PL·03</span>Parsed preview<span class="src">· from the file, before saving</span></span>
+            <span class="lib">step 1 result</span>
+            {{ ui.viewer(
+                payload,
+                'Parsed GPX track',
+                track.pointCount|number_format ~ ' points · '
+                    ~ (track.startedAt ? track.startedAt|date('H:i') : '—') ~ '–' ~ (track.endedAt ? track.endedAt|date('H:i') : '—')
+                    ~ ' · ' ~ track.distanceKm|number_format(1) ~ ' km',
+                'parsed track · not yet saved',
+                '500 m',
+                'patrol-plate-viewer-tall'
+            ) }}
+            <div class="patrol-legend">
+                <span class="chip ok">valid gpx</span>
+                {% if track.gapCount > 0 %}
+                    <span class="chip warn">{{ track.gapCount }} {{ track.gapCount == 1 ? 'gap' : 'gaps' }} &gt; {{ gapThresholdMinutes|round }} min</span>
+                {% endif %}
+                {# DEFERRED(device): the design's third chip names the tracker
+                   device ("device · tracker T-04"); the bundle stores no device
+                   identity — the same reason the detail screen's source row
+                   states the source instead — so it is omitted, never invented. #}
+            </div>
+            <div class="use"><b>Check before you keep it</b> — the gaps are flagged on import and stored with the track, never silently smoothed.</div>
+        </div>
+    {% endif %}
+</form>
+{% endblock %}
