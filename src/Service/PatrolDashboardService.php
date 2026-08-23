@@ -22,8 +22,37 @@ use UhifadhiLabs\Patrol\Model\PatrolDashboard;
  */
 final class PatrolDashboardService
 {
+    /**
+     * Track colours are FIXED hexes, not theme tokens: tracks are drawn over
+     * satellite imagery, and a type must read identically on the map, in the
+     * legend, in the charts and on the calendar. The design's three, cycled when
+     * a deployment configures more than three types.
+     *
+     * @var list<string>
+     */
+    public const array TRACK_COLORS = ['#3ED9A8', '#5FA8E0', '#E0954F'];
+
     private const int WEEKS = 5;
     private const int CALENDAR_CELLS = 42;
+
+    /**
+     * The colour every screen draws a patrol type in. Computed once per request
+     * and handed to the templates, so the dashboard and the widget library can
+     * never colour the same type differently.
+     *
+     * @param array<string, array{label: string}> $types the deployment's patrol.types map
+     *
+     * @return array<string, string>
+     */
+    public static function typeColors(array $types): array
+    {
+        $colors = [];
+        foreach (array_keys($types) as $index => $key) {
+            $colors[$key] = self::TRACK_COLORS[$index % \count(self::TRACK_COLORS)];
+        }
+
+        return $colors;
+    }
 
     /**
      * @param list<Patrol>                        $patrols latest first

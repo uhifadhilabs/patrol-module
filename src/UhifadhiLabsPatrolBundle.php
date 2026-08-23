@@ -18,7 +18,9 @@ use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
+use UhifadhiLabs\Patrol\Command\SeedDemoCommand;
 use UhifadhiLabs\Patrol\Controller\PatrolRecordController;
+use UhifadhiLabs\Patrol\Controller\PatrolWidgetsController;
 use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
 use UhifadhiLabs\Patrol\Module\PatrolModuleProvider;
 use UhifadhiLabs\Patrol\Repository\PatrolRepository;
@@ -139,7 +141,23 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
         // The dashboard offers "Import GPX" / "Log patrol" only where those
         // routes exist, so a host without security shows no link into nowhere.
         $builder->setParameter('patrol.record_screens', $hasSecurity);
+        // The widget library edits ONE PERSON's layout, so it needs a signed-in
+        // user for the same reason and lives under the same guard; a host without
+        // security simply renders the design's default layout for everyone.
+        $builder->setParameter('patrol.widget_screens', $hasSecurity);
         if ($hasSecurity) {
+            $services->set('patrol.controller.widgets', PatrolWidgetsController::class)
+                ->args([
+                    service('twig'),
+                    service(PatrolRepository::class),
+                    service('patrol.dashboard'),
+                    service('patrol.widget_service'),
+                    service('security.token_storage'),
+                    param('patrol.types'),
+                ])
+                ->public();
+            $services->alias(PatrolWidgetsController::class, 'patrol.controller.widgets')->public();
+
             $services->set('patrol.controller.record', PatrolRecordController::class)
                 ->args([
                     service('twig'),
@@ -154,6 +172,21 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
                 ])
                 ->public();
             $services->alias(PatrolRecordController::class, 'patrol.controller.record')->public();
+        }
+
+        // Dev tooling: the demo seeder exists only where patrol.dev_tools is on
+        // (the recipe enables it via when@dev/when@test), so production never
+        // gets a command that writes invented patrols.
+        if (true === ($config['dev_tools'] ?? false)) {
+            $services->set('patrol.command.seed_demo', SeedDemoCommand::class)
+                ->args([
+                    service('doctrine.orm.entity_manager'),
+                    service(PatrolRepository::class),
+                    service('patrol.geo'),
+                    param('patrol.types'),
+                    param('patrol.observation_categories'),
+                ])
+                ->tag('console.command');
         }
     }
 }

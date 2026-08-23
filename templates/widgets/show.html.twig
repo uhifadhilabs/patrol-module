@@ -1,0 +1,67 @@
+{# The widget library (settled design: ngoro-patrols-widgets) — the module's ONE
+   editing surface. Every widget is the REAL widget at full size: the cards below
+   render the same _w_<id> partials the dashboard renders, on the same live data,
+   so what you arrange here is exactly what you get.
+
+   Per widget the design gives: a drag grip (place on the dashboard), the name, a
+   state chip, the width chips and an add/remove toggle. Full width is offered
+   only where the catalogue allows it (PatrolWidgetService).
+
+   Everything degrades honestly without JavaScript: the page still shows the
+   saved layout and every widget; only the editing needs public/widgets.js. #}
+{% extends '@UhifadhiLabsPatrol/base.html.twig' %}
+
+{% block title %}{{ area.name }} — Patrols · widget library{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="{{ asset('bundles/uhifadhilabspatrol/widgets.js') }}" defer></script>
+{% endblock %}
+
+{# The design's width chips read as fractions of the row, not as column counts. #}
+{% set spanLabels = {12: '1', 9: '¾', 6: '½', 3: '¼'} %}
+
+{% block patrol_page %}
+<div class="crumb"><a href="{{ path('dashboard_index') }}">uhifadhi</a> / <a href="{{ path('dashboard_index') }}">areas</a> / <a href="{{ path('dashboard_area_show', {uuid: area.uuid}) }}">{{ area.name|lower }}</a> / <a href="{{ path('dashboard_area_modules_grid', {uuid: area.uuid}) }}">modules</a> / <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / widget library</div>
+
+<div class="pghead">
+    <div>
+        <h1 class="pg">{{ area.name }} — Patrols · widget library</h1>
+        <p class="pgsub">The widget library — the editing surface: real full-size widgets with add/remove, width control, and drag-to-place.</p>
+    </div>
+    <div class="pgact patrol-pgact">
+        {# Not in the design, which has no way back to the defaults; a layout you
+           can only edit forwards is a trap, so the reset the routes provide is
+           offered here. #}
+        <button type="button" class="tgl patrol-act" data-patrol-reset><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Reset to defaults</button>
+        <a class="cta" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">← Back to dashboard</a>
+    </div>
+</div>
+
+<a href="{{ path('dashboard_area_modules_grid', {uuid: area.uuid}) }}" class="backbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>All modules</a>
+
+<p class="pgsub patrol-libintro">Every widget below is the real thing at full size — add or remove it from your patrols dashboard; your choices are saved per user.</p>
+
+<div class="patrol-lib"
+     data-patrol-widgets
+     data-patrol-save-url="{{ path('patrol_widgets_save', {uuid: area.uuid}) }}"
+     data-patrol-reset-url="{{ path('patrol_widgets_reset', {uuid: area.uuid}) }}">
+    {% for widget in widgets %}
+        <div class="patrol-libw" data-patrol-widget="{{ widget.id }}" data-patrol-on="{{ widget.on ? '1' : '0' }}" data-patrol-cols="{{ widget.cols }}">
+            <div class="patrol-libh">
+                <b class="patrol-grip" data-patrol-grip title="Drag to set the widget's place on the dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg></b>
+                <span class="patrol-libnm">{{ widget.label }}</span>
+                <span class="chip {{ widget.on ? 'ok' : 'idle' }}" data-patrol-state>{{ widget.on ? 'on dashboard' : 'not shown' }}</span>
+                <span class="patrol-libc">
+                    <span class="patrol-lblw">width</span>
+                    {% for span in widget.spans %}
+                        <button type="button" class="mchip patrol-sp{{ widget.cols == span ? ' on' }}" data-patrol-span="{{ span }}" data-patrol-chosen="{{ widget.cols == span ? 'on' : 'off' }}">{{ spanLabels[span] }}</button>
+                    {% endfor %}
+                </span>
+                <button type="button" class="tgl patrol-libtgl" data-patrol-toggle>{{ widget.on ? 'Remove from dashboard' : 'Add to dashboard' }}</button>
+            </div>
+            {{ include('@UhifadhiLabsPatrol/dashboard/_w_' ~ widget.id ~ '.html.twig') }}
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

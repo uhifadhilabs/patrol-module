@@ -1,0 +1,33 @@
+{# Widget "chweek" — patrols per week, grouped by type (PL·09). #}
+{% import '@UhifadhiLabsPatrol/dashboard/_ui.html.twig' as ui %}
+<div class="c" data-patrol-weekly>
+    <span class="tab"><span class="idx">PL·09</span>Patrols per week<span class="src">· by type</span></span>
+    {# Grouped bars, one per configured type, five Monday-start weeks.
+       Geometry is the design's: baseline y=152, top y=24, group pitch 82 from
+       x=60; the axis maximum rounds up to a multiple of three so the three
+       gridlines land on whole numbers. #}
+    {% set weekMax = types|length ? max(dashboard.weeklySeries|map(week => week.counts|length ? max(week.counts) : 0)) : 0 %}
+    {% set weekAxis = weekMax > 0 ? ((weekMax + 2) // 3) * 3 : 3 %}
+    {% set barW = min(16, max(4, (60 // (types|length ?: 1)) - 4)) %}
+    {% set pitch = barW + 4 %}
+    <svg class="ch" viewBox="0 0 470 176" xmlns="http://www.w3.org/2000/svg">
+        {% for i in 0..3 %}
+            {% set gy = (152 - i * 128 / 3)|round(1) %}
+            <line class="grid" x1="44" y1="{{ gy }}" x2="460" y2="{{ gy }}"/>
+            <text x="39" y="{{ (gy + 2.5)|round(1) }}" text-anchor="end">{{ (weekAxis * i / 3)|round }}</text>
+        {% endfor %}
+        <text class="annoS" x="14" y="14">patrols</text>
+        {% for week in dashboard.weeklySeries %}
+            {% set x0 = 60 + 82 * loop.index0 %}
+            {% for key, count in week.counts %}
+                {% set h = (count / weekAxis * 128)|round(1) %}
+                <rect x="{{ x0 + pitch * loop.index0 }}" y="{{ (152 - h)|round(1) }}" width="{{ barW }}" height="{{ h }}" rx="1.2" fill="{{ ui.color(typeColor, key) }}"><title>{{ week.label }} · {{ types[key].label|default(key)|lower }}: {{ count }}</title></rect>
+            {% endfor %}
+            <text x="{{ (x0 + (types|length * pitch - 4) / 2)|round(1) }}" y="168" text-anchor="middle">{{ week.label }}</text>
+        {% endfor %}
+        <line class="ax" x1="44" y1="152" x2="460" y2="152"/>
+    </svg>
+    <div class="patrol-legend">
+        {% for key in types|keys %}{{ ui.type_chip(key, types, typeColor) }}{% endfor %}
+    </div>
+</div>

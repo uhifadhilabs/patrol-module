@@ -16,11 +16,12 @@
    templates/base.html.twig), so the host's stylesheet never mentions patrol. */
 
 /* ---- widget grid ------------------------------------------------------ */
-/* Twelve columns; each widget declares its span. Widths are per-user
-   preferences later (TODO(widget preferences) in the template) — the wrappers
-   already carry data-w, so only the class changes. */
+/* Twelve columns; each widget declares its span. The span class comes from the
+   person's stored preference (PatrolWidgetService), which is the design's own
+   layout until they change it in the widget library. */
 .patrol-wgrid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; }
 .patrol-wgrid > [data-w] { grid-column: span 12; min-width: 0; position: relative; }
+.patrol-wgrid > [data-w].patrol-w12 { grid-column: span 12; }
 .patrol-wgrid > [data-w].patrol-w9 { grid-column: span 9; }
 .patrol-wgrid > [data-w].patrol-w6 { grid-column: span 6; }
 .patrol-wgrid > [data-w].patrol-w3 { grid-column: span 3; }
@@ -32,6 +33,60 @@
 .patrol-flush { margin-bottom: 0; }
 @media (max-width: 980px) {
     .patrol-wgrid > [data-w] { grid-column: span 12 !important; }
+}
+
+/* ---- widget library ---------------------------------------------------- */
+/* The editing surface: one row per widget, the real widget underneath its own
+   controls. Stacked full width on purpose — the library shows what a widget IS,
+   not how wide it will sit; the width chips state that. */
+.patrol-libintro { margin-bottom: 22px; }
+.patrol-lib { display: block; }
+.patrol-libw { margin-bottom: 34px; }
+.patrol-libh { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; }
+.patrol-libnm { font-family: "Archivo", system-ui, sans-serif; font-weight: 700; font-size: 15px; }
+/* The host's .tgl already draws the chip; the library only pushes it to the far
+   end of its row, as the design does. */
+.patrol-libtgl { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; text-decoration: none; }
+.patrol-grip {
+    display: grid; place-items: center; width: 22px; height: 20px;
+    border: 1px solid var(--c-ln2); border-radius: 6px; color: rgb(var(--c-fog)); cursor: grab;
+}
+.patrol-grip svg { width: 12px; height: 12px; }
+.patrol-libc { display: inline-flex; align-items: center; gap: 5px; margin-left: 10px; }
+.patrol-lblw {
+    font: 500 9px "JetBrains Mono", monospace; color: rgb(var(--c-dim));
+    text-transform: uppercase; letter-spacing: .1em;
+}
+/* The host's .mchip is an inline element; as a <button> it needs the font and
+   the pointer stated, nothing else. */
+.patrol-sp { padding: 2px 8px; font-size: 9.5px; font-family: inherit; cursor: pointer; }
+
+/* ---- widget library: drag states --------------------------------------- */
+/* Three states, each answering a different question mid-drag: WHICH widget is in
+   flight (the dotted ghost, left in place), WHERE it will land (the accent slot
+   between the cards) and NEXT TO WHICH neighbour (the lit target). All three are
+   added by public/widgets.js, so a browser without it sees none of them and
+   nothing looks half-drawn. */
+.patrol-libw.patrol-dragging {
+    opacity: .4;
+    outline: 2px dotted rgb(var(--c-acc));
+    outline-offset: 8px;
+    border-radius: 12px;
+}
+/* The ghost must not swallow the dragover events aimed at the cards under the
+   cursor — without this the pointer never "reaches" its neighbours. */
+.patrol-libw.patrol-dragging * { pointer-events: none; }
+.patrol-dropslot {
+    height: 12px;
+    margin-bottom: 34px;
+    border: 2px dashed rgb(var(--c-acc));
+    border-radius: 8px;
+    background: color-mix(in srgb, rgb(var(--c-acc)) 16%, transparent);
+}
+.patrol-libw.patrol-droptarget {
+    outline: 1px dashed color-mix(in srgb, rgb(var(--c-acc)) 55%, transparent);
+    outline-offset: 8px;
+    border-radius: 12px;
 }
 
 /* ---- page header actions ---------------------------------------------- */

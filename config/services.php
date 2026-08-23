@@ -17,9 +17,11 @@ use UhifadhiLabs\Patrol\Controller\PatrolController;
 use UhifadhiLabs\Patrol\Controller\PatrolDetailController;
 use UhifadhiLabs\Patrol\Repository\ObservationRepository;
 use UhifadhiLabs\Patrol\Repository\PatrolRepository;
+use UhifadhiLabs\Patrol\Repository\WidgetPreferenceRepository;
 use UhifadhiLabs\Patrol\Service\GeoService;
 use UhifadhiLabs\Patrol\Service\GpxParser;
 use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
+use UhifadhiLabs\Patrol\Service\PatrolWidgetService;
 use UhifadhiLabs\Patrol\Service\TrackIngestService;
 
 /*
@@ -53,6 +55,12 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('patrol.dashboard', PatrolDashboardService::class);
 
+    $services->set('patrol.widget_service', PatrolWidgetService::class)
+        ->args([
+            service(WidgetPreferenceRepository::class),
+            service('doctrine.orm.entity_manager'),
+        ]);
+
     $services->set('patrol.track_ingest', TrackIngestService::class)
         ->args([
             service('patrol.gpx_parser'),
@@ -74,6 +82,9 @@ return static function (ContainerConfigurator $container): void {
     $services->set(ObservationRepository::class)
         ->args([service('doctrine')])
         ->tag('doctrine.repository_service');
+    $services->set(WidgetPreferenceRepository::class)
+        ->args([service('doctrine')])
+        ->tag('doctrine.repository_service');
 
     /*
      * Controllers: plain classes (they extend nothing), explicit collaborators,
@@ -90,8 +101,13 @@ return static function (ContainerConfigurator $container): void {
             service('twig'),
             service(PatrolRepository::class),
             service('patrol.dashboard'),
+            service('patrol.widget_service'),
             param('patrol.types'),
             param('patrol.record_screens'),
+            param('patrol.widget_screens'),
+            // Null where the host runs no security: nobody is signed in, so the
+            // dashboard renders the design's default layout for everyone.
+            service('security.token_storage')->nullOnInvalid(),
         ])
         ->public();
 

@@ -1,0 +1,26 @@
+{# Widget "feed" — the patrol feed beside its mini-map (PL·07 + PL·08). #}
+{% import '@UhifadhiLabsPatrol/dashboard/_ui.html.twig' as ui %}
+<div class="grid g32 patrol-flush">
+    <div class="c" data-patrol-feed>
+        <span class="tab"><span class="idx">PL·07</span>Patrol feed<span class="src">· latest first</span></span>
+        {% for patrol in dashboard.patrols %}
+            <div class="patrol-feed-row">
+                <span class="patrol-avatar">{{ ui.initials(patrol.lead) }}</span>
+                <span class="patrol-who">{{ patrol.ref }}<em>{{ patrol.station ?: '—' }} · {{ ui.lead_name(patrol.lead) }}</em></span>
+                {{ ui.type_chip(patrol.type, types, typeColor) }}
+                <span class="patrol-n">{{ ui.started(patrol) }} · {{ ui.distance(patrol) }}</span>
+                {% if patrol.observations|length %}<span class="chip warn">{{ patrol.observations|length }} obs</span>{% endif %}
+                <span class="patrol-spacer"></span>
+                <a class="open-btn" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">Open →</a>
+            </div>
+        {% else %}
+            <p class="patrol-empty">No patrols recorded yet.</p>
+        {% endfor %}
+    </div>
+
+    <div class="c">
+        <span class="tab"><span class="idx">PL·08</span>Tracks<span class="src">· hover a row to highlight</span></span>
+        {{ ui.viewer(area, dashboard, typeColor, 'Patrol tracks', false) }}
+        {{ ui.legend(types, typeColor) }}
+    </div>
+</div>

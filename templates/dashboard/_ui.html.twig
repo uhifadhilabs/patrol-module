@@ -1,0 +1,124 @@
+{# Bits the widget partials share. The dashboard and the widget library render
+   the SAME partials, and the partials render these macros, so a change to a
+   chip, a date or the map viewer lands on both screens at once — there is no
+   second copy to keep in step.
+
+   Every binding comes from PatrolDashboard (src/Model/PatrolDashboard.php); the
+   patrol type vocabulary comes from the deployment's patrol.types config, never
+   from code, and the per-type colour from PatrolDashboardService::typeColors()
+   so PHP and Twig cannot disagree about it. #}
+
+{# Macros here call each other through `_self`, not through an import: a
+   top-level {% import %} only runs when a template is RENDERED, and this one
+   never is — the partials import its macros instead. #}
+
+{# The one fallback hex in the templates: a patrol whose type the deployment has
+   since dropped still gets drawn. Mirrors PatrolDashboardService::TRACK_COLORS[0]. #}
+{% macro color(typeColor, key) %}{{ typeColor[key]|default('#3ED9A8') }}{% endmacro %}
+
+{% macro type_chip(key, types, typeColor) %}
+    <span class="chip patrol-tchip" style="--patrol-track: {{ _self.color(typeColor, key) }}">{{ types[key].label|default(key)|lower }}</span>
+{% endmacro %}
+
+{# Explicit, lowercase, like the design's tables: "sat 22 aug · 06:10". #}
+{% macro started(patrol) %}
+    {%- if patrol.startedAt -%}
+        {{ patrol.startedAt|date('D j M')|lower }} · {{ patrol.startedAt|date('H:i') }}
+    {%- else -%}—{%- endif -%}
+{% endmacro %}
+
+{% macro duration(patrol) %}
+    {%- if patrol.startedAt and patrol.endedAt -%}
+        {%- set mins = ((patrol.endedAt.timestamp - patrol.startedAt.timestamp) / 60)|round(0, 'floor') -%}
+        {{ (mins // 60) }} h {{ '%02d'|format(mins % 60) }}
+    {%- else -%}—{%- endif -%}
+{% endmacro %}
+
+{% macro distance(patrol) %}
+    {%- if patrol.distanceKm is not null -%}{{ patrol.distanceKm|number_format(1) }} km{%- else -%}—{%- endif -%}
+{% endmacro %}
+
+{% macro lead_name(user) %}
+    {%- if user -%}{{ user.firstName|first }}. {{ user.lastName }}{%- else -%}—{%- endif -%}
+{% endmacro %}
+
+{% macro initials(user) %}
+    {%- if user -%}{{ user.firstName|first }}{{ user.lastName|first }}{%- else -%}··{%- endif -%}
+{% endmacro %}
+
+{# One filter row drives the map AND the log (the design places it on both
+   widgets). Counts are live; the filtering itself is not wired yet.
+   TODO(patrol_filtering): make the chips, the station menu and the period chip
+   actually filter the map + log.
+   DEFERRED(zones): the design's "zone ▾" chip needs a zone concept the bundle
+   does not have — omitted rather than rendered dead. #}
+{% macro filters(dashboard, types) %}
+    <div class="patrol-chiprow">
+        <span class="mchip on">all · {{ dashboard.totalCount }}</span>
+        {% for key, type in types %}
+            <span class="mchip">{{ type.label|lower }} · {{ dashboard.typeCounts[key]|default(0) }}</span>
+        {% endfor %}
+        <details class="patrol-menu">
+            <summary class="mchip patrol-ghost">station ▾</summary>
+            <div class="patrol-menu-list">
+                {% for station in dashboard.stations %}
+                    <span class="patrol-menu-item">{{ station }}</span>
+                {% else %}
+                    <span class="patrol-menu-item patrol-menu-empty">no stations yet</span>
+                {% endfor %}
+            </div>
+        </details>
+        <span class="mchip patrol-ghost">this month ▾</span>
+    </div>
+{% endmacro %}
+
+{# The coverage viewer: the design's satellite frame (zoom column, layers menu,
+   fullscreen, scale pill, source label) around a canvas the Stimulus controller
+   takes over. The payload — the area boundary plus every patrol that HAS a
+   track — is built here rather than by the caller, so both viewers on the
+   dashboard and both on the library page carry exactly the same one. Both
+   geometries travel as GeoJSON text (the column type), parsed by the controller.
+   TODO(coverage-map controller): assets/controllers/coverage-map —
+   draw the boundary + every track from the payload on the Leaflet basemap.
+   DEFERRED(station-markers): the design labels each station on the map; stations
+   are free strings with no coordinates (docs/design-decisions.md §1). #}
+{% macro viewer(area, dashboard, typeColor, label, menuOpen) %}
+    {% set payload = {
+        boundary: area.geom,
+        patrols: dashboard.patrols|filter(patrol => patrol.track is not empty)|map(patrol => {
+            uuid: patrol.uuid.toRfc4122,
+            type: patrol.type,
+            color: _self.color(typeColor, patrol.type)|trim,
+            track: patrol.track,
+        })|reduce((carry, entry) => carry|merge([entry]), []),
+    } %}
+    <div class="patrol-viewer"
+         {{ stimulus_controller('@uhifadhilabs/patrol-module/coverage-map', {payload: payload}) }}>
+        <div class="patrol-canvas" data-patrol-coverage-map role="img" aria-label="{{ label }}"></div>
+        <span class="patrol-ol patrol-ol-src">satellite · live · tracks this month</span>
+        <span class="patrol-ol patrol-ol-scale">5 km ⎯⎯⎯</span>
+        <div class="patrol-zoomui">
+            <b>+</b>
+            <b>−</b>
+            <b class="on" title="Base layer: satellite or map"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg></b>
+            <b title="Fullscreen — legend floats bottom-right"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></b>
+        </div>
+        {% if menuOpen %}
+            <div class="patrol-laymenu">
+                <b class="on">Satellite</b>
+                <b>Map</b>
+            </div>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{# The map legend, identical under both viewers (host convention: every layer
+   ships a legend, and the same layer reads the same everywhere).
+   DEFERRED(station-markers): no "station" entry while stations have no
+   coordinates to plot. #}
+{% macro legend(types, typeColor) %}
+    <div class="patrol-legend">
+        {% for key in types|keys %}{{ _self.type_chip(key, types, typeColor) }}{% endfor %}
+        <span class="patrol-note">patrol tracks may cross the boundary · in fullscreen this legend floats bottom-right (host convention)</span>
+    </div>
+{% endmacro %}

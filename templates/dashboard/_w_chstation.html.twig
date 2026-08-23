@@ -1,0 +1,21 @@
+{# Widget "chstation" — patrols by station, ranked (PL·10). #}
+<div class="c" data-patrol-stations>
+    <span class="tab"><span class="idx">PL·10</span>Patrols by station<span class="src">· this month</span></span>
+    {# Horizontal bars, ranked, five rows like the design; the plot runs
+       x=118..433 and the axis maximum rounds up to a multiple of three. #}
+    {% set stationRows = dashboard.stationSeries|slice(0, 5) %}
+    {% set stationMax = stationRows|length ? max(stationRows|map(row => row.count)) : 0 %}
+    {% set stationAxis = stationMax > 0 ? ((stationMax + 2) // 3) * 3 : 3 %}
+    <svg class="ch" viewBox="0 0 470 176" xmlns="http://www.w3.org/2000/svg">
+        {% for i in 0..3 %}
+            <line class="grid" x1="{{ 118 + i * 105 }}" y1="8" x2="{{ 118 + i * 105 }}" y2="166"/>
+            <text x="{{ 118 + i * 105 }}" y="175" text-anchor="middle">{{ (stationAxis * i / 3)|round }}</text>
+        {% endfor %}
+        {% for row in stationRows %}
+            {% set w = (row.count / stationAxis * 315)|round(1) %}
+            <text x="112" y="{{ 25 + 31 * loop.index0 }}" text-anchor="end">{{ row.station }}</text>
+            <rect x="118" y="{{ 12 + 31 * loop.index0 }}" width="{{ w }}" height="19" rx="3" fill="rgb(var(--c-acc))" opacity="{{ (0.95 - 0.12 * loop.index0)|round(2) }}"><title>{{ row.station }}: {{ row.count }}</title></rect>
+            <text class="anno" x="{{ (124 + w)|round(1) }}" y="{{ 25 + 31 * loop.index0 }}">{{ row.count }}</text>
+        {% endfor %}
+    </svg>
+</div>
