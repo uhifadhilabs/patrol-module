@@ -18,12 +18,31 @@ use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
+use UhifadhiLabs\Patrol\Api\PatrolApiContext;
+use UhifadhiLabs\Patrol\Api\State\AppendFlightsProcessor;
+use UhifadhiLabs\Patrol\Api\State\AppendObservationsProcessor;
+use UhifadhiLabs\Patrol\Api\State\AppendTrackProcessor;
+use UhifadhiLabs\Patrol\Api\State\CompletePatrolProcessor;
+use UhifadhiLabs\Patrol\Api\State\CreatePatrolProcessor;
+use UhifadhiLabs\Patrol\Api\State\UploadPhotoProcessor;
 use UhifadhiLabs\Patrol\Command\SeedDemoCommand;
 use UhifadhiLabs\Patrol\Controller\PatrolRecordController;
 use UhifadhiLabs\Patrol\Controller\PatrolWidgetsController;
 use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
 use UhifadhiLabs\Patrol\Module\PatrolModuleProvider;
+use UhifadhiLabs\Patrol\Repository\FlightRepository;
+use UhifadhiLabs\Patrol\Repository\LaunchPointRepository;
+use UhifadhiLabs\Patrol\Repository\ObservationPhotoRepository;
+use UhifadhiLabs\Patrol\Repository\ObservationRepository;
 use UhifadhiLabs\Patrol\Repository\PatrolRepository;
+use UhifadhiLabs\Patrol\Repository\TrackBatchRepository;
+use UhifadhiLabs\Patrol\Service\Api\FlightSyncService;
+use UhifadhiLabs\Patrol\Service\Api\ObservationSyncService;
+use UhifadhiLabs\Patrol\Service\Api\PatrolCompletionService;
+use UhifadhiLabs\Patrol\Service\Api\PatrolUpsertService;
+use UhifadhiLabs\Patrol\Service\Api\PhotoSyncService;
+use UhifadhiLabs\Patrol\Service\Api\RangerResolver;
+use UhifadhiLabs\Patrol\Service\Api\TrackBatchService;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
@@ -177,6 +196,105 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
                 ])
                 ->public();
             $services->alias(PatrolRecordController::class, 'patrol.controller.record')->public();
+        }
+
+        /*
+         * The FIELD-SYNC API (API-CONTRACT.md) — the mobile app's endpoints.
+         *
+         * Registered only where the host actually runs api-platform AND
+         * security, and for the same reason the recording screens are: these
+         * routes CREATE patrols, so they must never exist unprotected. Without
+         * security there is no authorization checker to enforce
+         * "patrols.record"; without api-platform there is no /api to attach to.
+         * A host missing either gets no sync endpoints at all rather than an
+         * open write surface.
+         *
+         * The RESOURCES need no registration: api-platform discovers
+         * src/ApiResource/ from kernel.bundles_metadata by itself (see
+         * ApiResource/PatrolSync.php). Only the services behind them are wired
+         * here — explicitly, with prefixed ids, no autowiring, as everything
+         * else in this bundle is.
+         *
+         * Processors are the one exception to the id-prefix rule, and by
+         * necessity: api-platform resolves `processor: SomeProcessor::class` as
+         * a SERVICE ID, so the id has to be the class name. Each still gets a
+         * prefixed alias for consistency with the controllers above.
+         */
+        $hasApiPlatform = \is_array($bundles) && isset($bundles['ApiPlatformBundle']);
+        $builder->setParameter('patrol.field_api', $hasSecurity && $hasApiPlatform);
+
+        if ($hasSecurity && $hasApiPlatform) {
+            $photoDir = \is_string($config['photo_dir'] ?? null) ? $config['photo_dir'] : '%kernel.project_dir%/var/patrol/photos';
+            $builder->setParameter('patrol.photo_dir', $photoDir);
+            $photoMaxBytes = $config['photo_max_bytes'] ?? 12 * 1024 * 1024;
+            $builder->setParameter('patrol.photo_max_bytes', \is_int($photoMaxBytes) ? $photoMaxBytes : 12 * 1024 * 1024);
+
+            $services->set('patrol.api.ranger_resolver', RangerResolver::class)
+                ->args([service('doctrine.orm.entity_manager')]);
+
+            $services->set('patrol.api.context', PatrolApiContext::class)
+                ->args([
+                    service('request_stack'),
+                    service('security.token_storage'),
+                    service('security.authorization_checker'),
+                    service(PatrolRepository::class),
+                    service(ObservationRepository::class),
+                ]);
+
+            $services->set('patrol.api.patrol_upsert', PatrolUpsertService::class)
+                ->args([
+                    service('doctrine.orm.entity_manager'),
+                    service(PatrolRepository::class),
+                    service('patrol.api.ranger_resolver'),
+                ]);
+
+            $services->set('patrol.api.track_batch', TrackBatchService::class)
+                ->args([
+                    service('doctrine.orm.entity_manager'),
+                    service(TrackBatchRepository::class),
+                    service('patrol.geo'),
+                    param('patrol.gap_threshold_minutes'),
+                ]);
+
+            $services->set('patrol.api.observation_sync', ObservationSyncService::class)
+                ->args([
+                    service('doctrine.orm.entity_manager'),
+                    service(ObservationRepository::class),
+                    service(LaunchPointRepository::class),
+                    service(FlightRepository::class),
+                    param('patrol.observation_categories'),
+                ]);
+
+            $services->set('patrol.api.flight_sync', FlightSyncService::class)
+                ->args([
+                    service('doctrine.orm.entity_manager'),
+                    service(LaunchPointRepository::class),
+                    service(FlightRepository::class),
+                ]);
+
+            $services->set('patrol.api.photo_sync', PhotoSyncService::class)
+                ->args([
+                    service('doctrine.orm.entity_manager'),
+                    service(ObservationPhotoRepository::class),
+                    param('patrol.photo_dir'),
+                    param('patrol.photo_max_bytes'),
+                ]);
+
+            $services->set('patrol.api.completion', PatrolCompletionService::class)
+                ->args([service('doctrine.orm.entity_manager')]);
+
+            foreach ([
+                CreatePatrolProcessor::class => 'patrol.api.patrol_upsert',
+                AppendTrackProcessor::class => 'patrol.api.track_batch',
+                AppendObservationsProcessor::class => 'patrol.api.observation_sync',
+                AppendFlightsProcessor::class => 'patrol.api.flight_sync',
+                UploadPhotoProcessor::class => 'patrol.api.photo_sync',
+                CompletePatrolProcessor::class => 'patrol.api.completion',
+            ] as $processor => $collaborator) {
+                $services->set($processor)
+                    ->args([service('patrol.api.context'), service($collaborator)])
+                    ->tag('api_platform.state_processor');
+            }
         }
 
         // Dev tooling: the demo seeder exists only where patrol.dev_tools is on

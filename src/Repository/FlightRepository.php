@@ -16,25 +16,24 @@ namespace UhifadhiLabs\Patrol\Repository;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
-use UhifadhiLabs\Patrol\Entity\Observation;
+use UhifadhiLabs\Patrol\Entity\Flight;
 
 /**
- * @extends ServiceEntityRepository<Observation>
+ * @extends ServiceEntityRepository<Flight>
  */
-final class ObservationRepository extends ServiceEntityRepository
+final class FlightRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, Observation::class);
+        parent::__construct($registry, Flight::class);
     }
 
     /**
-     * The observation a client UUID already created, if any (API-CONTRACT.md
-     * §6). Observations arrive as one part per patrol and the phone re-sends
-     * the whole part on failure, so each one is matched individually — a retry
-     * after a partial write must add only what is missing.
+     * The row a client UUID already created, if any — the lookup the whole
+     * idempotency rule rests on (API-CONTRACT.md §1). A re-sent part with a
+     * UUID we already hold is success, never a duplicate row.
      */
-    public function findOneByClientUuid(Uuid $clientUuid): ?Observation
+    public function findOneByClientUuid(Uuid $clientUuid): ?Flight
     {
         return $this->findOneBy(['clientUuid' => $clientUuid]);
     }

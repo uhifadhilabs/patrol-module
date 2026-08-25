@@ -1,0 +1,161 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the UhifadhiLabs Patrol Module.
+ *
+ * (c) Ezekiel Mjema <https://github.com/eemjema>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace UhifadhiLabs\Patrol\Service\Api;
+
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Uid\Uuid;
+use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Entity\User;
+use UhifadhiLabs\Patrol\Api\PatrolApiException;
+use UhifadhiLabs\Patrol\Api\Payload;
+use UhifadhiLabs\Patrol\Entity\Patrol;
+use UhifadhiLabs\Patrol\Enum\PatrolSourceEnum;
+use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
+use UhifadhiLabs\Patrol\Repository\PatrolRepository;
+
+/**
+ * `POST /api/patrols` — API-CONTRACT.md §4. The first part of every upload, and
+ * the one the rest hangs off.
+ *
+ * The whole service is one promise: **the same clientUuid always yields the same
+ * patrol**. The phone retries aggressively and cannot tell a lost response from
+ * a lost request, so a second create is normal traffic, not an error — and if it
+ * ever produced a second patrol, a day's effort would be double-counted in every
+ * coverage figure the module reports.
+ */
+final class PatrolUpsertService
+{
+    public function __construct(
+        private readonly EntityManagerInterface $entityManager,
+        private readonly PatrolRepository $patrols,
+        private readonly RangerResolver $rangers,
+    ) {
+    }
+
+    /**
+     * Create the patrol, or hand back the one this clientUuid already made.
+     *
+     * @param array<string, mixed> $data the decoded request body
+     *
+     * @return array{0: Patrol, 1: bool} [patrol, wasAlreadyHeld]
+     *
+     * @throws PatrolApiException
+     */
+    public function upsert(array $data, User $recorder): array
+    {
+        $clientUuid = Payload::uuid($data, 'clientUuid');
+
+        $existing = $this->patrols->findOneByClientUuid($clientUuid);
+        if ($existing instanceof Patrol) {
+            return [$this->acknowledgeExisting($existing), true];
+        }
+
+        $area = $this->resolveArea(Payload::requiredString($data, 'areaId'));
+
+        /*
+         * The type is stored verbatim, NOT validated against the deployment's
+         * configured vocabulary. Deliberate: the contract names no error code
+         * for an unknown type (unlike `unsupported_category`, which it does
+         * name), and refusing here would throw away a real patrol because a
+         * config file and an app build disagreed about a word. A stray key
+         * shows as itself in the UI; a discarded patrol is gone.
+         */
+        $patrol = new Patrol($area, Payload::requiredString($data, 'type'))
+            ->setClientUuid($clientUuid)
+            // Recording, not Complete: the parts are still arriving, and until
+            // `complete` the module must not draw this patrol anywhere.
+            ->setStatus(PatrolStatusEnum::Recording)
+            ->setSource(PatrolSourceEnum::Api)
+            ->setLead($recorder)
+            ->setStation(Payload::string($data, 'stationId'))
+            ->setStartedAt(Payload::timestamp($data, 'startedAt'))
+            // Null is legal and meaningful: a live upload of a patrol still
+            // under way (§4). It is not backfilled with "now".
+            ->setEndedAt(Payload::timestamp($data, 'endedAt'))
+            ->setDroneId(Payload::string($data, 'droneId'))
+            ->setMission(Payload::string($data, 'mission'))
+            ->setDeviceId(Payload::string($data, 'deviceId'))
+            ->setAppVersion(Payload::string($data, 'appVersion'));
+
+        $team = Payload::strings($data, 'team');
+        $patrol->setTeamRangerIds($team)->setTeam($this->rangers->describe($team));
+
+        $this->entityManager->persist($patrol);
+
+        try {
+            $this->entityManager->flush();
+        } catch (UniqueConstraintViolationException) {
+            /*
+             * Two retries of the same create arriving at once. The unique index
+             * on client_uuid is what actually enforces the contract's "exactly
+             * once" — the SELECT above is only the fast path, and between it and
+             * the INSERT another request can win. Losing that race is still
+             * success: re-read and answer as a duplicate.
+             */
+            return [$this->rereadAfterRace($clientUuid), true];
+        }
+
+        return [$patrol, false];
+    }
+
+    /**
+     * A patrol we already hold. Nothing is written — §1 says a repeated POST
+     * changes nothing — but a patrol a person has since corrected in the web
+     * module refuses the phone outright, because the phone's copy is stale and
+     * applying it would undo the correction (§10).
+     *
+     * @throws PatrolApiException
+     */
+    private function acknowledgeExisting(Patrol $patrol): Patrol
+    {
+        if (!$patrol->acceptsFieldUploads()) {
+            throw PatrolApiException::patrolImmutable((string) $patrol->getClientUuid()?->toRfc4122());
+        }
+
+        return $patrol;
+    }
+
+    /** @throws PatrolApiException */
+    private function rereadAfterRace(Uuid $clientUuid): Patrol
+    {
+        $this->entityManager->clear();
+
+        $patrol = $this->patrols->findOneByClientUuid($clientUuid)
+            ?? throw PatrolApiException::invalidPayload('That patrol could not be stored.');
+
+        return $this->acknowledgeExisting($patrol);
+    }
+
+    /**
+     * The area is addressed by the uuid `/api/areas/mine` handed out. Unknown
+     * ids are refused rather than defaulted: filing a patrol against the wrong
+     * area would put rangers' effort on somebody else's map.
+     *
+     * @throws PatrolApiException
+     */
+    private function resolveArea(string $areaId): AreaOfInterest
+    {
+        if (!Uuid::isValid($areaId)) {
+            throw new PatrolApiException(422, 'unknown_area', 'That area id is not one this server issued.', details: ['areaId' => $areaId]);
+        }
+
+        $area = $this->entityManager->getRepository(AreaOfInterest::class)
+            ->findOneBy(['uuid' => Uuid::fromString($areaId)]);
+
+        return $area instanceof AreaOfInterest
+            ? $area
+            : throw new PatrolApiException(422, 'unknown_area', 'No area is known by that id.', details: ['areaId' => $areaId]);
+    }
+}

@@ -16,8 +16,13 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use UhifadhiLabs\Patrol\Controller\PatrolCalendarController;
 use UhifadhiLabs\Patrol\Controller\PatrolController;
 use UhifadhiLabs\Patrol\Controller\PatrolDetailController;
+use UhifadhiLabs\Patrol\Repository\FlightRepository;
+use UhifadhiLabs\Patrol\Repository\LaunchPointRepository;
+use UhifadhiLabs\Patrol\Repository\ObservationPhotoRepository;
 use UhifadhiLabs\Patrol\Repository\ObservationRepository;
 use UhifadhiLabs\Patrol\Repository\PatrolRepository;
+use UhifadhiLabs\Patrol\Repository\TrackBatchRepository;
+use UhifadhiLabs\Patrol\Repository\TrackPointRepository;
 use UhifadhiLabs\Patrol\Repository\WidgetPreferenceRepository;
 use UhifadhiLabs\Patrol\Service\GeoService;
 use UhifadhiLabs\Patrol\Service\GpxParser;
@@ -89,6 +94,25 @@ return static function (ContainerConfigurator $container): void {
         ->args([service('doctrine')])
         ->tag('doctrine.repository_service');
     $services->set(WidgetPreferenceRepository::class)
+        ->args([service('doctrine')])
+        ->tag('doctrine.repository_service');
+
+    // The field-sync entities' repositories. Registered unconditionally with the
+    // rest: a repository is just a query surface over a mapped entity, and those
+    // entities are mapped whether or not this host installs api-platform.
+    $services->set(TrackBatchRepository::class)
+        ->args([service('doctrine')])
+        ->tag('doctrine.repository_service');
+    $services->set(TrackPointRepository::class)
+        ->args([service('doctrine')])
+        ->tag('doctrine.repository_service');
+    $services->set(LaunchPointRepository::class)
+        ->args([service('doctrine')])
+        ->tag('doctrine.repository_service');
+    $services->set(FlightRepository::class)
+        ->args([service('doctrine')])
+        ->tag('doctrine.repository_service');
+    $services->set(ObservationPhotoRepository::class)
         ->args([service('doctrine')])
         ->tag('doctrine.repository_service');
 

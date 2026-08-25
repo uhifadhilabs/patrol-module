@@ -16,6 +16,7 @@ namespace UhifadhiLabs\Patrol\Repository;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\AreaOfInterest;
 use UhifadhiLabs\Patrol\Entity\Patrol;
 
@@ -27,6 +28,16 @@ final class PatrolRepository extends ServiceEntityRepository
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Patrol::class);
+    }
+
+    /**
+     * The patrol a field device already created, if any — API-CONTRACT.md §4's
+     * upsert key. A repeated create with a clientUuid we hold is answered with
+     * the SAME patrol, which is the promise the app's retry loop depends on.
+     */
+    public function findOneByClientUuid(Uuid $clientUuid): ?Patrol
+    {
+        return $this->findOneBy(['clientUuid' => $clientUuid]);
     }
 
     /**

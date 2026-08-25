@@ -13,10 +13,13 @@ declare(strict_types=1);
 
 namespace UhifadhiLabs\Patrol\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\User;
 use UhifadhiLabs\Patrol\Entity\Trait\TimestampableTrait;
+use UhifadhiLabs\Patrol\Enum\PositionSourceEnum;
 use UhifadhiLabs\Patrol\Repository\ObservationRepository;
 
 /**
@@ -41,6 +44,14 @@ class Observation
     #[ORM\Column(type: 'uuid', unique: true)]
     private Uuid $uuid;
 
+    /**
+     * The UUID the field app gave this observation before it had a network —
+     * the idempotency key (API-CONTRACT.md §1). Null for observations logged in
+     * the web module.
+     */
+    #[ORM\Column(type: 'uuid', unique: true, nullable: true)]
+    private ?Uuid $clientUuid = null;
+
     #[ORM\ManyToOne(targetEntity: Patrol::class, inversedBy: 'observations')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private Patrol $patrol;
@@ -56,6 +67,68 @@ class Observation
     #[ORM\Column(type: 'point', nullable: true)]
     private ?string $position = null;
 
+    /**
+     * Whether {@see $position} is a GPS fix or a spot the operator marked —
+     * API-CONTRACT.md §6, and the contract insists it be shown in the web
+     * module. A drone observation is where the operator SAYS the drone was; it
+     * is not a measurement, and rendering the two identically would turn a
+     * judgement into evidence. Defaults to Gps because every observation logged
+     * on foot in the web module is exactly that.
+     */
+    #[ORM\Column(enumType: PositionSourceEnum::class, options: ['default' => 'gps'])]
+    private PositionSourceEnum $positionSource = PositionSourceEnum::Gps;
+
+    /** Reported accuracy of {@see $position} in metres, when it was measured. */
+    #[ORM\Column(nullable: true)]
+    private ?float $accuracyM = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $satellites = null;
+
+    /**
+     * How many photos the PHONE intends to send for this observation (§6).
+     *
+     * Kept apart from the photos actually held, because the gap between the two
+     * is the whole point: a patrol is not complete in the module's eyes until
+     * that many parts have arrived, and pretending otherwise would publish an
+     * observation whose evidence is still on a handset in a valley.
+     */
+    #[ORM\Column(options: ['default' => 0])]
+    private int $photoCount = 0;
+
+    /** The launch point this was seen from, for drone observations. */
+    #[ORM\ManyToOne(targetEntity: LaunchPoint::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?LaunchPoint $launchPoint = null;
+
+    /** The sortie it was seen on, for drone observations. */
+    #[ORM\ManyToOne(targetEntity: Flight::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Flight $flight = null;
+
+    /**
+     * The launch point and flight the PHONE named, kept as raw client uuids
+     * beside the associations above.
+     *
+     * Not redundancy — order. The upload sequence (§11) sends observations
+     * BEFORE flights, so when a drone observation arrives the flight it refers
+     * to does not exist here yet and the association cannot be made. Dropping
+     * the reference would lose which sortie saw what; holding the id lets
+     * {@see \UhifadhiLabs\Patrol\Service\Api\FlightSyncService} link them the
+     * moment the flights land, and makes the module indifferent to the order
+     * the two parts actually arrive in.
+     */
+    #[ORM\Column(type: 'uuid', nullable: true)]
+    private ?Uuid $launchPointClientUuid = null;
+
+    #[ORM\Column(type: 'uuid', nullable: true)]
+    private ?Uuid $flightClientUuid = null;
+
+    /** @var Collection<int, ObservationPhoto> */
+    #[ORM\OneToMany(targetEntity: ObservationPhoto::class, mappedBy: 'observation', cascade: ['persist'], orphanRemoval: true)]
+    #[ORM\OrderBy(['id' => 'ASC'])]
+    private Collection $photos;
+
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $loggedAt = null;
 
@@ -68,6 +141,7 @@ class Observation
         $this->uuid = Uuid::v7();
         $this->patrol = $patrol;
         $this->category = $category;
+        $this->photos = new ArrayCollection();
         $patrol->addObservation($this);
         $this->initTimestamps();
     }
@@ -133,6 +207,145 @@ class Observation
         $this->loggedAt = $loggedAt;
 
         return $this;
+    }
+
+    public function getClientUuid(): ?Uuid
+    {
+        return $this->clientUuid;
+    }
+
+    public function setClientUuid(?Uuid $clientUuid): static
+    {
+        $this->clientUuid = $clientUuid;
+
+        return $this;
+    }
+
+    public function getPositionSource(): PositionSourceEnum
+    {
+        return $this->positionSource;
+    }
+
+    public function setPositionSource(PositionSourceEnum $positionSource): static
+    {
+        $this->positionSource = $positionSource;
+
+        return $this;
+    }
+
+    public function getAccuracyM(): ?float
+    {
+        return $this->accuracyM;
+    }
+
+    public function setAccuracyM(?float $accuracyM): static
+    {
+        $this->accuracyM = $accuracyM;
+
+        return $this;
+    }
+
+    public function getSatellites(): ?int
+    {
+        return $this->satellites;
+    }
+
+    public function setSatellites(?int $satellites): static
+    {
+        $this->satellites = $satellites;
+
+        return $this;
+    }
+
+    public function getPhotoCount(): int
+    {
+        return $this->photoCount;
+    }
+
+    public function setPhotoCount(int $photoCount): static
+    {
+        $this->photoCount = max(0, $photoCount);
+
+        return $this;
+    }
+
+    public function getLaunchPoint(): ?LaunchPoint
+    {
+        return $this->launchPoint;
+    }
+
+    public function setLaunchPoint(?LaunchPoint $launchPoint): static
+    {
+        $this->launchPoint = $launchPoint;
+
+        return $this;
+    }
+
+    public function getFlight(): ?Flight
+    {
+        return $this->flight;
+    }
+
+    public function setFlight(?Flight $flight): static
+    {
+        $this->flight = $flight;
+
+        return $this;
+    }
+
+    public function getLaunchPointClientUuid(): ?Uuid
+    {
+        return $this->launchPointClientUuid;
+    }
+
+    public function setLaunchPointClientUuid(?Uuid $launchPointClientUuid): static
+    {
+        $this->launchPointClientUuid = $launchPointClientUuid;
+
+        return $this;
+    }
+
+    public function getFlightClientUuid(): ?Uuid
+    {
+        return $this->flightClientUuid;
+    }
+
+    public function setFlightClientUuid(?Uuid $flightClientUuid): static
+    {
+        $this->flightClientUuid = $flightClientUuid;
+
+        return $this;
+    }
+
+    /** @return Collection<int, ObservationPhoto> */
+    public function getPhotos(): Collection
+    {
+        return $this->photos;
+    }
+
+    public function addPhoto(ObservationPhoto $photo): static
+    {
+        if (!$this->photos->contains($photo)) {
+            $this->photos->add($photo);
+        }
+
+        return $this;
+    }
+
+    /**
+     * How many of the photos the phone promised are actually here. The module
+     * must not present the observation as fully evidenced until this reaches
+     * {@see getPhotoCount()}.
+     */
+    public function heldPhotoCount(): int
+    {
+        return $this->photos->count();
+    }
+
+    /** Every promised photo has arrived (§9's completeness check). */
+    public function hasAllPhotos(): bool
+    {
+        return $this->heldPhotoCount() >= $this->photoCount;
     }
 
     public function getRecordedBy(): ?User

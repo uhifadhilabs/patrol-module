@@ -43,6 +43,14 @@ class User implements UserInterface
     #[ORM\Column(length: 100)]
     private ?string $lastName = null;
 
+    /**
+     * The service number the field app signs in with and names team members
+     * by — mirrored from the real User because the sync endpoints resolve a
+     * patrol's `team` through it.
+     */
+    #[ORM\Column(length: 32, unique: true, nullable: true)]
+    private ?string $rangerCode = null;
+
     #[ORM\ManyToOne(targetEntity: Position::class)]
     private ?Position $position = null;
 
@@ -97,6 +105,24 @@ class User implements UserInterface
         $this->lastName = $lastName;
 
         return $this;
+    }
+
+    public function getRangerCode(): ?string
+    {
+        return $this->rangerCode;
+    }
+
+    public function setRangerCode(?string $rangerCode): static
+    {
+        $rangerCode = null === $rangerCode ? null : strtolower(trim($rangerCode));
+        $this->rangerCode = '' === $rangerCode ? null : $rangerCode;
+
+        return $this;
+    }
+
+    public function getFullName(): string
+    {
+        return trim(($this->firstName ?? '').' '.($this->lastName ?? ''));
     }
 
     public function getUserIdentifier(): string

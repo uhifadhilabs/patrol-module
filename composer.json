@@ -1,6 +1,6 @@
 {
     "name": "uhifadhilabs/patrol-module",
-    "description": "Patrols: field patrol effort as first-class records — GPX track ingest, en-route observations with photos, coverage mapping and a per-user widget dashboard.",
+    "description": "Patrols: field patrol effort as first-class records \u2014 GPX track ingest, en-route observations with photos, coverage mapping and a per-user widget dashboard.",
     "type": "symfony-bundle",
     "keywords": [
         "symfony-ux",
@@ -21,17 +21,19 @@
         }
     ],
     "require": {
-        "php": ">=8.4",
-        "ext-simplexml": "*",
-        "ext-xmlwriter": "*",
         "doctrine/dbal": "^4.0",
         "doctrine/doctrine-bundle": "^3.0",
         "doctrine/orm": "^3.5",
+        "ext-simplexml": "*",
+        "ext-xmlwriter": "*",
         "fundistadi/postgis-bundle": "^0.5",
+        "php": ">=8.4",
         "symfony/asset": "^7.3 || ^8.0",
         "symfony/config": "^7.3 || ^8.0",
         "symfony/console": "^7.3 || ^8.0",
         "symfony/framework-bundle": "^7.3 || ^8.0",
+        "symfony/http-foundation": "^7.3 || ^8.0",
+        "symfony/mime": "^7.3 || ^8.0",
         "symfony/twig-bundle": "^7.3 || ^8.0",
         "symfony/uid": "^7.3 || ^8.0",
         "uhifadhilabs/module-contracts": "dev-main"
@@ -48,16 +50,23 @@
         }
     },
     "require-dev": {
+        "api-platform/core": "^4.3",
         "friendsofphp/php-cs-fixer": "^3.95",
+        "phpdocumentor/reflection-docblock": "^6.0",
         "phpstan/phpstan": "^2.2",
         "phpunit/phpunit": "^13.2",
         "symfony/browser-kit": "^7.3 || ^8.0",
         "symfony/css-selector": "^7.3 || ^8.0",
         "symfony/dependency-injection": "^7.3 || ^8.0",
+        "symfony/property-access": "^7.3 || ^8.0",
+        "symfony/property-info": "^7.3 || ^8.0",
         "symfony/security-bundle": "^7.3 || ^8.0",
         "symfony/security-core": "^7.3 || ^8.0",
         "symfony/security-csrf": "^7.3 || ^8.0",
-        "symfony/stimulus-bundle": "^2.20 || ^2.30 || ^2.0"
+        "symfony/security-http": "^7.3 || ^8.0",
+        "symfony/serializer": "^7.3 || ^8.0",
+        "symfony/stimulus-bundle": "^2.20 || ^2.30 || ^2.0",
+        "symfony/validator": "^7.3 || ^8.0"
     },
     "scripts": {
         "cs:fix": "php-cs-fixer fix",
