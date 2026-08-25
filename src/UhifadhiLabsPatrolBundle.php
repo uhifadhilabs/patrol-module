@@ -29,6 +29,7 @@ use UhifadhiLabs\Patrol\Command\SeedDemoCommand;
 use UhifadhiLabs\Patrol\Controller\PatrolRecordController;
 use UhifadhiLabs\Patrol\Controller\PatrolWidgetsController;
 use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
+use UhifadhiLabs\Patrol\Module\PatrolDepartmentKpiProvider;
 use UhifadhiLabs\Patrol\Module\PatrolModuleProvider;
 use UhifadhiLabs\Patrol\Repository\FlightRepository;
 use UhifadhiLabs\Patrol\Repository\LaunchPointRepository;
@@ -311,5 +312,26 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
                 ])
                 ->tag('console.command');
         }
+
+        // The department KPI seam. APPENDED last on purpose: it is the newest thing this bundle
+        // plugs into, and it depends on nothing declared above it.
+        //
+        // Tagged EXPLICITLY, exactly like 'uhifadhi.module' above and for the same reason: a
+        // reusable bundle is not autoconfigured (symfony.com/doc/current/bundles/best_practices
+        // .html), so the host's autoconfiguration never fires for it.
+        //
+        // The slug and name are the scalars PatrolModuleProvider::slug()/name() return: they must
+        // MATCH, because the host only asks this provider for figures when a department attaches
+        // the module of that slug, and captions the plates with that name. They are literals here
+        // rather than constants because the provider exposes them as methods and a scalar is what
+        // a service argument can carry; PatrolDepartmentKpiProviderTest pins the two together.
+        $services->set('patrol.department_kpi_provider', PatrolDepartmentKpiProvider::class)
+            ->args([
+                service(PatrolRepository::class),
+                service('doctrine.orm.entity_manager'),
+                'patrols',
+                'Patrols',
+            ])
+            ->tag('uhifadhi.department_kpi');
     }
 }

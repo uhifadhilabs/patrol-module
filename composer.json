@@ -46,7 +46,8 @@
     "autoload-dev": {
         "psr-4": {
             "UhifadhiLabs\\Patrol\\Tests\\": "tests/",
-            "Uhifadhi\\Entity\\": "tests/Fixtures/Uhifadhi/Entity/"
+            "Uhifadhi\\Entity\\": "tests/Fixtures/Uhifadhi/Entity/",
+            "Uhifadhi\\Module\\": "tests/Fixtures/Uhifadhi/Module/"
         }
     },
     "require-dev": {
