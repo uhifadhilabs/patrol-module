@@ -1,6 +1,6 @@
 {
     "name": "uhifadhilabs/patrol-module",
-    "description": "Patrols: field patrol effort as first-class records \u2014 GPX track ingest, en-route observations with photos, coverage mapping and a per-user widget dashboard.",
+    "description": "Patrols: field patrol effort as first-class records — GPX track ingest, en-route observations with photos, coverage mapping and a per-user widget dashboard.",
     "type": "symfony-bundle",
     "keywords": [
         "symfony-ux",
@@ -98,11 +98,8 @@
             "url": "https://github.com/uhifadhilabs/module-contracts"
         },
         {
-            "type": "path",
-            "url": "../storage-module",
-            "options": {
-                "symlink": true
-            }
+            "type": "vcs",
+            "url": "https://github.com/uhifadhilabs/storage-module"
         }
     ]
 }
