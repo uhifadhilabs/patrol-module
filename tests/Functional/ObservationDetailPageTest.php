@@ -200,7 +200,7 @@ final class ObservationDetailPageTest extends WebTestCase
 
     /**
      * The photographs the phone synced, on the page — thumbnails through the
-     * evidence route, each linking to its full-size original.
+     * evidence route, each one a trigger for the shared file preview.
      */
     public function testThePhotosCardDrawsTheObservationsPhotographs(): void
     {
@@ -228,11 +228,12 @@ final class ObservationDetailPageTest extends WebTestCase
         self::assertResponseIsSuccessful();
 
         $card = $crawler->filter('[data-patrol-photos]');
-        $tiles = $card->filter('a.patrol-ph');
+        $tiles = $card->filter('.patrol-ph');
         self::assertCount(2, $tiles);
 
-        // The tile draws the PREVIEW and links to the ORIGINAL — both through
-        // storage-module's authenticated route, which is the only way out.
+        // The tile draws the PREVIEW and carries the ORIGINAL for the overlay to
+        // offer — both through storage-module's authenticated route, which is
+        // the only way bytes leave this platform.
         $first = $tiles->eq(0);
         self::assertSame(
             '/storage/evidence/'.$photo->getThumbKey(),
@@ -240,7 +241,7 @@ final class ObservationDetailPageTest extends WebTestCase
         );
         self::assertSame(
             '/storage/evidence/'.$photo->getStoragePath(),
-            $first->attr('href'),
+            $first->attr('data-f-original'),
         );
         // No document-root path anywhere: nothing under /var, nothing guessable.
         self::assertStringNotContainsString('var/patrol', (string) $this->client->getResponse()->getContent());
@@ -259,6 +260,77 @@ final class ObservationDetailPageTest extends WebTestCase
 
         // Still view-only: no upload control appeared with the photographs.
         self::assertCount(0, $card->filter('input'));
+    }
+
+    /**
+     * A PHOTOGRAPH OPENS WHERE EVERY PHOTOGRAPH ON THIS PLATFORM OPENS.
+     *
+     * The tile is not a link to the raw bytes any more: it is a trigger for
+     * storage-module's file preview, the same component the Files hub opens its
+     * own tiles in. This module owns none of that markup — it includes the
+     * partial and fills the contract — so what is asserted here is exactly the
+     * seam: the shell is on the page, and every tile speaks the contract.
+     * → @UhifadhiLabsStorage/overlay/_preview.html.twig
+     */
+    public function testAPhotographOpensInTheSharedFilePreview(): void
+    {
+        $photo = new ObservationPhoto(
+            $this->observation,
+            Uuid::fromString('e77c0000-0000-4000-8000-0000000000d1'),
+            'patrol/'.$this->patrol->getUuid()->toRfc4122().'/e77c0000-0000-4000-8000-0000000000d1.jpg',
+        )
+            ->setMimeType('image/jpeg')
+            ->setByteSize(2_411_724)
+            ->setThumbKey('patrol/'.$this->patrol->getUuid()->toRfc4122().'/e77c0000-0000-4000-8000-0000000000d1.jpg.thumb.jpg')
+            ->setTakenAt(new \DateTimeImmutable('2026-08-04 09:12'));
+        $this->em->persist($photo);
+        $this->em->flush();
+
+        $crawler = $this->client->request('GET', $this->url($this->area, $this->patrol, $this->observation));
+
+        self::assertResponseIsSuccessful();
+
+        // The component's own shell, included once, with the behaviour it ships.
+        $overlay = $crawler->filter('.f-ov[data-f-overlay]');
+        self::assertCount(1, $overlay, 'the page includes the storage bundle’s preview, and does not draw one of its own');
+        self::assertSame('uhifadhilabs--storage-module--preview', $overlay->attr('data-controller'));
+        self::assertStringContainsString(
+            'bundles/uhifadhilabsstorage/preview.css',
+            (string) $this->client->getResponse()->getContent(),
+            'consuming the component means loading its vocabulary too',
+        );
+
+        $tile = $crawler->filter('[data-patrol-photos] .patrol-ph');
+        self::assertCount(1, $tile);
+        self::assertNotNull($tile->attr('data-f-preview'), 'the tile is a trigger');
+        self::assertCount(
+            0,
+            $crawler->filter('a.patrol-ph'),
+            'clicking a photograph opens the preview; it no longer walks off the page to the raw bytes',
+        );
+
+        // Everything the overlay shows travels in the attributes, so opening one
+        // costs no request.
+        self::assertSame('image/jpeg', $tile->attr('data-f-mime'));
+        self::assertSame('2.4 MB', $tile->attr('data-f-size'));
+        self::assertSame('made', $tile->attr('data-f-thumb'));
+        self::assertSame('/storage/evidence/'.$photo->getThumbKey(), $tile->attr('data-f-img'));
+        self::assertSame('/storage/evidence/'.$photo->getStoragePath(), $tile->attr('data-f-original'));
+        self::assertStringContainsString('09:12', (string) $tile->attr('data-f-taken'));
+
+        // THE OWNER IS THE FILE'S IDENTITY. A photograph belongs to an
+        // observation in the Patrols module, and the preview says so.
+        self::assertSame('patrols', $tile->attr('data-f-mod'));
+        self::assertSame('Patrols', $tile->attr('data-f-modlabel'));
+        self::assertSame($this->observation->getRef(), $tile->attr('data-f-rec'));
+        self::assertSame(
+            $this->url($this->area, $this->patrol, $this->observation),
+            $tile->attr('data-f-rechref'),
+        );
+
+        // The file's own page belongs to the Files hub, which a host running
+        // this module need not have. Nothing here promises one.
+        self::assertSame('', $tile->attr('data-f-detail'));
     }
 
     /**

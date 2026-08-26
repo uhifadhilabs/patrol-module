@@ -7,6 +7,11 @@
 
 {% import '@UhifadhiLabsPatrol/_ui.html.twig' as ui %}
 
+{# The FILE PREVIEW is storage-module's, not this module's: the same component
+   the Files hub opens its tiles in. This page fills its contract and includes
+   its shell — see the photos card below. #}
+{% import '@UhifadhiLabsStorage/overlay/_preview.html.twig' as preview %}
+
 {# The parent patrol's track colour, cycled exactly as on the dashboard and the
    patrol detail plate — the same track must never change colour between them. #}
 {% set trackColors = ['#3ED9A8', '#5FA8E0', '#E0954F'] %}
@@ -113,25 +118,55 @@
            else: there is no public URL and no document-root path, so knowing a
            filename is not enough to read a snare or a carcass.
 
-           The TILE draws the ~400px preview and the tile LINKS to the original —
-           a page that opened five full-size field photographs to show five small
-           squares is a page nobody on a field connection would wait for. Where
-           no preview could be made (HEIC without libheif), displayKey falls back
-           to the original, so the tile is never a broken image.
+           The TILE draws the ~400px preview and OPENS THE SHARED FILE PREVIEW —
+           the same overlay the Files hub opens its own tiles in, because a
+           photograph must look the same and say the same things wherever it is
+           opened from. The full-size original stays one click away, inside the
+           overlay ("Open the original"): a page that opened five full-size field
+           photographs to show five small squares is a page nobody on a field
+           connection would wait for. Where no preview could be made (HEIC
+           without libheif), displayKey falls back to the original, so the tile
+           is never a broken image.
+
+           This module draws NO overlay markup of its own. It fills the
+           component's contract from an ObservationPhoto and includes the
+           component's shell below — one component, every surface.
+
+           The file's own page is deliberately not offered: that page belongs to
+           the Files hub, which a host running this module need not install, and
+           a link to a route that may not exist is worse than none.
 
            No add control: detail pages are view-only by ruling, and photographs
            arrive from the handset. #}
         {% if photoCount %}
             <div class="patrol-phrow">
                 {% for photo in photos %}
-                    <a class="patrol-ph" href="{{ path('storage_evidence_show', {key: photo.storagePath}) }}"
-                       target="_blank" rel="noopener"
-                       title="Open the full-size photograph{% if photo.takenAt %} taken at {{ photo.takenAt|date('H:i') }}{% endif %}">
+                    <div class="patrol-ph" role="button" tabindex="0"
+                         title="Look at this photograph{% if photo.takenAt %}, taken at {{ photo.takenAt|date('H:i') }}{% endif %}"
+                         {{ preview.attrs({
+                             name: photo.storagePath|split('/')|last,
+                             key: photo.storagePath,
+                             mime: photo.mimeType,
+                             size: photo.byteSize ? photo.byteSize|storage_bytes : '—',
+                             thumbUrl: path('storage_evidence_show', {key: photo.displayKey}),
+                             originalUrl: path('storage_evidence_show', {key: photo.storagePath}),
+                             detailUrl: '',
+                             ownerLabel: observation.ref,
+                             ownerUrl: path('patrol_observation_show', {uuid: area.uuid, patrol: patrol.uuid, observation: observation.uuid}),
+                             moduleSlug: 'patrols',
+                             moduleLabel: 'Patrols',
+                             takenAt: photo.takenAt ? (photo.takenAt|date('D j M Y')|lower ~ ' · ' ~ photo.takenAt|date('H:i')) : '—',
+                             arrivedAt: photo.createdAt|date('D j M Y')|lower ~ ' · ' ~ photo.createdAt|date('H:i'),
+                             thumbState: photo.thumbKey ? 'made' : 'failed',
+                             kind: 'photo',
+                             area: area.name,
+                         }) }}>
                         <img src="{{ path('storage_evidence_show', {key: photo.displayKey}) }}" alt="Photograph {{ loop.index }} of {{ photoCount }} from observation {{ n }}" loading="lazy">
                         <i>photo {{ loop.index }}{% if photo.takenAt %} · {{ photo.takenAt|date('H:i') }}{% endif %}</i>
-                    </a>
+                    </div>
                 {% endfor %}
             </div>
+            {{ include('@UhifadhiLabsStorage/overlay/_preview.html.twig') }}
         {% endif %}
         <div class="use">{% if photoCount %}Photographs are stored on the observation and travel with it when it is filed as an incident.{% else %}Photos taken at an observation attach here and travel with it when it is filed as an incident.{% endif %}</div>
     </div>

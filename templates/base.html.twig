@@ -19,6 +19,16 @@
        this module ships those two assets; that is part of the seam, like the
        host's AreaOfInterest the bundle already binds to. #}
     <link rel="stylesheet" href="{{ asset('leaflet/leaflet.css') }}">
+    {# The FILE PREVIEW's vocabulary, from the bundle that owns it. A patrol
+       photograph opens in the same overlay a file on the hub opens in, so this
+       module draws none of it and states none of it — it loads the component's
+       sheet and includes the component's partial.
+
+       Unconditional, like the evidence route the photos card already asks for:
+       this module refuses to boot without uhifadhilabs/storage-module (see
+       UhifadhiLabsPatrolBundle), because that is where its photographs live.
+       → @UhifadhiLabsStorage/overlay/_preview.html.twig #}
+    <link rel="stylesheet" href="{{ asset('bundles/uhifadhilabsstorage/preview.css') }}">
     <link rel="stylesheet" href="{{ asset('bundles/uhifadhilabspatrol/patrol.css') }}">
 {% endblock %}
 

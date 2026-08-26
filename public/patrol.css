@@ -447,7 +447,10 @@ button.patrol-menu-item {
 }
 .patrol-ph:hover { border-color: color-mix(in srgb, rgb(var(--c-acc)) 55%, transparent); }
 /* Cover, not contain: the tile is a crop that says "there is a photograph here",
-   and the full frame is one click away. */
+   and the full frame is one click away — in storage-module's file preview, which
+   the tile is a trigger for. Its pressability and focus ring come from that
+   component's own sheet ([data-f-preview] in preview.css) and are not restated
+   here: one trigger, one set of manners, on every module's page. */
 .patrol-ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .patrol-ph i {
     position: absolute; left: 6px; bottom: 6px; font: 600 8.5px var(--font-mono); font-style: normal;
