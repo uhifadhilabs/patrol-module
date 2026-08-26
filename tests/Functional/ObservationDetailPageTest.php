@@ -17,9 +17,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
 use UhifadhiLabs\Patrol\Entity\Observation;
+use UhifadhiLabs\Patrol\Entity\ObservationPhoto;
 use UhifadhiLabs\Patrol\Entity\Patrol;
 use UhifadhiLabs\Patrol\Enum\PatrolSourceEnum;
 
@@ -181,13 +183,126 @@ final class ObservationDetailPageTest extends WebTestCase
         self::assertCount(1, $history);
         self::assertStringContainsString('observation logged en route by A. Alpha', $history->text());
 
-        // PL·05 — photos are deferred: the card keeps its place, with no
-        // placeholder images and no upload control.
+        // PL·05 — an observation with no photographs draws no tiles and no
+        // placeholder images, and never an upload control (view-only by ruling).
         $photos = $crawler->filter('[data-patrol-photos]');
         self::assertCount(1, $photos);
         self::assertStringContainsString('Photos', $photos->text());
         self::assertCount(0, $photos->filter('img'));
         self::assertCount(0, $photos->filter('input'));
+        // …and the meta row says none rather than staying silent.
+        self::assertStringContainsString('photos', $meta);
+    }
+
+    /**
+     * The photographs the phone synced, on the page — thumbnails through the
+     * evidence route, each linking to its full-size original.
+     */
+    public function testThePhotosCardDrawsTheObservationsPhotographs(): void
+    {
+        $photo = new ObservationPhoto(
+            $this->observation,
+            Uuid::fromString('e77c0000-0000-4000-8000-0000000000c1'),
+            'patrol/'.$this->patrol->getUuid()->toRfc4122().'/e77c0000-0000-4000-8000-0000000000c1.jpg',
+        )
+            ->setMimeType('image/jpeg')
+            ->setThumbKey('patrol/'.$this->patrol->getUuid()->toRfc4122().'/e77c0000-0000-4000-8000-0000000000c1.jpg.thumb.jpg')
+            ->setTakenAt(new \DateTimeImmutable('today 08:15'));
+        $this->em->persist($photo);
+        // A second photograph with NO preview — the HEIC case. It must still
+        // draw, falling back to the original rather than a broken image.
+        $withoutThumb = new ObservationPhoto(
+            $this->observation,
+            Uuid::fromString('e77c0000-0000-4000-8000-0000000000c2'),
+            'patrol/'.$this->patrol->getUuid()->toRfc4122().'/e77c0000-0000-4000-8000-0000000000c2.heic',
+        )->setMimeType('image/heic');
+        $this->em->persist($withoutThumb);
+        $this->em->flush();
+
+        $crawler = $this->client->request('GET', $this->url($this->area, $this->patrol, $this->observation));
+
+        self::assertResponseIsSuccessful();
+
+        $card = $crawler->filter('[data-patrol-photos]');
+        $tiles = $card->filter('a.patrol-ph');
+        self::assertCount(2, $tiles);
+
+        // The tile draws the PREVIEW and links to the ORIGINAL — both through
+        // storage-module's authenticated route, which is the only way out.
+        $first = $tiles->eq(0);
+        self::assertSame(
+            '/storage/evidence/'.$photo->getThumbKey(),
+            $first->filter('img')->attr('src'),
+        );
+        self::assertSame(
+            '/storage/evidence/'.$photo->getStoragePath(),
+            $first->attr('href'),
+        );
+        // No document-root path anywhere: nothing under /var, nothing guessable.
+        self::assertStringNotContainsString('var/patrol', (string) $this->client->getResponse()->getContent());
+
+        // The photograph that could not be previewed falls back to itself.
+        self::assertSame(
+            '/storage/evidence/'.$withoutThumb->getStoragePath(),
+            $tiles->eq(1)->filter('img')->attr('src'),
+        );
+
+        // The count agrees with reality, in all three places the design prints it.
+        self::assertStringContainsString('· 2 · from the field', $card->text());
+        self::assertStringContainsString('2 photos', $crawler->filter('.pgsub')->text());
+        self::assertStringContainsString('photos', $crawler->filter('[data-patrol-observation-meta]')->text());
+        self::assertStringContainsString('2', $crawler->filter('[data-patrol-observation-meta]')->text());
+
+        // Still view-only: no upload control appeared with the photographs.
+        self::assertCount(0, $card->filter('input'));
+    }
+
+    /**
+     * The phone promised more than arrived. The page says so — a count that
+     * silently shows the smaller number would be a claim that nothing is missing.
+     */
+    public function testAnObservationStillSyncingSaysWhatHasNotArrived(): void
+    {
+        $this->observation->setPhotoCount(3);
+        $photo = new ObservationPhoto(
+            $this->observation,
+            Uuid::fromString('e77c0000-0000-4000-8000-0000000000c3'),
+            'patrol/'.$this->patrol->getUuid()->toRfc4122().'/e77c0000-0000-4000-8000-0000000000c3.jpg',
+        );
+        $this->em->persist($photo);
+        $this->em->flush();
+
+        $crawler = $this->client->request('GET', $this->url($this->area, $this->patrol, $this->observation));
+
+        self::assertResponseIsSuccessful();
+        $meta = $crawler->filter('[data-patrol-observation-meta]')->text();
+        self::assertStringContainsString('1 of 3', $meta);
+        self::assertStringContainsString('2 still syncing', $meta);
+    }
+
+    /** The parent patrol's observation rows carry the same honest count. */
+    public function testThePatrolDetailRowCountsTheObservationsPhotographs(): void
+    {
+        $photo = new ObservationPhoto(
+            $this->observation,
+            Uuid::fromString('e77c0000-0000-4000-8000-0000000000c4'),
+            'patrol/'.$this->patrol->getUuid()->toRfc4122().'/e77c0000-0000-4000-8000-0000000000c4.jpg',
+        );
+        $this->em->persist($photo);
+        $this->em->flush();
+
+        $crawler = $this->client->request(
+            'GET',
+            '/areas/'.$this->area->getUuid()->toRfc4122().'/modules/patrols/'.$this->patrol->getUuid()->toRfc4122(),
+        );
+
+        self::assertResponseIsSuccessful();
+        $rows = $crawler->filter('[data-patrol-observations] .patrol-obs-r');
+        self::assertCount(2, $rows);
+        // The second observation holds the photograph; the first holds none and
+        // therefore says nothing rather than "0 photos".
+        self::assertStringContainsString('1 photo', $rows->eq(1)->filter('em')->text());
+        self::assertStringNotContainsString('photo', $rows->eq(0)->filter('em')->text());
     }
 
     public function testTheArrowsCircleToTheNeighbouringObservations(): void

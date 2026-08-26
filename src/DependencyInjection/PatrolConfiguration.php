@@ -81,16 +81,16 @@ final class PatrolConfiguration
                         ->end()
                     ->end()
                 ->end()
-                ->scalarNode('photo_dir')
-                    ->info('Where observation photos uploaded by the field app are stored. Outside the document root on purpose: field photographs are evidence, not public assets, and must not be reachable by guessing a URL.')
-                    ->defaultValue('%kernel.project_dir%/var/patrol/photos')
-                    ->cannotBeEmpty()
-                ->end()
-                ->integerNode('photo_max_bytes')
-                    ->info('Largest accepted photo. The contract expects up to ~5 MB; the phone honours a "Field 2 MP" setting but does not guarantee it, so the ceiling is generous rather than tight.')
-                    ->defaultValue(12 * 1024 * 1024)
-                    ->min(1)
-                ->end()
+                /*
+                 * There is deliberately NO photo_dir and NO photo_max_bytes here
+                 * any more. Where field photographs live, how big they may be
+                 * and which types count as a photograph are properties of the
+                 * DEPLOYMENT's evidence storage, not of this module — every
+                 * module that stores evidence must answer them the same way, and
+                 * two modules with two size caps is a deployment that cannot say
+                 * what it accepts. They are configured once, under `storage:`
+                 * (uhifadhilabs/storage-module).
+                 */
                 ->floatNode('gap_threshold_minutes')
                     ->info('A pause between consecutive GPX points longer than this counts as a GPS gap — flagged on import, stored with the track, never smoothed.')
                     ->defaultValue(5.0)

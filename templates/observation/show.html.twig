@@ -14,6 +14,10 @@
 {% set trackColor = typeColor[patrol.type]|default(trackColors[0]) %}
 {% set typeLabel = types[patrol.type].label|default(patrol.type) %}
 {% set categoryLabel = categories[observation.category].label|default(observation.category) %}
+{# The photographs actually HELD, never the number the phone promised: a page
+   that says "2 photos" over one photograph is lying about evidence. #}
+{% set photos = observation.photos %}
+{% set photoCount = photos|length %}
 
 {% block title %}Observation {{ n }} — {{ categoryLabel }}{% endblock %}
 
@@ -23,7 +27,7 @@
 <div class="pghead">
     <div>
         <h1 class="pg">Observation {{ n }} — {{ categoryLabel }}</h1>
-        <p class="pgsub">{{ categoryLabel|lower }} · {{ patrol.ref }} {{ typeLabel|lower }} patrol · {{ ui.stamp(observation.loggedAt) }} · {{ ui.person_name(observation.recordedBy) }}</p>
+        <p class="pgsub">{{ categoryLabel|lower }} · {{ patrol.ref }} {{ typeLabel|lower }} patrol · {{ ui.stamp(observation.loggedAt) }} · {{ ui.person_name(observation.recordedBy) }}{% if photoCount %} · {{ photoCount }} photo{{ photoCount == 1 ? '' : 's' }}{% endif %}</p>
     </div>
     <div class="pgact">
         {# Circling the patrol's observations without going back up to it. Plain
@@ -71,8 +75,10 @@
                row needs a per-point accuracy and a device identity the bundle
                stores for neither observations nor patrols. #}
             <div class="patrol-meta-r"><span>recorded by</span><b>{{ ui.person_name(observation.recordedBy) }}</b></div>
-            {# DEFERRED(photos): the design's "photos · 2" row — no photo entity
-               yet (docs/design-decisions.md §3). #}
+            {# The design's "photos · 2" row. Held, not promised — and where the
+               phone said it would send more than arrived, the row says so rather
+               than quietly showing the smaller number as if it were the whole. #}
+            <div class="patrol-meta-r"><span>photos</span><b>{{ photoCount }}{% if observation.photoCount > photoCount %} of {{ observation.photoCount }} · {{ observation.photoCount - photoCount }} still syncing{% endif %}</b></div>
             {# DEFERRED(incident-link): the design's status row says what became
                of the observation ("linked to incident draft"); that state lives
                in the incidents module, which does not exist yet. #}
@@ -98,13 +104,33 @@
 
 <div class="patrol-detail-row patrol-detail-row-bottom">
     <div class="c patrol-plate" data-patrol-photos>
-        <span class="tab"><span class="idx">PL·05</span>Photos<span class="src">· from the field</span></span>
-        {# DEFERRED(photos): decision #3 in docs/design-decisions.md — photos need
-           a storage decision the bundle cannot make alone, so there is no photo
-           entity yet. The card keeps its place and states where photos will
-           live; no placeholder images, and no add control (detail pages are
-           view-only). #}
-        <div class="use">Photos taken at an observation attach here and travel with it when it is filed as an incident.</div>
+        <span class="tab"><span class="idx">PL·05</span>Photos<span class="src">{% if photoCount %}· {{ photoCount }} {% endif %}· from the field</span></span>
+        {# The real photographs the field app synced. Every one of them comes
+           back out through storage-module's authenticated route and nowhere
+           else: there is no public URL and no document-root path, so knowing a
+           filename is not enough to read a snare or a carcass.
+
+           The TILE draws the ~400px preview and the tile LINKS to the original —
+           a page that opened five full-size field photographs to show five small
+           squares is a page nobody on a field connection would wait for. Where
+           no preview could be made (HEIC without libheif), displayKey falls back
+           to the original, so the tile is never a broken image.
+
+           No add control: detail pages are view-only by ruling, and photographs
+           arrive from the handset. #}
+        {% if photoCount %}
+            <div class="patrol-phrow">
+                {% for photo in photos %}
+                    <a class="patrol-ph" href="{{ path('storage_evidence_show', {key: photo.storagePath}) }}"
+                       target="_blank" rel="noopener"
+                       title="Open the full-size photograph{% if photo.takenAt %} taken at {{ photo.takenAt|date('H:i') }}{% endif %}">
+                        <img src="{{ path('storage_evidence_show', {key: photo.displayKey}) }}" alt="Photograph {{ loop.index }} of {{ photoCount }} from observation {{ n }}" loading="lazy">
+                        <i>photo {{ loop.index }}{% if photo.takenAt %} · {{ photo.takenAt|date('H:i') }}{% endif %}</i>
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
+        <div class="use">{% if photoCount %}Photographs are stored on the observation and travel with it when it is filed as an incident.{% else %}Photos taken at an observation attach here and travel with it when it is filed as an incident.{% endif %}</div>
     </div>
     <div class="patrol-side patrol-side-spacer"></div>
 </div>

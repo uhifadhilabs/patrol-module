@@ -62,6 +62,42 @@ than shipping a second copy of it (see `docs/design-decisions.md` §6):
   map, geojson, { scrim })` — the platform's one area outline: the
   outside-the-area scrim, a white casing and the jade line.
 
+### Photographs need the storage module
+
+Observation photos are stored by `uhifadhilabs/storage-module`, which is a hard
+dependency: the sync endpoint writes through it and the observation screen reads
+back through its authenticated route. Register both bundles it needs:
+
+```php
+League\FlysystemBundle\FlysystemBundle::class => ['all' => true],
+UhifadhiLabs\Storage\UhifadhiLabsStorageBundle::class => ['all' => true],
+```
+
+A host that forgets says so at compile time, not on the first upload.
+
+Where the bytes go, how large a photograph may be and which types count as one
+are configured **once for the whole deployment**, under `storage:` — never per
+module. `patrol.photo_dir` and `patrol.photo_max_bytes` are gone for that reason.
+
+A deployment upgrading from a pre-storage-module patrol keeps its photographs by
+pointing the evidence storage at the directory they are already in:
+
+```yaml
+# config/packages/storage.yaml
+storage:
+    evidence:
+        directory: '%kernel.project_dir%/var/patrol/photos'
+```
+
+The old `patrol-<uuid>/<uuid>.jpg` paths are valid evidence keys exactly as they
+stand, and `PatrolEvidenceVoter` claims that legacy prefix alongside the new
+`patrol/` one, so nothing is rewritten and nothing goes dark. Give those
+photographs the preview they never had with:
+
+```bash
+bin/console patrol:photos:backfill-thumbs   # idempotent; --dry-run to look first
+```
+
 ## Configuration
 
 ```yaml
@@ -98,8 +134,8 @@ endpoint later. Neither door re-implements parsing.
 
 ## Design decisions
 
-Deliberate modeling choices (station as string, free-text team, deferred
-photos, honest sources, live tracking as a v2 third door) are recorded with
+Deliberate modeling choices (station as string, free-text team, how photos are
+stored, honest sources, live tracking as a v2 third door) are recorded with
 their revisit triggers in [docs/design-decisions.md](docs/design-decisions.md).
 **Read it before changing the model** — none of them is an oversight.
 

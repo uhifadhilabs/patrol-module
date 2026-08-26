@@ -37,4 +37,29 @@ final class ObservationPhotoRepository extends ServiceEntityRepository
     {
         return $this->findOneBy(['clientUuid' => $clientUuid]);
     }
+
+    /**
+     * The row that owns an evidence key — the lookup the evidence voter rests
+     * on (@see \UhifadhiLabs\Patrol\Security\PatrolEvidenceVoter).
+     *
+     * Answering NULL is what refuses a key this module does not actually hold,
+     * so it must never be widened into a LIKE or a prefix match.
+     */
+    public function findOneByStoragePath(string $storagePath): ?ObservationPhoto
+    {
+        return $this->findOneBy(['storagePath' => $storagePath]);
+    }
+
+    /**
+     * Photographs recorded with no preview — what the backfill has left to do.
+     *
+     * Ordered by id so a run that is interrupted resumes in the same order, and
+     * so two runs report the same thing.
+     *
+     * @return list<ObservationPhoto>
+     */
+    public function findWithoutThumbKey(): array
+    {
+        return $this->findBy(['thumbKey' => null], ['id' => 'ASC']);
+    }
 }

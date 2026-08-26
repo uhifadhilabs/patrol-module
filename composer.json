@@ -36,7 +36,8 @@
         "symfony/mime": "^7.3 || ^8.0",
         "symfony/twig-bundle": "^7.3 || ^8.0",
         "symfony/uid": "^7.3 || ^8.0",
-        "uhifadhilabs/module-contracts": "dev-main"
+        "uhifadhilabs/module-contracts": "dev-main",
+        "uhifadhilabs/storage-module": "dev-main"
     },
     "autoload": {
         "psr-4": {
@@ -95,6 +96,13 @@
             "name": "module-contracts",
             "type": "vcs",
             "url": "https://github.com/uhifadhilabs/module-contracts"
+        },
+        {
+            "type": "path",
+            "url": "../storage-module",
+            "options": {
+                "symlink": true
+            }
         }
     ]
 }

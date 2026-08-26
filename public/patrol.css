@@ -433,6 +433,30 @@ button.patrol-menu-item {
 .patrol-obs-open { align-self: center; }
 .patrol-obs-empty .patrol-obs-bd { color: rgb(var(--c-fog)); }
 
+/* ---- photos (PL·05 on the observation detail) --------------------------- */
+/* The design's three-up tile grid. Each tile is a 4:3 frame with the caption
+   sitting on the picture, bottom-left, on its own dark plate so it stays legible
+   over any photograph. The frame keeps its own dark ground: a field photo is
+   often letterboxed inside 4:3, and an empty white gap around it would read as a
+   loading failure. */
+.patrol-phrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 6px; }
+.patrol-ph {
+    aspect-ratio: 4 / 3; border-radius: 9px; border: 1px solid var(--c-ln2);
+    position: relative; overflow: hidden; display: block; text-decoration: none;
+    background: color-mix(in srgb, rgb(var(--c-fog)) 8%, transparent);
+}
+.patrol-ph:hover { border-color: color-mix(in srgb, rgb(var(--c-acc)) 55%, transparent); }
+/* Cover, not contain: the tile is a crop that says "there is a photograph here",
+   and the full frame is one click away. */
+.patrol-ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.patrol-ph i {
+    position: absolute; left: 6px; bottom: 6px; font: 600 8.5px var(--font-mono); font-style: normal;
+    color: #EAF2EC; background: rgba(10, 14, 11, .72); padding: 2px 6px; border-radius: 4px;
+}
+@media (max-width: 720px) {
+    .patrol-phrow { grid-template-columns: repeat(2, 1fr); }
+}
+
 /* ---- the verbatim note (PL·03 on the observation detail) ---------------- */
 .patrol-quote { font-size: 13px; line-height: 1.65; margin-top: 4px; color: rgb(var(--c-tx)); }
 

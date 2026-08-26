@@ -8,7 +8,7 @@ oversight.
 
 - [1 · Station is a string, not an entity](#1--station-is-a-string-not-an-entity)
 - [2 · Team is free text](#2--team-is-free-text)
-- [3 · Observation photos are deferred](#3--observation-photos-are-deferred)
+- [3 · Observation photos are deferred — SETTLED](#3--observation-photos-are-deferred--settled-this-decision-has-fallen)
 - [4 · Sources are honest: sketch ≠ track](#4--sources-are-honest-sketch--track)
 - [5 · Live tracking is v2, and it is a third door](#5--live-tracking-is-v2-and-it-is-a-third-door)
 - [6 · The maps run on the host's Leaflet and the host's basemaps](#6--the-maps-run-on-the-hosts-leaflet-and-the-hosts-basemaps)
@@ -47,19 +47,35 @@ many patrol members will not have accounts at all. One accountable relation
 observation, per-ranger effort stats). Then: a `patrol_member` join table to
 `User`, keeping the free-text field for non-account members.
 
-## 3 · Observation photos are deferred
+## 3 · Observation photos are deferred — SETTLED, this decision has fallen
 
-`Observation` has no photo entity yet, although the settled designs show
-photos on the observation detail screen.
+**Kept for the record.** It said photos needed a storage decision the bundle
+could not make alone (local filesystem vs object storage, sizing, retention),
+and that blocking the whole domain layer on that call was the wrong trade. It
+was the first of these decisions expected to fall, and it did.
 
-**Why:** photos need a storage decision the bundle cannot make alone — local
-filesystem vs host-provided object storage, sizing, retention. Blocking the
-whole domain layer on that call was the wrong trade.
+**What it became:** `uhifadhilabs/storage-module` owns the mechanism —
+named Flysystem storages (a local directory or Hetzner object storage, one
+config key apart), a detected-MIME allowlist, a size cap, ~400px previews and
+ONE authenticated route by which anything comes back out. This module keeps what
+only it can know: the `ObservationPhoto` row (evidence key, nullable thumb key,
+detected type, byte size, takenAt), when to store, and — through
+`PatrolEvidenceVoter` — who may read.
 
-**Revisit when:** the observation screens are wired for upload (this is the
-FIRST of these decisions expected to fall). Shape: an `ObservationPhoto`
-entity (filename, stored path/key, takenAt), storage behind a small interface
-the host may replace.
+Two consequences worth stating plainly:
+
+- **`mimeType` is the DETECTED type.** It used to be the type the *client
+  claimed* while the detected one was merely validated. The column now holds
+  what the bytes are.
+- **`thumbKey` is nullable and must stay so.** No GD build decodes HEIC and an
+  ImageMagick without libheif cannot either, so an iPhone photograph is
+  routinely stored with no preview. Recording that honestly beats failing the
+  upload — losing a ranger's photograph to a missing image library would be an
+  absurd trade — and the page falls back to the original.
+
+**Revisit when:** photographs need to be attached from the WEB as well as from
+the handset. The detail screens are view-only by ruling, so today every
+photograph arrives through the sync endpoint.
 
 ## 4 · Sources are honest: sketch ≠ track
 

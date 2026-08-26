@@ -47,13 +47,33 @@ class ObservationPhoto
     private Uuid $clientUuid;
 
     /**
-     * Where the bytes are, relative to the module's configured photo directory.
-     * Relative on purpose: an absolute path would bake one machine's filesystem
-     * into the database and break the moment the deployment moves.
+     * The EVIDENCE KEY: where the bytes are inside the platform's private
+     * evidence storage (uhifadhilabs/storage-module). Relative on purpose — that
+     * is what lets a deployment move from a local directory to object storage
+     * without rewriting a single row here.
+     *
+     * The column keeps its original name: the rows written before the module
+     * adopted storage-module hold exactly the same thing, a relative path under
+     * the evidence storage, and renaming a column whose meaning did not change
+     * would be churn.
      */
     #[ORM\Column(length: 255)]
     private string $storagePath;
 
+    /**
+     * The ~400px preview generated beside the original, or NULL.
+     *
+     * NULLABLE is not an oversight and must not be tightened: no GD build
+     * decodes HEIC and an ImageMagick without libheif cannot either, so an
+     * iPhone photograph is routinely stored with no preview available. The
+     * bundle records that plainly rather than a key pointing at nothing — losing
+     * a ranger's photograph over a missing image library would be an absurd
+     * trade.
+     */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $thumbKey = null;
+
+    /** The DETECTED type, read from the bytes — never what the client claimed. */
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $mimeType = null;
 
@@ -91,6 +111,27 @@ class ObservationPhoto
     public function getStoragePath(): string
     {
         return $this->storagePath;
+    }
+
+    public function getThumbKey(): ?string
+    {
+        return $this->thumbKey;
+    }
+
+    public function setThumbKey(?string $thumbKey): static
+    {
+        $this->thumbKey = $thumbKey;
+
+        return $this;
+    }
+
+    /**
+     * What a page should ask the serving route for: the preview where there is
+     * one, the original where there is not. Never a broken image.
+     */
+    public function getDisplayKey(): string
+    {
+        return $this->thumbKey ?? $this->storagePath;
     }
 
     public function getMimeType(): ?string

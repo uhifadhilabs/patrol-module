@@ -118,11 +118,13 @@
                 <span class="patrol-obs-t">{{ row.observation.loggedAt ? row.observation.loggedAt|date('H:i') : '—' }}</span>
                 <span class="patrol-obs-bd">
                     <span class="chip warn patrol-obs-chip">{{ ui.category_label(row.observation.category, categories) }}</span>{{ row.observation.note }}
-                    {# DEFERRED(photos): the design's sub-line ends "· 2 photos";
-                       observations carry no photo entity yet
-                       (docs/design-decisions.md §3), so the count is omitted
-                       rather than faked. #}
-                    <em>{{ row.dms ?: 'no position recorded' }}</em>
+                    {# The design's sub-line ends "· 2 photos". HELD photographs,
+                       never the number the phone promised: this row is read as a
+                       claim about what the patrol brought back. An observation
+                       with none says nothing at all rather than "0 photos",
+                       exactly as the design's rows do. #}
+                    {% set rowPhotos = row.observation.photos|length %}
+                    <em>{{ row.dms ?: 'no position recorded' }}{% if rowPhotos %} · {{ rowPhotos }} photo{{ rowPhotos == 1 ? '' : 's' }}{% endif %}</em>
                 </span>
                 <a class="open-btn patrol-obs-open" href="{{ path('patrol_observation_show', {uuid: area.uuid, patrol: patrol.uuid, observation: row.observation.uuid}) }}">Open →</a>
             </div>

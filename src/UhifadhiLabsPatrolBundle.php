@@ -25,6 +25,7 @@ use UhifadhiLabs\Patrol\Api\State\AppendTrackProcessor;
 use UhifadhiLabs\Patrol\Api\State\CompletePatrolProcessor;
 use UhifadhiLabs\Patrol\Api\State\CreatePatrolProcessor;
 use UhifadhiLabs\Patrol\Api\State\UploadPhotoProcessor;
+use UhifadhiLabs\Patrol\Command\BackfillPhotoThumbsCommand;
 use UhifadhiLabs\Patrol\Command\SeedDemoCommand;
 use UhifadhiLabs\Patrol\Controller\PatrolRecordController;
 use UhifadhiLabs\Patrol\Controller\PatrolWidgetsController;
@@ -37,6 +38,7 @@ use UhifadhiLabs\Patrol\Repository\ObservationPhotoRepository;
 use UhifadhiLabs\Patrol\Repository\ObservationRepository;
 use UhifadhiLabs\Patrol\Repository\PatrolRepository;
 use UhifadhiLabs\Patrol\Repository\TrackBatchRepository;
+use UhifadhiLabs\Patrol\Security\PatrolEvidenceVoter;
 use UhifadhiLabs\Patrol\Service\Api\FlightSyncService;
 use UhifadhiLabs\Patrol\Service\Api\ObservationSyncService;
 use UhifadhiLabs\Patrol\Service\Api\PatrolCompletionService;
@@ -158,6 +160,40 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
          */
         $bundles = $builder->hasParameter('kernel.bundles') ? $builder->getParameter('kernel.bundles') : [];
         $hasSecurity = \is_array($bundles) && isset($bundles['SecurityBundle']);
+
+        /*
+         * THE EVIDENCE STORAGE — a hard requirement, said here where a developer
+         * will read it rather than as a missing "storage.evidence_storage" three
+         * screens into a stack trace.
+         *
+         * Not made optional on purpose. Photographs are not a decorative extra
+         * on an observation: the upload endpoint takes them, the detail screen
+         * shows them, and both would have to grow a "…unless the host skipped
+         * storage" branch that no deployment would ever run. One composer
+         * dependency and one line in bundles.php is the cheaper contract.
+         */
+        if (!\is_array($bundles) || !isset($bundles['UhifadhiLabsStorageBundle'])) {
+            throw new \LogicException('UhifadhiLabsPatrolBundle stores observation photos in uhifadhilabs/storage-module. Register FlysystemBundle and UhifadhiLabs\Storage\UhifadhiLabsStorageBundle in config/bundles.php.');
+        }
+
+        /*
+         * PATROL'S HALF OF THE PERMISSION SEAM.
+         *
+         * Storage denies any key no module claims, so without this service every
+         * patrol photograph is a 403 — the right failure direction, and the
+         * reason the voter ships in the same change as the rewire. Registered
+         * unconditionally, beside the entities rather than inside the field-API
+         * guard: a host that never installed api-platform can still HOLD photos
+         * (imported, seeded, migrated) and must still be able to show them.
+         *
+         * Tagged explicitly. A reusable bundle is not autoconfigured, and a
+         * module that forgot this tag would silently lose access to its own
+         * evidence — a confusing way to find out.
+         */
+        $services->set('patrol.evidence_voter', PatrolEvidenceVoter::class)
+            ->args([service(ObservationPhotoRepository::class)])
+            ->tag('uhifadhi.evidence_access_voter');
+
         // The dashboard offers "Import GPX" / "Log patrol" only where those
         // routes exist, so a host without security shows no link into nowhere.
         $builder->setParameter('patrol.record_screens', $hasSecurity);
@@ -221,15 +257,12 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
          * a SERVICE ID, so the id has to be the class name. Each still gets a
          * prefixed alias for consistency with the controllers above.
          */
-        $hasApiPlatform = \is_array($bundles) && isset($bundles['ApiPlatformBundle']);
+        // $bundles is known to be a non-empty array by here: the storage guard
+        // above cannot have been passed otherwise.
+        $hasApiPlatform = isset($bundles['ApiPlatformBundle']);
         $builder->setParameter('patrol.field_api', $hasSecurity && $hasApiPlatform);
 
         if ($hasSecurity && $hasApiPlatform) {
-            $photoDir = \is_string($config['photo_dir'] ?? null) ? $config['photo_dir'] : '%kernel.project_dir%/var/patrol/photos';
-            $builder->setParameter('patrol.photo_dir', $photoDir);
-            $photoMaxBytes = $config['photo_max_bytes'] ?? 12 * 1024 * 1024;
-            $builder->setParameter('patrol.photo_max_bytes', \is_int($photoMaxBytes) ? $photoMaxBytes : 12 * 1024 * 1024);
-
             $services->set('patrol.api.ranger_resolver', RangerResolver::class)
                 ->args([service('doctrine.orm.entity_manager')]);
 
@@ -273,12 +306,14 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
                     service(FlightRepository::class),
                 ]);
 
+            // The bytes go to the platform's evidence storage, by service id —
+            // the storage bundle is a reusable bundle and its ids are its public
+            // surface (README, "Service reference").
             $services->set('patrol.api.photo_sync', PhotoSyncService::class)
                 ->args([
                     service('doctrine.orm.entity_manager'),
                     service(ObservationPhotoRepository::class),
-                    param('patrol.photo_dir'),
-                    param('patrol.photo_max_bytes'),
+                    service('storage.evidence_storage'),
                 ]);
 
             $services->set('patrol.api.completion', PatrolCompletionService::class)
@@ -309,6 +344,27 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
                     service('patrol.geo'),
                     param('patrol.types'),
                     param('patrol.observation_categories'),
+                ])
+                ->tag('console.command');
+
+            /*
+             * The one-off preview backfill for photographs stored before this
+             * module adopted storage-module. Dev tooling by the same reasoning
+             * as the seeder: it is a migration aid a deployment runs once, not
+             * an operation a production console needs standing by.
+             *
+             * It takes the FLYSYSTEM STORAGE and the thumbnail engine directly
+             * rather than EvidenceStorage, because what it does — write one
+             * derived object beside a key that already exists — is the one thing
+             * the evidence API deliberately does not expose: store() validates
+             * and names a NEW upload, and this is neither.
+             */
+            $services->set('patrol.command.backfill_photo_thumbs', BackfillPhotoThumbsCommand::class)
+                ->args([
+                    service('doctrine.orm.entity_manager'),
+                    service(ObservationPhotoRepository::class),
+                    service('storage.evidence'),
+                    service('storage.thumbnail_generator'),
                 ])
                 ->tag('console.command');
         }

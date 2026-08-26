@@ -16,6 +16,7 @@ namespace UhifadhiLabs\Patrol\Tests\Integration;
 use ApiPlatform\Symfony\Bundle\ApiPlatformBundle;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use FundiStadi\PostGISBundle\FundiStadiPostGISBundle;
+use League\FlysystemBundle\FlysystemBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Bundle\SecurityBundle\SecurityBundle;
@@ -28,6 +29,8 @@ use Uhifadhi\Entity\User;
 use UhifadhiLabs\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 use UhifadhiLabs\Patrol\Tests\Integration\Fixtures\HeaderUserAuthenticator;
 use UhifadhiLabs\Patrol\UhifadhiLabsPatrolBundle;
+use UhifadhiLabs\Storage\Controller\EvidenceController;
+use UhifadhiLabs\Storage\UhifadhiLabsStorageBundle;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
@@ -52,6 +55,11 @@ final class TestKernel extends Kernel
         // The host installs api-platform; this stands in for that host so the
         // bundle's own sync endpoints can be exercised without one.
         yield new ApiPlatformBundle();
+        // Where observation photos go. A hard dependency of this bundle, and
+        // registered here in the order a host registers it: flysystem first,
+        // because the storage bundle PREPENDS a flysystem storage.
+        yield new FlysystemBundle();
+        yield new UhifadhiLabsStorageBundle();
         yield new UhifadhiLabsPatrolBundle();
     }
 
@@ -157,11 +165,18 @@ final class TestKernel extends Kernel
             'defaults' => ['stateless' => true],
         ]);
 
+        // The evidence storage the photo tests write real bytes into — a
+        // throwaway directory, because a mocked filesystem would only prove the
+        // mock. The rest is the bundle's own defaults, which is what a host gets.
+        $container->extension('storage', [
+            'evidence' => [
+                'adapter' => 'local',
+                'directory' => sys_get_temp_dir().'/patrol-module-tests/evidence',
+            ],
+        ]);
+
         $container->extension('patrol', [
             'dev_tools' => true, // this IS the test env — the recipe enables it via when@test
-            // A throwaway directory per run: photo uploads write real bytes,
-            // and the tests assert they landed.
-            'photo_dir' => sys_get_temp_dir().'/patrol-module-tests/photos',
             // Synthetic example vocabulary (never a client's). Deliberately NOT
             // the field app's words: patrol types and observation categories are
             // DEPLOYMENT config, and the sync tests prove the endpoints work
@@ -186,6 +201,18 @@ final class TestKernel extends Kernel
         $controllers = \dirname(__DIR__, 2).'/src/Controller/';
         if (is_dir($controllers)) {
             $routes->import($controllers, 'attribute');
+        }
+
+        // The evidence serving route, mounted exactly as a host mounts it: the
+        // storage bundle's controller carries its own #[Route], so the host
+        // imports the directory. Without this the photos card would link at
+        // nothing and the voter would never be asked anything.
+        // Only the serving route: the storage bundle's Files hub is a host
+        // screen standing on the host's widget framework, which a bundle test
+        // kernel does not have and does not need.
+        $evidence = (new \ReflectionClass(EvidenceController::class))->getFileName();
+        if (\is_string($evidence)) {
+            $routes->import($evidence, 'attribute');
         }
 
         // The /api entry point, mounted exactly as the host mounts it
