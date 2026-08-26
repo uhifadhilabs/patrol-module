@@ -135,7 +135,11 @@ final class ObservationDetailPageTest extends WebTestCase
         self::assertStringContainsString('maintenance need', $subtitle);
         self::assertStringContainsString($this->patrol->getRef().' walking round patrol', $subtitle);
         self::assertStringContainsString('A. Alpha', $subtitle);
-        self::assertStringContainsString('File as incident', $crawler->filter('.pghead')->text());
+        // The File-as-incident button exists only when a host installs an
+        // incidents module exposing `incident_new` (the seam is the route name
+        // + prefill query keys). This kernel has none, so the honest page shows
+        // no dead control — the design's graceful absence.
+        self::assertStringNotContainsString('File as incident', $crawler->filter('.pghead')->text());
 
         // Back to the parent patrol, and the crumb ends at "obs 2".
         self::assertStringContainsString('Patrol '.$this->patrol->getRef(), $crawler->filter('.backbtn')->text());

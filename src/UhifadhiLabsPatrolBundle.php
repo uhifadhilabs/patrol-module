@@ -46,6 +46,8 @@ use UhifadhiLabs\Patrol\Service\Api\PatrolUpsertService;
 use UhifadhiLabs\Patrol\Service\Api\PhotoSyncService;
 use UhifadhiLabs\Patrol\Service\Api\RangerResolver;
 use UhifadhiLabs\Patrol\Service\Api\TrackBatchService;
+use UhifadhiLabs\Patrol\Storage\PatrolFileSource;
+use UhifadhiLabs\Storage\Registry\FileSourceInterface;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
@@ -193,6 +195,24 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
         $services->set('patrol.evidence_voter', PatrolEvidenceVoter::class)
             ->args([service(ObservationPhotoRepository::class)])
             ->tag('uhifadhi.evidence_access_voter');
+
+        /*
+         * PATROL'S FILES, ON THE PLATFORM'S FILES HUB.
+         *
+         * The other half of the same seam: the voter says who may READ a
+         * photograph, this says which photographs exist and what may be done to
+         * them. Registered beside it and for the same reason — a host that holds
+         * photographs must be able to list them whether or not it ever installed
+         * api-platform.
+         *
+         * Tagged by hand with the interface's own constant. A reusable bundle is
+         * not autoconfigured, and a module that forgot this tag would simply not
+         * appear on /files — the hub grows by MODULES, so a missing source looks
+         * exactly like a module that was never installed.
+         */
+        $services->set('patrol.file_source', PatrolFileSource::class)
+            ->args([service(ObservationPhotoRepository::class), service('router')])
+            ->tag(FileSourceInterface::TAG);
 
         // The dashboard offers "Import GPX" / "Log patrol" only where those
         // routes exist, so a host without security shows no link into nowhere.

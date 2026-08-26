@@ -217,6 +217,7 @@ final class PatrolDetailController
             'area' => $area,
             'patrol' => $patrol,
             'observation' => $observation,
+            'fileAsIncidentUrl' => $this->fileAsIncidentUrl($area, $patrol, $observation, $row),
             'types' => $this->types,
             'categories' => $this->categories,
             'n' => $row['n'],
@@ -253,6 +254,44 @@ final class PatrolDetailController
                 ),
             ],
         ]));
+    }
+
+    /**
+     * The File-as-incident seam, from this side: the incidents module (when the
+     * host installs one) exposes `incident_new` accepting a prefill query
+     * string (record/label/back/source/at/lat/lng/note — its IncidentPrefill).
+     * The ROUTE NAME + QUERY KEYS are the whole contract; neither bundle names
+     * the other's classes, and without the module the button simply isn't
+     * rendered — the same graceful absence the design draws.
+     *
+     * @param array{n: int, observation: Observation, position: string|null, dms: string|null} $row
+     */
+    private function fileAsIncidentUrl(AreaOfInterest $area, Patrol $patrol, Observation $observation, array $row): ?string
+    {
+        $params = [
+            'uuid' => (string) $area->getUuid(),
+            'record' => (string) $observation->getUuid(),
+            'label' => \sprintf('OBS-%02d · %s', $row['n'], $this->categoryLabel($observation->getCategory())),
+            'back' => $this->observationUrl($area, $patrol, $observation),
+            'source' => 'patrol',
+        ];
+        if (null !== $observation->getLoggedAt()) {
+            $params['at'] = $observation->getLoggedAt()->format(\DateTimeInterface::ATOM);
+        }
+        if (null !== $row['position']) {
+            [$lat, $lng] = $this->geo->coordinates($row['position']);
+            $params['lat'] = (string) $lat;
+            $params['lng'] = (string) $lng;
+        }
+        if (null !== $observation->getNote() && '' !== $observation->getNote()) {
+            $params['note'] = $observation->getNote();
+        }
+
+        try {
+            return $this->urls->generate('incident_new', $params);
+        } catch (\Symfony\Component\Routing\Exception\RouteNotFoundException) {
+            return null;
+        }
     }
 
     /**

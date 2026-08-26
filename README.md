@@ -98,6 +98,28 @@ photographs the preview they never had with:
 bin/console patrol:photos:backfill-thumbs   # idempotent; --dry-run to look first
 ```
 
+### Patrol's photographs on the Files hub
+
+Where a host also mounts storage-module's cross-module hub at `/files`, patrol's
+photographs appear on it: `PatrolFileSource` is tagged `storage.file_source` and
+hands over one entry per `ObservationPhoto`, carrying the observation it belongs
+to (`OBS-0214`, linked to its own page), the patrol's area, the handset's
+`takenAt` and the sync time. Nothing is registered on the host's side.
+
+It is the SECOND half of the same seam. `PatrolEvidenceVoter` answers *may you
+read these bytes*; the source answers *what may be done to this file*, and both
+read `PhotoEvidenceKey` so the two can never disagree about which keys are
+patrol's.
+
+**Patrol's answer is `Locked`, for everyone.** A photograph is the evidence its
+observation rests on, and this module keeps no trail on which a removal could be
+recorded — so it does not offer removal at all, rather than promising a recorded
+removal nothing records. `FileRemovalInterface` is deliberately not implemented;
+it arrives with an observation trail, not before it.
+
+A patrol's GPX export is **not** on the hub: it is generated on demand from the
+track column, so there is no stored object and no key to show.
+
 ## Configuration
 
 ```yaml

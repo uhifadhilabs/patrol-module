@@ -62,4 +62,31 @@ final class ObservationPhotoRepository extends ServiceEntityRepository
     {
         return $this->findBy(['thumbKey' => null], ['id' => 'ASC']);
     }
+
+    /**
+     * Every photograph this module holds, each with the chain the Files hub
+     * prints on its tile: the observation it belongs to, that observation's
+     * patrol, and the patrol's area.
+     *
+     * The three joins are the whole point. The hub reads the owner and the area
+     * off EVERY file it draws, so a lazy association here would be one query per
+     * photograph — a deployment with four thousand of them would take four
+     * thousand round trips to render one page.
+     *
+     * @return list<ObservationPhoto>
+     */
+    public function findForFilesHub(): array
+    {
+        /** @var list<ObservationPhoto> $photos */
+        $photos = $this->createQueryBuilder('p')
+            ->addSelect('o', 'pt', 'a')
+            ->join('p.observation', 'o')
+            ->join('o.patrol', 'pt')
+            ->join('pt.area', 'a')
+            ->orderBy('p.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $photos;
+    }
 }

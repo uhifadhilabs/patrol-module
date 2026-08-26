@@ -359,4 +359,20 @@ class Observation
 
         return $this;
     }
+
+    /**
+     * Display reference ("OBS-0214") — presentation only, derived from the id,
+     * exactly as {@see Patrol::getRef()} is.
+     *
+     * The observation's own screen numbers it WITHIN its patrol ("3 of 7"),
+     * which is the right thing there and useless anywhere else: two patrols both
+     * have a third observation. Off its patrol's page — on the Files hub, beside
+     * an incident's evidence and a permit's document — a photograph has to name
+     * one record out of every record the organisation holds, and this is that
+     * name.
+     */
+    public function getRef(): string
+    {
+        return \sprintf('OBS-%04d', $this->id ?? 0);
+    }
 }

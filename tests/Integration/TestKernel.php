@@ -151,6 +151,12 @@ final class TestKernel extends Kernel
         foreach ([
             \UhifadhiLabs\Patrol\Service\TrackIngestService::class => 'patrol.track_ingest',
             \UhifadhiLabs\Patrol\Service\GpxParser::class => 'patrol.gpx_parser',
+            // The two halves of the storage seam, and the registry the hub reads
+            // through — so a test can prove the tag was applied AND that the two
+            // halves still claim the same keys.
+            \UhifadhiLabs\Patrol\Storage\PatrolFileSource::class => 'patrol.file_source',
+            \UhifadhiLabs\Patrol\Security\PatrolEvidenceVoter::class => 'patrol.evidence_voter',
+            \UhifadhiLabs\Storage\Registry\FileRegistry::class => 'storage.file_registry',
         ] as $class => $serviceId) {
             $container->services()->alias('test_public.'.$class, $serviceId)->public();
         }
