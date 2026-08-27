@@ -151,12 +151,19 @@ final class ObservationSyncService
     private function positionSource(array $row): PositionSourceEnum
     {
         $raw = Payload::string($row, 'positionSource');
+        $positioned = \is_array($row['position'] ?? null);
 
         if (null === $raw) {
-            return PositionSourceEnum::Gps;
+            return $positioned ? PositionSourceEnum::Gps : PositionSourceEnum::None;
         }
 
-        return PositionSourceEnum::tryFrom($raw)
+        $source = PositionSourceEnum::tryFrom($raw)
             ?? throw PatrolApiException::invalidPayload(\sprintf('"%s" is not a position source.', $raw), ['field' => 'positionSource', 'value' => $raw]);
+
+        if (PositionSourceEnum::None === $source && $positioned) {
+            throw PatrolApiException::invalidPayload('An observation with coordinates cannot claim no position source.', ['field' => 'positionSource', 'value' => $raw]);
+        }
+
+        return $source;
     }
 }

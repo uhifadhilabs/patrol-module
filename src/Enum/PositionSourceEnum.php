@@ -31,11 +31,15 @@ enum PositionSourceEnum: string
     /** A point the operator tapped on the map. Not measured — asserted. */
     case OperatorMarked = 'operator_marked';
 
+    /** No usable fix when the record was made; the observation is unpositioned. */
+    case None = 'none';
+
     public function label(): string
     {
         return match ($this) {
             self::Gps => 'GPS fix',
             self::OperatorMarked => 'Operator-marked',
+            self::None => 'No position',
         };
     }
 

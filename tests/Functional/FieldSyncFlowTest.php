@@ -15,8 +15,10 @@ namespace UhifadhiLabs\Patrol\Tests\Functional;
 
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Uid\Uuid;
+use UhifadhiLabs\Patrol\Entity\Observation;
 use UhifadhiLabs\Patrol\Entity\Patrol;
 use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
+use UhifadhiLabs\Patrol\Enum\PositionSourceEnum;
 
 /**
  * The whole upload the field app performs, end to end, in the order it performs
@@ -90,6 +92,25 @@ final class FieldSyncFlowTest extends FieldSyncTestCase
         self::assertSame([$observationUuid], $observations['acceptedUuids']);
         self::assertFalse($observations['duplicate']);
 
+        // ── an unpositioned observation: the phone had no usable fix ─────────
+        $unpositionedUuid = 'b23f0e77-0000-4000-8000-000000000002';
+        $this->postJson("/api/patrols/{$patrolUuid}/observations", [
+            'observations' => [[
+                'clientUuid' => $unpositionedUuid,
+                'category' => 'maintenance',
+                'note' => 'Logged under canopy; no fix.',
+                'position' => null,
+                'positionSource' => 'none',
+                'loggedAt' => '2026-08-23T08:40:00Z',
+                'launchPointUuid' => null,
+                'flightUuid' => null,
+                'photoCount' => 0,
+            ]],
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame([$unpositionedUuid], $this->payload()['acceptedUuids']);
+
         // ── the one photo that observation promised ──────────────────────────
         $photoUuid = 'e77c0000-0000-4000-8000-000000000001';
         $this->uploadPhoto($observationUuid, $photoUuid);
@@ -113,7 +134,11 @@ final class FieldSyncFlowTest extends FieldSyncTestCase
         self::assertSame(PatrolStatusEnum::Complete, $patrol->getStatus());
         self::assertSame(3, $patrol->getPointCount(), 'Both batches contributed their fixes.');
         self::assertCount(2, $patrol->getTrackBatches());
-        self::assertCount(1, $patrol->getObservations());
+        self::assertCount(2, $patrol->getObservations());
+        $unpositioned = $patrol->getObservations()->last();
+        self::assertInstanceOf(Observation::class, $unpositioned);
+        self::assertNull($unpositioned->getPosition());
+        self::assertSame(PositionSourceEnum::None, $unpositioned->getPositionSource());
         self::assertNotNull($patrol->getTrack(), 'Three fixes make a route.');
         self::assertSame(['sl-0142', 'nk-0088'], $patrol->getTeamRangerIds());
         self::assertSame('Rita Recorder, Ben Bystander', $patrol->getTeam(), 'The ids resolved to real people.');
