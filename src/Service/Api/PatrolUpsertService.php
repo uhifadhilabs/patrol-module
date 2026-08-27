@@ -92,6 +92,22 @@ final class PatrolUpsertService
         $team = Payload::strings($data, 'team');
         $patrol->setTeamRangerIds($team)->setTeam($this->rangers->describe($team));
 
+        /*
+         * A patrol may ARRIVE discarded — the ranger threw it away before the
+         * handset ever had signal, which is the common case for a false start.
+         * It is stored exactly like any other, with no floor of any kind on its
+         * size or duration: a forty-second, three-point patrol is a real thing
+         * that really happened, and refusing it would leave the phone holding a
+         * record it can never hand over and can never safely delete.
+         *
+         * The reason is mandatory here (Payload::discardReason), so a patrol
+         * cannot enter the module discarded and mute.
+         */
+        $discardReason = Payload::discardReason($data, $clientUuid->toRfc4122());
+        if (null !== $discardReason) {
+            $patrol->discard($discardReason);
+        }
+
         $this->entityManager->persist($patrol);
 
         try {
@@ -115,6 +131,13 @@ final class PatrolUpsertService
      * changes nothing — but a patrol a person has since corrected in the web
      * module refuses the phone outright, because the phone's copy is stale and
      * applying it would undo the correction (§10).
+     *
+     * "Nothing is written" includes a `status` the re-send happens to carry. A
+     * second POST is a RETRY, and a retry that could change a stored patrol
+     * would make the endpoint's answer depend on whether the first response was
+     * lost. Discarding a patrol the server already holds has its own two doors,
+     * both of which say when it happened: a `discarded` event (§9A) or
+     * `complete` with the discard on it (§9).
      *
      * @throws PatrolApiException
      */

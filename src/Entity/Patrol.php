@@ -21,6 +21,7 @@ use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
 use UhifadhiLabs\Patrol\Entity\Trait\TimestampableTrait;
+use UhifadhiLabs\Patrol\Enum\PatrolEventKindEnum;
 use UhifadhiLabs\Patrol\Enum\PatrolSourceEnum;
 use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
 use UhifadhiLabs\Patrol\Repository\PatrolRepository;
@@ -84,6 +85,17 @@ class Patrol
     #[ORM\Column(length: 40)]
     private string $type;
 
+    /**
+     * What the RANGER calls this patrol ("River loop"), where they named it.
+     *
+     * Null for every patrol nobody named, which is most of them: the screens
+     * then fall back to the station or the type, exactly as they always did. It
+     * is set by a `renamed` event and never invented here — a name the module
+     * made up would read on the page as something a person chose.
+     */
+    #[ORM\Column(length: 120, nullable: true)]
+    private ?string $name = null;
+
     #[ORM\Column(length: 80, nullable: true)]
     private ?string $station = null;
 
@@ -129,6 +141,38 @@ class Patrol
      */
     #[ORM\Column(enumType: PatrolStatusEnum::class, options: ['default' => 'complete'])]
     private PatrolStatusEnum $status = PatrolStatusEnum::Complete;
+
+    /**
+     * Why the ranger threw this patrol away, in their own words.
+     *
+     * REQUIRED whenever the status is Discarded and enforced at the door
+     * ({@see \UhifadhiLabs\Patrol\Api\PatrolApiException::discardReasonRequired()}),
+     * because a discard with no reason is indistinguishable from a bug: the one
+     * question anybody reading a discarded patrol asks is why, and the app
+     * already makes the ranger answer it. Free text, and deliberately not a
+     * vocabulary — the app offers chips plus an "Other" textarea, and the chip
+     * words are ITS product decision to change without a server release.
+     */
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $discardReason = null;
+
+    /**
+     * When somebody put this patrol on hold, stopping the retention clock.
+     *
+     * A discarded patrol is deleted for real once its window elapses
+     * (`patrol:purge-discarded`), and some discarded patrols are the ones you
+     * least want gone — the ones under review. This is the brake: set from the
+     * detail screen, it makes the purge skip the patrol indefinitely, and
+     * clearing it starts the same clock again from the original discard moment
+     * rather than from now.
+     */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $heldAt = null;
+
+    /** Who applied the hold — the page names them, so a hold has an owner. */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?User $heldBy = null;
 
     /** The aircraft's identifier, drone patrols only (API-CONTRACT.md §4). */
     #[ORM\Column(length: 80, nullable: true)]
@@ -204,6 +248,18 @@ class Patrol
     #[ORM\OrderBy(['sequence' => 'ASC', 'id' => 'ASC'])]
     private Collection $flights;
 
+    /**
+     * Everything that has happened to this patrol, oldest first — the history
+     * card's contents. Ordered by the moment the RANGER acted, not by arrival:
+     * two events queued on a handset for a day must still read in the order
+     * they were done.
+     *
+     * @var Collection<int, PatrolEvent>
+     */
+    #[ORM\OneToMany(targetEntity: PatrolEvent::class, mappedBy: 'patrol', cascade: ['persist'], orphanRemoval: true)]
+    #[ORM\OrderBy(['at' => 'ASC', 'id' => 'ASC'])]
+    private Collection $events;
+
     public function __construct(AreaOfInterest $area, string $type)
     {
         $this->uuid = Uuid::v7();
@@ -214,6 +270,7 @@ class Patrol
         $this->trackPoints = new ArrayCollection();
         $this->launchPoints = new ArrayCollection();
         $this->flights = new ArrayCollection();
+        $this->events = new ArrayCollection();
         // Values exist pre-flush; PrePersist keeps them if already set.
         $this->initTimestamps();
     }
@@ -243,6 +300,29 @@ class Patrol
         $this->type = $type;
 
         return $this;
+    }
+
+    public function getName(): ?string
+    {
+        return $this->name;
+    }
+
+    public function setName(?string $name): static
+    {
+        $this->name = $name;
+
+        return $this;
+    }
+
+    /**
+     * What to call this patrol on a screen: the ranger's name where they gave
+     * one, else the station it set out from, else nothing — and the caller
+     * falls back to the type label, as every screen already did before patrols
+     * could be named.
+     */
+    public function getDisplayName(): ?string
+    {
+        return $this->name ?? $this->station;
     }
 
     public function getStation(): ?string
@@ -440,6 +520,105 @@ class Patrol
         return $this;
     }
 
+    public function isDiscarded(): bool
+    {
+        return PatrolStatusEnum::Discarded === $this->status;
+    }
+
+    public function getDiscardReason(): ?string
+    {
+        return $this->discardReason;
+    }
+
+    /**
+     * Throw this patrol away, with the reason as the only way to do it.
+     *
+     * One method rather than two setters, because the status and the reason are
+     * a single fact: a Discarded row with a null reason is the state the whole
+     * feature exists to make impossible, and leaving two independent setters
+     * lying around is an invitation to produce one.
+     */
+    public function discard(string $reason): static
+    {
+        $this->status = PatrolStatusEnum::Discarded;
+        $this->discardReason = $reason;
+
+        return $this;
+    }
+
+    public function getHeldAt(): ?\DateTimeImmutable
+    {
+        return $this->heldAt;
+    }
+
+    public function getHeldBy(): ?User
+    {
+        return $this->heldBy;
+    }
+
+    /** Whether the retention clock is stopped for this patrol. */
+    public function isHeld(): bool
+    {
+        return null !== $this->heldAt;
+    }
+
+    public function hold(?User $by, ?\DateTimeImmutable $at = null): static
+    {
+        $this->heldAt = $at ?? new \DateTimeImmutable();
+        $this->heldBy = $by;
+
+        return $this;
+    }
+
+    /**
+     * Release the hold. The clock resumes from the ORIGINAL discard moment, not
+     * from now — a patrol held for a fortnight and cleared is fourteen days
+     * closer to its window, not fourteen days further from it. That falls out of
+     * {@see self::discardedAt()} reading the discard rather than the release,
+     * and it is the behaviour a reviewer expects: a hold pauses the deletion,
+     * it does not grant the patrol a fresh lifetime.
+     */
+    public function release(): static
+    {
+        $this->heldAt = null;
+        $this->heldBy = null;
+
+        return $this;
+    }
+
+    /**
+     * When this patrol was thrown away — the instant the retention window is
+     * measured from.
+     *
+     * The `discarded` EVENT's `at` is the answer wherever there is one: it is
+     * the moment the ranger acted, which is what "90 days after it was
+     * discarded" means to a person. The LAST such event wins, because a patrol
+     * discarded, re-discarded with a better reason, and re-sent should age from
+     * the decision that stands.
+     *
+     * Without one — a patrol that arrived already discarded through §4/§9, where
+     * the contract carries a status but no moment — the fallbacks are `endedAt`
+     * and then `createdAt`. The second is not cosmetic: a live upload discarded
+     * before it ever ended has neither an event nor an end, and a patrol with no
+     * measurable age would never be purged at all. Its arrival here is the one
+     * moment that always exists.
+     */
+    public function discardedAt(): ?\DateTimeImmutable
+    {
+        if (!$this->isDiscarded()) {
+            return null;
+        }
+
+        $discarded = null;
+        foreach ($this->events as $event) {
+            if (PatrolEventKindEnum::Discarded === $event->getKind()) {
+                $discarded = $event->getAt();
+            }
+        }
+
+        return $discarded ?? $this->endedAt ?? $this->createdAt;
+    }
+
     public function getDroneId(): ?string
     {
         return $this->droneId;
@@ -565,6 +744,21 @@ class Patrol
     {
         if (!$this->flights->contains($flight)) {
             $this->flights->add($flight);
+        }
+
+        return $this;
+    }
+
+    /** @return Collection<int, PatrolEvent> */
+    public function getEvents(): Collection
+    {
+        return $this->events;
+    }
+
+    public function addEvent(PatrolEvent $event): static
+    {
+        if (!$this->events->contains($event)) {
+            $this->events->add($event);
         }
 
         return $this;

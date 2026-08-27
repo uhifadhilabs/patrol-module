@@ -39,7 +39,11 @@
                     {# The pill IS the link: clicking anywhere on it — chip or the
                        popover it opens — goes to that patrol's detail page, the
                        same destination the log's "Open →" leads to. #}
-                    <a class="patrol-daypill" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">
+                    {# A discarded patrol keeps its day. The grid is a record of
+                       what happened, not a figure about it — and a ranger
+                       looking for the patrol they discarded on the 12th should
+                       find it on the 12th. Drawn subdued and counted nowhere. #}
+                    <a class="patrol-daypill{{ patrol.discarded ? ' patrol-abandoned' }}" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">
                         <span class="chip patrol-tchip" style="--patrol-track: {{ ui.color(typeColor, patrol.type) }}">{{ patrol.ref }}</span>
                         {# The hover card. Server-rendered, not built in JS: every
                            value here is already known, and a popover made of real
@@ -51,6 +55,7 @@
                             <span class="patrol-pop-head">
                                 <span class="chip patrol-tchip" style="--patrol-track: {{ ui.color(typeColor, patrol.type) }}">{{ types[patrol.type].label|default(patrol.type)|lower }}</span>
                                 <span class="mono patrol-pop-ref">{{ patrol.ref }}</span>
+                                {% if patrol.discarded %}<span class="chip {{ patrol.held ? 'warn' : 'patrol-discard-pill' }}">{{ patrol.held ? 'held' : 'discarded' }}</span>{% endif %}
                             </span>
                             {# Who was out: the design's own order — the team lead
                                where one is recorded, else the named team, else the

@@ -15,6 +15,7 @@ namespace UhifadhiLabs\Patrol\Service\Api;
 
 use Doctrine\ORM\EntityManagerInterface;
 use UhifadhiLabs\Patrol\Api\PatrolApiException;
+use UhifadhiLabs\Patrol\Api\Payload;
 use UhifadhiLabs\Patrol\Entity\Patrol;
 use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
 
@@ -41,19 +42,30 @@ final class PatrolCompletionService
     /**
      * Mark the patrol complete, or say exactly what is still missing.
      *
-     * @return array{0: Patrol, 1: bool} [patrol, wasAlreadyComplete]
+     * @param array<string, mixed> $data the decoded request body — empty for an
+     *                                   ordinary complete, or carrying `status:
+     *                                   "discarded"` + `discardReason`
+     *
+     * @return array{0: Patrol, 1: bool} [patrol, wasAlreadySettled]
      *
      * @throws PatrolApiException
      */
-    public function complete(Patrol $patrol): array
+    public function complete(Patrol $patrol, array $data = []): array
     {
         if (!$patrol->acceptsFieldUploads()) {
             throw PatrolApiException::patrolImmutable((string) $patrol->getClientUuid()?->toRfc4122());
         }
 
-        // Already complete: a re-sent `complete` is success and changes nothing,
-        // the same as every other repeated part (§1).
-        if (PatrolStatusEnum::Complete === $patrol->getStatus()) {
+        $discardReason = Payload::discardReason($data, (string) $patrol->getClientUuid()?->toRfc4122());
+        if (null !== $discardReason) {
+            return $this->discard($patrol, $discardReason);
+        }
+
+        // Already settled: a re-sent `complete` is success and changes nothing,
+        // the same as every other repeated part (§1). A patrol the ranger has
+        // since discarded stays discarded — the discard is the later decision,
+        // and a queued `complete` catching up with it must not undo it.
+        if (PatrolStatusEnum::Complete === $patrol->getStatus() || $patrol->isDiscarded()) {
             return [$patrol, true];
         }
 
@@ -63,6 +75,36 @@ final class PatrolCompletionService
         }
 
         $patrol->setStatus(PatrolStatusEnum::Complete);
+        $this->entityManager->flush();
+
+        return [$patrol, false];
+    }
+
+    /**
+     * Close the patrol by throwing it away instead.
+     *
+     * NOTHING IS VERIFIED on this path, and that is the whole point of writing
+     * it separately. The completeness check below exists to stop a patrol being
+     * PUBLISHED with its evidence still on a handset — but a discarded patrol is
+     * published nowhere: it is counted in no KPI, drawn on no map, and headed
+     * for deletion. Demanding its missing photographs first would strand it as
+     * `recording` forever — never presentable, never purgeable — which is the
+     * one state a record must not be able to reach.
+     *
+     * Nor is there any floor on what a discarded patrol may contain. Forty
+     * seconds and three fixes is accepted exactly as a full day is: the ranger
+     * has said this one does not count, and the module's job is to record that,
+     * not to second-guess how small a mistake is allowed to be.
+     *
+     * @return array{0: Patrol, 1: bool} [patrol, wasAlreadyDiscarded]
+     */
+    private function discard(Patrol $patrol, string $reason): array
+    {
+        if ($patrol->isDiscarded()) {
+            return [$patrol, true];
+        }
+
+        $patrol->discard($reason);
         $this->entityManager->flush();
 
         return [$patrol, false];

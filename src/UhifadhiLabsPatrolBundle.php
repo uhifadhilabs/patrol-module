@@ -19,6 +19,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 use UhifadhiLabs\Patrol\Api\PatrolApiContext;
+use UhifadhiLabs\Patrol\Api\State\AppendEventsProcessor;
 use UhifadhiLabs\Patrol\Api\State\AppendFlightsProcessor;
 use UhifadhiLabs\Patrol\Api\State\AppendObservationsProcessor;
 use UhifadhiLabs\Patrol\Api\State\AppendTrackProcessor;
@@ -26,7 +27,9 @@ use UhifadhiLabs\Patrol\Api\State\CompletePatrolProcessor;
 use UhifadhiLabs\Patrol\Api\State\CreatePatrolProcessor;
 use UhifadhiLabs\Patrol\Api\State\UploadPhotoProcessor;
 use UhifadhiLabs\Patrol\Command\BackfillPhotoThumbsCommand;
+use UhifadhiLabs\Patrol\Command\PurgeDiscardedCommand;
 use UhifadhiLabs\Patrol\Command\SeedDemoCommand;
+use UhifadhiLabs\Patrol\Controller\PatrolHoldController;
 use UhifadhiLabs\Patrol\Controller\PatrolRecordController;
 use UhifadhiLabs\Patrol\Controller\PatrolWidgetsController;
 use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
@@ -36,12 +39,14 @@ use UhifadhiLabs\Patrol\Repository\FlightRepository;
 use UhifadhiLabs\Patrol\Repository\LaunchPointRepository;
 use UhifadhiLabs\Patrol\Repository\ObservationPhotoRepository;
 use UhifadhiLabs\Patrol\Repository\ObservationRepository;
+use UhifadhiLabs\Patrol\Repository\PatrolEventRepository;
 use UhifadhiLabs\Patrol\Repository\PatrolRepository;
 use UhifadhiLabs\Patrol\Repository\TrackBatchRepository;
 use UhifadhiLabs\Patrol\Security\PatrolEvidenceVoter;
 use UhifadhiLabs\Patrol\Service\Api\FlightSyncService;
 use UhifadhiLabs\Patrol\Service\Api\ObservationSyncService;
 use UhifadhiLabs\Patrol\Service\Api\PatrolCompletionService;
+use UhifadhiLabs\Patrol\Service\Api\PatrolEventService;
 use UhifadhiLabs\Patrol\Service\Api\PatrolUpsertService;
 use UhifadhiLabs\Patrol\Service\Api\PhotoSyncService;
 use UhifadhiLabs\Patrol\Service\Api\RangerResolver;
@@ -139,6 +144,15 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
         $builder->setParameter('patrol.observation_categories', \is_array($categories) ? $categories : []);
         $gap = $config['gap_threshold_minutes'] ?? 5.0;
         $builder->setParameter('patrol.gap_threshold_minutes', \is_float($gap) || \is_int($gap) ? (float) $gap : 5.0);
+        // How long a discarded patrol survives. Read by the purge command and by
+        // the detail screen, which states the same window to the person looking
+        // at the patrol — one number, so the page cannot promise a date the
+        // command will not honour.
+        $retention = $config['discard_retention_days'] ?? PatrolConfiguration::DEFAULT_DISCARD_RETENTION_DAYS;
+        $builder->setParameter(
+            'patrol.discard_retention_days',
+            \is_int($retention) ? $retention : PatrolConfiguration::DEFAULT_DISCARD_RETENTION_DAYS,
+        );
 
         /*
          * The two RECORDING screens (import GPX, log patrol) are registered ONLY
@@ -235,6 +249,7 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
                     // host running SecurityBundle already has.
                     service('security.csrf.token_manager'),
                     param('patrol.types'),
+                    param('patrol.discard_retention_days'),
                 ])
                 ->public();
             $services->alias(PatrolWidgetsController::class, 'patrol.controller.widgets')->public();
@@ -253,6 +268,21 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
                 ])
                 ->public();
             $services->alias(PatrolRecordController::class, 'patrol.controller.record')->public();
+
+            // Holding a discarded patrol for review — the detail screen's one
+            // write. Under this guard for the same reason the recording screens
+            // are: it changes a field record, so it must never exist where there
+            // is no authorization checker to enforce "patrols.record".
+            $services->set('patrol.controller.hold', PatrolHoldController::class)
+                ->args([
+                    service('doctrine.orm.entity_manager'),
+                    service('router'),
+                    service('security.authorization_checker'),
+                    service('security.token_storage'),
+                    service('security.csrf.token_manager'),
+                ])
+                ->public();
+            $services->alias(PatrolHoldController::class, 'patrol.controller.hold')->public();
         }
 
         /*
@@ -339,8 +369,15 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
             $services->set('patrol.api.completion', PatrolCompletionService::class)
                 ->args([service('doctrine.orm.entity_manager')]);
 
+            $services->set('patrol.api.events', PatrolEventService::class)
+                ->args([
+                    service('doctrine.orm.entity_manager'),
+                    service(PatrolEventRepository::class),
+                ]);
+
             foreach ([
                 CreatePatrolProcessor::class => 'patrol.api.patrol_upsert',
+                AppendEventsProcessor::class => 'patrol.api.events',
                 AppendTrackProcessor::class => 'patrol.api.track_batch',
                 AppendObservationsProcessor::class => 'patrol.api.observation_sync',
                 AppendFlightsProcessor::class => 'patrol.api.flight_sync',
@@ -352,6 +389,22 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
                     ->tag('api_platform.state_processor');
             }
         }
+
+        /*
+         * RETENTION. Registered unconditionally, unlike the two dev commands
+         * below: deleting discarded patrols past their window is an operation a
+         * PRODUCTION console must have, because production is the only place
+         * there is anything to purge. It writes nothing unless run, and
+         * `--dry-run` shows the sweep before it is trusted.
+         */
+        $services->set('patrol.command.purge_discarded', PurgeDiscardedCommand::class)
+            ->args([
+                service('doctrine.orm.entity_manager'),
+                service(PatrolRepository::class),
+                service('storage.evidence_storage'),
+                param('patrol.discard_retention_days'),
+            ])
+            ->tag('console.command');
 
         // Dev tooling: the demo seeder exists only where patrol.dev_tools is on
         // (the recipe enables it via when@dev/when@test), so production never

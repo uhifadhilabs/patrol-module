@@ -15,6 +15,7 @@ namespace UhifadhiLabs\Patrol\ApiResource;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Post;
+use UhifadhiLabs\Patrol\Api\State\AppendEventsProcessor;
 use UhifadhiLabs\Patrol\Api\State\AppendFlightsProcessor;
 use UhifadhiLabs\Patrol\Api\State\AppendObservationsProcessor;
 use UhifadhiLabs\Patrol\Api\State\AppendTrackProcessor;
@@ -22,7 +23,7 @@ use UhifadhiLabs\Patrol\Api\State\CompletePatrolProcessor;
 use UhifadhiLabs\Patrol\Api\State\CreatePatrolProcessor;
 
 /**
- * The field app's patrol endpoints — API-CONTRACT.md §4, §5, §6, §7, §9.
+ * The field app's patrol endpoints — API-CONTRACT.md §4, §5, §6, §7, §9, §9A.
  *
  * ## The module seam
  *
@@ -92,9 +93,18 @@ use UhifadhiLabs\Patrol\Api\State\CreatePatrolProcessor;
             processor: AppendFlightsProcessor::class,
         ),
         new Post(
+            uriTemplate: '/patrols/{uuid}/events',
+            status: 200,
+            description: 'Append what the ranger did to the patrol (renamed, type_changed, discarded). Idempotent per event clientUuid; each accepted event also updates the patrol row.',
+            deserialize: false,
+            validate: false,
+            read: false,
+            processor: AppendEventsProcessor::class,
+        ),
+        new Post(
             uriTemplate: '/patrols/{uuid}/complete',
             status: 200,
-            description: 'Verify every declared part arrived and publish the patrol. Answers 409 incomplete_patrol with the missing ids if not.',
+            description: 'Verify every declared part arrived and publish the patrol. Answers 409 incomplete_patrol with the missing ids if not. Send status "discarded" with a discardReason to close it as discarded instead — nothing is verified on that path.',
             deserialize: false,
             validate: false,
             read: false,

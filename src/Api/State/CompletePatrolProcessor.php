@@ -36,10 +36,12 @@ final class CompletePatrolProcessor extends PatrolSyncProcessor
 
         $patrol = $this->api->patrol($this->api->uriUuid($uriVariables));
 
-        [$completed, $alreadyComplete] = $this->completion->complete($patrol);
+        // The body is optional here — empty for an ordinary complete, and
+        // carrying the discard when the ranger threw the patrol away instead.
+        [$completed, $alreadySettled] = $this->completion->complete($patrol, $this->api->body());
 
         // 200 either way: a repeated complete is success, and `duplicate`
         // carries the difference.
-        return ContractResponse::completed($completed, $alreadyComplete);
+        return ContractResponse::completed($completed, $alreadySettled);
     }
 }

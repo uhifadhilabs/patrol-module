@@ -28,6 +28,7 @@ use Symfony\Component\Config\Definition\Builder\NodeDefinition;
  *     observation_categories:           # default: wildlife, sign, infrastructure
  *       wildlife: { label: Wildlife sighting }
  *       sign:     { label: Sign / evidence }
+ *     discard_retention_days: 90        # how long a discarded patrol survives
  *
  * The words are host config, never code: a deployment names its own patrol
  * types and observation categories (the taxonomy pattern). Static so the tree
@@ -37,6 +38,14 @@ final class PatrolConfiguration
 {
     /** @var array<string, string> */
     public const array DEFAULT_TYPES = ['foot' => 'Foot', 'vehicle' => 'Vehicle', 'drone' => 'Drone'];
+
+    /**
+     * Ninety days — long enough that a discard made in error can still be found
+     * and held for review after somebody notices in the next reporting cycle,
+     * short enough that a deployment is not storing a year of throwaway field
+     * photographs. A deployment with a different retention policy sets its own.
+     */
+    public const int DEFAULT_DISCARD_RETENTION_DAYS = 90;
 
     /** @var array<string, string> */
     public const array DEFAULT_OBSERVATION_CATEGORIES = [
@@ -91,6 +100,11 @@ final class PatrolConfiguration
                  * what it accepts. They are configured once, under `storage:`
                  * (uhifadhilabs/storage-module).
                  */
+                ->integerNode('discard_retention_days')
+                    ->info('How long a DISCARDED patrol is kept before patrol:purge-discarded deletes it and its photographs. Measured from the discard, and stopped entirely while the patrol is held for review.')
+                    ->defaultValue(self::DEFAULT_DISCARD_RETENTION_DAYS)
+                    ->min(0)
+                ->end()
                 ->floatNode('gap_threshold_minutes')
                     ->info('A pause between consecutive GPX points longer than this counts as a GPS gap — flagged on import, stored with the track, never smoothed.')
                     ->defaultValue(5.0)

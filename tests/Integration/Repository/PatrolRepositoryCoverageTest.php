@@ -173,4 +173,40 @@ final class PatrolRepositoryCoverageTest extends IntegrationTestCase
 
         self::assertNull($this->coverage($area));
     }
+
+    /**
+     * A DISCARDED patrol's track is not coverage. The two patrols here draw the
+     * same line across the same square, so the only difference between "a third
+     * of the area" and "nothing measured" is the discard itself.
+     */
+    public function testADiscardedTracksGroundIsNotCounted(): void
+    {
+        $area = $this->makeArea();
+        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}')
+            ->discard('Started by mistake');
+        $this->em->flush();
+
+        // Null, not 0.0: with the discard removed there is no track in the
+        // window at all, and unmeasured is not the same fact as zero.
+        self::assertNull($this->coverage($area));
+    }
+
+    /** And it subtracts only itself — a real patrol beside it still measures. */
+    public function testADiscardedTrackDoesNotSuppressARealOne(): void
+    {
+        $area = $this->makeArea();
+        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}');
+        $this->makePatrol($area, '2026-03-11T06:00:00Z', '{"type":"LineString","coordinates":[[35.05,-3.0],[35.05,-2.9]]}')
+            ->discard('Testing');
+        $this->em->flush();
+
+        $withDiscardExcluded = $this->coverage($area);
+        self::assertNotNull($withDiscardExcluded);
+
+        // The surviving track alone sweeps roughly a third of the square. Were
+        // the discarded perpendicular track counted, the union would be a cross
+        // and the share markedly larger.
+        self::assertGreaterThan(0.25, $withDiscardExcluded);
+        self::assertLessThan(0.50, $withDiscardExcluded);
+    }
 }

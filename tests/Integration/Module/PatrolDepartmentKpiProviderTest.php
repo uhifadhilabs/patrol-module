@@ -69,6 +69,51 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         self::assertSame(1.0, $protection['observations']);
     }
 
+    /**
+     * A DISCARDED patrol belongs to no department's figures — and neither do the
+     * observations logged on it.
+     *
+     * The observations are the part worth pinning: they are otherwise counted
+     * independently of the patrol (an observation carries its own recorder), and
+     * crediting them while dropping the patrol's kilometres would produce a
+     * department that observed things on no patrols.
+     */
+    public function testADiscardedPatrolAndItsObservationsCountForNobody(): void
+    {
+        $world = $this->world();
+
+        $thrownAway = $this->patrol($world['area'], $world['ranger'], 500.0)->discard('Started by mistake');
+        $this->em->persist(new Observation($thrownAway, 'sighting')->setRecordedBy($world['analyst']));
+        $this->em->flush();
+
+        $ecology = self::figures($this->provider()->kpisFor($world['ecology'], self::now()));
+        $protection = self::figures($this->provider()->kpisFor($world['protection'], self::now()));
+
+        // Unchanged from the baseline the other tests assert.
+        self::assertSame(3.0, $protection['patrols'], 'The discarded patrol is not a fourth.');
+        self::assertSame(90.0, $protection['distance'], 'Nor are its 500 km.');
+        self::assertSame(2.0, $ecology['observations'], 'Nor is the observation logged on it.');
+    }
+
+    /** Coverage is sliced the same way, in PostGIS: a discarded track is not the department's ground. */
+    public function testADiscardedTrackIsNotADepartmentsCoverage(): void
+    {
+        $world = $this->world();
+
+        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[35.4,-3.2],[35.6,-3.2]]}');
+        $this->em->flush();
+        $withRealTrackOnly = $this->departmentCoverage($world['protection']);
+        self::assertNotNull($withRealTrackOnly);
+
+        // A second, perpendicular track by the same department — discarded. If it
+        // counted, the union would be a cross and the share would grow.
+        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[35.5,-3.3],[35.5,-3.1]]}')
+            ->discard('Testing');
+        $this->em->flush();
+
+        self::assertEqualsWithDelta($withRealTrackOnly, $this->departmentCoverage($world['protection']), 0.0001);
+    }
+
     public function testAPatrolWithNoRecordableDepartmentBelongsToNobodysFigures(): void
     {
         $world = $this->world();
@@ -260,6 +305,20 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         $this->em->flush();
 
         return ['area' => $area, 'ecology' => $ecology, 'protection' => $protection, 'analyst' => $analyst, 'ranger' => $ranger];
+    }
+
+    /** One department's PL·03 over the test month, straight from the repository. */
+    private function departmentCoverage(Department $department): ?float
+    {
+        $repository = $this->em->getRepository(Patrol::class);
+        \assert($repository instanceof PatrolRepository);
+
+        return $repository->coverageFractionForDepartment(
+            null,
+            $department,
+            PatrolDashboardService::COVERAGE_BUFFER_M,
+            ...PatrolDashboardService::monthRange(self::now()),
+        );
     }
 
     /** A patrol that actually recorded a route — the only kind coverage can be measured from. */

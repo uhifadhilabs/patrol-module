@@ -26,6 +26,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
+use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
 use UhifadhiLabs\Patrol\Exception\InvalidWidgetPreferenceException;
 use UhifadhiLabs\Patrol\Repository\PatrolRepository;
 use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
@@ -57,7 +58,8 @@ final class PatrolWidgetsController
     public const string CSRF_HEADER = 'X-CSRF-Token';
 
     /**
-     * @param array<string, array{label: string}> $types the deployment's patrol.types vocabulary
+     * @param array<string, array{label: string}> $types         the deployment's patrol.types vocabulary
+     * @param int                                 $retentionDays patrol.discard_retention_days — the previewed log widget is the REAL one, and states removal dates from the same number
      */
     public function __construct(
         private readonly Environment $twig,
@@ -67,6 +69,7 @@ final class PatrolWidgetsController
         private readonly TokenStorageInterface $tokenStorage,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly array $types,
+        private readonly int $retentionDays = PatrolConfiguration::DEFAULT_DISCARD_RETENTION_DAYS,
     ) {
     }
 
@@ -106,6 +109,7 @@ final class PatrolWidgetsController
             // csrf_token(): that function only exists where the host wired the
             // twig-bridge CSRF extension, and this screen must not depend on it.
             'csrfToken' => $this->csrfTokenManager->getToken(self::csrfTokenId($area))->getValue(),
+            'retentionDays' => $this->retentionDays,
             'widgets' => $this->widgets->resolve($area->getUuid(), $userId),
             'dashboard' => $dashboard,
             // The library previews the REAL map widget, so it carries the real

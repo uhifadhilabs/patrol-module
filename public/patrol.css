@@ -617,3 +617,86 @@ button.patrol-menu-item {
     min-width: 34px;
     text-align: center;
 }
+
+/* ---- discarded patrols (appended block — discard/retention work) ---------- */
+/* The settled discard design's web grammar, carried over as tokens so it flips
+   with the theme. Two states, and they are deliberately different colours:
+
+   · DISCARDED is a GHOST pill — dashed border, muted ink, no fill. The design
+     draws it that way because a discard is an absence, not an alarm: the patrol
+     is not wrong, it simply counts for nothing.
+   · HELD FOR REVIEW keeps the host's amber .chip.warn, which the design reserves
+     for the hold. Amber is the louder of the two on purpose — a hold is a person
+     asking for attention, a discard is a person withdrawing a claim.
+
+   The row itself gets the faintest possible amber wash and dimmed ink. "Quietly"
+   is the ruling: the row must be findable and legible, never struck through,
+   never hidden, and never shouting. */
+.patrol-discard-pill {
+    border-style: dashed;
+    color: rgb(var(--c-dim));
+    border-color: color-mix(in srgb, rgb(var(--c-fog)) 50%, transparent);
+}
+.tbl tr.patrol-abandoned > td,
+.patrol-feed-row.patrol-abandoned {
+    background: color-mix(in srgb, rgb(var(--c-warn)) 6%, transparent);
+}
+.tbl tr.patrol-abandoned > td,
+.patrol-feed-row.patrol-abandoned .patrol-who,
+.patrol-feed-row.patrol-abandoned .patrol-n {
+    color: rgb(var(--c-fog));
+}
+/* The calendar pill: dimmed rather than washed, because a day cell is small and
+   a second background inside it reads as a different KIND of day. */
+.patrol-daypill.patrol-abandoned .chip.patrol-tchip { opacity: .55; border-style: dashed; }
+
+/* The sub-line under a cell's own value — "not counted", "kept · viewable", the
+   reason and the removal date. Mono and dim, the same voice the feed's <em>
+   sub-lines already speak in, so it reads as annotation rather than data. */
+.patrol-rowsub {
+    display: block;
+    font: 500 9px var(--font-mono);
+    font-style: normal;
+    letter-spacing: .04em;
+    color: rgb(var(--c-dim));
+    margin-top: 2px;
+    text-transform: lowercase;
+}
+
+/* ---- the discarded notice (patrol detail) -------------------------------- */
+/* One block above the record: what happened, why, what happens next, and the
+   brake. It is not a .c card — it is a notice ABOUT the record rather than a
+   plate of it, and giving it card chrome would make it compete with the track. */
+.patrol-discard {
+    border: 1px dashed color-mix(in srgb, rgb(var(--c-warn)) 45%, transparent);
+    background: color-mix(in srgb, rgb(var(--c-warn)) 6%, transparent);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 0 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+}
+.patrol-discard-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+/* The ranger's own words, at reading size — this is the one sentence the whole
+   90-day window exists to preserve, and it is not annotation. */
+.patrol-discard-why { margin: 0; font-size: 13px; line-height: 1.5; color: rgb(var(--c-tx)); }
+.patrol-discard-fate { margin: 0; font-size: 11.5px; line-height: 1.55; color: rgb(var(--c-fog)); max-width: 68ch; }
+.patrol-discard-act { margin: 2px 0 0; }
+.patrol-discard-act button { cursor: pointer; font: inherit; }
+
+/* ---- history rows (PL·03) ----------------------------------------------- */
+/* The design's D4 grammar: a bold title with "actor · detail" beneath it. The
+   host's .rln supplies the row and its timestamp column; only the two-line body
+   is new here. */
+.patrol-hist-r b { display: block; font-size: 12px; font-weight: 600; color: rgb(var(--c-tx)); }
+.patrol-hist-r em {
+    display: block;
+    font: 500 9px var(--font-mono);
+    font-style: normal;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: rgb(var(--c-dim));
+    margin-top: 2px;
+}

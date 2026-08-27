@@ -19,6 +19,25 @@ use UhifadhiLabs\Patrol\Model\PatrolDashboard;
 /**
  * Computes the dashboard's data contract from plain entities. Pure — "now" is
  * always injected (never the clock), so every number is unit-tested.
+ *
+ * ## Discarded patrols
+ *
+ * A discarded patrol reaches this service and leaves it in exactly one place:
+ * `PatrolDashboard::$patrols`, the list the log table and the feed render. It is
+ * absent from EVERY figure — the month count, the month distance, the month and
+ * all-time type counts, the station ranking, the five-week series, the total,
+ * the last-patrol line — and from the coverage map's payload, because a track
+ * drawn on the coverage map is a claim about ground covered.
+ *
+ * The split is deliberate, and the two halves say different things. A discard
+ * means "this effort did not happen as recorded", so counting it would report
+ * kilometres nobody walked. But a ranger who uploaded a patrol and then
+ * discarded it must still be able to FIND it — a record that vanishes from
+ * every screen is indistinguishable from one the sync lost. So it stays in the
+ * lists, subdued and pilled, and nowhere else.
+ *
+ * {@see \UhifadhiLabs\Patrol\Enum\PatrolStatusEnum::countsTowardsStatistics()}
+ * is the one predicate all of that goes through.
  */
 final class PatrolDashboardService
 {
@@ -116,7 +135,12 @@ final class PatrolDashboardService
         $stations = [];
         foreach ($dashboard->patrols as $patrol) {
             $track = $patrol->getTrack();
-            if (null === $track || '' === $track) {
+            // A DISCARDED patrol is not drawn here. This payload is what the
+            // coverage map (PL·05) and the tracks plate (PL·08) render, and a
+            // line on a coverage map is read as ground covered — which is
+            // exactly what a discard withdraws. It stays in the lists beside
+            // the map; it is simply not part of the picture of coverage.
+            if (null === $track || '' === $track || !$patrol->getStatus()->countsTowardsStatistics()) {
                 continue;
             }
             $station = $patrol->getStation() ?? '';
@@ -184,7 +208,16 @@ final class PatrolDashboardService
         $stationCounts = [];
         $lastPatrol = null;
 
-        foreach ($patrols as $patrol) {
+        // The counted set. `$patrols` itself is handed to the dashboard intact —
+        // the log and the feed still list every patrol — but nothing below this
+        // line may see a discarded one, so the filter happens ONCE here rather
+        // than as a condition repeated in six tallies where one could be missed.
+        $counted = array_values(array_filter(
+            $patrols,
+            static fn (Patrol $patrol): bool => $patrol->getStatus()->countsTowardsStatistics(),
+        ));
+
+        foreach ($counted as $patrol) {
             $typeCounts[$patrol->getType()] = ($typeCounts[$patrol->getType()] ?? 0) + 1;
 
             $started = $patrol->getStartedAt();
@@ -218,9 +251,9 @@ final class PatrolDashboardService
             monthTypeCounts: $monthTypeCounts,
             coverageFraction: $coverageFraction,
             typeCounts: $typeCounts,
-            totalCount: \count($patrols),
+            totalCount: \count($counted),
             lastPatrol: $lastPatrol,
-            weeklySeries: $this->weeklySeries($patrols, $types, $now),
+            weeklySeries: $this->weeklySeries($counted, $types, $now),
             stationSeries: $stationSeries,
             stations: array_column($stationSeries, 'station'),
             // The dashboard opens on the CURRENT month; ‹ › then fetches any
@@ -286,6 +319,11 @@ final class PatrolDashboardService
      * month is the month on screen and "now" is the clock, which decides only
      * which cell is ringed as today. A month that holds no patrols is a full
      * grid of empty days, never a missing widget.
+     *
+     * DISCARDED patrols DO get a pill, drawn subdued. The grid is a list of what
+     * happened on which day, not a figure about it — and a ranger looking for
+     * the patrol they discarded on the 12th should find it on the 12th. It is
+     * counted in nothing.
      *
      * @param list<Patrol> $patrols
      *

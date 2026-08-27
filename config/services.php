@@ -20,6 +20,7 @@ use UhifadhiLabs\Patrol\Repository\FlightRepository;
 use UhifadhiLabs\Patrol\Repository\LaunchPointRepository;
 use UhifadhiLabs\Patrol\Repository\ObservationPhotoRepository;
 use UhifadhiLabs\Patrol\Repository\ObservationRepository;
+use UhifadhiLabs\Patrol\Repository\PatrolEventRepository;
 use UhifadhiLabs\Patrol\Repository\PatrolRepository;
 use UhifadhiLabs\Patrol\Repository\TrackBatchRepository;
 use UhifadhiLabs\Patrol\Repository\TrackPointRepository;
@@ -115,6 +116,9 @@ return static function (ContainerConfigurator $container): void {
     $services->set(ObservationPhotoRepository::class)
         ->args([service('doctrine')])
         ->tag('doctrine.repository_service');
+    $services->set(PatrolEventRepository::class)
+        ->args([service('doctrine')])
+        ->tag('doctrine.repository_service');
 
     /*
      * Controllers: plain classes (they extend nothing), explicit collaborators,
@@ -138,6 +142,7 @@ return static function (ContainerConfigurator $container): void {
             // Null where the host runs no security: nobody is signed in, so the
             // dashboard renders the design's default layout for everyone.
             service('security.token_storage')->nullOnInvalid(),
+            param('patrol.discard_retention_days'),
         ])
         ->public();
 
@@ -169,6 +174,11 @@ return static function (ContainerConfigurator $container): void {
             service('patrol.gpx_writer'),
             param('patrol.types'),
             param('patrol.observation_categories'),
+            param('patrol.discard_retention_days'),
+            // Null where the host runs no security: the hold action then exists
+            // for nobody, and the route it would post to was never registered.
+            service('security.authorization_checker')->nullOnInvalid(),
+            service('security.csrf.token_manager')->nullOnInvalid(),
         ])
         ->public();
 

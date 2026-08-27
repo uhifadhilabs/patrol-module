@@ -49,6 +49,23 @@ final class PatrolConfigurationTest extends TestCase
             array_keys((array) $config['observation_categories']),
         );
         self::assertSame(5.0, $config['gap_threshold_minutes']);
+        // The retention window the field app's discard sheet promises rangers.
+        self::assertSame(90, $config['discard_retention_days']);
+    }
+
+    public function testADeploymentSetsItsOwnRetentionWindow(): void
+    {
+        self::assertSame(30, $this->process(['discard_retention_days' => 30])['discard_retention_days']);
+        // Zero is legal and means "purge on the next sweep" — a deployment that
+        // keeps nothing is a policy, not a mistake.
+        self::assertSame(0, $this->process(['discard_retention_days' => 0])['discard_retention_days']);
+    }
+
+    public function testANegativeRetentionWindowIsRefused(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+
+        $this->process(['discard_retention_days' => -1]);
     }
 
     public function testAHostNamesItsOwnVocabulary(): void

@@ -21,6 +21,7 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 use Twig\Environment;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
+use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
 use UhifadhiLabs\Patrol\Repository\PatrolRepository;
 use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
 use UhifadhiLabs\Patrol\Service\PatrolWidgetService;
@@ -48,6 +49,7 @@ final class PatrolController
      * @param bool                                $recordScreens whether the recording screens exist in this host (they need SecurityBundle)
      * @param bool                                $widgetScreens whether the widget library exists in this host (it needs SecurityBundle)
      * @param TokenStorageInterface|null          $tokenStorage  null in a host without security — the layout is then the design's default for everyone
+     * @param int                                 $retentionDays patrol.discard_retention_days — the register row states each discarded patrol's removal date from it
      */
     public function __construct(
         private readonly Environment $twig,
@@ -58,6 +60,7 @@ final class PatrolController
         private readonly bool $recordScreens = false,
         private readonly bool $widgetScreens = false,
         private readonly ?TokenStorageInterface $tokenStorage = null,
+        private readonly int $retentionDays = PatrolConfiguration::DEFAULT_DISCARD_RETENTION_DAYS,
     ) {
     }
 
@@ -90,6 +93,7 @@ final class PatrolController
             'typeColor' => PatrolDashboardService::typeColors($this->types),
             'now' => $now,
             'recordScreens' => $this->recordScreens,
+            'retentionDays' => $this->retentionDays,
             'widgetScreens' => $this->widgetScreens,
             // Which widgets this person keeps, how wide, in what order — the
             // design's own layout until they change it in the widget library.

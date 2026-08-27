@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace UhifadhiLabs\Patrol\Api;
 
 use Symfony\Component\Uid\Uuid;
+use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
 
 /**
  * Reads the field app's JSON without trusting a single field of it.
@@ -144,6 +145,42 @@ final class Payload
     {
         return self::timestamp($data, $key)
             ?? throw PatrolApiException::invalidPayload(\sprintf('"%s" is required.', $key), ['field' => $key]);
+    }
+
+    /**
+     * The discard a body is asking for, as the ranger's reason — or null where
+     * it is asking for no such thing.
+     *
+     * Both endpoints that can discard a patrol (§4's create and §9's complete)
+     * read the pair the same way, through here, because the pair is a single
+     * rule: `status: "discarded"` is only meaningful WITH a reason, and a server
+     * that enforced that in one endpoint and not the other would leave exactly
+     * one door open to a reasonless discard.
+     *
+     * `status` absent, null, or `"recording"` means no discard — the ordinary
+     * case, and `recording` is accepted rather than refused because it is the
+     * value §4's own response hands the app back, and an app that echoes it must
+     * not be punished for it.
+     *
+     * @param array<string, mixed> $data
+     * @param string               $patrolUuid what the refusal names, so the app can park the right item
+     *
+     * @throws PatrolApiException
+     */
+    public static function discardReason(array $data, string $patrolUuid): ?string
+    {
+        $status = self::string($data, 'status');
+
+        if (null === $status || PatrolStatusEnum::Recording->value === $status) {
+            return null;
+        }
+
+        if (PatrolStatusEnum::Discarded->value !== $status) {
+            throw PatrolApiException::unsupportedStatus($status);
+        }
+
+        return self::string($data, 'discardReason')
+            ?? throw PatrolApiException::discardReasonRequired($patrolUuid);
     }
 
     /**

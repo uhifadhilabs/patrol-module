@@ -333,4 +333,83 @@ final class PatrolDashboardServiceTest extends TestCase
         self::assertSame('North post', $payload['patrols'][0]['station']);
         self::assertSame('', $payload['patrols'][3]['station']);
     }
+
+    /**
+     * THE EXCLUSION, stated once over every figure the service computes.
+     *
+     * A discarded patrol is in the list and in nothing else. The two patrols
+     * here are deliberately identical apart from the discard, so every
+     * assertion below is about that one difference and nothing else.
+     */
+    public function testADiscardedPatrolIsListedAndCountedNowhere(): void
+    {
+        $kept = $this->patrol('walk', '2026-03-20T06:00:00Z', 10.0, 'North post', observations: 2);
+        $thrownAway = $this->patrol('walk', '2026-03-21T06:00:00Z', 40.0, 'South post', observations: 1)
+            ->discard('Started by mistake');
+
+        $dashboard = new PatrolDashboardService()->build([$thrownAway, $kept], self::TYPES, $this->now);
+
+        // The register keeps it — a ranger who uploaded a patrol must be able to
+        // find it, whatever became of it.
+        self::assertCount(2, $dashboard->patrols);
+
+        // And every figure ignores it.
+        self::assertSame(1, $dashboard->monthCount);
+        self::assertEqualsWithDelta(10.0, $dashboard->monthDistanceKm, 0.001, 'The discarded 40 km must not be in the month total.');
+        self::assertSame(['walk' => 1], $dashboard->monthTypeCounts);
+        self::assertSame(['walk' => 1, 'boat' => 0], $dashboard->typeCounts);
+        self::assertSame(1, $dashboard->totalCount);
+        self::assertSame([['station' => 'North post', 'count' => 1]], $dashboard->stationSeries);
+
+        // The last-patrol line names the last patrol that COUNTS, even though
+        // the discarded one started later.
+        self::assertNotNull($dashboard->lastPatrol);
+        self::assertSame('North post', $dashboard->lastPatrol->getStation());
+
+        // …including the five-week series, whose current week holds both starts.
+        $currentWeek = $dashboard->weeklySeries[\count($dashboard->weeklySeries) - 1];
+        self::assertSame(['walk' => 1, 'boat' => 0], $currentWeek['counts']);
+    }
+
+    /**
+     * The coverage map draws ground covered, so a discarded track is not on it —
+     * while a discarded patrol with the same geometry stays in the list beside
+     * the map.
+     */
+    public function testADiscardedTrackIsNotOnTheCoverageMap(): void
+    {
+        $line = '{"type":"LineString","coordinates":[[35.4,-3.2],[35.5,-3.1]]}';
+        $kept = $this->patrol('walk', '2026-03-20T06:00:00Z', 10.0, 'North post')->setTrack($line);
+        $thrownAway = $this->patrol('boat', '2026-03-20T07:00:00Z', 10.0, 'South post')
+            ->setTrack($line)
+            ->discard('Testing');
+
+        $service = new PatrolDashboardService();
+        $dashboard = $service->build([$thrownAway, $kept], self::TYPES, $this->now);
+        $payload = $service->coveragePayload(null, $dashboard, self::TYPES);
+
+        self::assertCount(1, $payload['patrols']);
+        self::assertSame('walk', $payload['patrols'][0]['type']);
+        // The station marker is placed from a drawn track, so the discarded
+        // patrol's station gets none either — no half-presence on the map.
+        self::assertSame(['North post'], array_column($payload['stations'], 'name'));
+    }
+
+    /**
+     * The calendar is a list of days, not a figure about them: a patrol
+     * discarded on the 20th is still findable on the 20th.
+     */
+    public function testTheCalendarKeepsADiscardedPatrolOnItsDay(): void
+    {
+        $thrownAway = $this->patrol('walk', '2026-03-20T06:00:00Z', 3.0)->discard('Started by mistake');
+
+        $cells = new PatrolDashboardService()->calendarFor([$thrownAway], $this->now, $this->now);
+
+        $twentieth = array_values(array_filter(
+            $cells,
+            static fn (array $cell): bool => '2026-03-20' === $cell['date']->format('Y-m-d'),
+        ));
+        self::assertCount(1, $twentieth);
+        self::assertCount(1, $twentieth[0]['patrols']);
+    }
 }

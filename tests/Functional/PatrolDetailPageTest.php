@@ -187,10 +187,12 @@ final class PatrolDetailPageTest extends WebTestCase
             $meta,
         );
 
-        // PL·03 — the one entry derivable without an audit trail.
+        // PL·03 — the settled discard design's D4 grammar: a bold title per
+        // entry, newest first. This patrol has no events, so the only entry is
+        // the one derivable from the record itself: how it came to exist.
         $history = $crawler->filter('[data-patrol-history] .rln');
         self::assertCount(1, $history);
-        self::assertStringContainsString('track imported from GPX', $history->text());
+        self::assertStringContainsString('Track imported from GPX', $history->text());
 
         // PL·04 — one row per observation, numbered from 1, with the category
         // label (or the raw key when unconfigured) and DMS coordinates.
@@ -216,7 +218,7 @@ final class PatrolDetailPageTest extends WebTestCase
         self::assertStringNotContainsString('Export GPX', $crawler->filter('.pghead')->text());
         self::assertStringContainsString('manual entry', $crawler->filter('[data-patrol-meta]')->text());
         self::assertStringNotContainsString('gps points', $crawler->filter('[data-patrol-meta]')->text());
-        self::assertStringContainsString('logged manually', $crawler->filter('[data-patrol-history]')->text());
+        self::assertStringContainsString('Logged manually', $crawler->filter('[data-patrol-history]')->text());
         self::assertCount(1, $crawler->filter('[data-patrol-observations] .patrol-obs-empty'));
     }
 

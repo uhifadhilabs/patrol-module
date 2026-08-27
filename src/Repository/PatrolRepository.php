@@ -20,6 +20,7 @@ use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\Department;
 use UhifadhiLabs\Patrol\Entity\Patrol;
+use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
 
 /**
  * @extends ServiceEntityRepository<Patrol>
@@ -80,8 +81,42 @@ final class PatrolRepository extends ServiceEntityRepository
     }
 
     /**
+     * Every discarded patrol whose retention clock is RUNNING — the purge
+     * command's working set.
+     *
+     * Deliberately not filtered by age in SQL. "Older than the window" is
+     * measured from {@see Patrol::discardedAt()}, which reads the last
+     * `discarded` EVENT and falls back through `endedAt` to `createdAt`; that is
+     * a three-way coalesce across a joined table, and expressing it here would
+     * put the definition of "when it was discarded" in two places that could
+     * drift. The set is small by construction — a deployment's undeleted
+     * discards, minus the held ones — so the age test is done in PHP where it is
+     * defined once and unit-testable.
+     *
+     * @return list<Patrol>
+     */
+    public function findDiscardedNotHeld(): array
+    {
+        /** @var list<Patrol> $patrols */
+        $patrols = $this->createQueryBuilder('p')
+            ->andWhere('p.status = :discarded')
+            ->andWhere('p.heldAt IS NULL')
+            ->setParameter('discarded', PatrolStatusEnum::Discarded)
+            ->orderBy('p.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $patrols;
+    }
+
+    /**
      * PL·03 — the SHARE of the area's surface lying within $bufferMetres of any
      * track recorded in a half-open window, as a fraction of 1 (0.63 = 63 %).
+     *
+     * DISCARDED patrols are absent from the numerator: a discard says the effort
+     * did not happen as recorded, so buffering its track would report ground
+     * nobody walked. The denominator is untouched — it is the area's whole
+     * surface either way.
      *
      * One PostGIS statement, because the answer is a set operation over the
      * whole month's geometry and nothing smaller is meaningful: buffer every
@@ -121,6 +156,7 @@ final class PatrolRepository extends ServiceEntityRepository
                 WHERE a.%s = :area
                   AND a.%s IS NOT NULL
                   AND p.%s IS NOT NULL
+                  AND p.%s <> :discarded
                   AND p.%s >= :from
                   AND p.%s < :until
                 GROUP BY a.%s, a.%s
@@ -135,6 +171,7 @@ final class PatrolRepository extends ServiceEntityRepository
             $areaId,
             $areaGeom,
             $patrol->getColumnName('track'),
+            $patrol->getColumnName('status'),
             $startedAt = $patrol->getColumnName('startedAt'),
             $startedAt,
             $areaId,
@@ -144,11 +181,13 @@ final class PatrolRepository extends ServiceEntityRepository
         $fraction = $this->getEntityManager()->getConnection()->fetchOne($sql, [
             'buffer' => $bufferMetres,
             'area' => $area->getId(),
+            'discarded' => PatrolStatusEnum::Discarded->value,
             'from' => $from,
             'until' => $until,
         ], [
             'buffer' => Types::FLOAT,
             'area' => Types::INTEGER,
+            'discarded' => Types::STRING,
             // Bound as Doctrine types, not as pre-formatted strings, so the
             // window is written exactly the way the ORM wrote started_at.
             'from' => Types::DATETIME_IMMUTABLE,
@@ -166,7 +205,8 @@ final class PatrolRepository extends ServiceEntityRepository
      * track in GEOGRAPHY so the distance is metres on the spheroid, union the
      * buffers so overlapping patrols are not counted twice, clip the union to
      * the boundary, divide the two geodesic areas — over a strictly smaller set
-     * of tracks. Nothing about the AREA changes: the denominator is the whole
+     * of tracks, and with DISCARDED patrols absent for the same reason they are
+     * absent from the area-wide figure. Nothing about the AREA changes: the denominator is the whole
      * boundary, because the question is "how much of this place did they walk",
      * not "how much of their own patrolling was inside it". So a department's
      * figure is always ≤ the area's, and two departments walking different
@@ -240,6 +280,7 @@ final class PatrolRepository extends ServiceEntityRepository
                       AND pos.%s = :department
                       AND a.%s IS NOT NULL
                       AND p.%s IS NOT NULL
+                      AND p.%s <> :discarded
                       AND p.%s >= :from
                       AND p.%s < :until
                     GROUP BY a.%s, a.%s
@@ -265,6 +306,7 @@ final class PatrolRepository extends ServiceEntityRepository
             $positionMeta->getSingleAssociationJoinColumnName('department'),
             $areaGeom,
             $patrol->getColumnName('track'),
+            $patrol->getColumnName('status'),
             $startedAt = $patrol->getColumnName('startedAt'),
             $startedAt,
             $areaId,
@@ -275,12 +317,14 @@ final class PatrolRepository extends ServiceEntityRepository
             'buffer' => $bufferMetres,
             'area' => $area?->getId(),
             'department' => $departmentId,
+            'discarded' => PatrolStatusEnum::Discarded->value,
             'from' => $from,
             'until' => $until,
         ], [
             'buffer' => Types::FLOAT,
             'area' => Types::INTEGER,
             'department' => Types::INTEGER,
+            'discarded' => Types::STRING,
             // Bound as Doctrine types, not as pre-formatted strings, so the
             // window is written exactly the way the ORM wrote started_at.
             'from' => Types::DATETIME_IMMUTABLE,

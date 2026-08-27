@@ -21,8 +21,11 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Requirement\Requirement;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
 use Uhifadhi\Entity\AreaOfInterest;
+use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
 use UhifadhiLabs\Patrol\Entity\Observation;
 use UhifadhiLabs\Patrol\Entity\Patrol;
 use UhifadhiLabs\Patrol\Service\GeoService;
@@ -49,8 +52,11 @@ use UhifadhiLabs\Patrol\Storage\PatrolFileSource;
 final class PatrolDetailController
 {
     /**
-     * @param array<string, array{label: string}> $types      the deployment's patrol.types vocabulary
-     * @param array<string, array{label: string}> $categories the deployment's patrol.observation_categories vocabulary
+     * @param array<string, array{label: string}> $types                the deployment's patrol.types vocabulary
+     * @param array<string, array{label: string}> $categories           the deployment's patrol.observation_categories vocabulary
+     * @param int                                 $discardRetentionDays patrol.discard_retention_days — what the purge-window line states
+     * @param AuthorizationCheckerInterface|null  $authorizationChecker null in a host with no security: the hold action is then offered to nobody
+     * @param CsrfTokenManagerInterface|null      $csrfTokenManager     null for the same reason — a write with no token to protect it is not rendered
      */
     public function __construct(
         private readonly Environment $twig,
@@ -59,6 +65,9 @@ final class PatrolDetailController
         private readonly GpxWriter $gpx,
         private readonly array $types,
         private readonly array $categories,
+        private readonly int $discardRetentionDays = PatrolConfiguration::DEFAULT_DISCARD_RETENTION_DAYS,
+        private readonly ?AuthorizationCheckerInterface $authorizationChecker = null,
+        private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
     ) {
     }
 
@@ -83,6 +92,15 @@ final class PatrolDetailController
             'categories' => $this->categories,
             'observations' => $rows,
             'avgSpeedKmh' => $this->avgSpeedKmh($patrol),
+            // What the page says will happen to a discarded patrol, and when.
+            // Null while it is held: the clock is stopped, and printing a date
+            // would promise a deletion that is not scheduled.
+            'purgeDueAt' => $this->purgeDueAt($patrol),
+            'retentionDays' => $this->discardRetentionDays,
+            // The hold action, or nothing at all. Absent rather than disabled
+            // for whoever may not use it: a greyed control advertises a power
+            // the reader does not have.
+            'holdToken' => $this->holdToken($patrol),
             // The plate payload: the recorded track plus the positioned
             // observations, which the controller draws as numbered rings.
             'payload' => [
@@ -363,6 +381,45 @@ final class PatrolDetailController
     private function categoryLabel(string $category): string
     {
         return $this->categories[$category]['label'] ?? $category;
+    }
+
+    /**
+     * When `patrol:purge-discarded` will delete this patrol, if nothing changes.
+     *
+     * Null for every patrol that is not discarded (there is no window), for one
+     * that is HELD (the clock is stopped, so there is no date to state), and for
+     * one the module cannot date at all — the same three cases the command
+     * itself distinguishes, computed from the same {@see Patrol::discardedAt()}.
+     */
+    private function purgeDueAt(Patrol $patrol): ?\DateTimeImmutable
+    {
+        if (!$patrol->isDiscarded() || $patrol->isHeld()) {
+            return null;
+        }
+
+        return $patrol->discardedAt()?->modify(\sprintf('+%d days', $this->discardRetentionDays));
+    }
+
+    /**
+     * The CSRF token for the hold form — or null, which is how the template
+     * learns not to draw the form at all.
+     *
+     * Null in three situations, and they collapse to one rule: the action is
+     * offered only where it can be both performed and protected. No security
+     * bundle (the route does not exist), no `patrols.record` (this reader may
+     * not), or a patrol that was never discarded (there is no clock to stop).
+     */
+    private function holdToken(Patrol $patrol): ?string
+    {
+        if (!$patrol->isDiscarded() || null === $this->csrfTokenManager || null === $this->authorizationChecker) {
+            return null;
+        }
+
+        if (!$this->authorizationChecker->isGranted(PatrolRecordController::RECORD_PERMISSION)) {
+            return null;
+        }
+
+        return $this->csrfTokenManager->getToken(PatrolHoldController::csrfTokenId($patrol))->getValue();
     }
 
     /** Distance over elapsed time, km/h — stated only when both are known. */

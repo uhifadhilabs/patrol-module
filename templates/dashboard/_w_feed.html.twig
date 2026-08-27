@@ -6,7 +6,11 @@
     <div class="c" data-patrol-feed {{ stimulus_controller('@uhifadhilabs/patrol-module/rows') }}>
         <span class="tab"><span class="idx">PL·07</span>Patrol feed<span class="src">· latest first</span></span>
         {% for patrol in dashboard.patrols %}
-            <div class="patrol-feed-row" data-patrol="{{ patrol.uuid.toRfc4122 }}" data-patrol-type="{{ patrol.type }}" data-patrol-station="{{ patrol.station }}"
+            {# Discarded patrols read quietly here and are drawn on no map: the
+               plate beside this feed is the coverage picture, and a discarded
+               track is absent from its payload. Hovering the row therefore
+               highlights nothing, which is the honest result. #}
+            <div class="patrol-feed-row{{ patrol.discarded ? ' patrol-abandoned' }}" data-patrol="{{ patrol.uuid.toRfc4122 }}" data-patrol-type="{{ patrol.type }}" data-patrol-station="{{ patrol.station }}"
                  {{ stimulus_target('@uhifadhilabs/patrol-module/rows', 'row') }}
                  {{ stimulus_action('@uhifadhilabs/patrol-module/rows', 'hover', 'mouseenter') }}
                  {{ stimulus_action('@uhifadhilabs/patrol-module/rows', 'unhover', 'mouseleave') }}>
@@ -15,6 +19,13 @@
                 {{ ui.type_chip(patrol.type, types, typeColor) }}
                 <span class="patrol-n">{{ ui.started(patrol) }} · {{ ui.distance(patrol) }}</span>
                 {% if patrol.observations|length %}<span class="chip warn">{{ patrol.observations|length }} obs</span>{% endif %}
+                {# One geometry throughout, as the design rules for the row: the
+                   chip carries the state and nothing else does. The reason is
+                   not repeated here — it lives on the register row and on the
+                   detail page. #}
+                {% if patrol.discarded %}
+                    <span class="chip {{ patrol.held ? 'warn' : 'patrol-discard-pill' }}">{{ patrol.held ? 'held for review' : 'discarded' }}</span>
+                {% endif %}
                 <span class="patrol-spacer"></span>
                 <a class="open-btn" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">Open →</a>
             </div>

@@ -99,6 +99,60 @@ final class PatrolApiException extends \RuntimeException
         );
     }
 
+    /**
+     * A patrol was sent as discarded with nothing in `discardReason`.
+     *
+     * Refused rather than stored with a null reason, and this is the one place
+     * the server is stricter than "take what the phone gives you". A discarded
+     * patrol is read months later by somebody asking one question — why is this
+     * here and empty — and the only answer is the ranger's own words. The app
+     * already requires them (chips, or "Other" with a textarea), so a body
+     * arriving without one is a client bug, and storing it would turn that bug
+     * into a permanently unanswerable record.
+     *
+     * Not retryable: the same body will be just as reasonless in two minutes.
+     */
+    public static function discardReasonRequired(string $uuid): self
+    {
+        return new self(
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            'discard_reason_required',
+            'A discarded patrol must say why it was discarded.',
+            details: ['patrolUuid' => $uuid, 'field' => 'discardReason'],
+        );
+    }
+
+    /**
+     * A patrol status the module does not implement.
+     *
+     * The sync contract lets the phone name only two of the three: a patrol
+     * arrives `recording` (the default, and what §4 means) or `discarded`.
+     * `complete` is reached through {@see \UhifadhiLabs\Patrol\Service\Api\PatrolCompletionService},
+     * which VERIFIES before it agrees — so accepting "complete" as a word in a
+     * body would be a way around the one check that keeps a published patrol
+     * honest.
+     */
+    public static function unsupportedStatus(string $status): self
+    {
+        return new self(
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            'unsupported_status',
+            \sprintf('"%s" is not a status a patrol may be sent with.', $status),
+            details: ['field' => 'status', 'value' => $status],
+        );
+    }
+
+    /** An event kind this module has no code to apply — §9A. */
+    public static function unsupportedEventKind(string $kind, string $clientUuid): self
+    {
+        return new self(
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            'unsupported_event_kind',
+            \sprintf('"%s" is not a patrol event kind this module records.', $kind),
+            details: ['clientUuid' => $clientUuid, 'kind' => $kind],
+        );
+    }
+
     /** @param array<string, mixed> $details */
     public static function invalidGeometry(string $message, array $details = []): self
     {

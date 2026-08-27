@@ -20,6 +20,7 @@ use Uhifadhi\Entity\User;
 use Uhifadhi\Module\DepartmentKpi;
 use Uhifadhi\Module\DepartmentKpiProviderInterface;
 use UhifadhiLabs\Patrol\Entity\Patrol;
+use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
 use UhifadhiLabs\Patrol\Repository\PatrolRepository;
 use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
 
@@ -168,6 +169,27 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
 
         foreach ($areas as $area) {
             foreach ($this->patrols->findByAreaStartedBetween($area, $from, $until) as $patrol) {
+                /*
+                 * A DISCARDED patrol contributes nothing here — not its count,
+                 * not its kilometres, and not the observations logged on it.
+                 *
+                 * The observations go too, which is the one part worth saying
+                 * out loud, because they are otherwise counted independently of
+                 * the patrol (see below). A discard withdraws the whole outing:
+                 * the sightings recorded on a patrol that did not happen as
+                 * recorded are not this department's evidence either, and
+                 * crediting them while dropping the kilometres would produce a
+                 * department that observed things on no patrols.
+                 *
+                 * The repository is asked for the month's patrols unfiltered on
+                 * purpose — the calendar reads through the same method and DOES
+                 * show discards — so the exclusion is stated here, where the
+                 * figures are made.
+                 */
+                if (!$patrol->getStatus()->countsTowardsStatistics()) {
+                    continue;
+                }
+
                 if (self::departmentOf($patrol->getLead()) === $departmentId) {
                     ++$patrols;
                     $distanceKm += $patrol->getDistanceKm() ?? 0.0;
@@ -269,6 +291,11 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
      * area × module table, because a KPI is about rows that exist: an area the module was
      * switched on in yesterday contributes nothing to this month and needs no row.
      *
+     * DISCARDED patrols do not make an area countable. An area whose only patrols were
+     * thrown away has nothing to report, and letting it in would earn it a per-area row of
+     * zeros in the comparison table — a row that reads as "they worked here and achieved
+     * nothing" rather than "nothing counted here".
+     *
      * @return list<AreaOfInterest>
      */
     private function areasWithPatrols(): array
@@ -277,7 +304,8 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
         $areas = $this->entityManager->createQueryBuilder()
             ->select('DISTINCT a')
             ->from(AreaOfInterest::class, 'a')
-            ->innerJoin(Patrol::class, 'p', 'WITH', 'p.area = a')
+            ->innerJoin(Patrol::class, 'p', 'WITH', 'p.area = a AND p.status <> :discarded')
+            ->setParameter('discarded', PatrolStatusEnum::Discarded)
             ->orderBy('a.name', 'ASC')
             ->getQuery()
             ->getResult();

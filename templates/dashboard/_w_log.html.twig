@@ -14,12 +14,19 @@
                 <th class="num">duration</th>
                 <th class="num">distance</th>
                 <th>observations</th>
+                {# The settled discard design's web row puts the state and the
+                   ranger's reason in a column of their own, and the purge date
+                   "on the row, not buried". Ordinary patrols leave it empty:
+                   "complete" is what a patrol in the register is, and pilling
+                   every row to say so would make the discarded ones quieter,
+                   not louder. #}
+                <th>status</th>
                 <th></th>
             </tr>
         </thead>
         <tbody>
         {% for patrol in dashboard.patrols %}
-            <tr data-patrol="{{ patrol.uuid.toRfc4122 }}" data-patrol-type="{{ patrol.type }}" data-patrol-station="{{ patrol.station }}"
+            <tr class="{{ patrol.discarded ? 'patrol-abandoned' }}" data-patrol="{{ patrol.uuid.toRfc4122 }}" data-patrol-type="{{ patrol.type }}" data-patrol-station="{{ patrol.station }}"
                 {{ stimulus_target('@uhifadhilabs/patrol-module/rows', 'row') }}
                 {{ stimulus_action('@uhifadhilabs/patrol-module/rows', 'hover', 'mouseenter') }}
                 {{ stimulus_action('@uhifadhilabs/patrol-module/rows', 'unhover', 'mouseleave') }}>
@@ -29,22 +36,43 @@
                 <td>{{ ui.lead_name(patrol.lead) }}</td>
                 <td data-patrol-start>{{ ui.started(patrol) }}</td>
                 <td class="num">{{ ui.duration(patrol) }}</td>
-                <td class="num">{{ ui.distance(patrol) }}</td>
+                {# The design's "NOT COUNTED" under a discarded patrol's distance.
+                   Said HERE, where the number is, because the number is the
+                   thing that would otherwise be read into a total — the row
+                   states what it does not contribute rather than hiding what it
+                   measured. #}
+                <td class="num">{{ ui.distance(patrol) }}{% if patrol.discarded %}<em class="patrol-rowsub">not counted</em>{% endif %}</td>
                 <td>
                     {% if patrol.observations|length %}
                         <span class="chip warn">{{ patrol.observations|length }} obs</span>
                     {% else %}
                         <span class="chip idle">—</span>
                     {% endif %}
+                    {% if patrol.discarded %}<em class="patrol-rowsub">kept · viewable</em>{% endif %}
+                </td>
+                <td>
+                    {% if patrol.discarded %}
+                        {% if patrol.held %}
+                            <span class="chip warn">held for review</span>
+                            <em class="patrol-rowsub">discarded · purge stopped</em>
+                        {% else %}
+                            <span class="chip patrol-discard-pill">discarded</span>
+                            <em class="patrol-rowsub">
+                                {%- if patrol.discardReason %}{{ patrol.discardReason }}{% endif -%}
+                                {%- if patrol.discardReason and patrol.discardedAt %} · {% endif -%}
+                                {%- if patrol.discardedAt %}removed {{ patrol.discardedAt|date_modify('+' ~ retentionDays ~ ' days')|date('j M')|lower }}{% endif -%}
+                            </em>
+                        {% endif %}
+                    {% endif %}
                 </td>
                 <td class="patrol-right"><a class="open-btn" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">Open →</a></td>
             </tr>
         {% else %}
-            <tr><td colspan="9">No patrols recorded yet.</td></tr>
+            <tr><td colspan="10">No patrols recorded yet.</td></tr>
         {% endfor %}
         {% if dashboard.patrols|length %}
             {# Shown by the rows controller when a filter hides every row. #}
-            <tr class="patrol-hidden" {{ stimulus_target('@uhifadhilabs/patrol-module/rows', 'empty') }}><td colspan="9">No patrols of that type this month.</td></tr>
+            <tr class="patrol-hidden" {{ stimulus_target('@uhifadhilabs/patrol-module/rows', 'empty') }}><td colspan="10">No patrols of that type this month.</td></tr>
         {% endif %}
         </tbody>
     </table>
