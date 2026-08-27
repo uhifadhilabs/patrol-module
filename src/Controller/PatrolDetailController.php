@@ -28,6 +28,7 @@ use UhifadhiLabs\Patrol\Entity\Patrol;
 use UhifadhiLabs\Patrol\Service\GeoService;
 use UhifadhiLabs\Patrol\Service\GpxWriter;
 use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
+use UhifadhiLabs\Patrol\Storage\PatrolFileSource;
 
 /**
  * The two patrol detail screens (settled designs "detail" and "observation"):
@@ -273,7 +274,7 @@ final class PatrolDetailController
             'record' => (string) $observation->getUuid(),
             'label' => \sprintf('OBS-%02d · %s', $row['n'], $this->categoryLabel($observation->getCategory())),
             'back' => $this->observationUrl($area, $patrol, $observation),
-            'source' => 'patrol',
+            'source' => PatrolFileSource::SOURCE_TOKEN,
         ];
         if (null !== $observation->getLoggedAt()) {
             $params['at'] = $observation->getLoggedAt()->format(\DateTimeInterface::ATOM);

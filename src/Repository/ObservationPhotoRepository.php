@@ -15,6 +15,7 @@ namespace UhifadhiLabs\Patrol\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 use UhifadhiLabs\Patrol\Entity\ObservationPhoto;
 
@@ -84,6 +85,43 @@ final class ObservationPhotoRepository extends ServiceEntityRepository
             ->join('o.patrol', 'pt')
             ->join('pt.area', 'a')
             ->orderBy('p.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $photos;
+    }
+
+    /**
+     * ONE OBSERVATION'S PHOTOGRAPHS, with the same chain the hub prints.
+     *
+     * The narrow half of {@see findForFilesHub()}, for the cross-module seam
+     * ({@see \UhifadhiLabs\Storage\Registry\FileSourceInterface::filesForRecord()}):
+     * the incidents report flow shows the photographs of the observation it is
+     * being filed from, and it must not read every photograph in the deployment
+     * to draw two thumbnails.
+     *
+     * The joins are kept because the entry the seam builds names the observation
+     * and its area, exactly as a hub tile does — one query, not one per
+     * photograph.
+     *
+     * In the HANDSET's order: a strip of photographs of one moment reads
+     * forwards, because the second photograph is the second thing that happened.
+     * A row with no handset clock falls in behind by insertion order.
+     *
+     * @return list<ObservationPhoto>
+     */
+    public function findForObservation(Uuid $observation): array
+    {
+        /** @var list<ObservationPhoto> $photos */
+        $photos = $this->createQueryBuilder('p')
+            ->addSelect('o', 'pt', 'a')
+            ->join('p.observation', 'o')
+            ->join('o.patrol', 'pt')
+            ->join('pt.area', 'a')
+            ->andWhere('o.uuid = :observation')
+            ->setParameter('observation', $observation, UuidType::NAME)
+            ->orderBy('p.takenAt', 'ASC')
+            ->addOrderBy('p.id', 'ASC')
             ->getQuery()
             ->getResult();
 

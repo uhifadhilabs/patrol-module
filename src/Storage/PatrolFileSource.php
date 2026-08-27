@@ -15,6 +15,7 @@ namespace UhifadhiLabs\Patrol\Storage;
 
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Uid\Uuid;
 use UhifadhiLabs\Patrol\Entity\ObservationPhoto;
 use UhifadhiLabs\Patrol\Repository\ObservationPhotoRepository;
 use UhifadhiLabs\Patrol\Service\PhotoEvidenceKey;
@@ -64,6 +65,20 @@ final class PatrolFileSource implements FileSourceInterface
 
     public const string LABEL = 'Patrols';
 
+    /**
+     * THE ONE TOKEN PATROL PUTS ON THE WIRE for itself, singular: the value of
+     * `source` in the File-as-incident seam
+     * ({@see \UhifadhiLabs\Patrol\Controller\PatrolDetailController::fileAsIncidentUrl()})
+     * and the value another module hands back to {@see filesForRecord()} to ask
+     * for one observation's photographs.
+     *
+     * It is stated here, once, because two bundles that may be installed without
+     * each other cannot share a constant — so the only defence against drift is
+     * that every place patrol writes or reads this token reads THIS line, and
+     * that patrol accepts its own module slug as an alias for it.
+     */
+    public const string SOURCE_TOKEN = 'patrol';
+
     public function __construct(
         private readonly ObservationPhotoRepository $photos,
         private readonly UrlGeneratorInterface $urls,
@@ -107,6 +122,44 @@ final class PatrolFileSource implements FileSourceInterface
         foreach ($this->photos->findForFilesHub() as $photo) {
             yield self::entryFor($photo, $this->observationUrl($photo));
         }
+    }
+
+    /**
+     * ONE OBSERVATION'S PHOTOGRAPHS, for a module that is SHOWING that
+     * observation without owning it.
+     *
+     * The incidents report flow, opened from an observation, draws that
+     * observation's photographs on its source card so the filer can see what they
+     * are filing about. It has a record uuid and the `source` token patrol put on
+     * the wire, and nothing else — it may not name patrol's classes, its routes
+     * or its key prefix. So it asks here, and patrol answers with the same
+     * {@see FileEntry} the hub gets: one photograph, already carrying its owner.
+     *
+     * WHAT IS NOT FOUND IS NOT AN ERROR. An observation with no photographs, a
+     * uuid that is not an observation's, a uuid that is not a uuid at all, and a
+     * token naming somebody else all answer the same way — nothing — and the card
+     * simply draws no strip.
+     *
+     * @return iterable<FileEntry>
+     */
+    public function filesForRecord(string $source, string $recordUuid): iterable
+    {
+        if (!self::speaksFor($source) || !Uuid::isValid($recordUuid)) {
+            return;
+        }
+
+        foreach ($this->photos->findForObservation(Uuid::fromString($recordUuid)) as $photo) {
+            yield self::entryFor($photo, $this->observationUrl($photo));
+        }
+    }
+
+    /**
+     * Whether a wire token names patrol. Its own token first, its module slug as
+     * an alias — a source card must not go blank over a plural.
+     */
+    public static function speaksFor(string $source): bool
+    {
+        return \in_array(strtolower(trim($source)), [self::SOURCE_TOKEN, self::SLUG], true);
     }
 
     public function guard(string $key, ?UserInterface $user): FileGuard

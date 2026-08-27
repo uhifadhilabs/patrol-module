@@ -119,6 +119,85 @@ final class PatrolFileSourceRegistrationTest extends IntegrationTestCase
         }
     }
 
+    // ── ONE OBSERVATION'S PHOTOGRAPHS, FOR A MODULE THAT DOES NOT OWN THEM ──
+
+    /**
+     * THE CROSS-MODULE SEAM, through the registry the asking module actually
+     * holds. The incidents report flow, opened from an observation, draws that
+     * observation's photographs on its source card — and it has nothing but a
+     * record uuid and the `source` token patrol put on the wire.
+     */
+    public function testOneObservationsPhotographsAreReachableByItsUuidAlone(): void
+    {
+        $photo = $this->storedPhoto();
+        $observation = $photo->getObservation()->getUuid()->toRfc4122();
+
+        $files = $this->registry()->forRecord(PatrolFileSource::SOURCE_TOKEN, $observation);
+
+        self::assertCount(1, $files);
+        self::assertSame($photo->getStoragePath(), $files[0]->key);
+        // The same entry the hub gets: already carrying its owner and its area.
+        self::assertSame($photo->getObservation()->getRef(), $files[0]->ownerLabel);
+        self::assertSame('Ndovu Sector', $files[0]->areaLabel);
+    }
+
+    /**
+     * ONE TOKEN, AND ITS SLUG AS AN ALIAS. Patrol writes `source=patrol` on the
+     * File-as-incident link and calls itself "patrols" on the hub; a source card
+     * must not go blank over a plural.
+     */
+    public function testBothTheWireTokenAndTheModuleSlugReachTheSamePhotographs(): void
+    {
+        $observation = $this->storedPhoto()->getObservation()->getUuid()->toRfc4122();
+
+        self::assertCount(1, $this->registry()->forRecord('patrol', $observation));
+        self::assertCount(1, $this->registry()->forRecord('patrols', $observation));
+        self::assertSame('patrol', PatrolFileSource::SOURCE_TOKEN);
+    }
+
+    /**
+     * NOTHING FOUND IS A FACT, NOT AN ERROR. An observation nobody photographed,
+     * a uuid that is not an observation's, a string that is not a uuid at all,
+     * and a token naming another module all answer the same way — and the card
+     * draws no strip.
+     */
+    public function testWhatIsNotFoundIsAnsweredWithNothing(): void
+    {
+        $observation = $this->storedPhoto()->getObservation()->getUuid()->toRfc4122();
+
+        self::assertSame([], $this->registry()->forRecord('patrol', Uuid::v7()->toRfc4122()));
+        self::assertSame([], $this->registry()->forRecord('patrol', 'not-a-uuid'));
+        self::assertSame([], $this->registry()->forRecord('incidents', $observation));
+        self::assertSame([], $this->registry()->forRecord('', $observation));
+    }
+
+    /**
+     * ONE OBSERVATION'S, AND ONLY ITS OWN. A second observation on the same
+     * patrol has its own photographs, and neither card may show the other's.
+     */
+    public function testAnObservationNeverAnswersWithAnothersPhotographs(): void
+    {
+        $first = $this->storedPhoto();
+        $patrol = $first->getObservation()->getPatrol();
+
+        $second = new Observation($patrol, 'maintenance');
+        $this->em->persist($second);
+        $other = new ObservationPhoto(
+            $second,
+            Uuid::fromString('e77c0000-0000-4000-8000-000000000002'),
+            'patrol/'.$patrol->getUuid()->toRfc4122().'/other.jpg',
+        );
+        $other->setMimeType('image/jpeg')->setByteSize(1024)
+            ->setTakenAt(new \DateTimeImmutable('2026-08-19 06:45:00'));
+        $this->em->persist($other);
+        $this->em->flush();
+
+        $files = $this->registry()->forRecord('patrol', $first->getObservation()->getUuid()->toRfc4122());
+
+        self::assertCount(1, $files);
+        self::assertSame($first->getStoragePath(), $files[0]->key);
+    }
+
     private function registry(): FileRegistry
     {
         /** @var FileRegistry $registry */
