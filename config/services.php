@@ -13,24 +13,24 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use Uhifadhi\Service\WidgetService;
 use UhifadhiLabs\Patrol\Controller\PatrolCalendarController;
 use UhifadhiLabs\Patrol\Controller\PatrolController;
 use UhifadhiLabs\Patrol\Controller\PatrolDetailController;
 use UhifadhiLabs\Patrol\Repository\FlightRepository;
 use UhifadhiLabs\Patrol\Repository\LaunchPointRepository;
-use UhifadhiLabs\Patrol\Repository\ObservationPhotoRepository;
 use UhifadhiLabs\Patrol\Repository\ObservationAmendmentRepository;
+use UhifadhiLabs\Patrol\Repository\ObservationPhotoRepository;
 use UhifadhiLabs\Patrol\Repository\ObservationRepository;
 use UhifadhiLabs\Patrol\Repository\PatrolEventRepository;
 use UhifadhiLabs\Patrol\Repository\PatrolRepository;
 use UhifadhiLabs\Patrol\Repository\TrackBatchRepository;
 use UhifadhiLabs\Patrol\Repository\TrackPointRepository;
-use UhifadhiLabs\Patrol\Repository\WidgetPreferenceRepository;
 use UhifadhiLabs\Patrol\Service\GeoService;
 use UhifadhiLabs\Patrol\Service\GpxParser;
 use UhifadhiLabs\Patrol\Service\GpxWriter;
 use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
-use UhifadhiLabs\Patrol\Service\PatrolWidgetService;
+use UhifadhiLabs\Patrol\Service\PatrolWidgetUrls;
 use UhifadhiLabs\Patrol\Service\TrackIngestService;
 
 /*
@@ -68,11 +68,10 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('patrol.dashboard', PatrolDashboardService::class);
 
-    $services->set('patrol.widget_service', PatrolWidgetService::class)
-        ->args([
-            service(WidgetPreferenceRepository::class),
-            service('doctrine.orm.entity_manager'),
-        ]);
+    // The widget library's URL map, shared by the dashboard and the library
+    // itself, with THIS AREA named in every URL.
+    $services->set('patrol.widget_urls', PatrolWidgetUrls::class)
+        ->args([service('router')]);
 
     $services->set('patrol.track_ingest', TrackIngestService::class)
         ->args([
@@ -95,9 +94,6 @@ return static function (ContainerConfigurator $container): void {
     $services->set(ObservationRepository::class)
         ->args([service('doctrine')])
         ->tag('doctrine.repository_service');
-    $services->set(WidgetPreferenceRepository::class)
-        ->args([service('doctrine')])
-        ->tag('doctrine.repository_service');
 
     // The field-sync entities' repositories. Registered unconditionally with the
     // rest: a repository is just a query surface over a mapped entity, and those
@@ -116,11 +112,11 @@ return static function (ContainerConfigurator $container): void {
         ->tag('doctrine.repository_service');
     $services->set(ObservationPhotoRepository::class)
         ->args([service('doctrine')])
-    $services->set(ObservationAmendmentRepository::class)
-        ->args([service('doctrine')])
-        ->tag('doctrine.repository_service');
         ->tag('doctrine.repository_service');
     $services->set(PatrolEventRepository::class)
+        ->args([service('doctrine')])
+        ->tag('doctrine.repository_service');
+    $services->set(ObservationAmendmentRepository::class)
         ->args([service('doctrine')])
         ->tag('doctrine.repository_service');
 
@@ -139,7 +135,9 @@ return static function (ContainerConfigurator $container): void {
             service('twig'),
             service(PatrolRepository::class),
             service('patrol.dashboard'),
-            service('patrol.widget_service'),
+            // The HOST's widget framework, by its own service id: the module
+            // ships a catalogue, never a copy of the algebra that resolves it.
+            service(WidgetService::class),
             param('patrol.types'),
             param('patrol.record_screens'),
             param('patrol.widget_screens'),
@@ -174,14 +172,14 @@ return static function (ContainerConfigurator $container): void {
         ->args([
             service('twig'),
             service('router'),
+            service('patrol.geo'),
+            service('patrol.gpx_writer'),
             // The amendment trail the observation screen reads (PL·06). Not
             // behind the security guard the WRITE is behind: a correction is
             // part of the record and must be readable wherever the record is,
             // including on a host that runs no security and can therefore never
             // append one.
             service(ObservationAmendmentRepository::class),
-            service('patrol.geo'),
-            service('patrol.gpx_writer'),
             param('patrol.types'),
             param('patrol.observation_categories'),
             param('patrol.discard_retention_days'),

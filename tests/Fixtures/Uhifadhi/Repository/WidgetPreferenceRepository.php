@@ -11,12 +11,12 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Repository;
+namespace Uhifadhi\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
-use UhifadhiLabs\Patrol\Entity\WidgetPreference;
+use Uhifadhi\Entity\WidgetPreference;
 
 /**
  * @extends ServiceEntityRepository<WidgetPreference>
@@ -28,9 +28,13 @@ final class WidgetPreferenceRepository extends ServiceEntityRepository
         parent::__construct($registry, WidgetPreference::class);
     }
 
-    /** At most one row exists per (area, user) — the table's unique constraint. */
-    public function findOneByAreaAndUser(Uuid $areaUuid, int $userId): ?WidgetPreference
+    /**
+     * At most one row exists per (surface, user, area) — the table's two partial
+     * unique indexes. A null area is the org-wide layout and matches IS NULL,
+     * which findOneBy renders for us.
+     */
+    public function findOneForUser(string $surface, int $userId, ?Uuid $areaUuid = null): ?WidgetPreference
     {
-        return $this->findOneBy(['areaUuid' => $areaUuid, 'userId' => $userId]);
+        return $this->findOneBy(['surface' => $surface, 'userId' => $userId, 'areaUuid' => $areaUuid]);
     }
 }

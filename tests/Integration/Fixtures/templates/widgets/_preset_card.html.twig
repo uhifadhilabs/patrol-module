@@ -1,0 +1,41 @@
+{# ONE CARD GRAMMAR for every preset, whoever wrote it: the name, the whole
+   trade-off line, and a quiet meta row with the widget count and the one action.
+
+   THE CARD IS A HANDLE, NOT A PICTURE. Seeing what a preset looks like is the
+   canvas's job, one click away; a thumbnail of a grid earns nothing and most
+   people never read it as a page.
+
+   EVERY CARD IS THE SAME OBJECT IN EVERY STATE. Selecting one changes its
+   border, its tint and its badge — never its geometry, and never what it holds.
+   Anything a state needs to ADD (a name field, an Apply button) belongs to the
+   toolbar below the strips: growing a card would reflow the whole strip under
+   the cursor that just clicked it.
+
+   Parameters: kind ('design'|'mine'|'new'), preset (WidgetPreset|null), active,
+   and — for the 'new' card, which has no preset behind it — label, description,
+   layout, extraClass. Clicking a card that is not active PREVIEWS it, which is
+   client-side and needs no route; assets/widgets.js reads data-preset-kind and
+   data-preset-id. #}
+
+{% set label = preset is not null ? preset.label : (label|default('')) %}
+{% set description = preset is not null ? preset.description : (description|default('')) %}
+{% set layout = preset is not null ? preset.layout : (layout|default({})) %}
+{% set count = layout|length %}
+
+<div class="w-preset{{ active ? ' w-preset-active' }}{{ extraClass|default('') }}"
+     data-preset-kind="{{ kind }}" data-preset-id="{{ preset is not null ? preset.id : '' }}"
+     role="button" tabindex="0" aria-pressed="{{ active ? 'true' : 'false' }}">
+    <div class="w-presettop">
+        <span class="w-presetname">{{ label }}</span>
+        {% if active %}
+            <span class="w-presetflag w-presetflag-active">{{ ux_icon('lucide:check') }}Active</span>
+        {% endif %}
+    </div>
+    {# The whole line, wrapped — a trade-off cut off mid-sentence is worse than no
+       trade-off. The grid row equalises the cards' heights. #}
+    <p class="w-presetsub">{{ description }}</p>
+    <div class="w-presetmeta">
+        <span class="w-presetcount">{{ count }} widget{{ count == 1 ? '' : 's' }}</span>
+        <span class="w-presetgo">{{ active ? 'On your dashboard' : 'Preview' }}{{ ux_icon('lucide:arrow-right') }}</span>
+    </div>
+</div>

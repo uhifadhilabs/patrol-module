@@ -20,18 +20,23 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
-use UhifadhiLabs\Patrol\Controller\PatrolWidgetsController;
+use Uhifadhi\Model\WidgetDom;
+use Uhifadhi\Service\WidgetEndpoint;
 use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Entity\WidgetPreference;
+use UhifadhiLabs\Patrol\Model\PatrolWidgets;
 
 /**
- * The widget library end to end: the editing surface where every widget is the
- * REAL widget at full size, and the preferences it writes — which the dashboard
- * then obeys. Preferences are per user, so every request here is signed in.
+ * THE WIDGET LIBRARY, on the HOST's framework.
+ *
+ * The module ships a catalogue (PatrolWidgets) and nothing else — no save
+ * endpoint, no merge algebra, no preset mechanics. These tests exercise the
+ * real host component end to end through the module's routes, because "it
+ * rides the host framework" is a claim that is either demonstrable over HTTP
+ * or is not true.
  */
 final class WidgetLibraryFlowTest extends WebTestCase
 {
-    /** Every widget the module ships, in the design's own order. */
+    /** The shipped composition, in the design's own order. */
     private const array WIDGET_IDS = ['kpis', 'map', 'log', 'feed', 'chweek', 'chstation', 'cal'];
 
     private KernelBrowser $client;
@@ -87,7 +92,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
         }
     }
 
-    public function testTheLibraryRendersEveryWidgetAsARealCardWithItsControls(): void
+    public function testTheLibraryIsTheHostsComponentOverThisSurfacesCatalogue(): void
     {
         $this->client->loginUser($this->ranger);
         $crawler = $this->client->request('GET', $this->libraryUrl());
@@ -95,35 +100,20 @@ final class WidgetLibraryFlowTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1.pg', 'demo reserve — Patrols · widget library');
 
-        // One card per widget, each carrying the design's chrome: a drag grip, a
-        // state chip, the width chips and the add/remove toggle.
-        $cards = $crawler->filter('[data-patrol-widget]');
-        self::assertCount(\count(self::WIDGET_IDS), $cards);
-        self::assertSame(
-            self::WIDGET_IDS,
-            $cards->each(static fn ($card) => (string) $card->attr('data-patrol-widget')),
-        );
-        self::assertCount(\count(self::WIDGET_IDS), $crawler->filter('[data-patrol-widget] [data-patrol-grip]'));
-        self::assertCount(\count(self::WIDGET_IDS), $crawler->filter('[data-patrol-widget] [data-patrol-toggle]'));
+        $html = $crawler->html();
+        // The shipped composition leads the strip under the design's own name,
+        // never as a generic "Default layout"…
+        self::assertStringContainsString(PatrolWidgets::DEFAULT_LABEL, $html);
+        // …and the component is the HOST's: its root carries the framework's
+        // own attributes, which is what the host's widgets script drives.
+        self::assertCount(1, $crawler->filter('['.WidgetDom::ROOT.']'));
+        self::assertCount(1, $crawler->filter('['.WidgetDom::CSRF_TOKEN.']'));
 
-        // The map card offers full width; the weekly chart does not.
-        self::assertSame(
-            ['12', '9', '6', '3'],
-            $crawler->filter('[data-patrol-widget="map"] [data-patrol-span]')
-                ->each(static fn ($chip) => (string) $chip->attr('data-patrol-span')),
-        );
-        self::assertSame(
-            ['9', '6', '3'],
-            $crawler->filter('[data-patrol-widget="chweek"] [data-patrol-span]')
-                ->each(static fn ($chip) => (string) $chip->attr('data-patrol-span')),
-        );
-
-        // The preview IS the widget: the same partials the dashboard renders, with
-        // live data — not a thumbnail.
-        self::assertCount(1, $crawler->filter('[data-patrol-widget="kpis"] [data-kpi="month"]'));
-        self::assertCount(1, $crawler->filter('[data-patrol-widget="log"] [data-patrol-log] tbody tr[data-patrol]'));
-        self::assertCount(42, $crawler->filter('[data-patrol-widget="cal"] .patrol-dc'));
-        self::assertStringContainsString('North post', (string) $crawler->filter('[data-patrol-widget="chstation"]')->text());
+        // EVERY widget rendered once as the real thing: the same partials the
+        // dashboard renders, on the same live data — one inert template clone
+        // per catalogue widget.
+        self::assertCount(\count(self::WIDGET_IDS), $crawler->filter('template['.WidgetDom::TEMPLATE.']'));
+        self::assertStringContainsString('North post', $html);
     }
 
     public function testTheDashboardLinksToTheLibrary(): void
@@ -138,10 +128,52 @@ final class WidgetLibraryFlowTest extends WebTestCase
         );
     }
 
-    public function testSavingPreferencesPersistsAndTheDashboardObeysThem(): void
+    /** A fresh person lands on the shipped composition — all seven, in catalogue order. */
+    public function testTheDashboardShipsTheDesignsOwnComposition(): void
     {
         $this->client->loginUser($this->ranger);
-        $this->postJson($this->libraryUrl(), [
+        $crawler = $this->client->request('GET', $this->dashboardUrl());
+
+        self::assertSame(
+            self::WIDGET_IDS,
+            $crawler->filter('.patrol-wgrid > [data-w]')->each(static fn (Crawler $w) => (string) $w->attr('data-w')),
+        );
+        self::assertStringContainsString('patrol-w6', (string) $crawler->filter('[data-w="chweek"]')->attr('class'));
+    }
+
+    /**
+     * BUILT-INS ARE IMMUTABLE: while the shipped design is active, a layout
+     * save is refused — the way to change it is a copy.
+     */
+    public function testSavingOverAShippedDesignIsRefused(): void
+    {
+        $this->client->loginUser($this->ranger);
+        $this->postJson($this->saveUrl(), [
+            'order' => ['cal', 'kpis'],
+            'widgets' => ['map' => ['on' => false, 'cols' => 12]],
+        ]);
+
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    /**
+     * MAKE A COPY TO CUSTOMIZE, then edit: the copy is the person's own preset,
+     * it is active at once, and edits write through to it — which the dashboard
+     * then obeys.
+     */
+    public function testCopyingTheShippedDesignMakesItEditableAndTheDashboardObeys(): void
+    {
+        $this->client->loginUser($this->ranger);
+
+        $this->client->request('POST', $this->libraryUrl().'/preset/default/copy', [
+            '_token' => $this->csrfToken(),
+        ]);
+        self::assertResponseRedirects($this->libraryUrl());
+
+        $library = $this->client->followRedirect();
+        self::assertStringContainsString(PatrolWidgets::DEFAULT_LABEL.' — copy', $library->html());
+
+        $this->postJson($this->saveUrl(), [
             'order' => ['cal', 'kpis', 'chweek'],
             'widgets' => [
                 'cal' => ['on' => true, 'cols' => 6],
@@ -149,103 +181,68 @@ final class WidgetLibraryFlowTest extends WebTestCase
                 'chweek' => ['on' => true, 'cols' => 3],
             ],
         ]);
-
         self::assertResponseStatusCodeSame(204);
 
-        $stored = $this->em->getRepository(WidgetPreference::class)->findOneBy([
-            'areaUuid' => $this->area->getUuid(),
-            'userId' => $this->ranger->getId(),
-        ]);
-        self::assertInstanceOf(WidgetPreference::class, $stored);
-        $order = $stored->getPrefs()['order'];
-        self::assertIsArray($order);
-        self::assertSame(['cal', 'kpis', 'chweek'], \array_slice($order, 0, 3));
-
         $crawler = $this->client->request('GET', $this->dashboardUrl());
-        self::assertResponseIsSuccessful();
-
-        // Chosen order first, the hidden widget gone, the chosen spans applied.
         $rendered = $crawler->filter('.patrol-wgrid > [data-w]')
-            ->each(static fn ($widget) => (string) $widget->attr('data-w'));
-        self::assertSame(['cal', 'kpis', 'chweek', 'log', 'feed', 'chstation'], $rendered);
+            ->each(static fn (Crawler $widget) => (string) $widget->attr('data-w'));
+        // Chosen order first, the hidden widget gone, the chosen spans applied.
+        self::assertSame(['cal', 'kpis', 'chweek'], \array_slice($rendered, 0, 3));
         self::assertCount(0, $crawler->filter('[data-w="map"]'));
         self::assertStringContainsString('patrol-w6', (string) $crawler->filter('[data-w="cal"]')->attr('class'));
         self::assertStringContainsString('patrol-w3', (string) $crawler->filter('[data-w="chweek"]')->attr('class'));
-
-        // The library shows the same state back: the removed widget reads "not
-        // shown" and its toggle offers to add it again.
-        $crawler = $this->client->request('GET', $this->libraryUrl());
-        self::assertSelectorTextContains('[data-patrol-widget="map"] [data-patrol-state]', 'not shown');
-        self::assertSelectorTextContains('[data-patrol-widget="map"] [data-patrol-toggle]', 'Add to dashboard');
-        self::assertSame(
-            'on',
-            $crawler->filter('[data-patrol-widget="cal"] [data-patrol-span="6"]')->attr('data-patrol-chosen'),
-        );
     }
 
-    public function testResetRestoresTheDesignDefaults(): void
+    /** Reset puts the module's own composition back. */
+    public function testResettingRestoresTheCompositionTheModuleShipsWith(): void
     {
         $this->client->loginUser($this->ranger);
-        $this->postJson($this->libraryUrl(), [
+
+        $this->client->request('POST', $this->libraryUrl().'/preset/default/copy', [
+            '_token' => $this->csrfToken(),
+        ]);
+        $this->postJson($this->saveUrl(), [
             'order' => ['cal'],
             'widgets' => ['map' => ['on' => false, 'cols' => 12]],
         ]);
         self::assertResponseStatusCodeSame(204);
 
-        $this->postReset();
-        self::assertResponseStatusCodeSame(204);
-
-        self::assertCount(0, $this->em->getRepository(WidgetPreference::class)->findAll());
+        $this->client->request('POST', $this->libraryUrl().'/reset', [
+            '_token' => $this->csrfToken(),
+        ]);
+        self::assertResponseRedirects();
 
         $crawler = $this->client->request('GET', $this->dashboardUrl());
         self::assertSame(
             self::WIDGET_IDS,
-            $crawler->filter('.patrol-wgrid > [data-w]')->each(static fn ($w) => (string) $w->attr('data-w')),
+            $crawler->filter('.patrol-wgrid > [data-w]')->each(static fn (Crawler $w) => (string) $w->attr('data-w')),
         );
     }
 
-    public function testAnUnknownWidgetIdIsRefused(): void
+    /** A design this surface does not ship is refused, not silently ignored. */
+    public function testADesignThisSurfaceDoesNotShipIsRefused(): void
     {
         $this->client->loginUser($this->ranger);
-        $this->postJson($this->libraryUrl(), [
-            'order' => [],
-            'widgets' => ['tracker' => ['on' => true, 'cols' => 6]],
+
+        $this->client->request('POST', $this->libraryUrl().'/preset/nonsense', [
+            '_token' => $this->csrfToken(),
         ]);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertCount(0, $this->em->getRepository(WidgetPreference::class)->findAll());
     }
 
-    public function testABodyThatIsNotJsonIsRefused(): void
+    /** Every widget write carries a token; without one the host's endpoint refuses. */
+    public function testAWriteWithoutATokenIsRefused(): void
     {
         $this->client->loginUser($this->ranger);
-        $token = $this->csrfToken();
-        $this->client->request(
-            'POST',
-            $this->libraryUrl(),
-            server: [
-                'CONTENT_TYPE' => 'application/json',
-                'HTTP_X_CSRF_TOKEN' => $token,
-            ],
-            content: 'not json at all',
-        );
 
-        self::assertResponseStatusCodeSame(422);
-    }
-
-    public function testSavingWithoutACsrfTokenIsRefused(): void
-    {
-        $this->client->loginUser($this->ranger);
-        $this->postJson($this->libraryUrl(), [
-            'order' => ['cal'],
-            'widgets' => ['map' => ['on' => false, 'cols' => 12]],
-        ], token: '');
+        $this->client->request('POST', $this->libraryUrl().'/reset');
 
         self::assertResponseStatusCodeSame(403);
-        self::assertCount(0, $this->em->getRepository(WidgetPreference::class)->findAll());
     }
 
-    public function testSavingWithAnotherAreasCsrfTokenIsRefused(): void
+    /** The token is scoped per area, so one area's library cannot rearrange another's. */
+    public function testAnotherAreasTokenIsRefused(): void
     {
         $other = new AreaOfInterest()->setName('other reserve')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[1.0,1.0],[1.2,1.0],[1.2,1.2],[1.0,1.2],[1.0,1.0]]]]}',
@@ -254,136 +251,32 @@ final class WidgetLibraryFlowTest extends WebTestCase
         $this->em->flush();
 
         $this->client->loginUser($this->ranger);
-        // The token is scoped per area, so one area's library cannot rearrange
-        // another's.
         $crawler = $this->client->request('GET', '/areas/'.$other->getUuid()->toRfc4122().'/modules/patrols/widgets');
-        $otherToken = (string) $crawler->filter('[data-patrol-widgets]')->attr('data-patrol-csrf-token');
+        $otherToken = (string) $crawler->filter('['.WidgetDom::CSRF_TOKEN.']')->attr(WidgetDom::CSRF_TOKEN);
 
-        $this->postJson($this->libraryUrl(), [
-            'order' => ['cal'],
-            'widgets' => [],
-        ], token: $otherToken);
+        $this->client->request('POST', $this->libraryUrl().'/reset', ['_token' => $otherToken]);
 
         self::assertResponseStatusCodeSame(403);
     }
 
-    public function testResettingWithoutACsrfTokenIsRefused(): void
+    /** The token id is the host's, scoped per surface AND per area. */
+    public function testTheTokenIsScopedToThisSurfaceAndThisArea(): void
     {
-        $this->client->loginUser($this->ranger);
-        $this->postJson($this->libraryUrl(), [
-            'order' => ['cal'],
-            'widgets' => ['map' => ['on' => false, 'cols' => 12]],
-        ]);
-        self::assertResponseStatusCodeSame(204);
-
-        $this->postReset('');
-
-        self::assertResponseStatusCodeSame(403);
-        // The layout survived the refused reset.
-        self::assertCount(1, $this->em->getRepository(WidgetPreference::class)->findAll());
-    }
-
-    public function testTheLibraryCardsCarryTheChosenSpanSoTheyComposeLikeTheDashboard(): void
-    {
-        $this->client->loginUser($this->ranger);
-        $this->postJson($this->libraryUrl(), [
-            'order' => ['chweek', 'chstation', 'map'],
-            'widgets' => [
-                'chweek' => ['on' => true, 'cols' => 6],
-                'chstation' => ['on' => true, 'cols' => 6],
-                'map' => ['on' => true, 'cols' => 9],
-            ],
-        ]);
-        self::assertResponseStatusCodeSame(204);
-
-        $crawler = $this->client->request('GET', $this->libraryUrl());
-        $dashboard = $this->client->request('GET', $this->dashboardUrl());
-
-        // The CARD carries the span — patrol.css lays .patrol-lib out on the same
-        // twelve columns as the dashboard, so the two half-width charts sit side
-        // by side in the library exactly as they do on the dashboard.
-        $librarySpans = [];
-        $libraryCards = $crawler->filter('.patrol-lib > [data-patrol-widget]');
-        $librarySpans = array_combine(
-            $libraryCards->each(static fn (Crawler $card) => (string) $card->attr('data-patrol-widget')),
-            $libraryCards->each(static fn (Crawler $card) => (string) $card->attr('data-patrol-cols')),
-        );
-        self::assertSame('6', $librarySpans['chweek']);
-        self::assertSame('6', $librarySpans['chstation']);
-        self::assertSame('9', $librarySpans['map']);
-
-        // Same widths, same order, both screens — the library IS the dashboard
-        // layout with editing chrome.
-        $dashboardWidgets = $dashboard->filter('.patrol-wgrid > [data-w]');
-        $dashboardSpans = array_combine(
-            $dashboardWidgets->each(static fn (Crawler $widget) => (string) $widget->attr('data-w')),
-            $dashboardWidgets->each(static fn (Crawler $widget) => (string) $widget->attr('class')),
-        );
-        self::assertStringContainsString('patrol-w6', $dashboardSpans['chweek']);
-        self::assertStringContainsString('patrol-w6', $dashboardSpans['chstation']);
-        self::assertStringContainsString('patrol-w9', $dashboardSpans['map']);
-        self::assertSame(array_keys($librarySpans), array_keys($dashboardSpans));
-
-        // The preview wrapper survives as the dim-when-off hook, but no longer
-        // narrows anything — the card is the width now, so nothing shrinks twice.
-        self::assertCount(
-            \count(self::WIDGET_IDS),
-            $crawler->filter('[data-patrol-widget] > [data-patrol-preview]'),
-        );
-        // The chrome is the preview's sibling, never inside it, so switching a
-        // widget off dims the widget and not the control that switches it back.
-        self::assertCount(0, $crawler->filter('[data-patrol-preview] [data-patrol-toggle]'));
-    }
-
-    public function testASwitchedOffWidgetStaysInTheLibraryAtItsSpan(): void
-    {
-        $this->client->loginUser($this->ranger);
-        $this->postJson($this->libraryUrl(), [
-            'order' => [],
-            'widgets' => ['map' => ['on' => false, 'cols' => 6]],
-        ]);
-        self::assertResponseStatusCodeSame(204);
-
-        $crawler = $this->client->request('GET', $this->libraryUrl());
-
-        // Gone from the dashboard, still here to be switched back on — in flow,
-        // at its span, dimmed by patrol.css reading data-patrol-on.
-        $card = $crawler->filter('[data-patrol-widget="map"]');
-        self::assertCount(1, $card);
-        self::assertSame('0', $card->attr('data-patrol-on'));
-        self::assertSame('6', $card->attr('data-patrol-cols'));
-        self::assertSame('Add to dashboard', trim((string) $card->filter('[data-patrol-toggle-label]')->text()));
-        self::assertCount(0, $this->client->request('GET', $this->dashboardUrl())->filter('[data-w="map"]'));
-    }
-
-    public function testAPartialOrderKeepsEveryWidgetInItsDefaultPlace(): void
-    {
-        $this->client->loginUser($this->ranger);
-        // A stale client — it knows only three of the seven widgets. The four it
-        // never mentioned must survive, ranked after the ones it did, in their
-        // catalogue order.
-        $this->postJson($this->libraryUrl(), [
-            'order' => ['cal', 'chstation'],
-            'widgets' => ['cal' => ['on' => true, 'cols' => 12]],
-        ]);
-        self::assertResponseStatusCodeSame(204);
-
-        $crawler = $this->client->request('GET', $this->dashboardUrl());
         self::assertSame(
-            ['cal', 'chstation', 'kpis', 'map', 'log', 'feed', 'chweek'],
-            $crawler->filter('.patrol-wgrid > [data-w]')->each(static fn ($w) => (string) $w->attr('data-w')),
+            'widgets_patrols_'.$this->area->getUuid()->toRfc4122(),
+            WidgetEndpoint::csrfTokenId(PatrolWidgets::SURFACE, $this->area->getUuid()),
         );
     }
 
-    public function testPreferencesAreNotReadableWithoutASignedInUser(): void
+    /** The library is one person's, so it needs one — anonymous gets nothing. */
+    public function testTheLibraryNeedsSomebodySignedIn(): void
     {
         $this->client->request('GET', $this->libraryUrl());
 
-        // A layout belongs to a person, so the controller refuses; the firewall
-        // turns that refusal for an anonymous visitor into "authenticate first".
         self::assertResponseStatusCodeSame(401);
     }
 
+    /** One person's layout is not another's. */
     public function testOnePersonsLayoutIsNotAnothers(): void
     {
         $other = new User()->setEmail('other@example.test')->setFirstName('Ben')->setLastName('Beta');
@@ -391,9 +284,12 @@ final class WidgetLibraryFlowTest extends WebTestCase
         $this->em->flush();
 
         $this->client->loginUser($this->ranger);
-        $this->postJson($this->libraryUrl(), [
-            'order' => [],
-            'widgets' => ['map' => ['on' => false, 'cols' => 12]],
+        $this->client->request('POST', $this->libraryUrl().'/preset/default/copy', [
+            '_token' => $this->csrfToken(),
+        ]);
+        $this->postJson($this->saveUrl(), [
+            'order' => ['kpis'],
+            'widgets' => ['kpis' => ['on' => true, 'cols' => 12], 'map' => ['on' => false, 'cols' => 12]],
         ]);
         self::assertResponseStatusCodeSame(204);
 
@@ -402,38 +298,132 @@ final class WidgetLibraryFlowTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-w="map"]'));
     }
 
-    /**
-     * The library's own save call: a JSON body plus the CSRF token the page
-     * rendered. Pass $token explicitly to post a wrong one (or none).
-     *
-     * @param array<string, mixed> $payload
-     */
-    private function postJson(string $url, array $payload, ?string $token = null): void
+    /** Arranging one area leaves every other area alone. */
+    public function testArrangingOneAreaLeavesAnotherUntouched(): void
     {
-        $server = ['CONTENT_TYPE' => 'application/json'];
-        $token ??= $this->csrfToken();
-        if ('' !== $token) {
-            $server['HTTP_'.str_replace('-', '_', strtoupper(PatrolWidgetsController::CSRF_HEADER))] = $token;
-        }
+        $other = new AreaOfInterest()->setName('other reserve')->setGeom(
+            '{"type":"MultiPolygon","coordinates":[[[[1.0,1.0],[1.2,1.0],[1.2,1.2],[1.0,1.2],[1.0,1.0]]]]}',
+        );
+        $this->em->persist($other);
+        $this->em->flush();
 
-        $this->client->request(
-            'POST',
-            $url,
-            server: $server,
-            content: json_encode($payload, \JSON_THROW_ON_ERROR),
+        $this->client->loginUser($this->ranger);
+        $this->client->request('POST', $this->libraryUrl().'/preset/default/copy', [
+            '_token' => $this->csrfToken(),
+        ]);
+        $this->postJson($this->saveUrl(), [
+            'order' => ['kpis'],
+            'widgets' => ['kpis' => ['on' => true, 'cols' => 12], 'map' => ['on' => false, 'cols' => 12]],
+        ]);
+        self::assertResponseStatusCodeSame(204);
+
+        $crawler = $this->client->request('GET', '/areas/'.$other->getUuid()->toRfc4122().'/modules/patrols');
+        self::assertCount(1, $crawler->filter('[data-w="map"]'));
+    }
+
+    /**
+     * The full custom-preset lifecycle through the module's routes: create from
+     * a posted composition, apply, rename, delete — every one a host endpoint
+     * this module only routes to.
+     */
+    public function testACustomPresetCanBeCreatedRenamedAndDeleted(): void
+    {
+        $this->client->loginUser($this->ranger);
+
+        // Create: the "+ New preset" canvas posts a name AND the composition.
+        $this->postJson($this->libraryUrl().'/presets', [
+            'name' => 'Night shift',
+            'order' => ['cal', 'kpis'],
+            'widgets' => [
+                'cal' => ['on' => true, 'cols' => 12],
+                'kpis' => ['on' => true, 'cols' => 12],
+                'map' => ['on' => false, 'cols' => 12],
+                'log' => ['on' => false, 'cols' => 12],
+                'feed' => ['on' => false, 'cols' => 12],
+                'chweek' => ['on' => false, 'cols' => 6],
+                'chstation' => ['on' => false, 'cols' => 6],
+            ],
+        ]);
+        self::assertResponseRedirects($this->libraryUrl());
+
+        $library = $this->client->followRedirect();
+        self::assertStringContainsString('Night shift', $library->html());
+
+        // Creating it made it active, so the dashboard now IS that composition.
+        $dashboard = $this->client->request('GET', $this->dashboardUrl());
+        self::assertSame(
+            ['cal', 'kpis'],
+            $dashboard->filter('.patrol-wgrid > [data-w]')->each(static fn (Crawler $w) => (string) $w->attr('data-w')),
+        );
+
+        // Rename it, through the uuid its card carries.
+        $uuid = $this->activePresetUuid();
+        $this->client->request('POST', $this->libraryUrl().'/presets/'.$uuid.'/rename', [
+            '_token' => $this->csrfToken(),
+            'name' => 'Quiet month',
+        ]);
+        self::assertResponseRedirects();
+        self::assertStringContainsString('Quiet month', $this->client->followRedirect()->html());
+
+        // Delete it: the dashboard falls back to the shipped composition.
+        $this->client->request('POST', $this->libraryUrl().'/presets/'.$uuid.'/delete', [
+            '_token' => $this->csrfToken(),
+        ]);
+        self::assertResponseRedirects();
+
+        $after = $this->client->request('GET', $this->dashboardUrl());
+        self::assertSame(
+            self::WIDGET_IDS,
+            $after->filter('.patrol-wgrid > [data-w]')->each(static fn (Crawler $w) => (string) $w->attr('data-w')),
         );
     }
 
-    /** The reset call, which carries the same token as a save. */
-    private function postReset(?string $token = null): void
+    /** Another person's preset answers 404 — the same answer as one that never existed. */
+    public function testAnotherPersonsPresetIsNotFound(): void
     {
-        $server = [];
-        $token ??= $this->csrfToken();
-        if ('' !== $token) {
-            $server['HTTP_X_CSRF_TOKEN'] = $token;
-        }
+        $this->client->loginUser($this->ranger);
 
-        $this->client->request('POST', $this->libraryUrl().'/reset', server: $server);
+        $this->client->request(
+            'POST',
+            $this->libraryUrl().'/presets/00000000-0000-4000-8000-000000000001/apply',
+            ['_token' => $this->csrfToken()],
+        );
+
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    /**
+     * The active custom preset's uuid, read off the library the way the script
+     * reads it: from the component's own catalogue JSON.
+     */
+    private function activePresetUuid(): string
+    {
+        $crawler = $this->client->request('GET', $this->libraryUrl());
+        $json = $crawler->filter('script['.WidgetDom::CATALOG.']')->text(normalizeWhitespace: false);
+        /** @var array{active: array{kind: string, id: string}} $catalog */
+        $catalog = json_decode($json, true, flags: \JSON_THROW_ON_ERROR);
+        self::assertSame('mine', $catalog['active']['kind'], 'The freshly created preset should be active.');
+
+        return $catalog['active']['id'];
+    }
+
+    /**
+     * The library's own save call: a JSON body plus the CSRF token the page
+     * rendered, in the header the host's script sends.
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function postJson(string $url, array $payload): void
+    {
+        $this->client->request(
+            'POST',
+            $url,
+            server: [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_'.str_replace('-', '_', strtoupper(WidgetDom::CSRF_HEADER)) => $this->csrfToken(),
+            ],
+            content: json_encode($payload, \JSON_THROW_ON_ERROR),
+        );
     }
 
     /** The token the library screen mints for this area, read the way a browser would. */
@@ -441,7 +431,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
     {
         $crawler = $this->client->request('GET', $this->libraryUrl());
 
-        return (string) $crawler->filter('[data-patrol-widgets]')->attr('data-patrol-csrf-token');
+        return (string) $crawler->filter('['.WidgetDom::CSRF_TOKEN.']')->attr(WidgetDom::CSRF_TOKEN);
     }
 
     private function dashboardUrl(): string
@@ -452,5 +442,10 @@ final class WidgetLibraryFlowTest extends WebTestCase
     private function libraryUrl(): string
     {
         return $this->dashboardUrl().'/widgets';
+    }
+
+    private function saveUrl(): string
+    {
+        return $this->libraryUrl().'/save';
     }
 }

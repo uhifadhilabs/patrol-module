@@ -1,0 +1,324 @@
+{# ============================================================================
+   THE PRESET COMPONENT — one widget library, for every surface that ships a
+   WidgetCatalog. Departments, team, a department's detail and performance tabs,
+   an area's zones, a module's dashboard: each includes THIS file with its own
+   catalogue and its own routes, and gets the whole component. There are no
+   per-surface variations of this pattern, and adding a surface means declaring a
+   catalogue and nothing else.
+
+   THE MODEL (Uhifadhi\Service\WidgetService):
+     * ONE ACTIVE PRESET. A dashboard renders exactly one — a design the surface
+       ships or one the person saved — so the strip always has exactly one card
+       wearing Active and there is no "save my layout" step.
+     * BUILT-INS ARE IMMUTABLE. The composition controls are simply not offered
+       while one is active; the toolbar offers "Make a copy to customize", and
+       the copy is what gets edited. Nothing forks behind anyone's back.
+     * EDITING A CUSTOM PRESET WRITES THROUGH to it, in place.
+     * THE CANVAS IS THE DASHBOARD — exactly the composition, never the whole
+       catalogue and never a greyed-out ghost of something switched off.
+     * ADDING IS A PICKER (templates/widgets/_picker.html.twig).
+
+   PARAMETERS — the whole contract, and nothing in here may name a surface:
+     catalog        Uhifadhi\Model\WidgetCatalog
+     builtins       list<WidgetPreset>  (catalog.builtins)
+     customPresets  list<WidgetPreset>  (WidgetService::customPresets)
+     active         {kind, id, label}   (WidgetService::activeRef)
+     widgets        the resolved layout (WidgetService::resolve)
+     partial        sprintf format for a widget's own template, e.g. 'departments/_w_%s.html.twig'
+     widgetContext  the variables every one of those partials receives
+     urls           {save, reset, preset, copy, presets, apply, rename, delete, dashboard}
+     csrfToken      WidgetEndpoint::csrfToken
+
+   WITHOUT JAVASCRIPT the page is still whole and still honest: the strips, the
+   toolbar and the canvas are rendered here, and every action is a plain form
+   post to the routes above. What the script adds is PREVIEW — re-composing the
+   canvas client-side for a preset you have not applied — and the picker's live
+   filtering. Both are enhancements over a page that already works.
+
+   Every attribute comes from Uhifadhi\Model\WidgetDom via constant(), never
+   retyped: assets/widgets.js drives the page through exactly these names, and
+   tests/Unit/WidgetLibraryAssetsTest proves both sides spell them identically.
+   ========================================================================== #}
+
+{% set DOM = {
+    root: constant('Uhifadhi\\Model\\WidgetDom::ROOT'),
+    csrfToken: constant('Uhifadhi\\Model\\WidgetDom::CSRF_TOKEN'),
+    saveUrl: constant('Uhifadhi\\Model\\WidgetDom::SAVE_URL'),
+    resetUrl: constant('Uhifadhi\\Model\\WidgetDom::RESET_URL'),
+    presetUrl: constant('Uhifadhi\\Model\\WidgetDom::PRESET_URL'),
+    presetCopyUrl: constant('Uhifadhi\\Model\\WidgetDom::PRESET_COPY_URL'),
+    presetsUrl: constant('Uhifadhi\\Model\\WidgetDom::PRESETS_URL'),
+    presetApplyUrl: constant('Uhifadhi\\Model\\WidgetDom::PRESET_APPLY_URL'),
+    presetRenameUrl: constant('Uhifadhi\\Model\\WidgetDom::PRESET_RENAME_URL'),
+    presetDeleteUrl: constant('Uhifadhi\\Model\\WidgetDom::PRESET_DELETE_URL'),
+    catalog: constant('Uhifadhi\\Model\\WidgetDom::CATALOG'),
+    template: constant('Uhifadhi\\Model\\WidgetDom::TEMPLATE'),
+    notice: constant('Uhifadhi\\Model\\WidgetDom::NOTICE'),
+    reset: constant('Uhifadhi\\Model\\WidgetDom::RESET'),
+    widget: constant('Uhifadhi\\Model\\WidgetDom::WIDGET'),
+    on: constant('Uhifadhi\\Model\\WidgetDom::ON'),
+    cols: constant('Uhifadhi\\Model\\WidgetDom::COLS'),
+    grip: constant('Uhifadhi\\Model\\WidgetDom::GRIP'),
+    toggle: constant('Uhifadhi\\Model\\WidgetDom::TOGGLE'),
+    toggleLabel: constant('Uhifadhi\\Model\\WidgetDom::TOGGLE_LABEL'),
+    span: constant('Uhifadhi\\Model\\WidgetDom::SPAN'),
+    chosen: constant('Uhifadhi\\Model\\WidgetDom::CHOSEN'),
+    preview: constant('Uhifadhi\\Model\\WidgetDom::PREVIEW'),
+} %}
+{% set nameMax = constant('Uhifadhi\\Service\\WidgetService::NAME_MAX') %}
+
+{# THE CATALOGUE, as JSON. The script previews a preset by re-composing the
+   canvas, so it needs every layout, every span and every group up front — a
+   preview that costs a round trip is a preview nobody clicks twice. Built here
+   from the very objects the markup below renders, so the two can never disagree
+   about what this surface ships. #}
+{% set jsonGroups = [] %}
+{% for group in catalog.groups %}
+    {% set jsonGroups = jsonGroups|merge([{id: group.id, label: group.label, description: group.description}]) %}
+{% endfor %}
+{% set jsonWidgets = [] %}
+{% for id in catalog.ids %}
+    {% set w = catalog.get(id) %}
+    {% set jsonWidgets = jsonWidgets|merge([{
+        id: w.id, label: w.label, group: w.group, cols: w.cols, spans: w.spans, on: w.on, note: w.note,
+    }]) %}
+{% endfor %}
+{% set jsonBuiltins = [] %}
+{% for preset in builtins %}
+    {% set jsonBuiltins = jsonBuiltins|merge([{id: preset.id, label: preset.label, description: preset.description, layout: preset.layout}]) %}
+{% endfor %}
+{% set jsonMine = [] %}
+{% for preset in customPresets %}
+    {% set jsonMine = jsonMine|merge([{id: preset.id, label: preset.label, description: preset.description, layout: preset.layout}]) %}
+{% endfor %}
+
+{# EVERY WIDGET, RENDERED ONCE. The picture of a widget IS the widget — its own
+   partial, from the same context the dashboard uses — so it can never fall out
+   of step with what actually gets added. Rendered into a map here because three
+   places want the same picture (the canvas, the cloneable template the script
+   previews from, and the picker's stage), and a catalogue of twenty widgets must
+   cost twenty renders, not sixty. #}
+{% set rendered = {} %}
+{% for id in catalog.ids %}
+    {% set rendered = rendered|merge({(id): include(partial|format(id), widgetContext, with_context: false)}) %}
+{% endfor %}
+
+{% set activeKind = active.kind %}
+{% set activeId = active.id %}
+{% set editable = activeKind == 'mine' %}
+
+<div {{ DOM.root }}
+     {{ DOM.saveUrl }}="{{ urls.save }}"
+     {{ DOM.resetUrl }}="{{ urls.reset }}"
+     {{ DOM.presetUrl }}="{{ urls.preset }}"
+     {{ DOM.presetCopyUrl }}="{{ urls.copy }}"
+     {{ DOM.presetsUrl }}="{{ urls.presets }}"
+     {{ DOM.presetApplyUrl }}="{{ urls.apply }}"
+     {{ DOM.presetRenameUrl }}="{{ urls.rename }}"
+     {{ DOM.presetDeleteUrl }}="{{ urls.delete }}"
+     {{ DOM.csrfToken }}="{{ csrfToken }}">
+
+    <script type="application/json" {{ DOM.catalog }}>{{ {
+        surface: catalog.surface,
+        defaultPreset: catalog.defaultPresetId,
+        placeholder: constant('Uhifadhi\\Model\\WidgetDom::ID_PLACEHOLDER'),
+        active: {kind: activeKind, id: activeId, label: active.label},
+        groups: jsonGroups,
+        widgets: jsonWidgets,
+        builtins: jsonBuiltins,
+        mine: jsonMine,
+    }|json_encode|raw }}</script>
+
+    {# The cloneable copies. A <template> is inert — its contents are parsed but
+       not rendered, no image inside it is fetched and no id inside it collides —
+       which is exactly what a stack of spare widget renders needs to be. #}
+    {% for id in catalog.ids %}
+        <template {{ DOM.template }}="{{ id }}">{{ rendered[id]|raw }}</template>
+    {% endfor %}
+
+    {# A refused write says so here: assets/widgets.js rolls the page back to the
+       last layout the server accepted and fills this. Rendered empty and hidden,
+       never built in JavaScript. #}
+    <p class="w-notice" {{ DOM.notice }} role="alert" hidden></p>
+
+    {# ---- THE STRIPS -----------------------------------------------------
+       The designs sit above the person's own because they answer the first
+       question ("which of these screens do you want?"); the canvas answers the
+       second ("now change this one thing"). Both strips wear ONE card grammar
+       and the active card is the only one wearing Active. #}
+    <section class="w-presets" data-presets="designs">
+        <h2 class="w-presethead">Start from a design</h2>
+        <p class="w-presetintro">The layouts this surface ships. Open one to see it whole; these are the
+            product’s own designs, so they are never edited — copy one to make it yours.</p>
+        <div class="w-presetrow">
+            {% for preset in builtins %}
+                {{ include('widgets/_preset_card.html.twig', {
+                    kind: 'design',
+                    preset: preset,
+                    active: activeKind == 'design' and activeId == preset.id,
+                }, with_context: false) }}
+            {% endfor %}
+        </div>
+
+        {# CLICKING A CARD PREVIEWS IT, and previewing is client-side — so with no
+           script a card is a card and nothing more. Rather than pretend, the page
+           offers the plain forms outright, in a <noscript> the browser only ever
+           renders when they are the only way through. Nothing to strip when the
+           script is there: the element's contents simply do not exist. #}
+        <noscript>
+            <div class="w-baracts w-noscriptacts">
+                {% for preset in builtins %}
+                    <form method="post" action="{{ urls.preset|replace({(constant('Uhifadhi\\Model\\WidgetDom::ID_PLACEHOLDER')): preset.id}) }}">
+                        <input type="hidden" name="_token" value="{{ csrfToken }}">
+                        <button type="submit" class="tgl w-presetapply">{{ ux_icon('lucide:layout-template') }}Apply “{{ preset.label }}”</button>
+                    </form>
+                {% endfor %}
+            </div>
+        </noscript>
+    </section>
+
+    <section class="w-presets" data-presets="mine">
+        <h2 class="w-presethead">My presets</h2>
+        <p class="w-presetintro">Your own layouts. Whichever one is <b>Active</b> is what your dashboard shows,
+            and editing the canvas below edits it in place — there is nothing else to save.</p>
+        <div class="w-presetrow">
+            {# THE EMPTY CANVAS. Opening it clears the canvas below; add widgets
+                 from the picker and set their widths, and this card fills as you
+                 compose. Naming happens on save, so there is no "arrange first,
+                 then hunt for the save box" step. It needs the script — with none
+                 it is a plain link to the same thing one widget at a time. #}
+            {{ include('widgets/_preset_card.html.twig', {
+                kind: 'new',
+                preset: null,
+                active: false,
+                label: '+ New preset',
+                description: 'Start from an empty canvas and compose exactly the dashboard you want.',
+                layout: {},
+                extraClass: ' w-presetnew',
+            }, with_context: false) }}
+
+            {% for preset in customPresets %}
+                {{ include('widgets/_preset_card.html.twig', {
+                    kind: 'mine',
+                    preset: preset,
+                    active: activeKind == 'mine' and activeId == preset.id,
+                }, with_context: false) }}
+            {% endfor %}
+        </div>
+
+        {# The same reasoning as the designs strip: selecting one of your own is a
+           preview, and a preview is script. These are the routes to reach one
+           without. #}
+        <noscript>
+            <div class="w-baracts w-noscriptacts">
+                {% for preset in customPresets %}
+                    <form method="post" action="{{ urls.apply|replace({(constant('Uhifadhi\\Model\\WidgetDom::ID_PLACEHOLDER')): preset.id}) }}">
+                        <input type="hidden" name="_token" value="{{ csrfToken }}">
+                        <button type="submit" class="tgl w-presetapply">{{ ux_icon('lucide:layout-template') }}Apply “{{ preset.label }}”</button>
+                    </form>
+                {% endfor %}
+            </div>
+        </noscript>
+    </section>
+
+    {# ---- THE TOOLBAR ----------------------------------------------------
+       The one stable place every action lives, whatever is selected: a quiet
+       status line, then the house pairing (one primary .cta, quiet .tgl
+       secondaries) at the house control scale. A CARD NEVER GROWS A FORM —
+       growing one would reflow the whole strip under the cursor that just
+       clicked it — so Apply, Copy, Rename, Delete and the name field all live
+       here. The script rewrites this row as the selection changes; what is
+       rendered is the row for the ACTIVE preset. #}
+    <div class="w-previewbar w-previewbar-active" role="status">
+        <span class="w-barstatus">{{ ux_icon('lucide:check') }}<span>
+            {% if editable %}
+                Your dashboard shows <b>{{ active.label }}</b>. Edits below go straight into it.
+            {% else %}
+                Your dashboard shows <b>{{ active.label }}</b>. It is one of the product’s own designs,
+                so it cannot be edited.
+            {% endif %}
+        </span></span>
+
+        {% if editable %}
+            <div class="w-baracts">
+                <form method="post" action="{{ urls.rename|replace({(constant('Uhifadhi\\Model\\WidgetDom::ID_PLACEHOLDER')): activeId}) }}" class="w-presetrename">
+                    <input type="hidden" name="_token" value="{{ csrfToken }}">
+                    <input class="w-presetnameinput" type="text" name="name" value="{{ active.label }}" required
+                           maxlength="{{ nameMax }}" aria-label="Rename this preset">
+                    <button type="submit" class="tgl w-presetrenamebtn">Rename</button>
+                </form>
+                <form method="post" action="{{ urls.delete|replace({(constant('Uhifadhi\\Model\\WidgetDom::ID_PLACEHOLDER')): activeId}) }}">
+                    <input type="hidden" name="_token" value="{{ csrfToken }}">
+                    <button type="submit" class="tgl w-presetdel"
+                            {{ stimulus_controller('confirm-modal') }}
+                            data-action="click->confirm-modal#ask"
+                            data-confirm-modal-title-value="Delete “{{ active.label }}”?"
+                            data-confirm-modal-message-value="This saved layout is thrown away, and your dashboard goes back to the design this surface ships with. This cannot be undone."
+                            data-confirm-modal-confirm-label-value="Delete preset"
+                            data-confirm-modal-danger-value="true">{{ ux_icon('lucide:trash-2') }}Delete</button>
+                </form>
+            </div>
+        {% else %}
+            <div class="w-baracts">
+                {# The ONLY way a shipped design ever changes: you take a copy and
+                   edit that. #}
+                <form method="post" action="{{ urls.copy|replace({(constant('Uhifadhi\\Model\\WidgetDom::ID_PLACEHOLDER')): activeId}) }}">
+                    <input type="hidden" name="_token" value="{{ csrfToken }}">
+                    <button type="submit" class="cta" data-preset-copy>{{ ux_icon('lucide:copy') }}Make a copy to customize</button>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+
+    {# ---- THE CANVAS -----------------------------------------------------
+       THE CANVAS IS THE DASHBOARD: exactly the widgets in the composition, at
+       the widths they will have, in the order they will be in. Never the whole
+       catalogue, never a greyed-out ghost of something switched off — what a
+       preset does not name is ABSENT, because that is what absent means.
+
+       It is editable only where editing is allowed. A built-in's canvas carries
+       no grip, no width chips, no × and no Add tile; the toolbar above offers
+       the copy instead. #}
+    <div class="w-body">
+        <div class="w-canvashead">
+            <h2 class="w-sectionhead">{{ active.label }}</h2>
+            <p class="w-sectionsub">
+                {% if editable %}
+                    Every widget here is the real thing at full size, in the order and at the width the
+                    dashboard will use. Drag by the grip to reorder, use the width chips to resize,
+                    × to take one off.
+                {% else %}
+                    Every widget here is the real thing at full size — exactly the dashboard this preset
+                    produces.
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="w-canvas">
+            {% set shown = 0 %}
+            {% for widget in widgets|filter(w => w.on) %}
+                {% set shown = shown + 1 %}
+                {{ include('widgets/_canvas_card.html.twig', {
+                    widget: widget,
+                    group: catalog.groups|filter(g => g.id == widget.group)|first,
+                    editable: editable,
+                    body: rendered[widget.id],
+                }, with_context: false) }}
+            {% endfor %}
+            {% if shown == 0 %}
+                <p class="w-canvasempty">Nothing on this canvas yet — add a widget to start composing.</p>
+            {% endif %}
+        </div>
+
+        {% if editable %}
+            {# The dashed ghost add-tile, the platform's one add affordance. #}
+            <button type="button" class="w-addtile w-addwidget" data-picker-open>{{ ux_icon('lucide:plus') }}<span>Add widget</span></button>
+        {% endif %}
+    </div>
+
+    {{ include('widgets/_picker.html.twig', {
+        catalog: catalog,
+        widgets: widgets,
+        rendered: rendered,
+    }, with_context: false) }}
+</div>

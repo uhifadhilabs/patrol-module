@@ -24,8 +24,13 @@ use Symfony\Bundle\TwigBundle\TwigBundle;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
+use Symfony\UX\Icons\UXIconsBundle;
 use Symfony\UX\StimulusBundle\StimulusBundle;
 use Uhifadhi\Entity\User;
+use Uhifadhi\Repository\WidgetCustomPresetRepository;
+use Uhifadhi\Repository\WidgetPreferenceRepository;
+use Uhifadhi\Service\WidgetEndpoint;
+use Uhifadhi\Service\WidgetService;
 use UhifadhiLabs\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 use UhifadhiLabs\Patrol\Tests\Integration\Fixtures\HeaderUserAuthenticator;
 use UhifadhiLabs\Patrol\UhifadhiLabsPatrolBundle;
@@ -49,6 +54,7 @@ final class TestKernel extends Kernel
         yield new FrameworkBundle();
         yield new TwigBundle();
         yield new StimulusBundle();
+        yield new UXIconsBundle();
         yield new DoctrineBundle();
         yield new FundiStadiPostGISBundle();
         yield new SecurityBundle();
@@ -129,6 +135,10 @@ final class TestKernel extends Kernel
             // Map the dev-only Uhifadhi\Entity stubs (User, Position, AreaOfInterest)
             // so the Patrol relations resolve standalone (the real ones inside uhifadhi).
             'orm' => [
+                // The host's own choice (config/packages/doctrine.yaml), mirrored
+                // here so the bundle's metadata-driven SQL is exercised against
+                // the column names it will actually meet.
+                'naming_strategy' => 'doctrine.orm.naming_strategy.underscore',
                 'mappings' => [
                     'UhifadhiHostStubs' => [
                         'type' => 'attribute',
@@ -143,6 +153,39 @@ final class TestKernel extends Kernel
         // Any uhifadhi instance provides layout.html.twig; tests stub it.
         $container->extension('twig', [
             'paths' => [\dirname(__DIR__).'/Integration/Fixtures/templates'],
+        ]);
+
+        // A real host vendors its icon set (bin/console ux:icons:import). These
+        // tests are about the module's markup, not about which glyph an icon
+        // resolves to, so a missing one renders as nothing rather than failing
+        // the page — and the assertions never depend on an icon being there.
+        $container->extension('ux_icons', [
+            'icon_dir' => __DIR__.'/Fixtures/icons',
+            'ignore_not_found' => true,
+        ]);
+
+        /*
+         * THE HOST'S WIDGET FRAMEWORK, registered the way the host registers it.
+         * The patrols surface rides this rather than shipping a copy, so the
+         * tests have to exercise the real thing — a library that only worked
+         * against a stand-in would be a library nobody has proved works. (The
+         * storage bundle's Files hub controller reads the same framework, so
+         * the container needs it compiled here either way.)
+         */
+        $services = $container->services();
+        $services->set(WidgetPreferenceRepository::class)
+            ->args([service('doctrine')])->tag('doctrine.repository_service');
+        $services->set(WidgetCustomPresetRepository::class)
+            ->args([service('doctrine')])->tag('doctrine.repository_service');
+        $services->set(WidgetService::class)->args([
+            service(WidgetPreferenceRepository::class),
+            service(WidgetCustomPresetRepository::class),
+            service('doctrine.orm.entity_manager'),
+        ]);
+        $services->set(WidgetEndpoint::class)->args([
+            service(WidgetService::class),
+            service('security.token_storage'),
+            service('security.csrf.token_manager'),
         ]);
 
         // Public aliases so tests can fetch the bundle's private services, keyed

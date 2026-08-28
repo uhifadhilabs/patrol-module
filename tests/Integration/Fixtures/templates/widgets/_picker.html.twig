@@ -1,0 +1,103 @@
+{# THE ADD-WIDGET PICKER — a preview BROWSER, not a list of names.
+
+   Names alone cannot answer "which widget do I want", so every entry gets the
+   same two-part stage: the widget itself, RENDERED — its own real markup, laid
+   out at dashboard width and scaled to fit a uniform letterboxed stage — above a
+   details bar with its name, its group, its line and the one control. One
+   pattern for all of them, so scrolling reads as a gallery rather than a dump.
+
+   A widget the catalogue gives a full row to gets a full-width stage; a
+   half-width one pairs two-up. That is the catalogue's own statement about the
+   widget's shape, reused rather than guessed.
+
+   Rendered in the page and hidden — never built at click time, so there is no
+   frame in which half of it exists. assets/widgets.js moves it to <body> on
+   arming: .page is a stacking context, and a dialog rendered inside one can
+   never rise above the sidebar however high its z-index goes.
+
+   Manners are the host's confirm modal's: a scrim, Escape and the backdrop
+   close it, focus goes to the search on open and back to the tile on close.
+
+   Parameters: catalog, widgets (the resolved layout — an entry already on the
+   canvas says so instead of offering Add), rendered (widget id => its markup). #}
+
+{% set inLayout = [] %}
+{% for widget in widgets|filter(w => w.on) %}
+    {% set inLayout = inLayout|merge([widget.id]) %}
+{% endfor %}
+
+<div class="w-modal" data-picker hidden>
+    <div class="w-modalback" data-picker-close></div>
+    <div class="w-modalbox" role="dialog" aria-modal="true" aria-label="Add a widget">
+        <div class="w-modalhead">
+            <h2 class="w-modaltitle">Add a widget</h2>
+            <input type="search" class="fld w-picksearch" data-pick-search
+                   placeholder="Search widgets" aria-label="Search widgets">
+            <button type="button" class="tb-icon" data-picker-close aria-label="Close">{{ ux_icon('lucide:x') }}</button>
+        </div>
+        <div class="w-modalbody">
+            {# The rail. A side list, not tabs across the top: it keeps its shape
+               when a catalogue grows past the width a tab row can hold. #}
+            <nav class="w-pickrail" data-pick-rail aria-label="Widget groups">
+                <button type="button" class="w-picktab on" data-pick-tab="">All widgets<span class="w-picktabn">{{ catalog.ids|length }}</span></button>
+                {% for group in catalog.groups %}
+                    {% set members = [] %}
+                    {% for id in catalog.ids|filter(i => catalog.get(i).group == group.id) %}
+                        {% set members = members|merge([id]) %}
+                    {% endfor %}
+                    {% if members|length %}
+                        <button type="button" class="w-picktab" data-pick-tab="{{ group.id }}">{{ group.label }}<span class="w-picktabn">{{ members|length }}</span></button>
+                    {% endif %}
+                {% endfor %}
+            </nav>
+
+            <div class="w-pickscroll">
+                {% for group in catalog.groups %}
+                    {% set members = [] %}
+                    {% for id in catalog.ids|filter(i => catalog.get(i).group == group.id) %}
+                        {% set members = members|merge([id]) %}
+                    {% endfor %}
+                    {% if members|length %}
+                        <section class="w-pickgroupbox" data-pick-group="{{ group.id }}">
+                            <div class="w-pickgrouphd">
+                                <h3 class="w-pickgrouphead">{{ group.label }}</h3>
+                                <p class="w-pickgroupsub">{{ group.description }}</p>
+                            </div>
+                            <div class="w-pickgrid">
+                                {% for id in members %}
+                                    {% set w = catalog.get(id) %}
+                                    <figure class="w-pickrow{{ w.cols >= 9 ? ' w-pickrow-wide' }}"
+                                            data-pick-name="{{ (w.label ~ ' ' ~ group.label)|lower }}">
+                                        {# THE STAGE: uniform height for every entry, the render
+                                           letterboxed inside it — centred, never stretched. The
+                                           width it is laid out at is stated once, in widgets.js,
+                                           which measures against it to compute the scale. #}
+                                        <div class="w-pickstage" aria-hidden="true">
+                                            <div class="w-pickscale">{{ rendered[id]|raw }}</div>
+                                        </div>
+                                        <figcaption class="w-pickmeta">
+                                            <span class="w-pickhead">
+                                                <span class="w-pickname">{{ w.label }}</span>
+                                                <span class="chip idle w-pickgroup">{{ group.label }}</span>
+                                            </span>
+                                            {% if w.note %}<p class="w-pickone">{{ w.note }}</p>{% endif %}
+                                            {% if id in inLayout %}
+                                                {# data-pick-for, not data-pick-add: it names the widget without
+                                                   offering to add it, so assets/widgets.js can turn it back into
+                                                   an Add button when the composition stops holding it. #}
+                                                <span class="w-pickadded" data-pick-for="{{ id }}">{{ ux_icon('lucide:check') }}In this layout</span>
+                                            {% else %}
+                                                <button type="button" class="cta w-pickadd" data-pick-add="{{ id }}">{{ ux_icon('lucide:plus') }}Add</button>
+                                            {% endif %}
+                                        </figcaption>
+                                    </figure>
+                                {% endfor %}
+                            </div>
+                        </section>
+                    {% endif %}
+                {% endfor %}
+                <p class="w-pickempty" data-pick-empty hidden>No widget matches that.</p>
+            </div>
+        </div>
+    </div>
+</div>

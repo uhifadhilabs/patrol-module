@@ -21,10 +21,11 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 use Twig\Environment;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
+use Uhifadhi\Service\WidgetService;
 use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
+use UhifadhiLabs\Patrol\Model\PatrolWidgets;
 use UhifadhiLabs\Patrol\Repository\PatrolRepository;
 use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
-use UhifadhiLabs\Patrol\Service\PatrolWidgetService;
 
 /**
  * The patrols widget dashboard for one area: KPIs, the coverage map, the patrol
@@ -55,7 +56,7 @@ final class PatrolController
         private readonly Environment $twig,
         private readonly PatrolRepository $patrols,
         private readonly PatrolDashboardService $dashboard,
-        private readonly PatrolWidgetService $widgets,
+        private readonly WidgetService $widgets,
         private readonly array $types,
         private readonly bool $recordScreens = false,
         private readonly bool $widgetScreens = false,
@@ -96,8 +97,9 @@ final class PatrolController
             'retentionDays' => $this->retentionDays,
             'widgetScreens' => $this->widgetScreens,
             // Which widgets this person keeps, how wide, in what order — the
-            // design's own layout until they change it in the widget library.
-            'widgets' => $this->widgets->resolve($area->getUuid(), $this->userId()),
+            // HOST's widget framework resolving this surface's catalogue: the
+            // shipped composition until they change it in the widget library.
+            'widgets' => $this->widgets->resolve(PatrolWidgets::catalog(), $this->userId(), $area->getUuid()),
             'dashboard' => $dashboard,
             // What the coverage map draws — boundary + every recorded track.
             'coveragePayload' => $this->dashboard->coveragePayload($area->getGeom(), $dashboard, $this->types),

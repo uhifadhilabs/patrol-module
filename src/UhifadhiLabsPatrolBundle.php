@@ -18,6 +18,8 @@ use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
+use Uhifadhi\Service\WidgetEndpoint;
+use Uhifadhi\Service\WidgetService;
 use UhifadhiLabs\Patrol\Api\PatrolApiContext;
 use UhifadhiLabs\Patrol\Api\State\AppendEventsProcessor;
 use UhifadhiLabs\Patrol\Api\State\AppendFlightsProcessor;
@@ -29,9 +31,9 @@ use UhifadhiLabs\Patrol\Api\State\UploadPhotoProcessor;
 use UhifadhiLabs\Patrol\Command\BackfillPhotoThumbsCommand;
 use UhifadhiLabs\Patrol\Command\PurgeDiscardedCommand;
 use UhifadhiLabs\Patrol\Command\SeedDemoCommand;
+use UhifadhiLabs\Patrol\Controller\ObservationAmendmentController;
 use UhifadhiLabs\Patrol\Controller\PatrolHoldController;
 use UhifadhiLabs\Patrol\Controller\PatrolRecordController;
-use UhifadhiLabs\Patrol\Controller\ObservationAmendmentController;
 use UhifadhiLabs\Patrol\Controller\PatrolWidgetsController;
 use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
 use UhifadhiLabs\Patrol\Module\PatrolDepartmentKpiProvider;
@@ -240,15 +242,17 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
             $services->set('patrol.controller.widgets', PatrolWidgetsController::class)
                 ->args([
                     service('twig'),
+                    service('router'),
                     service(PatrolRepository::class),
                     service('patrol.dashboard'),
-                    service('patrol.widget_service'),
-                    service('security.token_storage'),
-                    // Both writes are state-changing and reachable by a signed-in
-                    // browser, so both carry a CSRF token. FrameworkBundle defines
-                    // this id whenever symfony/security-csrf is installed, which a
-                    // host running SecurityBundle already has.
-                    service('security.csrf.token_manager'),
+                    // The HOST's widget framework, by its own service ids: the
+                    // module ships a catalogue (PatrolWidgets), never a copy of
+                    // the algebra that resolves it — and the host's endpoint
+                    // service answers every widget write, so this module
+                    // validates no token and chooses no status code.
+                    service(WidgetService::class),
+                    service('patrol.widget_urls'),
+                    service(WidgetEndpoint::class),
                     param('patrol.types'),
                     param('patrol.discard_retention_days'),
                 ])
@@ -284,10 +288,6 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
                 ])
                 ->public();
             $services->alias(PatrolHoldController::class, 'patrol.controller.hold')->public();
-        }
-
-        /*
-         * The FIELD-SYNC API (API-CONTRACT.md) — the mobile app's endpoints.
 
             // Appending a correction to an observation (PL·06–PL·09). Under the
             // same guard, and for a sharper version of the same reason: an
@@ -308,6 +308,10 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
                 ])
                 ->public();
             $services->alias(ObservationAmendmentController::class, 'patrol.controller.observation_amend')->public();
+        }
+
+        /*
+         * The FIELD-SYNC API (API-CONTRACT.md) — the mobile app's endpoints.
          *
          * Registered only where the host actually runs api-platform AND
          * security, and for the same reason the recording screens are: these

@@ -1,0 +1,63 @@
+{# ONE WIDGET ON THE CANVAS: the real thing at full size, at the width and in the
+   place the dashboard will give it, with the editing chrome the state allows.
+
+   Everything on the canvas is ON — the canvas holds exactly the composition — so
+   there is no state chip to caption and no switched-off ghost to dim. × takes
+   the widget OFF this layout and out of the canvas entirely.
+
+   A BUILT-IN'S CANVAS IS A PICTURE: `editable` false draws no grip, no width
+   chips and no ×, because the designs the product ships are immutable and the
+   toolbar offers "Make a copy to customize" instead. Offering the control and
+   then forking behind someone's back would be worse than not offering it.
+
+   Parameters: widget (one entry of WidgetService::resolve), group (WidgetGroup
+   or null), editable, body (the widget's own rendered partial).
+
+   draggable="false" until the grip is pressed: a card that is always draggable
+   makes its own text unselectable. #}
+
+{% set DOM = {
+    widget: constant('Uhifadhi\\Model\\WidgetDom::WIDGET'),
+    on: constant('Uhifadhi\\Model\\WidgetDom::ON'),
+    cols: constant('Uhifadhi\\Model\\WidgetDom::COLS'),
+    grip: constant('Uhifadhi\\Model\\WidgetDom::GRIP'),
+    toggle: constant('Uhifadhi\\Model\\WidgetDom::TOGGLE'),
+    toggleLabel: constant('Uhifadhi\\Model\\WidgetDom::TOGGLE_LABEL'),
+    span: constant('Uhifadhi\\Model\\WidgetDom::SPAN'),
+    chosen: constant('Uhifadhi\\Model\\WidgetDom::CHOSEN'),
+    preview: constant('Uhifadhi\\Model\\WidgetDom::PREVIEW'),
+} %}
+{# The width chips read as fractions of the row, not as column counts. #}
+{% set spanLabels = {12: '1', 9: '¾', 6: '½', 3: '¼'} %}
+
+<div class="w-card{{ editable ? '' : ' w-card-read' }}" draggable="false"
+     {{ DOM.widget }}="{{ widget.id }}" {{ DOM.on }}="1" {{ DOM.cols }}="{{ widget.cols }}">
+    <div class="w-head">
+        {% if editable %}
+            <b class="w-grip" {{ DOM.grip }} title="Drag to set the widget’s place on the dashboard">{{ ux_icon('lucide:grip-vertical') }}</b>
+        {% endif %}
+        <span class="w-name">{{ widget.label }}</span>
+        {% if group is not null %}
+            {# The group a widget belongs to is the catalogue's statement, so the
+               card wears it rather than being filed under a heading that would
+               fight the person's own order. #}
+            <span class="chip idle w-cardgroup">{{ group.label }}</span>
+        {% endif %}
+        {% if editable %}
+            <span class="w-chips">
+                <span class="w-chiplabel">width</span>
+                {% for span in widget.spans %}
+                    <button type="button" class="mchip w-widthchip{{ widget.cols == span ? ' on' }}"
+                            {{ DOM.span }}="{{ span }}"
+                            {{ DOM.chosen }}="{{ widget.cols == span ? 'on' : 'off' }}">{{ spanLabels[span] }}</button>
+                {% endfor %}
+            </span>
+            <button type="button" class="tgl w-tgl w-remove" {{ DOM.toggle }} title="Remove from this layout">
+                {{ ux_icon('lucide:x') }}<span {{ DOM.toggleLabel }}>Remove</span>
+            </button>
+        {% endif %}
+    </div>
+    {# The CARD carries the width, so this wrapper is full-bleed inside it and
+       never shrinks the widget a second time. #}
+    <div class="w-preview" {{ DOM.preview }}>{{ body|raw }}</div>
+</div>

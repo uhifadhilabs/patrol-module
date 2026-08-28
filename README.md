@@ -30,6 +30,16 @@ A [uhifadhi](https://github.com/uhifadhilabs) module bundle.
 - **Coverage** — every track drawn over the area boundary; the dashboard is a
   per-user widget composition (KPIs, map, log, feed, charts, calendar).
 
+**Dashboard surfaces ride the host's widget framework.** The module's dashboard
+is composed on the HOST's `WidgetService` / `WidgetCatalog` preset component —
+the same technique behind the host's departments, team, zones and incidents
+surfaces — rather than a second widget implementation inside this bundle. This
+module ships a catalogue (`PatrolWidgets`) and seven Twig partials; it ships no
+widget mechanics at all. The host must therefore provide the widget framework
+(`Uhifadhi\Service\{WidgetService,WidgetEndpoint}`, the widget entities and
+`templates/widgets/_library.html.twig` with its `uhifadhi/widgets` script) and
+symfony/ux-icons with the `lucide` set imported.
+
 ## Installation
 
 ```bash
