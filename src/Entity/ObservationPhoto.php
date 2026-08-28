@@ -84,6 +84,44 @@ class ObservationPhoto
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $takenAt = null;
 
+    /**
+     * WHERE THE SHUTTER FIRED, as GeoJSON Point text (§8) — its OWN place, not
+     * the observation's.
+     *
+     * They are genuinely different facts and the difference is the reason this
+     * column exists: a ranger stands where it is safe to stand and photographs
+     * what is over there, and a photograph filed under an observation two
+     * kilometres away is evidence of something at neither place unless it says
+     * where it was taken.
+     *
+     * NULLABLE, and null means NO FIX — never 0,0, which is a real place in the
+     * Gulf of Guinea and would put every unpositioned photograph on the same
+     * island. The phone omits the parts entirely rather than zeroing them.
+     */
+    #[ORM\Column(type: 'point', nullable: true)]
+    private ?string $position = null;
+
+    /**
+     * How good that fix was, in metres. Meaningless without {@see $position},
+     * and refused at the door in that state rather than stored as a number
+     * about nothing.
+     */
+    #[ORM\Column(nullable: true)]
+    private ?float $accuracyM = null;
+
+    /**
+     * TRUE where this photograph arrived on a web AMENDMENT rather than off the
+     * handset.
+     *
+     * Two sets of photographs with different provenance live in this one table,
+     * and the difference matters twice over: PL·05 shows only what the field
+     * took, and §9's completeness check counts only what the phone promised. A
+     * default of FALSE is right for every row written before amendments existed
+     * — all of them came from a handset.
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $fromAmendment = false;
+
     public function __construct(Observation $observation, Uuid $clientUuid, string $storagePath)
     {
         $this->observation = $observation;
@@ -166,6 +204,61 @@ class ObservationPhoto
     public function setTakenAt(?\DateTimeImmutable $takenAt): static
     {
         $this->takenAt = $takenAt;
+
+        return $this;
+    }
+
+    public function getPosition(): ?string
+    {
+        return $this->position;
+    }
+
+    public function setPosition(?string $position): static
+    {
+        $this->position = $position;
+
+        return $this;
+    }
+
+    public function getAccuracyM(): ?float
+    {
+        return $this->accuracyM;
+    }
+
+    public function setAccuracyM(?float $accuracyM): static
+    {
+        $this->accuracyM = $accuracyM;
+
+        return $this;
+    }
+
+    /** Whether this photograph knows where it was taken. */
+    public function hasPosition(): bool
+    {
+        return null !== $this->position && '' !== $this->position;
+    }
+
+    /**
+     * Whether this photograph came in on a web AMENDMENT rather than off the
+     * handset.
+     *
+     * The flag lives here, on the photograph, rather than being inferred by
+     * asking every amendment what it holds: PL·05 draws the field photographs
+     * and needs to exclude these in one pass, and §9's completeness check needs
+     * the same answer for a different reason. One fact, one place.
+     */
+    public function isAmendmentAttachment(): bool
+    {
+        return $this->fromAmendment;
+    }
+
+    /**
+     * Marked once, when the amendment that carries it is assembled. There is no
+     * unmarking: a photograph does not become a field photograph later.
+     */
+    public function markAsAmendmentAttachment(): static
+    {
+        $this->fromAmendment = true;
 
         return $this;
     }

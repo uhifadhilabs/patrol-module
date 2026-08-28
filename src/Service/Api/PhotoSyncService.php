@@ -54,19 +54,32 @@ final class PhotoSyncService
     }
 
     /**
+     * @param string|null $position  where the shutter fired, as GeoJSON Point text (§8); null is NO FIX — never 0,0
+     * @param float|null  $accuracyM how good that fix was, in metres; only ever passed alongside a position
+     *
      * @return array{0: ObservationPhoto, 1: bool} [photo, wasAlreadyHeld]
      *
      * @throws PatrolApiException
      */
-    public function store(Observation $observation, Uuid $clientUuid, UploadedFile $file, ?\DateTimeImmutable $takenAt): array
-    {
+    public function store(
+        Observation $observation,
+        Uuid $clientUuid,
+        UploadedFile $file,
+        ?\DateTimeImmutable $takenAt,
+        ?string $position = null,
+        ?float $accuracyM = null,
+    ): array {
         if (!$observation->getPatrol()->acceptsFieldUploads()) {
             throw PatrolApiException::patrolImmutable((string) $observation->getPatrol()->getClientUuid()?->toRfc4122());
         }
 
         $existing = $this->photos->findOneByClientUuid($clientUuid);
         if ($existing instanceof ObservationPhoto) {
-            // Already here. The bytes are not written again and nothing changes.
+            // Already here. The bytes are not written again and nothing changes
+            // — INCLUDING the position. Idempotent means the second call changes
+            // nothing at all, not "nothing except the fields that came with it";
+            // a retry that rewrote where a photograph was taken would let a
+            // dropped connection quietly move evidence.
             return [$existing, true];
         }
 
@@ -97,7 +110,9 @@ final class PhotoSyncService
             // Null where nothing on this machine could decode the source. Stored
             // as null rather than as a key pointing at a file that is not there.
             ->setThumbKey($stored->thumbKey)
-            ->setTakenAt($takenAt);
+            ->setTakenAt($takenAt)
+            ->setPosition($position)
+            ->setAccuracyM($accuracyM);
 
         $this->entityManager->persist($photo);
         $this->entityManager->flush();
