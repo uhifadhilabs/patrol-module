@@ -113,10 +113,14 @@ final class PatrolRepository extends ServiceEntityRepository
      * PL·03 — the SHARE of the area's surface lying within $bufferMetres of any
      * track recorded in a half-open window, as a fraction of 1 (0.63 = 63 %).
      *
-     * DISCARDED patrols are absent from the numerator: a discard says the effort
-     * did not happen as recorded, so buffering its track would report ground
-     * nobody walked. The denominator is untouched — it is the area's whole
-     * surface either way.
+     * ONLY COMPLETE patrols reach the numerator, which is
+     * {@see PatrolStatusEnum::countsTowardsStatistics()}
+     * written in SQL. A DISCARDED patrol is out because a discard says the
+     * effort did not happen as recorded, so buffering its track would report
+     * ground nobody walked; a RECORDING one is out because its track has not
+     * finished arriving, and buffering half a line reports ground nobody has
+     * finished walking. The denominator is untouched by either — it is the
+     * area's whole surface regardless of who walked what.
      *
      * One PostGIS statement, because the answer is a set operation over the
      * whole month's geometry and nothing smaller is meaningful: buffer every
@@ -156,7 +160,7 @@ final class PatrolRepository extends ServiceEntityRepository
                 WHERE a.%s = :area
                   AND a.%s IS NOT NULL
                   AND p.%s IS NOT NULL
-                  AND p.%s <> :discarded
+                  AND p.%s = :counted
                   AND p.%s >= :from
                   AND p.%s < :until
                 GROUP BY a.%s, a.%s
@@ -181,13 +185,13 @@ final class PatrolRepository extends ServiceEntityRepository
         $fraction = $this->getEntityManager()->getConnection()->fetchOne($sql, [
             'buffer' => $bufferMetres,
             'area' => $area->getId(),
-            'discarded' => PatrolStatusEnum::Discarded->value,
+            'counted' => PatrolStatusEnum::Complete->value,
             'from' => $from,
             'until' => $until,
         ], [
             'buffer' => Types::FLOAT,
             'area' => Types::INTEGER,
-            'discarded' => Types::STRING,
+            'counted' => Types::STRING,
             // Bound as Doctrine types, not as pre-formatted strings, so the
             // window is written exactly the way the ORM wrote started_at.
             'from' => Types::DATETIME_IMMUTABLE,
@@ -205,8 +209,9 @@ final class PatrolRepository extends ServiceEntityRepository
      * track in GEOGRAPHY so the distance is metres on the spheroid, union the
      * buffers so overlapping patrols are not counted twice, clip the union to
      * the boundary, divide the two geodesic areas — over a strictly smaller set
-     * of tracks, and with DISCARDED patrols absent for the same reason they are
-     * absent from the area-wide figure. Nothing about the AREA changes: the denominator is the whole
+     * of tracks, and with DISCARDED and still-RECORDING patrols absent for the
+     * same reasons they are absent from the area-wide figure.
+     * Nothing about the AREA changes: the denominator is the whole
      * boundary, because the question is "how much of this place did they walk",
      * not "how much of their own patrolling was inside it". So a department's
      * figure is always ≤ the area's, and two departments walking different
@@ -280,7 +285,7 @@ final class PatrolRepository extends ServiceEntityRepository
                       AND pos.%s = :department
                       AND a.%s IS NOT NULL
                       AND p.%s IS NOT NULL
-                      AND p.%s <> :discarded
+                      AND p.%s = :counted
                       AND p.%s >= :from
                       AND p.%s < :until
                     GROUP BY a.%s, a.%s
@@ -317,14 +322,14 @@ final class PatrolRepository extends ServiceEntityRepository
             'buffer' => $bufferMetres,
             'area' => $area?->getId(),
             'department' => $departmentId,
-            'discarded' => PatrolStatusEnum::Discarded->value,
+            'counted' => PatrolStatusEnum::Complete->value,
             'from' => $from,
             'until' => $until,
         ], [
             'buffer' => Types::FLOAT,
             'area' => Types::INTEGER,
             'department' => Types::INTEGER,
-            'discarded' => Types::STRING,
+            'counted' => Types::STRING,
             // Bound as Doctrine types, not as pre-formatted strings, so the
             // window is written exactly the way the ORM wrote started_at.
             'from' => Types::DATETIME_IMMUTABLE,

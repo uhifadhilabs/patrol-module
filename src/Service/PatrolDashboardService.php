@@ -135,11 +135,14 @@ final class PatrolDashboardService
         $stations = [];
         foreach ($dashboard->patrols as $patrol) {
             $track = $patrol->getTrack();
-            // A DISCARDED patrol is not drawn here. This payload is what the
+            // Only a COMPLETE patrol is drawn here. This payload is what the
             // coverage map (PL·05) and the tracks plate (PL·08) render, and a
             // line on a coverage map is read as ground covered — which is
-            // exactly what a discard withdraws. It stays in the lists beside
-            // the map; it is simply not part of the picture of coverage.
+            // exactly what a discard withdraws, and exactly what a track still
+            // arriving has not established yet. A discard stays in the lists
+            // beside the map, simply not in the picture of coverage; a
+            // recording patrol reaches neither, having never got past
+            // isPresentable() in build().
             if (null === $track || '' === $track || !$patrol->getStatus()->countsTowardsStatistics()) {
                 continue;
             }
@@ -208,12 +211,23 @@ final class PatrolDashboardService
         $stationCounts = [];
         $lastPatrol = null;
 
-        // The counted set. `$patrols` itself is handed to the dashboard intact —
-        // the log and the feed still list every patrol — but nothing below this
-        // line may see a discarded one, so the filter happens ONCE here rather
+        // TWO SETS, and the difference between them is the whole status model.
+        //
+        // The PRESENTED set is what the log, the feed and the calendar draw:
+        // every patrol whose recording has finished, which includes a discarded
+        // one (shown subdued — see the discard design) and excludes one that is
+        // still arriving. A caller hands us whatever the repository found; the
+        // decision about what may be drawn is made here, once.
+        $presented = array_values(array_filter(
+            $patrols,
+            static fn (Patrol $patrol): bool => $patrol->getStatus()->isPresentable(),
+        ));
+
+        // The COUNTED set is stricter again: nothing below this line may see a
+        // discarded patrol or a half-arrived one. The filter happens ONCE rather
         // than as a condition repeated in six tallies where one could be missed.
         $counted = array_values(array_filter(
-            $patrols,
+            $presented,
             static fn (Patrol $patrol): bool => $patrol->getStatus()->countsTowardsStatistics(),
         ));
 
@@ -245,7 +259,7 @@ final class PatrolDashboardService
         }
 
         return new PatrolDashboard(
-            patrols: $patrols,
+            patrols: $presented,
             monthCount: $monthCount,
             monthDistanceKm: $monthDistanceKm,
             monthTypeCounts: $monthTypeCounts,
@@ -258,7 +272,7 @@ final class PatrolDashboardService
             stations: array_column($stationSeries, 'station'),
             // The dashboard opens on the CURRENT month; ‹ › then fetches any
             // other month through the same method (PatrolCalendarController).
-            calendar: $this->calendarFor($patrols, $now, $now),
+            calendar: $this->calendarFor($presented, $now, $now),
         );
     }
 
@@ -339,6 +353,14 @@ final class PatrolDashboardService
         /** @var array<string, list<Patrol>> $byDay */
         $byDay = [];
         foreach ($patrols as $patrol) {
+            // Filtered HERE as well as in build(), because the calendar has a
+            // SECOND door: PatrolCalendarController fetches any other month
+            // straight from the repository and renders the same grid. A rule
+            // enforced only on the dashboard's path would hold in august and
+            // quietly fail the moment somebody clicked ‹.
+            if (!$patrol->getStatus()->isPresentable()) {
+                continue;
+            }
             $started = $patrol->getStartedAt();
             if (null !== $started) {
                 $byDay[$started->format('Y-m-d')][] = $patrol;

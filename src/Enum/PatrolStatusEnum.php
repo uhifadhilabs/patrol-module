@@ -52,10 +52,28 @@ enum PatrolStatusEnum: string
         };
     }
 
-    /** Whether the module may present this patrol as a finished record. */
+    /**
+     * Whether the module may DRAW this patrol at all — on the map, in the log,
+     * in the feed, on the calendar.
+     *
+     * FALSE for exactly one status: `Recording`. Its parts are still arriving,
+     * so every field a surface would print is provisional — a distance that
+     * will grow, a track that stops in the middle of nowhere, an end time that
+     * has not happened. Drawing it is not "showing work in progress", it is
+     * publishing a half-uploaded record as a finished one.
+     *
+     * TRUE for a discarded patrol, which is not a contradiction: a discard is a
+     * CLOSED recording, and the settled discard design shows it deliberately —
+     * subdued, pilled, with its reason and its purge date — because a server
+     * that hid what a ranger worked to upload gives them no way to tell
+     * "accepted" from "lost". Presentable is about whether the recording has
+     * finished, never about whether the effort counted; that second question is
+     * {@see self::countsTowardsStatistics()}, and the two answers differ for a
+     * discard on purpose.
+     */
     public function isPresentable(): bool
     {
-        return self::Complete === $this;
+        return self::Recording !== $this;
     }
 
     /**
@@ -68,9 +86,19 @@ enum PatrolStatusEnum: string
      * walked — the exact misreading the status exists to prevent. It still
      * renders in the lists, subdued: hiding it outright would make a ranger's
      * uploaded patrol look lost.
+     *
+     * FALSE for a recording patrol too, and for a different reason: not that
+     * the effort is withdrawn but that it is not all here yet. Half a track
+     * buffered into a coverage share reports ground nobody has finished
+     * walking, and a partial distance added to the month makes the month wrong
+     * until the phone happens to finish syncing. A figure is only honest over
+     * patrols that are whole.
+     *
+     * So a statistic is the STRICTER of the two questions — presentable AND not
+     * discarded, which leaves `Complete` alone.
      */
     public function countsTowardsStatistics(): bool
     {
-        return self::Discarded !== $this;
+        return $this->isPresentable() && self::Discarded !== $this;
     }
 }

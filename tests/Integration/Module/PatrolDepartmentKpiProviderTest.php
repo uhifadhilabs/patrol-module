@@ -20,6 +20,7 @@ use Uhifadhi\Entity\User;
 use Uhifadhi\Module\DepartmentKpi;
 use UhifadhiLabs\Patrol\Entity\Observation;
 use UhifadhiLabs\Patrol\Entity\Patrol;
+use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
 use UhifadhiLabs\Patrol\Module\PatrolDepartmentKpiProvider;
 use UhifadhiLabs\Patrol\Repository\PatrolRepository;
 use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
@@ -95,6 +96,30 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         self::assertSame(2.0, $ecology['observations'], 'Nor is the observation logged on it.');
     }
 
+    /**
+     * THE SAME RULE FOR A PATROL STILL ARRIVING, and for the sister reason: not
+     * that the effort was withdrawn but that it is not all here yet. Crediting a
+     * department with a distance that is still growing makes its figures wrong
+     * until the phone happens to finish syncing.
+     */
+    public function testAPatrolStillRecordingCountsForNobodyYet(): void
+    {
+        $world = $this->world();
+
+        $stillArriving = $this->patrol($world['area'], $world['ranger'], 500.0)
+            ->setStatus(PatrolStatusEnum::Recording);
+        $this->em->persist(new Observation($stillArriving, 'sighting')->setRecordedBy($world['analyst']));
+        $this->em->flush();
+
+        $ecology = self::figures($this->provider()->kpisFor($world['ecology'], self::now()));
+        $protection = self::figures($this->provider()->kpisFor($world['protection'], self::now()));
+
+        // The same baseline the discard test holds to.
+        self::assertSame(3.0, $protection['patrols'], 'A patrol still arriving is not a fourth.');
+        self::assertSame(90.0, $protection['distance'], 'Nor is the distance it has reached so far.');
+        self::assertSame(2.0, $ecology['observations'], 'Nor is the observation logged on it.');
+    }
+
     /** Coverage is sliced the same way, in PostGIS: a discarded track is not the department's ground. */
     public function testADiscardedTrackIsNotADepartmentsCoverage(): void
     {
@@ -112,6 +137,24 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         $this->em->flush();
 
         self::assertEqualsWithDelta($withRealTrackOnly, $this->departmentCoverage($world['protection']), 0.0001);
+    }
+
+    /** And a track that has not finished arriving is not the department's ground either. */
+    public function testATrackStillRecordingIsNotADepartmentsCoverage(): void
+    {
+        $world = $this->world();
+
+        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[35.4,-3.2],[35.6,-3.2]]}');
+        $this->em->flush();
+        $withCompleteTrackOnly = $this->departmentCoverage($world['protection']);
+        self::assertNotNull($withCompleteTrackOnly);
+
+        // Perpendicular again: were it counted, the union would be a cross.
+        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[35.5,-3.3],[35.5,-3.1]]}')
+            ->setStatus(PatrolStatusEnum::Recording);
+        $this->em->flush();
+
+        self::assertEqualsWithDelta($withCompleteTrackOnly, $this->departmentCoverage($world['protection']), 0.0001);
     }
 
     public function testAPatrolWithNoRecordableDepartmentBelongsToNobodysFigures(): void

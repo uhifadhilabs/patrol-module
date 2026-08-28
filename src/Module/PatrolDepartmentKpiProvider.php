@@ -304,8 +304,13 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
         $areas = $this->entityManager->createQueryBuilder()
             ->select('DISTINCT a')
             ->from(AreaOfInterest::class, 'a')
-            ->innerJoin(Patrol::class, 'p', 'WITH', 'p.area = a AND p.status <> :discarded')
-            ->setParameter('discarded', PatrolStatusEnum::Discarded)
+            // The same rule tally() applies in PHP, expressed in DQL: only a
+            // COMPLETE patrol may put an area on this list. An area whose only
+            // patrols were discarded or are still arriving has nothing to
+            // report, and listing it would produce exactly the row of zeros
+            // this method exists to avoid.
+            ->innerJoin(Patrol::class, 'p', 'WITH', 'p.area = a AND p.status = :counted')
+            ->setParameter('counted', PatrolStatusEnum::Complete)
             ->orderBy('a.name', 'ASC')
             ->getQuery()
             ->getResult();
