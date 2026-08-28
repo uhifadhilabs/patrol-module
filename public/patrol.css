@@ -332,8 +332,21 @@ button.patrol-menu-item {
 /* Over imagery the pills need the overlay's contrast, not the page card's.
    The chosen chip keeps the ACCENT as its text colour, never --c-accT: on the
    page that pairs with a solid accent fill, but here the fill is a 10% tint, so
+/* Where the shutter fired — the photograph's OWN place, opposite the frame
+   number so the two facts about the tile sit on the same line and neither has
+   to be hunted for. Same plate as the number: a tile is a crop of a photograph,
+   and text laid straight onto an unknown image is unreadable. */
+.patrol-phpos {
+    position: absolute; right: 6px; bottom: 6px; max-width: 62%;
+    font: 500 8.5px var(--font-mono); font-style: normal; text-align: right;
+    color: #D6E2D9; background: rgba(10, 14, 11, .72); padding: 2px 6px; border-radius: 4px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
    on-accent text is near-black on near-nothing and the label vanishes. */
 .c:fullscreen .patrol-chiprow .mchip { color: #eaf2ec; border-color: rgba(234, 242, 236, .28); }
+    /* Under the number rather than beside it: at two columns a tile is too
+       narrow for both, and a truncated coordinate is worse than none. */
+    .patrol-phpos { position: static; display: block; max-width: none; text-align: left; margin-top: 4px; background: none; padding: 0; }
 .c:fullscreen .patrol-chiprow .mchip.on { color: rgb(var(--c-acc)); border-color: rgb(var(--c-acc)); }
 .c:fullscreen .patrol-chiprow .patrol-tfilter.on { color: var(--patrol-track); border-color: var(--patrol-track); }
 .c:fullscreen .patrol-menu-list { background: rgba(10, 14, 11, .95); border-color: rgba(234, 242, 236, .18); }
@@ -576,6 +589,110 @@ button.patrol-menu-item {
 
 .patrol-pop-head { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
 .patrol-pop-ref { font: 600 10px var(--font-mono); color: rgb(var(--c-dim)); margin-left: auto; }
+
+/* ==== AMENDMENTS (PL·06–PL·09 on the observation detail) ===================
+   The vocabulary is patrols' own. It is deliberately a SECOND implementation of
+   the same idea the incidents module draws its timeline with, rather than a
+   shared one: the two modules install independently, and a stylesheet neither
+   owns is a dependency neither can honour. The duplication is declared here
+   rather than hidden. */
+
+/* The spine. One rule down the left, with a node per entry — the shape says
+   "these happened in order, under the thing above them". */
+.patrol-amd { position: relative; margin-top: 10px; padding-left: 20px; }
+.patrol-amd::before {
+    content: ''; position: absolute; left: 5px; top: 6px; bottom: 6px; width: 1px;
+    background: var(--c-ln2);
+}
+.patrol-amd-item { position: relative; padding: 0 0 16px; }
+.patrol-amd-item:last-child { padding-bottom: 2px; }
+.patrol-amd-item::before {
+    content: ''; position: absolute; left: -19px; top: 5px; width: 9px; height: 9px;
+    border-radius: 50%; background: rgb(var(--c-bg)); border: 1.5px solid var(--c-ln2);
+}
+/* The record as it was taken: a FILLED node, because it is the one entry that
+   is not a correction — it is the thing being corrected. */
+.patrol-amd-orig::before { background: rgb(var(--c-fog)); border-color: rgb(var(--c-fog)); }
+/* An attachment is the one kind that brings new evidence rather than new words. */
+.patrol-amd-att::before { border-color: rgb(var(--c-warn)); }
+.patrol-amd-att .patrol-amd-what { color: rgb(var(--c-warn)); border-color: color-mix(in srgb, rgb(var(--c-warn)) 40%, transparent); }
+
+.patrol-amd-t {
+    display: block; font: 500 10.5px var(--font-mono); color: rgb(var(--c-dim));
+}
+.patrol-amd-t .who { color: rgb(var(--c-tx)); }
+.patrol-amd-b { display: block; font-size: 13px; line-height: 1.6; margin-top: 3px; color: rgb(var(--c-tx)); }
+/* The provenance of the ENTRY, kept apart from the entry so the trail can be
+   read without it. */
+.patrol-amd-b em {
+    display: block; font: 400 10.5px var(--font-mono); font-style: normal;
+    color: rgb(var(--c-dim)); margin-top: 5px;
+}
+/* What was corrected, in one word. */
+.patrol-amd-what {
+    display: inline-block; margin-right: 7px; padding: 1px 7px; border-radius: 999px;
+    border: 1px solid var(--c-ln2); font: 600 10px var(--font-mono);
+    color: rgb(var(--c-acc)); vertical-align: 1px;
+}
+/* THE SUPERSEDED VALUE, QUOTED, NEVER STRUCK. A left rule and a label, at full
+   text strength: a strikethrough would read as "removed", and nothing here is.
+   There is deliberately no text-decoration in this block. */
+.patrol-amd-was {
+    display: block; margin: 7px 0 0; padding: 6px 0 6px 11px;
+    border-left: 2px solid var(--c-ln2); font-size: 12.5px; line-height: 1.55;
+    color: rgb(var(--c-fog));
+}
+.patrol-amd-was b {
+    display: block; font: 600 9.5px var(--font-mono); text-transform: uppercase;
+    letter-spacing: .04em; color: rgb(var(--c-dim)); margin-bottom: 3px;
+}
+
+/* PL·07 — said out loud, not drawn as an empty box. */
+.patrol-amd-empty {
+    display: flex; gap: 10px; align-items: flex-start; margin-top: 10px;
+    padding: 12px 13px; border-radius: 9px; border: 1px dashed var(--c-ln2);
+    background: color-mix(in srgb, rgb(var(--c-fog)) 5%, transparent);
+    font-size: 12.5px; line-height: 1.55; color: rgb(var(--c-fog));
+}
+.patrol-amd-empty svg { flex: none; margin-top: 1px; color: rgb(var(--c-dim)); }
+.patrol-amd-empty b { color: rgb(var(--c-tx)); }
+
+.patrol-amd-intro { margin: 2px 2px 4px; }
+.patrol-amd-count { margin-top: 10px; }
+.patrol-amd-act { display: flex; justify-content: flex-end; margin-top: 14px; }
+.patrol-amd-phrow { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 340px; margin-top: 9px; }
+
+/* PL·08 — the form, inline, at the end of the trail. */
+.patrol-amd-form {
+    margin-top: 14px; padding: 13px; border-radius: 10px;
+    border: 1px solid var(--c-ln2);
+    background: color-mix(in srgb, rgb(var(--c-fog)) 4%, transparent);
+}
+.patrol-amd-form > .hd {
+    font: 600 11px var(--font-mono); text-transform: uppercase; letter-spacing: .04em;
+    color: rgb(var(--c-tx)); margin-bottom: 10px;
+}
+.patrol-amd-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+/* The chips ARE radios: one is always chosen, they are keyboard reachable, and
+   they submit with no JavaScript at all. The input is visually hidden rather
+   than removed, so focus still lands somewhere a keyboard user can see. */
+.patrol-amd-chip { cursor: pointer; }
+.patrol-amd-chip input {
+    position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;
+}
+.patrol-amd-chip:has(input:checked) {
+    border-color: color-mix(in srgb, rgb(var(--c-acc)) 55%, transparent);
+    color: rgb(var(--c-acc));
+}
+.patrol-amd-chip:has(input:focus-visible) { outline: 2px solid rgb(var(--c-acc)); outline-offset: 2px; }
+.patrol-amd-signed { font-size: 12.5px; color: rgb(var(--c-fog)); }
+/* What the form promises NOT to do, said where the promise is being made. */
+.patrol-amd-keep {
+    display: flex; gap: 8px; align-items: flex-start; margin-top: 12px;
+    padding: 9px 11px; border-radius: 8px;
+    background: color-mix(in srgb, rgb(var(--c-acc)) 8%, transparent);
+    font-size: 12px; line-height: 1.5; color: rgb(var(--c-fog));
+}
 .patrol-pop-who { display: block; font-size: 12px; font-weight: 600; color: rgb(var(--c-tx)); margin-bottom: 7px; }
 .patrol-pop-row {
     display: flex; justify-content: space-between; gap: 12px; align-items: baseline;

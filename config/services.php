@@ -19,6 +19,7 @@ use UhifadhiLabs\Patrol\Controller\PatrolDetailController;
 use UhifadhiLabs\Patrol\Repository\FlightRepository;
 use UhifadhiLabs\Patrol\Repository\LaunchPointRepository;
 use UhifadhiLabs\Patrol\Repository\ObservationPhotoRepository;
+use UhifadhiLabs\Patrol\Repository\ObservationAmendmentRepository;
 use UhifadhiLabs\Patrol\Repository\ObservationRepository;
 use UhifadhiLabs\Patrol\Repository\PatrolEventRepository;
 use UhifadhiLabs\Patrol\Repository\PatrolRepository;
@@ -115,6 +116,9 @@ return static function (ContainerConfigurator $container): void {
         ->tag('doctrine.repository_service');
     $services->set(ObservationPhotoRepository::class)
         ->args([service('doctrine')])
+    $services->set(ObservationAmendmentRepository::class)
+        ->args([service('doctrine')])
+        ->tag('doctrine.repository_service');
         ->tag('doctrine.repository_service');
     $services->set(PatrolEventRepository::class)
         ->args([service('doctrine')])
@@ -170,6 +174,12 @@ return static function (ContainerConfigurator $container): void {
         ->args([
             service('twig'),
             service('router'),
+            // The amendment trail the observation screen reads (PL·06). Not
+            // behind the security guard the WRITE is behind: a correction is
+            // part of the record and must be readable wherever the record is,
+            // including on a host that runs no security and can therefore never
+            // append one.
+            service(ObservationAmendmentRepository::class),
             service('patrol.geo'),
             service('patrol.gpx_writer'),
             param('patrol.types'),

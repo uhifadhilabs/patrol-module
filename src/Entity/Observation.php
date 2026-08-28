@@ -129,6 +129,21 @@ class Observation
     #[ORM\OrderBy(['id' => 'ASC'])]
     private Collection $photos;
 
+    /**
+     * THE CORRECTIONS APPENDED TO THIS OBSERVATION, oldest first — the trail
+     * read under the record it corrects.
+     *
+     * No `orphanRemoval` and no cascade remove, deliberately: an amendment is
+     * evidence, and a collection that quietly deleted one when it was detached
+     * would put a delete path into a record whose whole value is that it has
+     * none.
+     *
+     * @var Collection<int, ObservationAmendment>
+     */
+    #[ORM\OneToMany(targetEntity: ObservationAmendment::class, mappedBy: 'observation', cascade: ['persist'])]
+    #[ORM\OrderBy(['writtenAt' => 'ASC', 'id' => 'ASC'])]
+    private Collection $amendments;
+
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $loggedAt = null;
 
@@ -142,6 +157,7 @@ class Observation
         $this->patrol = $patrol;
         $this->category = $category;
         $this->photos = new ArrayCollection();
+        $this->amendments = new ArrayCollection();
         $patrol->addObservation($this);
         $this->initTimestamps();
     }
@@ -333,13 +349,67 @@ class Observation
     }
 
     /**
+     * THE FIELD PHOTOGRAPHS — the ones the handset took, in the field, at the
+     * time, and the only ones PL·05 shows.
+     *
+     * A photograph attached to an AMENDMENT is different evidence with different
+     * provenance: taken later, by somebody else, on a follow-up. It is shown in
+     * the trail under the amendment that carries it, and it is emphatically not
+     * a field photograph — the design says so in as many words.
+     *
+     * @return list<ObservationPhoto>
+     */
+    public function fieldPhotos(): array
+    {
+        return array_values(array_filter(
+            $this->photos->toArray(),
+            static fn (ObservationPhoto $photo): bool => !$photo->isAmendmentAttachment(),
+        ));
+    }
+
+    /**
      * How many of the photos the phone promised are actually here. The module
      * must not present the observation as fully evidenced until this reaches
      * {@see getPhotoCount()}.
+     *
+     * FIELD photographs only. The phone's `photoCount` is a promise about what
+     * IT is sending, so counting a photograph somebody attached to a web
+     * amendment against it would let a correction made months later satisfy §9's
+     * completeness check for an upload that never finished.
      */
     public function heldPhotoCount(): int
     {
-        return $this->photos->count();
+        return \count($this->fieldPhotos());
+    }
+
+    /** @return Collection<int, ObservationAmendment> */
+    public function getAmendments(): Collection
+    {
+        return $this->amendments;
+    }
+
+    public function addAmendment(ObservationAmendment $amendment): static
+    {
+        if (!$this->amendments->contains($amendment)) {
+            $this->amendments->add($amendment);
+        }
+
+        return $this;
+    }
+
+    /**
+     * How many times this observation has been corrected — the number PL·03
+     * prints over the note.
+     */
+    public function amendmentCount(): int
+    {
+        return $this->amendments->count();
+    }
+
+    /** Whether anything has been corrected, so PL·06 knows to draw the empty state. */
+    public function isAmended(): bool
+    {
+        return !$this->amendments->isEmpty();
     }
 
     /** Every promised photo has arrived (§9's completeness check). */

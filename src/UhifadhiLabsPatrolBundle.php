@@ -31,6 +31,7 @@ use UhifadhiLabs\Patrol\Command\PurgeDiscardedCommand;
 use UhifadhiLabs\Patrol\Command\SeedDemoCommand;
 use UhifadhiLabs\Patrol\Controller\PatrolHoldController;
 use UhifadhiLabs\Patrol\Controller\PatrolRecordController;
+use UhifadhiLabs\Patrol\Controller\ObservationAmendmentController;
 use UhifadhiLabs\Patrol\Controller\PatrolWidgetsController;
 use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
 use UhifadhiLabs\Patrol\Module\PatrolDepartmentKpiProvider;
@@ -287,6 +288,26 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
 
         /*
          * The FIELD-SYNC API (API-CONTRACT.md) — the mobile app's endpoints.
+
+            // Appending a correction to an observation (PL·06–PL·09). Under the
+            // same guard, and for a sharper version of the same reason: an
+            // amendment is SIGNED, and a host with no security has nobody to
+            // sign one. The route not existing there is the honest outcome —
+            // better than a trail of unattributed corrections.
+            $services->set('patrol.controller.observation_amend', ObservationAmendmentController::class)
+                ->args([
+                    service('doctrine.orm.entity_manager'),
+                    service('router'),
+                    service('security.authorization_checker'),
+                    service('security.token_storage'),
+                    service('security.csrf.token_manager'),
+                    // The same evidence path the field uploads use, so a
+                    // photograph attached on the web is stored, typed and
+                    // previewed exactly as one off a handset.
+                    service('storage.evidence_storage'),
+                ])
+                ->public();
+            $services->alias(ObservationAmendmentController::class, 'patrol.controller.observation_amend')->public();
          *
          * Registered only where the host actually runs api-platform AND
          * security, and for the same reason the recording screens are: these

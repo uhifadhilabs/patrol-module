@@ -15,6 +15,7 @@ namespace UhifadhiLabs\Patrol\Controller;
 
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -28,6 +29,8 @@ use Uhifadhi\Entity\AreaOfInterest;
 use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
 use UhifadhiLabs\Patrol\Entity\Observation;
 use UhifadhiLabs\Patrol\Entity\Patrol;
+use UhifadhiLabs\Patrol\Enum\ObservationAmendmentKindEnum;
+use UhifadhiLabs\Patrol\Repository\ObservationAmendmentRepository;
 use UhifadhiLabs\Patrol\Service\GeoService;
 use UhifadhiLabs\Patrol\Service\GpxWriter;
 use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
@@ -63,6 +66,7 @@ final class PatrolDetailController
         private readonly UrlGeneratorInterface $urls,
         private readonly GeoService $geo,
         private readonly GpxWriter $gpx,
+        private readonly ObservationAmendmentRepository $amendments,
         private readonly array $types,
         private readonly array $categories,
         private readonly int $discardRetentionDays = PatrolConfiguration::DEFAULT_DISCARD_RETENTION_DAYS,
@@ -202,6 +206,7 @@ final class PatrolDetailController
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
         #[MapEntity(mapping: ['patrol' => 'uuid'])] Patrol $patrol,
         #[MapEntity(mapping: ['observation' => 'uuid'])] Observation $observation,
+        Request $request,
     ): Response {
         $this->assertPatrolBelongsTo($area, $patrol);
         if ($observation->getPatrol()->getId() !== $patrol->getId()) {
@@ -242,6 +247,24 @@ final class PatrolDetailController
             'n' => $row['n'],
             'total' => $total,
             'dms' => $row['dms'],
+            'photoDms' => $this->photoPositions($observation),
+            // THE AMENDMENT TRAIL (PL·06–PL·09). Read through the repository
+            // rather than off the collection so the ordering is stated once, in
+            // SQL, and a lazily-loaded collection can never hand the page a
+            // trail in a different order than the history above it.
+            'amendments' => $this->amendments->findForObservation($observation),
+            'amendmentCountWord' => self::countWord($observation->amendmentCount()),
+            'amendmentKinds' => ObservationAmendmentKindEnum::cases(),
+            // The affordance is offered only to somebody who could actually use
+            // it — a button that 403s is a worse answer than no button.
+            'canAmend' => $canAmend = $this->canAmend(),
+            'amending' => $canAmend && $request->query->getBoolean('amend'),
+            // Null where there is no token manager at all, which is the same
+            // hosts where canAmend() is false — but stated separately, because
+            // the template must never be handed a token it cannot have.
+            'amendToken' => $canAmend
+                ? $this->csrfTokenManager?->getToken(ObservationAmendmentController::csrfTokenId($observation))->getValue()
+                : null,
             'prev' => $siblings['prev'],
             'next' => $siblings['next'],
             // The parent track travels with the payload as context (drawn
@@ -336,6 +359,65 @@ final class PatrolDetailController
         }
 
         return $rows;
+    }
+
+    /**
+     * Whether THIS caller may append a correction — the module's one recording
+     * permission, the same one that gates the hold and the recording screens
+     * ("anyone who may edit the patrol", PL·09).
+     *
+     * False wherever the host runs no security: there is nobody to sign an
+     * amendment, and the route to post one was never registered.
+     */
+    private function canAmend(): bool
+    {
+        return $this->authorizationChecker?->isGranted(PatrolRecordController::RECORD_PERMISSION) ?? false;
+    }
+
+    /**
+     * "Corrected ONCE since", "corrected TWICE since", "corrected 3 TIMES
+     * since" — the design's own wording, which is how a person says it.
+     *
+     * English has words for the first two and then gives up, and so does this:
+     * "corrected 2 times" is the kind of phrasing that makes a careful record
+     * read like a machine wrote it.
+     */
+    private static function countWord(int $count): string
+    {
+        return match ($count) {
+            1 => 'once',
+            2 => 'twice',
+            default => $count.' times',
+        };
+    }
+
+    /**
+     * WHERE EACH PHOTOGRAPH WAS TAKEN, in the same degrees-minutes-seconds the
+     * observation's own position is read in — keyed by the photograph's client
+     * uuid, which is the one id a template can address a photo by.
+     *
+     * A photograph's place is its OWN, not the observation's: a ranger stands
+     * where it is safe to stand and photographs what is over there. A photograph
+     * with no fix is absent from this map rather than present with a null, so
+     * the template's `default` says "no position recorded" and nothing silently
+     * inherits the observation's coordinates.
+     *
+     * @return array<string, string>
+     */
+    private function photoPositions(Observation $observation): array
+    {
+        $positions = [];
+        foreach ($observation->getPhotos() as $photo) {
+            $position = $photo->getPosition();
+            if (null === $position || '' === $position) {
+                continue;
+            }
+            $positions[$photo->getClientUuid()->toRfc4122()] = $this->geo->formatDms(
+                ...$this->geo->coordinates($position),
+            );
+        }
+
+        return $positions;
     }
 
     /** The one place the observation URL is spelled out. */
