@@ -1,0 +1,51 @@
+{# PL·A1 "Out right now" — the module's live card on the HOST's area overview.
+
+   Rendered by the host with `with_context: false`, so everything readable here
+   arrives in one map: this module's own reading under `by.patrols`, plus the
+   shared `area`, `now`, `tiles`, `attention`, `layers` and `legend` the host
+   composes. Nothing in this file may reach for a global.
+
+   The `.ao-*` vocabulary (the contributor tag, the live dot, the column) is the
+   HOST's — it owns the surface these plates sit on. This module colours its own
+   dot in patrol.css and defines nothing else of it.
+
+   THE ONLY POLLING WIDGET ON THE SURFACE, which is what the live dot claims. #}
+{% import '@UhifadhiLabsPatrol/dashboard/_ui.html.twig' as ui %}
+{% set pl = by.patrols %}
+<div class="c" data-w="pl_now">
+    <span class="tab"><span class="idx">PL·A1</span>Out right now<span class="src">· <span class="ao-live"><i></i>live</span> · {{ pl.out|length }} open {{ pl.out|length == 1 ? 'patrol' : 'patrols' }}</span></span>
+    <span class="ao-by patrols"><i></i>patrols</span>
+    {# The card says its own rule, and says it with the number the code uses:
+       stalePingMinutes is PatrolOverviewService::PING_STALE_AFTER_SECONDS, so
+       the threshold on screen and the threshold in the query are one number. #}
+    <div class="use patrol-ao-lead">An open patrol has no duration and no distance total yet — those fields are <b>absent</b>, not zero. A ping older than {{ pl.stalePingMinutes }} minutes is called out rather than quietly averaged away.</div>
+
+    {% for row in pl.out %}
+        <div class="patrol-feed-row patrol-ao-row">
+            <span class="patrol-avatar">{{ ui.initials(row.patrol.lead) }}</span>
+            <span class="patrol-who">{{ row.patrol.ref }}<em>{{ row.patrol.station ?: '—' }} · {{ ui.lead_name(row.patrol.lead) }} · {{ row.outLabel ? 'out ' ~ row.outLabel : 'opened at an unrecorded time' }}</em></span>
+            {{ ui.type_chip(row.patrol.type, pl.types, pl.typeColors) }}
+            {# The ping, in the module's own words. A patrol that has never
+               pinged says so — it is not "0 min ago". #}
+            {% if row.pingLabel is null %}
+                <span class="chip {{ row.stale ? 'fail' : 'idle' }}">no ping yet</span>
+            {% else %}
+                <span class="chip {{ row.stale ? 'fail' : 'ok' }}">{{ row.stale ? 'no ping ' ~ row.pingLabel : 'ping ' ~ row.pingLabel ~ ' ago' }}</span>
+            {% endif %}
+            <span class="patrol-spacer"></span>
+            <a class="open-btn" href="{{ row.url }}">Open →</a>
+        </div>
+    {% else %}
+        <p class="patrol-empty">No patrol is out right now.</p>
+    {% endfor %}
+
+    {# A handset reporting IS a patrol pinging: the module registers no devices,
+       so this is counted over the patrols that are out rather than over a fleet
+       it does not have. The one named is the longest-silent — the one to call. #}
+    {% if pl.handsets.total %}
+        <div class="rln patrol-ao-foot">
+            <span class="fog">Handsets reporting</span>
+            <span class="mono patrol-ao-mono">{{ pl.handsets.reporting }} of {{ pl.handsets.total }}{% if pl.handsets.worst %} · {{ pl.handsets.worst.patrol.station ?: pl.handsets.worst.patrol.ref }} {{ pl.handsets.worst.lastPingAt ? 'last seen ' ~ pl.handsets.worst.lastPingAt|date('H:i') : 'has not reported at all' }}{% endif %}</span>
+        </div>
+    {% endif %}
+</div>

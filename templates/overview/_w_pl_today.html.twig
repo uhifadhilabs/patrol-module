@@ -1,0 +1,55 @@
+{# PL·A2 "Patrols today" — TODAY, NOT THE MONTH.
+
+   Every number on this card is scoped to one day and compared with the same
+   weekday a week ago, so none of them reconciles with the module's monthly KPI
+   strip — and must not. The closing line says so out loud, with the month's own
+   figures beside it, because a person who spots two different totals for
+   "patrols" deserves to be told which question each answered.
+
+   THE ONE THING THIS CARD CANNOT SAY is how many of the day's observations were
+   filed as incidents. That is recorded by the incidents module on its own side
+   and nothing here mirrors it, so the second clause of the design's line is an
+   em dash rather than a number. #}
+{% set pl = by.patrols %}
+{% set t = pl.today %}
+<div class="c" data-w="pl_today">
+    <span class="tab"><span class="idx">PL·A2</span>Patrols today<span class="src">· {{ t.day|date('D j M')|lower }} · vs {{ t.lastWeek|date('D j M')|lower }}</span></span>
+    <span class="ao-by patrols"><i></i>patrols</span>
+
+    <div class="grid g2 patrol-ao-pair">
+        <div class="kpi">
+            <b class="disp">{{ t.closed }}<em>closed</em></b>
+            <span class="sub">{{ t.closed == t.closedLastWeek ? 'the same as' : (t.closed - t.closedLastWeek)|abs ~ (t.closed > t.closedLastWeek ? ' more than' : ' fewer than') }} last {{ t.lastWeek|date('l')|lower }}</span>
+        </div>
+        <div class="kpi hot">
+            {# An em dash, never 0 km: a day of hand-logged patrols walked a
+               distance nobody measured. #}
+            {% if t.distanceKm is null %}
+                <b class="disp">—</b>
+                <span class="sub">no distance recorded today</span>
+            {% else %}
+                <b class="disp">{{ t.distanceKm|number_format }}<em>km</em></b>
+                <span class="sub">{% if t.distanceKmLastWeek is null %}not recorded last {{ t.lastWeek|date('l')|lower }}{% else %}{{ (t.distanceKm - t.distanceKmLastWeek) >= 0 ? '+' : '−' }}{{ (t.distanceKm - t.distanceKmLastWeek)|abs|number_format }} km on last {{ t.lastWeek|date('l')|lower }}{% endif %}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="rln">
+        <span class="fog">Observations logged</span>
+        <span class="mono patrol-ao-mono">{{ t.observations }} · <span class="fog">— filed as incidents</span></span>
+    </div>
+    <div class="rln">
+        <span class="fog">By type</span>
+        <span class="mono patrol-ao-mono">{% for key, count in t.typeCounts %}{{ count }} {{ pl.types[key].label|default(key)|lower }}{{ not loop.last ? ' · ' }}{% endfor %}</span>
+    </div>
+    <div class="rln">
+        <span class="fog">Stations that patrolled</span>
+        <span class="mono patrol-ao-mono">{{ t.stations|length ? t.stations|join(', ') : 'none recorded' }}</span>
+    </div>
+    <div class="rln">
+        <span class="fog">Still out</span>
+        <span class="mono w patrol-ao-mono">{{ t.stillOut }}{% if t.stillOutRefs|length %} · {{ t.stillOutRefs|join(', ') }}{% endif %}</span>
+    </div>
+
+    <div class="use">This month’s {{ t.monthCount|number_format }} patrols{% if t.monthDistanceKm is not null %} and {{ t.monthDistanceKm|number_format }} km{% endif %} live on the module. Today’s numbers deliberately do not add up to them — different question, different window. Whether an observation has been filed as an incident is recorded by the incidents module, not on this side, so this card does not count it.</div>
+</div>

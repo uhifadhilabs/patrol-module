@@ -38,6 +38,11 @@ use UhifadhiLabs\Patrol\Controller\PatrolWidgetsController;
 use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
 use UhifadhiLabs\Patrol\Module\PatrolDepartmentKpiProvider;
 use UhifadhiLabs\Patrol\Module\PatrolModuleProvider;
+use UhifadhiLabs\Patrol\Overview\PatrolAttention;
+use UhifadhiLabs\Patrol\Overview\PatrolMapLayers;
+use UhifadhiLabs\Patrol\Overview\PatrolNowTiles;
+use UhifadhiLabs\Patrol\Overview\PatrolOverviewContributor;
+use UhifadhiLabs\Patrol\Overview\PatrolPulse;
 use UhifadhiLabs\Patrol\Repository\FlightRepository;
 use UhifadhiLabs\Patrol\Repository\LaunchPointRepository;
 use UhifadhiLabs\Patrol\Repository\ObservationPhotoRepository;
@@ -45,6 +50,7 @@ use UhifadhiLabs\Patrol\Repository\ObservationRepository;
 use UhifadhiLabs\Patrol\Repository\PatrolEventRepository;
 use UhifadhiLabs\Patrol\Repository\PatrolRepository;
 use UhifadhiLabs\Patrol\Repository\TrackBatchRepository;
+use UhifadhiLabs\Patrol\Repository\TrackPointRepository;
 use UhifadhiLabs\Patrol\Security\PatrolEvidenceVoter;
 use UhifadhiLabs\Patrol\Service\Api\FlightSyncService;
 use UhifadhiLabs\Patrol\Service\Api\ObservationSyncService;
@@ -54,6 +60,7 @@ use UhifadhiLabs\Patrol\Service\Api\PatrolUpsertService;
 use UhifadhiLabs\Patrol\Service\Api\PhotoSyncService;
 use UhifadhiLabs\Patrol\Service\Api\RangerResolver;
 use UhifadhiLabs\Patrol\Service\Api\TrackBatchService;
+use UhifadhiLabs\Patrol\Service\PatrolOverviewService;
 use UhifadhiLabs\Patrol\Storage\PatrolFileSource;
 use UhifadhiLabs\Storage\Registry\FileSourceInterface;
 
@@ -487,5 +494,68 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
                 'Patrols',
             ])
             ->tag('uhifadhi.department_kpi');
+
+        /*
+         * THE AREA OVERVIEW SEAM — the module's contribution to /areas/{uuid}.
+         *
+         * FIVE TAGS, FIVE SEPARATE THINGS. One puts this module's widgets and its
+         * own templates on the page; the other four put PARTS into widgets the HOST
+         * draws — a tile in the right-now strip, an item in needs attention, a layer
+         * with its legend entry on the operational plate, a move in the pulse. The
+         * host owns those widgets and knows what none of these parts count, which is
+         * what stops "Right now" and "Needs attention" from becoming a hard-coded
+         * list of every module the product ever shipped.
+         *
+         * Tagged EXPLICITLY, exactly like 'uhifadhi.module' and
+         * 'uhifadhi.department_kpi' above and for the same reason: a reusable bundle
+         * is not autoconfigured (symfony.com/doc/current/bundles/best_practices.html),
+         * so the host's registerForAutoconfiguration never fires for these classes.
+         *
+         * THE TAG NAMES ARE LITERALS, not the interfaces' TAG constants. Those
+         * constants live on host classes, and the host is not on this bundle's
+         * classpath at build time — reading one here would make the bundle
+         * unbuildable outside an app. They are pinned to the interfaces by
+         * PatrolOverviewWiringTest, which reads them off the stubs.
+         *
+         * ONE READING, FIVE CONSUMERS. All five share 'patrol.overview', so the
+         * strip's "3 out", the live card's three rows and the plate's three live
+         * tracks are the same three patrols rather than three answers measured a
+         * query apart.
+         */
+        $services->set('patrol.overview', PatrolOverviewService::class)
+            ->args([
+                service(PatrolRepository::class),
+                service(TrackPointRepository::class),
+                service(ObservationRepository::class),
+                service('router'),
+                param('patrol.types'),
+                param('patrol.observation_categories'),
+            ]);
+
+        $services->set('patrol.overview.contributor', PatrolOverviewContributor::class)
+            ->args([service('patrol.overview'), param('patrol.types')])
+            ->tag('uhifadhi.overview.widget_provider');
+
+        $services->set('patrol.overview.now_tiles', PatrolNowTiles::class)
+            ->args([service('patrol.overview'), param('patrol.types')])
+            ->tag('uhifadhi.overview.now_tile');
+
+        $services->set('patrol.overview.attention', PatrolAttention::class)
+            ->args([service('patrol.overview'), param('patrol.types')])
+            ->tag('uhifadhi.overview.attention');
+
+        $services->set('patrol.overview.map_layers', PatrolMapLayers::class)
+            ->args([service('patrol.overview'), service(PatrolRepository::class), param('patrol.types')])
+            ->tag('uhifadhi.map.layer');
+
+        $services->set('patrol.overview.pulse', PatrolPulse::class)
+            ->args([
+                service(PatrolRepository::class),
+                service(ObservationRepository::class),
+                service('patrol.overview'),
+                param('patrol.types'),
+                param('patrol.observation_categories'),
+            ])
+            ->tag('uhifadhi.overview.pulse');
     }
 }

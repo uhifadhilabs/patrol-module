@@ -693,3 +693,60 @@ button.patrol-menu-item {
     background: color-mix(in srgb, rgb(var(--c-acc)) 8%, transparent);
     font-size: 12px; line-height: 1.5; color: rgb(var(--c-fog));
 }
+
+/* ---- the area overview, where this module is a GUEST ------------------- */
+/* /areas/{uuid} is the HOST's surface: it owns the grid, the plates, the
+   right-now strip, the needs-attention list, the operational map's legend and
+   the whole `.ao-*` vocabulary. Nothing of it is redefined below.
+
+   THE ONE THING THE HOST CANNOT WRITE IS THIS MODULE'S COLOUR. It paints every
+   contributor dot the quiet fog and leaves each module to paint its own, for the
+   same reason it names no module in a template: a rule reading `.patrols` in
+   app.css would be the host knowing what a patrol is. So the six selectors below
+   are this module's half of that contract — the contributor tag on a plate, the
+   dot on an attention row, the column heading, the legend group, the duty-board
+   tile and the generic contributor dot. The colour is the module's own accent,
+   which is PatrolDashboardService::TRACK_COLORS[0]: a colour is DATA, so it is
+   the same hex the tracks, the chips and the map legend already wear, and the
+   same in light and dark. */
+.ao-by.patrols i,
+.ao-att .m i.patrols,
+.ao-col i.patrols,
+.ao-legend .grp > b i.patrols,
+.ao-dot.patrols { background: #3ed9a8; }
+.ao-board a.dot-patrols .k::before { background: #3ed9a8; }
+
+/* WHAT MOVED, in this module's words. `.ao-move` is the host's neutral chip and
+   the state vocabulary inside it is ours, so the colours are ours too. Only the
+   two states the pulse actually returns: an opened patrol lands in no new state
+   and wears no chip at all. */
+.ao-move.closed { color: rgb(var(--c-fog)); }
+.ao-move.discarded {
+    color: rgb(var(--c-dim));
+    border-style: dashed;
+}
+
+/* The prose directly under a plate's chip strip sits tight to it. The host's own
+   `.c > .tab + .use` rule cannot reach here, because on this surface the
+   contributor tag sits between the two. */
+.patrol-ao-lead { margin: 0 2px 10px; }
+/* A live row on the overview opens its patrol and highlights nothing — there is
+   no map beside it to spotlight, so it must not offer the dashboard's pointer. */
+.patrol-ao-row { cursor: default; }
+.patrol-ao-foot { margin-top: 10px; }
+.patrol-ao-mono { font-size: 11px; }
+/* The day card's KPI pair: the grid gap owns the spacing inside a plate. */
+.patrol-ao-pair { margin-bottom: 6px; gap: 14px; }
+
+/* AT A THIRD OF THE ROW OR NARROWER a live row runs out of horizontal room, so
+   it wraps instead of squeezing the ranger's name to nothing. The module column
+   is exactly this case — it is why the host's grid grew a third in the first
+   place — and the same wrap serves the half-width plate. */
+.w-grid > .w-span-6 .patrol-feed-row,
+.w-grid > .w-span-4 .patrol-feed-row,
+.w-grid > .w-span-3 .patrol-feed-row,
+.ao-colstack .patrol-feed-row { flex-wrap: wrap; row-gap: 5px; }
+.w-grid > .w-span-6 .patrol-who,
+.w-grid > .w-span-4 .patrol-who,
+.w-grid > .w-span-3 .patrol-who,
+.ao-colstack .patrol-who { flex: 1 1 150px; }

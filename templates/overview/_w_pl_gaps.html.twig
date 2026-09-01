@@ -1,0 +1,55 @@
+{# PL·A3 "Where nobody has been" — ABSENCE, NOT ACTIVITY.
+
+   Measured from the last track that ENTERED the zone, not from the last patrol
+   that named a station: a patrol carries a free-text station and no zone at all,
+   so a station's name is not evidence anybody crossed a polygon.
+
+   Zones are the HOST's lens and an org with none is the normal state, so an area
+   with no zones drawn says that rather than showing an empty table.
+
+   The two columns read two windows and the footer says which: days-since looks
+   over all of history, because a zone nobody has entered for a year is exactly
+   the row this card exists for; the coverage share is this month's, so it
+   reconciles with the module's own PL·03. #}
+{% set pl = by.patrols %}
+{% set g = pl.gaps %}
+<div class="c" data-w="pl_gaps">
+    <span class="tab"><span class="idx">PL·A3</span>Where nobody has been<span class="src">· by zone · worst first</span></span>
+    <span class="ao-by patrols"><i></i>patrols</span>
+
+    {% if g.zones|length %}
+        <table class="tbl">
+            <tr>
+                <th>zone</th>
+                <th>last patrol entered</th>
+                <th class="patrol-right">days since</th>
+                <th class="patrol-right">within {{ g.bufferKm|number_format }} km</th>
+            </tr>
+            {% for z in g.zones %}
+                <tr>
+                    <td>{{ z.zone }}</td>
+                    <td class="fog">{% if z.lastEnteredAt %}{{ z.lastEnteredAt|date('D j M')|lower }}{% if z.lastPatrol %} · {{ z.lastPatrol.ref }}{% endif %}{% else %}no track has entered it{% endif %}</td>
+                    {# Never is the worst gap there is and has no number, so it
+                       wears the failure chip and says the word. #}
+                    <td class="num">
+                        {% if z.daysSince is null %}
+                            <span class="chip fail">never</span>
+                        {% else %}
+                            <span class="chip {{ z.daysSince >= 7 ? 'fail' : (z.daysSince >= 4 ? 'warn' : (z.daysSince >= 1 ? 'idle' : 'ok')) }}">{{ z.daysSince }} d</span>
+                        {% endif %}
+                    </td>
+                    {# An em dash where no track was recorded this month: zero
+                       coverage and unknown coverage are different facts. #}
+                    <td class="num">{{ z.coverageFraction is null ? '—' : (z.coverageFraction * 100)|round ~ ' %' }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+
+        <div class="rln patrol-ao-foot">
+            <span class="fog">Area within {{ g.bufferKm|number_format }} km of a track, this month</span>
+            <span class="mono acc patrol-ao-mono">{{ g.areaCoverageFraction is null ? '—' : (g.areaCoverageFraction * 100)|round ~ ' %' }} · the module’s own number</span>
+        </div>
+    {% else %}
+        <p class="patrol-empty">This area has no zones drawn, so there is nothing to measure absence against. Zones are drawn in the area’s own settings; an area with none is a normal state, not a missing configuration.</p>
+    {% endif %}
+</div>

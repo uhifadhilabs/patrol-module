@@ -1,0 +1,63 @@
+{# PL·A4 "Observations awaiting action" — and the honest version of it.
+
+   THE DESIGN ASKS FOR A NUMBER THIS MODULE DOES NOT HOLD. Its card is headed "18
+   unfiled · oldest first" and offers a "File as incident →" on every row. This
+   module cannot know which observations have been filed: the incidents module
+   records the observation's uuid on ITS side (Incident::sourceRecordUuid) and
+   nothing on this side mirrors it.
+
+   So there is no unfiled count and no unfiled filter here. Showing every
+   observation as unfiled would be worse than showing none — it would be a queue
+   of invented work somebody would sit down and work through. What the card does
+   instead is what it can prove: the area's latest observations, oldest first,
+   with their real age, the patrol they were logged on, what was seen and the
+   zone the point fell in. Its own copy says the rest.
+
+   The row's action opens the OBSERVATION rather than filing it, for the same
+   reason: a "file as incident" link would have to name another module's route,
+   and this module names no other module. #}
+{% set pl = by.patrols %}
+{% set q = pl.observations %}
+<div class="c" data-w="pl_obsq">
+    <span class="tab"><span class="idx">PL·A4</span>Observations awaiting action<span class="src">· oldest first · the latest {{ q.rows|length }}</span></span>
+    <span class="ao-by patrols"><i></i>patrols</span>
+    <div class="use patrol-ao-lead">An observation is <b>not</b> an incident. Most stay notes; these are the ones somebody has to decide about. Whether one has already been <b>filed as an incident is not recorded on this side</b> — the incidents module holds that link — so this card counts no queue and marks nothing as unfiled.</div>
+
+    {% if q.rows|length %}
+        <table class="tbl">
+            <tr>
+                <th>obs</th>
+                <th>patrol</th>
+                <th>what was seen</th>
+                <th>zone</th>
+                <th class="patrol-right">age</th>
+                <th></th>
+            </tr>
+            {% for row in q.rows %}
+                <tr>
+                    <td><span class="mono patrol-ref">{{ row.observation.ref }}</span></td>
+                    <td><a href="{{ row.patrolUrl }}">{{ row.observation.patrol.ref }}</a></td>
+                    <td>{{ row.category }}{% if row.observation.note %} — {{ row.observation.note }}{% endif %}</td>
+                    {# An unpositioned observation is given no zone rather than a
+                       guess; the field app may sync one on purpose. #}
+                    <td class="fog">{{ row.zone ?: '—' }}</td>
+                    <td class="num">
+                        {% if row.ageLabel is null %}
+                            <span class="chip idle">not timed</span>
+                        {% else %}
+                            <span class="chip {{ row.ageSeconds >= 432000 ? 'fail' : (row.ageSeconds >= 172800 ? 'warn' : 'idle') }}">{{ row.ageLabel }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="patrol-right"><a class="open-btn" href="{{ row.url }}">Open →</a></td>
+                </tr>
+            {% endfor %}
+        </table>
+
+        <div class="rln patrol-ao-foot">
+            <span class="fog">Logged this month</span>
+            <span class="mono patrol-ao-mono">{{ q.monthCount }} · each keeps its patrol id</span>
+        </div>
+    {% else %}
+        <p class="patrol-empty">No observations have been logged in this area yet.</p>
+    {% endif %}
+</div>

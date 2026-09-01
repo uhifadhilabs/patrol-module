@@ -1,0 +1,31 @@
+{# "Patrols — the whole column": the module's ENTIRE overview section as one
+   widget, its heading and its cards, stacked. The "Module columns" direction is
+   a page made of these, one per installed module.
+
+   IT INCLUDES THE MODULE'S OWN PARTIALS AND RESTATES NOTHING. That is the rule
+   the host's contributor interface leaves to the module to keep — "a column may
+   only include widgets the module already contributes on their own, so a card
+   can never read differently in the two" — and including is the only way to keep
+   it. There is one _w_pl_now in this bundle, and whether it is drawn on its own
+   or inside this column, it is that one.
+
+   The includes carry `_context` with `with_context: false`, so each card reads
+   exactly the map the host handed this one — the same `by.patrols` reading, not
+   a second measurement.
+
+   `.ao-col` and `.ao-colstack` are the HOST's column vocabulary; this module
+   only colours its own dot. #}
+{% set pl = by.patrols %}
+<div data-w="pl_column">
+    <div class="ao-col">
+        <i class="patrols"></i>
+        <b>Patrols</b>
+        <span class="n">{{ pl.out|length }} out · {{ pl.today.closed }} closed today</span>
+        <a href="{{ pl.dashboardUrl }}">Open the module →</a>
+    </div>
+    <div class="ao-colstack">
+        {{ include('@UhifadhiLabsPatrol/overview/_w_pl_now.html.twig', _context, with_context = false) }}
+        {{ include('@UhifadhiLabsPatrol/overview/_w_pl_today.html.twig', _context, with_context = false) }}
+        {{ include('@UhifadhiLabsPatrol/overview/_w_pl_gaps.html.twig', _context, with_context = false) }}
+    </div>
+</div>
