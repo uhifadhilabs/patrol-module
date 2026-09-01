@@ -79,7 +79,7 @@ final class PatrolApiException extends \RuntimeException
         return new self(
             Response::HTTP_CONFLICT,
             'patrol_immutable',
-            'This patrol has been edited in the web module and no longer accepts uploads.',
+            'This patrol has been edited in the web app and no longer accepts uploads.',
             details: ['patrolUuid' => $uuid],
         );
     }
@@ -148,7 +148,7 @@ final class PatrolApiException extends \RuntimeException
         return new self(
             Response::HTTP_UNPROCESSABLE_ENTITY,
             'unsupported_event_kind',
-            \sprintf('"%s" is not a patrol event kind this module records.', $kind),
+            \sprintf('"%s" is not a patrol event kind this server records.', $kind),
             details: ['clientUuid' => $clientUuid, 'kind' => $kind],
         );
     }
