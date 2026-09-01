@@ -17,6 +17,7 @@ use Uhifadhi\Model\Widget;
 use Uhifadhi\Overview\AttentionItem;
 use Uhifadhi\Overview\AttentionProviderInterface;
 use Uhifadhi\Overview\AttentionSeverity;
+use Uhifadhi\Overview\ContributesStylesheetInterface;
 use Uhifadhi\Overview\MapLayer;
 use Uhifadhi\Overview\MapLayerProviderInterface;
 use Uhifadhi\Overview\NowTile;
@@ -31,6 +32,7 @@ use UhifadhiLabs\Patrol\Overview\PatrolMapLayers;
 use UhifadhiLabs\Patrol\Overview\PatrolNowTiles;
 use UhifadhiLabs\Patrol\Overview\PatrolOverviewContributor;
 use UhifadhiLabs\Patrol\Overview\PatrolPulse;
+use UhifadhiLabs\Patrol\UhifadhiLabsPatrolBundle;
 
 /**
  * THE FIVE SEAMS, on one morning.
@@ -140,6 +142,31 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
             $twig = static::getContainer()->get('twig');
             self::assertTrue($twig->getLoader()->exists($partial), $partial.' is missing');
         }
+    }
+
+    /**
+     * THE ONE SURFACE SOMEBODY ELSE RENDERS THIS MODULE'S MARKUP ON. Every
+     * patrol page of this module's own extends `base.html.twig`, which links
+     * patrol.css; the area overview does not, so without this the category
+     * chips, the type dots and the stale-ping colours on a contributed plate
+     * render naked. The interface is optional — a contributor with no CSS
+     * simply does not implement it — so what is being pinned here is that this
+     * one does.
+     */
+    public function testTheContributorTellsTheHostWhichStylesheetItsPlatesWear(): void
+    {
+        $contributor = $this->contributor();
+
+        self::assertInstanceOf(ContributesStylesheetInterface::class, $contributor);
+        // What AssetMapper serves the bundle's public/ under — the SAME string
+        // base.html.twig links, because both read the bundle's own constant and
+        // the path is therefore written once.
+        self::assertSame('bundles/uhifadhilabspatrol/patrol.css', $contributor->stylesheet());
+        self::assertSame(UhifadhiLabsPatrolBundle::STYLESHEET, $contributor->stylesheet());
+        self::assertStringContainsString(
+            "constant('UhifadhiLabs\\\\Patrol\\\\UhifadhiLabsPatrolBundle::STYLESHEET')",
+            (string) file_get_contents(__DIR__.'/../../../templates/base.html.twig'),
+        );
     }
 
     public function testTheContextIsOneReadingOfTheMorning(): void

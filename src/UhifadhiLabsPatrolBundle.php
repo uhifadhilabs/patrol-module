@@ -78,6 +78,17 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
  */
 final class UhifadhiLabsPatrolBundle extends AbstractBundle
 {
+    /**
+     * WHERE THIS BUNDLE'S VOCABULARY IS SERVED FROM — what AssetMapper serves
+     * public/patrol.css under, stated once because it has two readers that must
+     * never disagree: `templates/base.html.twig`, which links it on every patrol
+     * page of this module's own, and
+     * {@see PatrolOverviewContributor::stylesheet()},
+     * which hands it to a HOST that is rendering this module's plates on the
+     * area overview. The bundle's name is the bundle's own knowledge.
+     */
+    public const string STYLESHEET = 'bundles/uhifadhilabspatrol/patrol.css';
+
     /** Config lives under "patrol:", not the class-derived "uhifadhi_labs_patrol:". */
     protected string $extensionAlias = 'patrol';
 

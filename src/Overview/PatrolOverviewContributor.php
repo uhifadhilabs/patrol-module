@@ -16,9 +16,11 @@ namespace UhifadhiLabs\Patrol\Overview;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Model\Widget;
 use Uhifadhi\Model\WidgetGroup;
+use Uhifadhi\Overview\ContributesStylesheetInterface;
 use Uhifadhi\Overview\OverviewContributorInterface;
 use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
 use UhifadhiLabs\Patrol\Service\PatrolOverviewService;
+use UhifadhiLabs\Patrol\UhifadhiLabsPatrolBundle;
 
 /**
  * WHAT PATROLS PUTS ON THE AREA OVERVIEW — a transcription of the design's own
@@ -47,7 +49,7 @@ use UhifadhiLabs\Patrol\Service\PatrolOverviewService;
  * `uhifadhi.department_kpi` before it — a reusable bundle is not autoconfigured,
  * so the host's registerForAutoconfiguration never fires for it.
  */
-final readonly class PatrolOverviewContributor implements OverviewContributorInterface
+final readonly class PatrolOverviewContributor implements ContributesStylesheetInterface, OverviewContributorInterface
 {
     /**
      * The same slug {@see \UhifadhiLabs\Patrol\Module\PatrolModuleProvider} declares.
@@ -103,6 +105,24 @@ final readonly class PatrolOverviewContributor implements OverviewContributorInt
     public function partialPattern(): string
     {
         return '@UhifadhiLabsPatrol/overview/_w_%s.html.twig';
+    }
+
+    /**
+     * THE PLATES WEAR PATROL'S OWN VOCABULARY, and here the HOST renders them.
+     *
+     * Every other patrol page extends this module's `base.html.twig`, which
+     * links this same sheet; the area overview extends the host's layout, so
+     * without this the type dots, the stale-ping tone and the coverage legend on
+     * a contributed plate render naked. The host asks only contributors that
+     * implement {@see ContributesStylesheetInterface} — one with no CSS of its
+     * own does not, and is asked nothing.
+     *
+     * The path is the BUNDLE'S constant, so this and base.html.twig cannot name
+     * two different files.
+     */
+    public function stylesheet(): string
+    {
+        return UhifadhiLabsPatrolBundle::STYLESHEET;
     }
 
     /**

@@ -29,7 +29,10 @@
        UhifadhiLabsPatrolBundle), because that is where its photographs live.
        → @UhifadhiLabsStorage/overlay/_preview.html.twig #}
     <link rel="stylesheet" href="{{ asset('bundles/uhifadhilabsstorage/preview.css') }}">
-    <link rel="stylesheet" href="{{ asset('bundles/uhifadhilabspatrol/patrol.css') }}">
+    {# The path is the bundle's own constant, not a literal: the area overview is
+       rendered by the HOST, which links this same sheet from the contributor's
+       stylesheet() — and a path typed twice is a path that eventually differs. #}
+    <link rel="stylesheet" href="{{ asset(constant('UhifadhiLabs\\Patrol\\UhifadhiLabsPatrolBundle::STYLESHEET')) }}">
 {% endblock %}
 
 {# Leaflet is a classic script exposing `window.L`, which is what the map
