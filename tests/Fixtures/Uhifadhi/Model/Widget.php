@@ -28,8 +28,15 @@ final readonly class Widget
      * The twelfths the grid offers, widest first. A widget picks the subset it is
      * designed for; a plate that only ever reads as a half-width chart simply
      * never lists 12.
+     *
+     * A THIRD (4) was added for the area overview's "Module columns" design,
+     * where the page is literally the sum of its modules — one column each. Three
+     * columns have no expression in 12/9/6/3: two halves are two columns and four
+     * quarters are too narrow for the KPI pair every column carries. It is a
+     * framework-level addition rather than that surface's own, because a span is
+     * the grid's vocabulary and every surface reads the same grid.
      */
-    public const array GRID_SPANS = [12, 9, 6, 3];
+    public const array GRID_SPANS = [12, 9, 6, 4, 3];
 
     /** @var list<int> */
     public array $spans;

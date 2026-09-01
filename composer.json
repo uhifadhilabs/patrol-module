@@ -52,6 +52,7 @@
             "Uhifadhi\\Exception\\": "tests/Fixtures/Uhifadhi/Exception/",
             "Uhifadhi\\Model\\": "tests/Fixtures/Uhifadhi/Model/",
             "Uhifadhi\\Module\\": "tests/Fixtures/Uhifadhi/Module/",
+            "Uhifadhi\\Overview\\": "tests/Fixtures/Uhifadhi/Overview/",
             "Uhifadhi\\Repository\\": "tests/Fixtures/Uhifadhi/Repository/",
             "Uhifadhi\\Service\\": "tests/Fixtures/Uhifadhi/Service/"
         }
