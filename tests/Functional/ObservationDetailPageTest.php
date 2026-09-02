@@ -147,10 +147,10 @@ final class ObservationDetailPageTest extends WebTestCase
 
         // PL·01 — the plate payload carries this observation's point AND the
         // parent track, which the controller draws faded for context.
-        $plate = $crawler->filter('[data-controller="uhifadhilabs--patrol-module--track-plate"]');
+        $plate = $crawler->filter('[data-controller="uhifadhi--patrol-module--track-plate"]');
         self::assertCount(1, $plate);
         $payload = json_decode(
-            (string) $plate->attr('data-uhifadhilabs--patrol-module--track-plate-payload-value'),
+            (string) $plate->attr('data-uhifadhi--patrol-module--track-plate-payload-value'),
             true,
         );
         self::assertIsArray($payload);
@@ -293,7 +293,7 @@ final class ObservationDetailPageTest extends WebTestCase
         // The component's own shell, included once, with the behaviour it ships.
         $overlay = $crawler->filter('.f-ov[data-f-overlay]');
         self::assertCount(1, $overlay, 'the page includes the storage bundle’s preview, and does not draw one of its own');
-        self::assertSame('uhifadhilabs--storage-module--preview', $overlay->attr('data-controller'));
+        self::assertSame('uhifadhi--storage-module--preview', $overlay->attr('data-controller'));
         self::assertStringContainsString(
             'bundles/uhifadhilabsstorage/preview.css',
             (string) $this->client->getResponse()->getContent(),
@@ -434,8 +434,8 @@ final class ObservationDetailPageTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $payload = json_decode(
             (string) $crawler
-                ->filter('[data-controller="uhifadhilabs--patrol-module--track-plate"]')
-                ->attr('data-uhifadhilabs--patrol-module--track-plate-payload-value'),
+                ->filter('[data-controller="uhifadhi--patrol-module--track-plate"]')
+                ->attr('data-uhifadhi--patrol-module--track-plate-payload-value'),
             true,
         );
         self::assertIsArray($payload);

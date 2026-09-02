@@ -167,10 +167,10 @@ final class DashboardPageTest extends WebTestCase
 
         // Coverage map: both viewers carry the Stimulus controller, and the
         // payload holds the area boundary plus every track.
-        $maps = $crawler->filter('[data-controller="uhifadhilabs--patrol-module--coverage-map"]');
+        $maps = $crawler->filter('[data-controller="uhifadhi--patrol-module--coverage-map"]');
         self::assertCount(2, $maps);
         $payload = json_decode(
-            (string) $maps->first()->attr('data-uhifadhilabs--patrol-module--coverage-map-payload-value'),
+            (string) $maps->first()->attr('data-uhifadhi--patrol-module--coverage-map-payload-value'),
             true,
         );
         self::assertIsArray($payload);

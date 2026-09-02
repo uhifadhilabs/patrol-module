@@ -140,10 +140,10 @@ final class PatrolDetailPageTest extends WebTestCase
 
         // PL·01 — the plate carries the Stimulus controller and a payload with
         // the track plus the positioned observations as numbered rings.
-        $plate = $crawler->filter('[data-controller="uhifadhilabs--patrol-module--track-plate"]');
+        $plate = $crawler->filter('[data-controller="uhifadhi--patrol-module--track-plate"]');
         self::assertCount(1, $plate);
         $payload = json_decode(
-            (string) $plate->attr('data-uhifadhilabs--patrol-module--track-plate-payload-value'),
+            (string) $plate->attr('data-uhifadhi--patrol-module--track-plate-payload-value'),
             true,
         );
         self::assertIsArray($payload);

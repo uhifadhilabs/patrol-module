@@ -1,6 +1,6 @@
 {# Widget "log" — the patrol log table (PL·06). #}
 {% import '@UhifadhiLabsPatrol/dashboard/_ui.html.twig' as ui %}
-<div class="c" data-patrol-log {{ stimulus_controller('@uhifadhilabs/patrol-module/rows') }}>
+<div class="c" data-patrol-log {{ stimulus_controller('@uhifadhi/patrol-module/rows') }}>
     <span class="tab"><span class="idx">PL·06</span>Patrol log<span class="src">· patrol · latest {{ dashboard.patrols|length }}</span></span>
     {{ ui.filters(dashboard, types, typeColor) }}
     <table class="tbl">
@@ -27,9 +27,9 @@
         <tbody>
         {% for patrol in dashboard.patrols %}
             <tr class="{{ patrol.discarded ? 'patrol-abandoned' }}" data-patrol="{{ patrol.uuid.toRfc4122 }}" data-patrol-type="{{ patrol.type }}" data-patrol-station="{{ patrol.station }}"
-                {{ stimulus_target('@uhifadhilabs/patrol-module/rows', 'row') }}
-                {{ stimulus_action('@uhifadhilabs/patrol-module/rows', 'hover', 'mouseenter') }}
-                {{ stimulus_action('@uhifadhilabs/patrol-module/rows', 'unhover', 'mouseleave') }}>
+                {{ stimulus_target('@uhifadhi/patrol-module/rows', 'row') }}
+                {{ stimulus_action('@uhifadhi/patrol-module/rows', 'hover', 'mouseenter') }}
+                {{ stimulus_action('@uhifadhi/patrol-module/rows', 'unhover', 'mouseleave') }}>
                 <td><span class="mono patrol-ref">{{ patrol.ref }}</span></td>
                 <td>{{ ui.type_chip(patrol.type, types, typeColor) }}</td>
                 <td>{{ patrol.station ?: '—' }}</td>
@@ -72,7 +72,7 @@
         {% endfor %}
         {% if dashboard.patrols|length %}
             {# Shown by the rows controller when a filter hides every row. #}
-            <tr class="patrol-hidden" {{ stimulus_target('@uhifadhilabs/patrol-module/rows', 'empty') }}><td colspan="10">No patrols of that type this month.</td></tr>
+            <tr class="patrol-hidden" {{ stimulus_target('@uhifadhi/patrol-module/rows', 'empty') }}><td colspan="10">No patrols of that type this month.</td></tr>
         {% endif %}
         </tbody>
     </table>

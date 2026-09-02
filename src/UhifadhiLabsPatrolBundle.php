@@ -111,7 +111,7 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
             $container->extension('framework', [
                 'asset_mapper' => [
                     'paths' => [
-                        __DIR__.'/../assets' => '@uhifadhilabs/patrol-module',
+                        __DIR__.'/../assets' => '@uhifadhi/patrol-module',
                     ],
                 ],
             ]);

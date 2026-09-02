@@ -22,11 +22,11 @@
     <div class="patrol-calnav">
         <button type="button" class="mchip patrol-ghost" title="Previous month" aria-label="Previous month"
                 data-patrol-cal-goto="{{ month|date_modify('-1 month')|date('Y-m') }}"
-                {{ stimulus_action('@uhifadhilabs/patrol-module/calendar', 'go', 'click') }}>&lsaquo;</button>
+                {{ stimulus_action('@uhifadhi/patrol-module/calendar', 'go', 'click') }}>&lsaquo;</button>
         <span class="mchip on">{{ month|date('F Y')|lower }}</span>
         <button type="button" class="mchip patrol-ghost" title="Next month" aria-label="Next month"
                 data-patrol-cal-goto="{{ month|date_modify('+1 month')|date('Y-m') }}"
-                {{ stimulus_action('@uhifadhilabs/patrol-module/calendar', 'go', 'click') }}>&rsaquo;</button>
+                {{ stimulus_action('@uhifadhi/patrol-module/calendar', 'go', 'click') }}>&rsaquo;</button>
     </div>
     <div class="patrol-cal">
         {% for day in ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] %}

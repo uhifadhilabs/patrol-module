@@ -60,30 +60,30 @@
    DEFERRED(zones): the design's "zone ▾" chip needs a zone concept the bundle
    does not have — omitted rather than rendered dead. #}
 {% macro filters(dashboard, types, typeColor) %}
-    <div class="patrol-chiprow" {{ stimulus_controller('@uhifadhilabs/patrol-module/filters') }}>
+    <div class="patrol-chiprow" {{ stimulus_controller('@uhifadhi/patrol-module/filters') }}>
         <button type="button" class="mchip on" data-patrol-type="all" aria-pressed="true"
-                {{ stimulus_target('@uhifadhilabs/patrol-module/filters', 'chip') }}
-                {{ stimulus_action('@uhifadhilabs/patrol-module/filters', 'choose') }}>all · {{ dashboard.totalCount }}</button>
+                {{ stimulus_target('@uhifadhi/patrol-module/filters', 'chip') }}
+                {{ stimulus_action('@uhifadhi/patrol-module/filters', 'choose') }}>all · {{ dashboard.totalCount }}</button>
         {% for key, type in types %}
             {# The pill wears the colour of the tracks it filters — the one
                typeColors() map, never a second palette (the map-legend rule). #}
             <button type="button" class="mchip patrol-tfilter" data-patrol-type="{{ key }}" aria-pressed="false"
                     style="--patrol-track: {{ _self.color(typeColor, key) }}"
-                    {{ stimulus_target('@uhifadhilabs/patrol-module/filters', 'chip') }}
-                    {{ stimulus_action('@uhifadhilabs/patrol-module/filters', 'choose') }}><i></i>{{ type.label|lower }} · {{ dashboard.typeCounts[key]|default(0) }}</button>
+                    {{ stimulus_target('@uhifadhi/patrol-module/filters', 'chip') }}
+                    {{ stimulus_action('@uhifadhi/patrol-module/filters', 'choose') }}><i></i>{{ type.label|lower }} · {{ dashboard.typeCounts[key]|default(0) }}</button>
         {% endfor %}
-        <details class="patrol-menu" {{ stimulus_target('@uhifadhilabs/patrol-module/filters', 'stationMenu') }}>
-            <summary class="mchip patrol-ghost"><span {{ stimulus_target('@uhifadhilabs/patrol-module/filters', 'stationLabel') }}>station ▾</span></summary>
+        <details class="patrol-menu" {{ stimulus_target('@uhifadhi/patrol-module/filters', 'stationMenu') }}>
+            <summary class="mchip patrol-ghost"><span {{ stimulus_target('@uhifadhi/patrol-module/filters', 'stationLabel') }}>station ▾</span></summary>
             <div class="patrol-menu-list">
                 {% if dashboard.stations|length %}
                     <button type="button" class="patrol-menu-item on" data-patrol-station="all"
-                            {{ stimulus_target('@uhifadhilabs/patrol-module/filters', 'station') }}
-                            {{ stimulus_action('@uhifadhilabs/patrol-module/filters', 'chooseStation') }}>all stations</button>
+                            {{ stimulus_target('@uhifadhi/patrol-module/filters', 'station') }}
+                            {{ stimulus_action('@uhifadhi/patrol-module/filters', 'chooseStation') }}>all stations</button>
                 {% endif %}
                 {% for station in dashboard.stations %}
                     <button type="button" class="patrol-menu-item" data-patrol-station="{{ station }}"
-                            {{ stimulus_target('@uhifadhilabs/patrol-module/filters', 'station') }}
-                            {{ stimulus_action('@uhifadhilabs/patrol-module/filters', 'chooseStation') }}>{{ station }}</button>
+                            {{ stimulus_target('@uhifadhi/patrol-module/filters', 'station') }}
+                            {{ stimulus_action('@uhifadhi/patrol-module/filters', 'chooseStation') }}>{{ station }}</button>
                 {% else %}
                     <span class="patrol-menu-item patrol-menu-empty">no stations yet</span>
                 {% endfor %}
@@ -116,9 +116,9 @@
    default event to a <b>, so the design file's <b> silently never wired up. #}
 {% macro viewer(payload, label) %}
     <div class="patrol-viewer"
-         {{ stimulus_controller('@uhifadhilabs/patrol-module/coverage-map', {payload: payload}) }}>
+         {{ stimulus_controller('@uhifadhi/patrol-module/coverage-map', {payload: payload}) }}>
         <div class="patrol-canvas" data-patrol-coverage-map role="img" aria-label="{{ label }}"
-             {{ stimulus_target('@uhifadhilabs/patrol-module/coverage-map', 'canvas') }}></div>
+             {{ stimulus_target('@uhifadhi/patrol-module/coverage-map', 'canvas') }}></div>
         <span class="patrol-ol patrol-ol-src">satellite · live · tracks this month</span>
         {# No controls written here: the host's platform chrome module
            (uhifadhi/map-chrome, imported by leaflet_plate.js) builds zoom, DIM,

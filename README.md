@@ -54,7 +54,7 @@ zero host configuration beyond the recipe.
 Its Stimulus controllers are enabled in the host's `assets/controllers.json`:
 
 ```json
-"@uhifadhilabs/patrol-module": {
+"@uhifadhi/patrol-module": {
     "coverage-map": { "enabled": true, "fetch": "eager" },
     "track-plate":  { "enabled": true, "fetch": "eager" },
     "filters":      { "enabled": true, "fetch": "eager" },

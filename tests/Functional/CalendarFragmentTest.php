@@ -292,12 +292,12 @@ final class CalendarFragmentTest extends WebTestCase
         $widget = $crawler->filter('[data-patrol-calendar]');
         self::assertCount(1, $widget);
         self::assertSame(
-            'uhifadhilabs--patrol-module--calendar',
+            'uhifadhi--patrol-module--calendar',
             $widget->attr('data-controller'),
         );
         self::assertSame(
             '/areas/'.$this->area->getUuid()->toRfc4122().'/modules/patrols/calendar',
-            $widget->attr('data-uhifadhilabs--patrol-module--calendar-url-value'),
+            $widget->attr('data-uhifadhi--patrol-module--calendar-url-value'),
         );
 
         // It opens on the current month, and both ‹ › are wired to step from it.
@@ -310,11 +310,11 @@ final class CalendarFragmentTest extends WebTestCase
             ),
         );
         self::assertStringContainsString(
-            'uhifadhilabs--patrol-module--calendar#go',
+            'uhifadhi--patrol-module--calendar#go',
             (string) $widget->filter('.patrol-calnav button')->first()->attr('data-action'),
         );
         // The card's caption is a target, so it follows a swapped-in month.
-        self::assertCount(1, $widget->filter('.tab [data-uhifadhilabs--patrol-module--calendar-target="label"]'));
+        self::assertCount(1, $widget->filter('.tab [data-uhifadhi--patrol-module--calendar-target="label"]'));
     }
 
     public function testAnUnknownAreaIsNotFound(): void

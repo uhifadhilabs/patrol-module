@@ -51,9 +51,9 @@
    explain it — but the control is present to switch it on. #}
 {% macro viewer(payload, label, olId, olSrc, extraClass) %}
     <div class="patrol-viewer patrol-plate-viewer {{ extraClass|default('') }}"
-         {{ stimulus_controller('@uhifadhilabs/patrol-module/track-plate', {payload: payload}) }}>
+         {{ stimulus_controller('@uhifadhi/patrol-module/track-plate', {payload: payload}) }}>
         <div class="patrol-canvas" data-patrol-track-plate role="img" aria-label="{{ label }}"
-             {{ stimulus_target('@uhifadhilabs/patrol-module/track-plate', 'canvas') }}></div>
+             {{ stimulus_target('@uhifadhi/patrol-module/track-plate', 'canvas') }}></div>
         <span class="patrol-ol patrol-ol-id">{{ olId }}</span>
         <span class="patrol-ol patrol-ol-src">{{ olSrc }}</span>
         {# No controls written here: the host's platform chrome module
