@@ -42,6 +42,7 @@ use UhifadhiLabs\Patrol\Overview\PatrolAttention;
 use UhifadhiLabs\Patrol\Overview\PatrolMapLayers;
 use UhifadhiLabs\Patrol\Overview\PatrolNowTiles;
 use UhifadhiLabs\Patrol\Overview\PatrolOverviewContributor;
+use UhifadhiLabs\Patrol\Overview\PatrolOverviewCopy;
 use UhifadhiLabs\Patrol\Overview\PatrolPulse;
 use UhifadhiLabs\Patrol\Repository\FlightRepository;
 use UhifadhiLabs\Patrol\Repository\LaunchPointRepository;
@@ -558,6 +559,13 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
         $services->set('patrol.overview.map_layers', PatrolMapLayers::class)
             ->args([service('patrol.overview'), service(PatrolRepository::class), param('patrol.types')])
             ->tag('uhifadhi.map.layer');
+
+        // THE MODULE'S WORDS INSIDE THE HOST'S SENTENCES. Not a widget and not a
+        // part of one: the phrases the host drops into its own copy about the
+        // operational plate, so "today's tracks" is said by the module that draws
+        // them rather than written into the host.
+        $services->set('patrol.overview.copy', PatrolOverviewCopy::class)
+            ->tag('uhifadhi.overview.copy');
 
         $services->set('patrol.overview.pulse', PatrolPulse::class)
             ->args([

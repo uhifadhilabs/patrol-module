@@ -23,6 +23,7 @@ use Uhifadhi\Overview\MapLayerProviderInterface;
 use Uhifadhi\Overview\NowTile;
 use Uhifadhi\Overview\NowTileProviderInterface;
 use Uhifadhi\Overview\OverviewContributorInterface;
+use Uhifadhi\Overview\OverviewCopyProviderInterface;
 use Uhifadhi\Overview\PulseEvent;
 use Uhifadhi\Overview\PulseProviderInterface;
 use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
@@ -31,6 +32,7 @@ use UhifadhiLabs\Patrol\Overview\PatrolAttention;
 use UhifadhiLabs\Patrol\Overview\PatrolMapLayers;
 use UhifadhiLabs\Patrol\Overview\PatrolNowTiles;
 use UhifadhiLabs\Patrol\Overview\PatrolOverviewContributor;
+use UhifadhiLabs\Patrol\Overview\PatrolOverviewCopy;
 use UhifadhiLabs\Patrol\Overview\PatrolPulse;
 use UhifadhiLabs\Patrol\UhifadhiLabsPatrolBundle;
 
@@ -476,7 +478,34 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
 
     // ---- the wiring -------------------------------------------------------
 
-    public function testTheFiveContributionsAreTaggedWithTheTagsTheHostReads(): void
+    /**
+     * THE MODULE'S WORDS, AS THE HOST WILL SPEND THEM. Phrases, lower case and
+     * unpunctuated: the host owns the sentence, the conjunction and the full
+     * stop, so anything more from here would be the module writing the host's
+     * copy — the exact thing this seam was added to stop.
+     */
+    public function testTheModuleContributesItsOwnPhrasesAndNoSentences(): void
+    {
+        $copy = $this->service(PatrolOverviewCopy::class);
+        \assert($copy instanceof PatrolOverviewCopy);
+
+        self::assertSame(['today’s tracks'], $copy->copyFragments(OverviewCopyProviderInterface::SLOT_MAP_LAYERS));
+        self::assertSame(
+            ['a stranded patrol', 'an unwatched corner'],
+            $copy->copyFragments(OverviewCopyProviderInterface::SLOT_MAP_GROUND_SPOTTING),
+        );
+        // A slot this module has nothing to say in is silence, not a blank.
+        self::assertSame([], $copy->copyFragments('some.slot.the.host.adds.later'));
+
+        foreach ([OverviewCopyProviderInterface::SLOT_MAP_LAYERS, OverviewCopyProviderInterface::SLOT_MAP_GROUND_SPOTTING] as $slot) {
+            foreach ($copy->copyFragments($slot) as $phrase) {
+                self::assertSame(mb_strtolower($phrase), $phrase, $phrase.' is capitalised — the host decides where the sentence starts.');
+                self::assertStringEndsNotWith('.', $phrase);
+            }
+        }
+    }
+
+    public function testTheSixContributionsAreTaggedWithTheTagsTheHostReads(): void
     {
         // The bundle spells these tags as LITERALS, because the constants live on
         // host classes that are not on this bundle's classpath at build time.
@@ -487,6 +516,7 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
             'patrol.overview.attention' => AttentionProviderInterface::TAG,
             'patrol.overview.map_layers' => MapLayerProviderInterface::TAG,
             'patrol.overview.pulse' => PulseProviderInterface::TAG,
+            'patrol.overview.copy' => OverviewCopyProviderInterface::TAG,
         ];
 
         self::assertSame([
@@ -495,6 +525,7 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
             'patrol.overview.attention' => 'uhifadhi.overview.attention',
             'patrol.overview.map_layers' => 'uhifadhi.map.layer',
             'patrol.overview.pulse' => 'uhifadhi.overview.pulse',
+            'patrol.overview.copy' => 'uhifadhi.overview.copy',
         ], $tags);
     }
 
@@ -502,14 +533,15 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
     {
         $slug = PatrolOverviewContributor::SLUG;
 
-        foreach (['patrol.overview.now_tiles', 'patrol.overview.attention', 'patrol.overview.map_layers', 'patrol.overview.pulse'] as $id) {
+        foreach (['patrol.overview.now_tiles', 'patrol.overview.attention', 'patrol.overview.map_layers', 'patrol.overview.pulse', 'patrol.overview.copy'] as $id) {
             $provider = $this->service(match ($id) {
                 'patrol.overview.now_tiles' => PatrolNowTiles::class,
                 'patrol.overview.attention' => PatrolAttention::class,
                 'patrol.overview.map_layers' => PatrolMapLayers::class,
+                'patrol.overview.copy' => PatrolOverviewCopy::class,
                 default => PatrolPulse::class,
             });
-            \assert($provider instanceof NowTileProviderInterface || $provider instanceof AttentionProviderInterface || $provider instanceof MapLayerProviderInterface || $provider instanceof PulseProviderInterface);
+            \assert($provider instanceof NowTileProviderInterface || $provider instanceof AttentionProviderInterface || $provider instanceof MapLayerProviderInterface || $provider instanceof PulseProviderInterface || $provider instanceof OverviewCopyProviderInterface);
             // A provider whose slug the area has not installed is never asked, so
             // a slug that did not match the module's would go silently unread.
             self::assertSame($slug, $provider->moduleSlug(), $id);

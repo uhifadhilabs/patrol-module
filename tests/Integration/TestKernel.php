@@ -200,7 +200,7 @@ final class TestKernel extends Kernel
             \UhifadhiLabs\Patrol\Storage\PatrolFileSource::class => 'patrol.file_source',
             \UhifadhiLabs\Patrol\Security\PatrolEvidenceVoter::class => 'patrol.evidence_voter',
             \UhifadhiLabs\Storage\Registry\FileRegistry::class => 'storage.file_registry',
-            // The module's five contributions to the host's area overview, and
+            // The module's six contributions to the host's area overview, and
             // the one reading behind all of them. A host reaches them through
             // their TAGS; these aliases only let a test hold one directly.
             \UhifadhiLabs\Patrol\Service\PatrolOverviewService::class => 'patrol.overview',
@@ -209,6 +209,7 @@ final class TestKernel extends Kernel
             \UhifadhiLabs\Patrol\Overview\PatrolAttention::class => 'patrol.overview.attention',
             \UhifadhiLabs\Patrol\Overview\PatrolMapLayers::class => 'patrol.overview.map_layers',
             \UhifadhiLabs\Patrol\Overview\PatrolPulse::class => 'patrol.overview.pulse',
+            \UhifadhiLabs\Patrol\Overview\PatrolOverviewCopy::class => 'patrol.overview.copy',
         ] as $class => $serviceId) {
             $container->services()->alias('test_public.'.$class, $serviceId)->public();
         }
