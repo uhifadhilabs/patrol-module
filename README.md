@@ -15,6 +15,7 @@ A [uhifadhi](https://github.com/uhifadhilabs) module bundle.
 - [Ingest — one service, two doors](#ingest--one-service-two-doors)
 - [Design decisions](#design-decisions)
 - [Development](#development)
+- [License](#license)
 
 ## What it does
 
@@ -263,3 +264,10 @@ composer check       # cs:check → phpstan (max) → phpunit
 
 Integration tests need the PostGIS test container
 (`PATROL_TEST_DATABASE_URL`, see `phpunit.dist.xml`).
+
+## License
+
+**AGPL-3.0-or-later** — see [LICENSE](LICENSE): the same license as the
+uhifadhi host this module plugs into. Use, modify and self-host freely; if you
+offer a modified version to users over a network, they are entitled to the
+source of what they're running.

@@ -1,7 +1,7 @@
 {
     "name": "@uhifadhilabs/patrol-module",
     "description": "Front-end assets of the Patrols module — mapped into hosts via AssetMapper.",
-    "license": "proprietary",
+    "license": "AGPL-3.0-or-later",
     "symfony": {
         "controllers": {
             "coverage-map": {

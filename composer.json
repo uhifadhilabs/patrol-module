@@ -13,7 +13,7 @@
         "symfony",
         "uhifadhi"
     ],
-    "license": "proprietary",
+    "license": "AGPL-3.0-or-later",
     "authors": [
         {
             "name": "Ezekiel Mjema",
