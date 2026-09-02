@@ -21,13 +21,13 @@
         }
     ],
     "require": {
-        "php": ">=8.4",
-        "ext-simplexml": "*",
-        "ext-xmlwriter": "*",
         "doctrine/dbal": "^4.0",
         "doctrine/doctrine-bundle": "^3.0",
         "doctrine/orm": "^3.5",
+        "ext-simplexml": "*",
+        "ext-xmlwriter": "*",
         "fundistadi/postgis-bundle": "^0.5",
+        "php": ">=8.4",
         "symfony/asset": "^7.3 || ^8.0",
         "symfony/config": "^7.3 || ^8.0",
         "symfony/console": "^7.3 || ^8.0",
@@ -37,6 +37,7 @@
         "symfony/twig-bundle": "^7.3 || ^8.0",
         "symfony/uid": "^7.3 || ^8.0",
         "symfony/ux-icons": "^3.4",
+        "uhifadhilabs/map-module": "dev-main",
         "uhifadhilabs/module-contracts": "dev-main",
         "uhifadhilabs/storage-module": "dev-main"
     },
@@ -106,6 +107,11 @@
         {
             "type": "vcs",
             "url": "https://github.com/uhifadhilabs/storage-module"
+        },
+        {
+            "name": "map-module",
+            "type": "vcs",
+            "url": "https://github.com/uhifadhilabs/map-module"
         }
     ]
 }

@@ -97,15 +97,26 @@ consumers of the same pipeline shape, on sibling topics.
 
 **Sequencing:** after the v1 screens are ported and installed in the host.
 
-## 6 · The maps run on the host's Leaflet and the host's basemaps
+## 6 · The maps run on the map module's Leaflet and the map module's basemaps
 
-The patrol base template loads the HOST's self-hosted Leaflet
-(`asset('leaflet/leaflet.css'|'leaflet/leaflet.js')`), and the map controllers
-import the host's map modules — `uhifadhi/basemaps` for the satellite and street
-layers, `uhifadhi/boundary` for how an area outline is drawn — rather than
-holding tile sources or boundary styling of their own. The bundle defines no
-boundary colour, weight or opacity anywhere: there is one definition, in the
-host, and nothing to keep in sync.
+The patrol base template loads the self-hosted Leaflet shipped by
+`uhifadhilabs/map-module`, through that bundle's own `LEAFLET_CSS` / `LEAFLET_JS`
+constants rather than a literal path, and the map controllers import the
+platform's map modules — `uhifadhi/basemaps` for the satellite and street layers,
+`uhifadhi/boundary` for how an area outline is drawn — rather than holding tile
+sources or boundary styling of their own. The bundle defines no boundary colour,
+weight or opacity anywhere: there is one definition, in the map module, and
+nothing to keep in sync.
+
+This used to say "the host's". The map platform left the host application for a
+module of its own, and nothing in this bundle changed to follow it: the import
+names are bare specifiers, so they went on resolving to the same three files at
+a new address. Only the Leaflet `<link>` and `<script>` moved, from a literal
+path to the constants — which is what those constants are for.
+
+WHICH IMAGERY a satellite layer draws is now the deployment's configuration
+(`map.satellite.provider`: esri, google or its own source), read by the basemap
+seam from the document. This bundle neither knows nor needs to.
 
 The one thing each map decides for itself is whether the outside-the-area SCRIM
 is drawn. The coverage map (PL·05/PL·08) shows it, like the host's area map: it

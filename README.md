@@ -67,8 +67,9 @@ Its Stimulus controllers are enabled in the host's `assets/controllers.json`:
 Patrols is a uhifadhi module, so its maps ride on the platform's map seam rather
 than shipping a second copy of it (see `docs/design-decisions.md` §6):
 
-- **Leaflet**, self-hosted, at the asset paths `leaflet/leaflet.css` and
-  `leaflet/leaflet.js` (`window.L`). No CDN, never MapLibre.
+- **Leaflet**, self-hosted by `uhifadhilabs/map-module` and linked through that
+  bundle's `LEAFLET_CSS` / `LEAFLET_JS` constants (`window.L`). No CDN, never
+  MapLibre.
 - **Basemaps** under the importmap specifier `uhifadhi/basemaps`, exporting
   `satelliteLayer(L, map)` and `streetLayer(L)`.
 - **Boundary treatment** under `uhifadhi/boundary`, exporting `drawBoundary(L,

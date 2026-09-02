@@ -13,12 +13,12 @@
 {% block stylesheets %}
     {{ parent() }}
     {# Leaflet FIRST, so patrol.css can restyle its controls into the design's
-       pills. Both files are the host's own self-hosted copy (assets/leaflet/) —
+       pills. Both files come from uhifadhilabs/map-module, by its own constants —
        never a CDN, and the same Leaflet the host's area map runs on, so a patrol
        map and an area map cannot disagree about how a layer draws. A host of
        this module ships those two assets; that is part of the seam, like the
        host's AreaOfInterest the bundle already binds to. #}
-    <link rel="stylesheet" href="{{ asset('leaflet/leaflet.css') }}">
+    <link rel="stylesheet" href="{{ asset(constant('UhifadhiLabs\\Map\\UhifadhiLabsMapBundle::LEAFLET_CSS')) }}">
     {# The FILE PREVIEW's vocabulary, from the bundle that owns it. A patrol
        photograph opens in the same overlay a file on the hub opens in, so this
        module draws none of it and states none of it — it loads the component's
@@ -42,7 +42,7 @@
    tiles + GeoJSON need no WebGL, and WebGL failed silently (blank map) in
    constrained environments. #}
 {% block javascripts %}
-    <script src="{{ asset('leaflet/leaflet.js') }}"></script>
+    <script src="{{ asset(constant('UhifadhiLabs\\Map\\UhifadhiLabsMapBundle::LEAFLET_JS')) }}"></script>
     {{ parent() }}
 {% endblock %}
 

@@ -8,13 +8,13 @@ import { mountMapChrome } from 'uhifadhi/map-chrome';
  * frame (zoom column, layers menu, fullscreen) over real tiles.
  *
  * Leaflet, self-hosted, read off `window.L`: the host ships it as a classic
- * <script> (assets/leaflet/leaflet.js) and the patrol base template loads the
+ * <script> (uhifadhilabs/map-module's public/leaflet/) and the patrol base template loads the
  * same file, so there is exactly ONE Leaflet on the page and no CDN. MapLibre
  * is deliberately not used — see the host's map_controller.js for why (raster
  * tiles + GeoJSON need no WebGL, and WebGL failed silently in constrained
  * environments).
  *
- * The two base layers come from the HOST's one basemap module
+ * The two base layers come from the platform's one basemap module
  * (`uhifadhi/basemaps`, an importmap specifier): satellite is Google's official
  * Map Tiles API, falling back to keyless imagery where no key is configured.
  * The boundary comes from the host's `uhifadhi/boundary` the same way. The
