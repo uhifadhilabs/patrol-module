@@ -8,7 +8,7 @@ import { mountMapChrome } from 'uhifadhi/map-chrome';
  * frame (zoom column, layers menu, fullscreen) over real tiles.
  *
  * Leaflet, self-hosted, read off `window.L`: the host ships it as a classic
- * <script> (uhifadhilabs/map-module's public/leaflet/) and the patrol base template loads the
+ * <script> (uhifadhi/map-module's public/leaflet/) and the patrol base template loads the
  * same file, so there is exactly ONE Leaflet on the page and no CDN. MapLibre
  * is deliberately not used — see the host's map_controller.js for why (raster
  * tiles + GeoJSON need no WebGL, and WebGL failed silently in constrained
