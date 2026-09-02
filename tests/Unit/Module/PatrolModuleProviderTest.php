@@ -21,11 +21,11 @@ final class PatrolModuleProviderTest extends TestCase
 {
     public function testDeclaresThePatrolsModule(): void
     {
-        $provider = new PatrolModuleProvider('pressure');
+        $provider = new PatrolModuleProvider('operations');
 
         self::assertSame('patrols', $provider->slug());
         self::assertSame('Patrols', $provider->name());
-        self::assertSame('pressure', $provider->category());
+        self::assertSame('operations', $provider->category());
         self::assertSame('GPS field tracks', $provider->dataSource());
         self::assertSame('footprints', $provider->icon());
         self::assertSame('patrol_dashboard', $provider->entryRoute());
@@ -33,7 +33,7 @@ final class PatrolModuleProviderTest extends TestCase
 
     public function testDeclaresTheRecordPermissionForTheHostToAssign(): void
     {
-        $permissions = new PatrolModuleProvider('pressure')->permissions();
+        $permissions = new PatrolModuleProvider('operations')->permissions();
 
         self::assertCount(1, $permissions);
         // The exact attribute the recording screens check — declared here, and

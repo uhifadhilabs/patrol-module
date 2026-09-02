@@ -41,7 +41,7 @@ final class PatrolConfigurationTest extends TestCase
     {
         $config = $this->process([]);
 
-        self::assertSame('pressure', $config['module_category']);
+        self::assertSame('operations', $config['module_category']);
         self::assertFalse($config['dev_tools']);
         self::assertSame(['foot', 'vehicle', 'drone'], array_keys((array) $config['types']));
         self::assertSame(

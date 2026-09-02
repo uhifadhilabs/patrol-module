@@ -63,8 +63,13 @@ final class PatrolConfiguration
         $root
             ->children()
                 ->scalarNode('module_category')
+                    // OPERATIONS, because a patrol is the rangers' OWN work. The
+                    // default was 'pressure' — which in the host's catalogue means
+                    // human pressure ON the ecosystem, and so filed the people
+                    // doing the protecting alongside the thing they protect
+                    // against. A deployment may still override it.
                     ->info('Catalogue category the Patrols module is filed under in each area.')
-                    ->defaultValue('pressure')->cannotBeEmpty()
+                    ->defaultValue('operations')->cannotBeEmpty()
                 ->end()
                 ->booleanNode('dev_tools')
                     ->info('Register dev-only tooling (patrol:seed:*). Off by default; the recipe enables it via when@dev/when@test — never in prod.')

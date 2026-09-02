@@ -96,7 +96,7 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
 
         // The host only asks this contributor for widgets where a module of this
         // slug is switched on, so the two must be the same word.
-        self::assertSame(new PatrolModuleProvider('pressure')->slug(), $contributor->moduleSlug());
+        self::assertSame(new PatrolModuleProvider('operations')->slug(), $contributor->moduleSlug());
         self::assertSame($contributor->moduleSlug(), $contributor->group()->id);
         self::assertSame('Patrols · uhifadhilabs/patrol-module', $contributor->group()->label);
     }

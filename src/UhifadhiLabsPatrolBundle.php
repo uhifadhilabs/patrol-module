@@ -152,7 +152,7 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
         // via registerForAutoconfiguration, but that only fires for autoconfigured
         // services — and a reusable bundle doesn't autoconfigure — so the tag is
         // applied explicitly here.
-        $category = \is_string($config['module_category'] ?? null) ? $config['module_category'] : 'pressure';
+        $category = \is_string($config['module_category'] ?? null) ? $config['module_category'] : 'operations';
         $services->set('patrol.module_provider', PatrolModuleProvider::class)
             ->args([$category])
             ->tag('uhifadhi.module');
