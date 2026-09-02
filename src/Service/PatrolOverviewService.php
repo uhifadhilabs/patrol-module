@@ -226,6 +226,20 @@ final readonly class PatrolOverviewService
     }
 
     /**
+     * WHETHER THIS AREA PATROLS AT ALL.
+     *
+     * The one question that separates a zero the overview may print from an
+     * absence it must not dress up as one: an area with a register and a quiet
+     * morning walked 0 km, and an area that has never opened a patrol did not
+     * walk 0 km — it has nothing to say. Asked only where the day came back
+     * empty, so a busy morning never pays for it.
+     */
+    public function hasRegister(AreaOfInterest $area): bool
+    {
+        return $this->patrols->areaHasAnyPatrol($area);
+    }
+
+    /**
      * PL·A3 — every zone of the area by how long since a track entered it, worst
      * first, with the share of each lying within the coverage buffer this month.
      *

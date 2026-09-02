@@ -54,6 +54,25 @@ final class PatrolRepository extends ServiceEntityRepository
     }
 
     /**
+     * WHETHER THIS AREA PATROLS AT ALL — one row is enough, so this asks for one
+     * row rather than counting a history that can run to thousands.
+     *
+     * It is the difference between "nothing happened today" and "nothing has
+     * ever happened here", which is the difference between a zero the overview
+     * may print and an absence it must not dress up as one.
+     */
+    public function areaHasAnyPatrol(AreaOfInterest $area): bool
+    {
+        return null !== $this->createQueryBuilder('p')
+            ->select('p.id')
+            ->andWhere('p.area = :area')
+            ->setParameter('area', $area)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
      * The area's patrols that STARTED inside a half-open window, earliest first —
      * the calendar reads a month (its grid window, see
      * PatrolDashboardService::calendarRange) without loading the area's whole

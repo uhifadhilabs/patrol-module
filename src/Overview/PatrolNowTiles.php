@@ -30,9 +30,12 @@ use UhifadhiLabs\Patrol\Service\PatrolOverviewService;
  * ABSENT IS NOT ZERO, and this is the clearest place it bites. If nobody is out,
  * PL·N1 is not returned: a tile reading 0 would claim the module measured the
  * area's live patrols and found none, which is a different statement from "there
- * is nothing to say about patrols being out". Same for the day's walking — a
- * morning on which nothing has closed and nothing has been logged gets no tile,
- * not a tile reading 0 km.
+ * is nothing to say about patrols being out".
+ *
+ * AND A TRUE ZERO IS NOT ABSENT, which is the other half of the same rule. PL·N2
+ * stays on the strip through a quiet morning and reads 0 km, because an area
+ * with a register really was measured and really did walk nothing yet. Only an
+ * area that has never opened a patrol has no day to report.
  *
  * The numbers come from {@see PatrolOverviewService}, the one place this
  * module's reading of the morning is measured, so the strip's count and the
@@ -124,21 +127,36 @@ final readonly class PatrolNowTiles implements NowTileProviderInterface
      * PL·N2 — the day's walking: kilometres closed today, and what closed and
      * was logged alongside them.
      *
-     * The distance is an EM DASH where nothing that closed today recorded one —
-     * a day of hand-logged patrols walked a distance nobody measured, and 0 km
-     * would be a measurement. The subline still states what closed, because that
-     * part IS known.
+     * A ZERO DAY IS A DAY, AND IT RENDERS AS A ZERO. Where the area has a
+     * register, a morning on which nothing has closed is something this module
+     * MEASURED — 0 km walked, 0 patrols closed — and the design's strip carries
+     * the tile every day. It used to drop out of the row entirely, which read to
+     * an area manager as the module being broken rather than the morning being
+     * quiet, and which is the one thing an honest-absent rule must never buy.
+     *
+     * WHAT IS STILL ABSENT RATHER THAN ZERO is an area that has never opened a
+     * patrol at all: there is no day to measure, so there is no tile. That is
+     * the same line the incidents module draws between "filed today · 0" and an
+     * area with no register — one asks the day, the other has no day to ask.
+     *
+     * The distance is an EM DASH where patrols DID close today and none of them
+     * recorded one — a day of hand-logged patrols walked a distance nobody
+     * measured, which is a different statement from having walked nothing. The
+     * subline still states what closed, because that part IS known.
      *
      * @return list<NowTile>
      */
     private function walkedTile(AreaOfInterest $area, \DateTimeImmutable $now): array
     {
         $today = $this->overview->today($area, $now);
-        if (0 === $today['closed'] && 0 === $today['observations']) {
+        $quiet = 0 === $today['closed'] && 0 === $today['observations'];
+        if ($quiet && !$this->overview->hasRegister($area)) {
             return [];
         }
 
-        $known = null !== $today['distanceKm'];
+        // Nothing closed means nothing walked, which is a measurement of 0 km.
+        // A null distance is only unknown where there was something to measure.
+        $known = null !== $today['distanceKm'] || 0 === $today['closed'];
 
         return [new NowTile(
             'PL·N2',

@@ -191,8 +191,34 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
     public function testAModuleWithNothingToSayPutsNoTileInTheStrip(): void
     {
         // Absent is not zero: a tile reading 0 would claim the module measured
-        // the area's live patrols and found none.
+        // the area's live patrols and found none. An area whose register is
+        // empty has never patrolled at all — there is no day to measure.
         self::assertSame([], $this->tiles());
+    }
+
+    /**
+     * A ZERO DAY IS A DAY. Once the area has a register, "nothing walked yet"
+     * is something the module MEASURED — so the day's tile stays on the strip
+     * and reads 0, exactly as the design's strip always carries it. A tile that
+     * vanishes on a quiet morning tells an area manager that the module is
+     * broken rather than that the morning is quiet.
+     */
+    public function testAQuietDayInAnAreaThatPatrolsStillCarriesTheDaysTile(): void
+    {
+        // Yesterday's round: the register exists, and today nothing has closed.
+        $this->makePatrol('a', 'walk', '2026-03-20T06:00:00+00:00', '2026-03-20T09:00:00+00:00')->setDistanceKm(11.0);
+        $this->em->flush();
+
+        $tiles = $this->tiles();
+
+        self::assertCount(1, $tiles);
+        self::assertSame('PL·N2', $tiles[0]->index);
+        // ZERO KILOMETRES IS A MEASUREMENT, not an unknown: nothing closed, so
+        // nothing was walked. The em dash is for a day whose patrols closed and
+        // recorded no distance — a different statement.
+        self::assertSame('0', $tiles[0]->value);
+        self::assertSame('km', $tiles[0]->unit);
+        self::assertSame('0 patrols closed · 0 observations', $tiles[0]->subline);
     }
 
     public function testTheOutTileCountsWhoIsOutAndNamesTheHandsetToRaise(): void
