@@ -31,7 +31,7 @@ namespace UhifadhiLabs\Patrol\Service;
 final class GpxWriter
 {
     public const string NAMESPACE_URI = 'http://www.topografix.com/GPX/1/1';
-    public const string CREATOR = 'uhifadhilabs/patrol-module';
+    public const string CREATOR = 'uhifadhi/patrol-module';
 
     private readonly GeoService $geo;
 

@@ -74,7 +74,7 @@ final readonly class PatrolOverviewContributor implements ContributesStylesheetI
     {
         return new WidgetGroup(
             self::SLUG,
-            'Patrols · uhifadhilabs/patrol-module',
+            'Patrols · uhifadhi/patrol-module',
             'What the patrols module contributes to the area overview. Not the patrols dashboard in miniature — the short-window slice an area manager needs before opening the module: who is out, how the day is going, and where nobody has been. Uninstall the module and every one of these disappears from the library.',
         );
     }

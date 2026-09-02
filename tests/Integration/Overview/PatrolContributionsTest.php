@@ -100,7 +100,7 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
         // slug is switched on, so the two must be the same word.
         self::assertSame(new PatrolModuleProvider('operations')->slug(), $contributor->moduleSlug());
         self::assertSame($contributor->moduleSlug(), $contributor->group()->id);
-        self::assertSame('Patrols · uhifadhilabs/patrol-module', $contributor->group()->label);
+        self::assertSame('Patrols · uhifadhi/patrol-module', $contributor->group()->label);
     }
 
     public function testEveryWidgetIsFiledUnderTheContributorsOwnGroup(): void

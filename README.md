@@ -1,4 +1,4 @@
-# uhifadhilabs/patrol-module
+# uhifadhi/patrol-module
 
 Field patrol effort as first-class records: GPX track ingest, en-route
 observations with photos, coverage mapping and a per-user widget dashboard.
@@ -45,7 +45,7 @@ symfony/ux-icons with the `lucide` set imported.
 ## Installation
 
 ```bash
-composer require uhifadhilabs/patrol-module
+composer require uhifadhi/patrol-module
 ```
 
 The bundle maps its own entities and ships its own assets (AssetMapper) —
@@ -67,7 +67,7 @@ Its Stimulus controllers are enabled in the host's `assets/controllers.json`:
 Patrols is a uhifadhi module, so its maps ride on the platform's map seam rather
 than shipping a second copy of it (see `docs/design-decisions.md` §6):
 
-- **Leaflet**, self-hosted by `uhifadhilabs/map-module` and linked through that
+- **Leaflet**, self-hosted by `uhifadhi/map-module` and linked through that
   bundle's `LEAFLET_CSS` / `LEAFLET_JS` constants (`window.L`). No CDN, never
   MapLibre.
 - **Basemaps** under the importmap specifier `uhifadhi/basemaps`, exporting
@@ -78,7 +78,7 @@ than shipping a second copy of it (see `docs/design-decisions.md` §6):
 
 ### Photographs need the storage module
 
-Observation photos are stored by `uhifadhilabs/storage-module`, which is a hard
+Observation photos are stored by `uhifadhi/storage-module`, which is a hard
 dependency: the sync endpoint writes through it and the observation screen reads
 back through its authenticated route. Register both bundles it needs:
 

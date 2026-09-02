@@ -54,7 +54,7 @@ could not make alone (local filesystem vs object storage, sizing, retention),
 and that blocking the whole domain layer on that call was the wrong trade. It
 was the first of these decisions expected to fall, and it did.
 
-**What it became:** `uhifadhilabs/storage-module` owns the mechanism —
+**What it became:** `uhifadhi/storage-module` owns the mechanism —
 named Flysystem storages (a local directory or Hetzner object storage, one
 config key apart), a detected-MIME allowlist, a size cap, ~400px previews and
 ONE authenticated route by which anything comes back out. This module keeps what
@@ -100,7 +100,7 @@ consumers of the same pipeline shape, on sibling topics.
 ## 6 · The maps run on the map module's Leaflet and the map module's basemaps
 
 The patrol base template loads the self-hosted Leaflet shipped by
-`uhifadhilabs/map-module`, through that bundle's own `LEAFLET_CSS` / `LEAFLET_JS`
+`uhifadhi/map-module`, through that bundle's own `LEAFLET_CSS` / `LEAFLET_JS`
 constants rather than a literal path, and the map controllers import the
 platform's map modules — `uhifadhi/basemaps` for the satellite and street layers,
 `uhifadhi/boundary` for how an area outline is drawn — rather than holding tile

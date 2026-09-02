@@ -33,7 +33,7 @@ use UhifadhiLabs\Storage\Registry\FileSourceInterface;
  * photograph patrol holds is handed over here, already carrying the one thing
  * that makes it a file on this platform — the record it belongs to.
  *
- * The seam this implements is uhifadhilabs/storage-module's
+ * The seam this implements is uhifadhi/storage-module's
  * {@see FileSourceInterface}, and this class answers only what patrol knows:
  * which keys are ours, what each photograph belongs to, and what may be done to
  * it. It deliberately does NOT answer where the bytes are or whether the small

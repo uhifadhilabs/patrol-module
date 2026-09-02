@@ -32,7 +32,7 @@ use Uhifadhi\Model\WidgetGroup;
  * preset framework and the identity of the area; EVERY OPERATIONAL WIDGET
  * arrives here, from a module installed in that area.
  *
- * THE OPEN/CLOSED RULE, WRITTEN DOWN. Installing `uhifadhilabs/permits-module`
+ * THE OPEN/CLOSED RULE, WRITTEN DOWN. Installing `uhifadhi/permits-module`
  * in an area adds a headed section to the library, its widgets, and — through
  * the three sibling interfaces — its tiles, its items and its layers. It does
  * not touch this file, the host's overview controller, the grid, or any other

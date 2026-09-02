@@ -103,7 +103,7 @@ final class PatrolConfiguration
                  * module that stores evidence must answer them the same way, and
                  * two modules with two size caps is a deployment that cannot say
                  * what it accepts. They are configured once, under `storage:`
-                 * (uhifadhilabs/storage-module).
+                 * (uhifadhi/storage-module).
                  */
                 ->integerNode('discard_retention_days')
                     ->info('How long a DISCARDED patrol is kept before patrol:purge-discarded deletes it and its photographs. Measured from the discard, and stopped entirely while the patrol is held for review.')

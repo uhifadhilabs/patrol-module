@@ -48,7 +48,7 @@ class ObservationPhoto
 
     /**
      * The EVIDENCE KEY: where the bytes are inside the platform's private
-     * evidence storage (uhifadhilabs/storage-module). Relative on purpose — that
+     * evidence storage (uhifadhi/storage-module). Relative on purpose — that
      * is what lets a deployment move from a local directory to object storage
      * without rewriting a single row here.
      *

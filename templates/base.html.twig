@@ -13,7 +13,7 @@
 {% block stylesheets %}
     {{ parent() }}
     {# Leaflet FIRST, so patrol.css can restyle its controls into the design's
-       pills. Both files come from uhifadhilabs/map-module, by its own constants —
+       pills. Both files come from uhifadhi/map-module, by its own constants —
        never a CDN, and the same Leaflet the host's area map runs on, so a patrol
        map and an area map cannot disagree about how a layer draws. A host of
        this module ships those two assets; that is part of the seam, like the
@@ -25,7 +25,7 @@
        sheet and includes the component's partial.
 
        Unconditional, like the evidence route the photos card already asks for:
-       this module refuses to boot without uhifadhilabs/storage-module (see
+       this module refuses to boot without uhifadhi/storage-module (see
        UhifadhiLabsPatrolBundle), because that is where its photographs live.
        → @UhifadhiLabsStorage/overlay/_preview.html.twig #}
     <link rel="stylesheet" href="{{ asset('bundles/uhifadhilabsstorage/preview.css') }}">

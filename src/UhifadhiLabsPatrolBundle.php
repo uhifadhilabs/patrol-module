@@ -211,7 +211,7 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
          * dependency and one line in bundles.php is the cheaper contract.
          */
         if (!\is_array($bundles) || !isset($bundles['UhifadhiLabsStorageBundle'])) {
-            throw new \LogicException('UhifadhiLabsPatrolBundle stores observation photos in uhifadhilabs/storage-module. Register FlysystemBundle and UhifadhiLabs\Storage\UhifadhiLabsStorageBundle in config/bundles.php.');
+            throw new \LogicException('UhifadhiLabsPatrolBundle stores observation photos in uhifadhi/storage-module. Register FlysystemBundle and UhifadhiLabs\Storage\UhifadhiLabsStorageBundle in config/bundles.php.');
         }
 
         /*
