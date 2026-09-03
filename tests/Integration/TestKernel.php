@@ -93,9 +93,9 @@ final class TestKernel extends Kernel
             'validation' => ['enabled' => true],
         ]);
 
-        // A minimal but REAL security setup (see uhakiki-bundle's TestKernel for
-        // the reasoning: loginUser() needs a stateful firewall, and permission
-        // checks must go through the real AuthorizationChecker).
+        // A minimal but REAL security setup: loginUser() needs a stateful
+        // firewall, and permission checks must go through the real
+        // AuthorizationChecker rather than a stub that always says yes.
         $container->extension('security', [
             'providers' => [
                 'app_users' => ['entity' => ['class' => User::class, 'property' => 'email']],
