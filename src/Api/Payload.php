@@ -11,10 +11,10 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Api;
+namespace Uhifadhi\Patrol\Api;
 
 use Symfony\Component\Uid\Uuid;
-use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
+use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 
 /**
  * Reads the field app's JSON without trusting a single field of it.

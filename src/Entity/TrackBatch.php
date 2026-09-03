@@ -11,10 +11,10 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Entity;
+namespace Uhifadhi\Patrol\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
-use UhifadhiLabs\Patrol\Repository\TrackBatchRepository;
+use Uhifadhi\Patrol\Repository\TrackBatchRepository;
 
 /**
  * One accepted upload of fixes — API-CONTRACT.md §5.

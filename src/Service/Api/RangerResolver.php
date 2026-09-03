@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Service\Api;
+namespace Uhifadhi\Patrol\Service\Api;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Uhifadhi\Entity\User;

@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Controller;
+namespace Uhifadhi\Patrol\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
@@ -29,7 +29,7 @@ use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
-use UhifadhiLabs\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Entity\Patrol;
 
 /**
  * Hold a discarded patrol for review, and let it go again.
@@ -56,7 +56,7 @@ use UhifadhiLabs\Patrol\Entity\Patrol;
  *
  * Registered only where the host runs SecurityBundle, exactly like the recording
  * screens and for the same reason — see PatrolRecordController's docblock and
- * UhifadhiLabsPatrolBundle::loadExtension().
+ * UhifadhiPatrolBundle::loadExtension().
  *
  * A plain class, not a Symfony AbstractController subclass — see PatrolController
  * and config/services.php for the reusable-bundle rule.

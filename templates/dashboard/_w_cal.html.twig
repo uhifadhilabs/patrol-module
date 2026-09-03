@@ -9,6 +9,6 @@
     <span class="tab"><span class="idx">PL&middot;11</span>Patrol calendar<span class="src">&middot; <span
                 {{ stimulus_target('@uhifadhi/patrol-module/calendar', 'label') }}>{{ now|date('F Y')|lower }}</span></span></span>
     <div {{ stimulus_target('@uhifadhi/patrol-module/calendar', 'body') }}>
-        {{ include('@UhifadhiLabsPatrol/dashboard/_cal_body.html.twig', {cells: dashboard.calendar, month: now}) }}
+        {{ include('@UhifadhiPatrol/dashboard/_cal_body.html.twig', {cells: dashboard.calendar, month: now}) }}
     </div>
 </div>

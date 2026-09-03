@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Unit\Service;
+namespace Uhifadhi\Patrol\Tests\Unit\Service;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use UhifadhiLabs\Patrol\Service\GeoService;
+use Uhifadhi\Patrol\Service\GeoService;
 
 /**
  * The position helpers behind the observation rows and the observation meta

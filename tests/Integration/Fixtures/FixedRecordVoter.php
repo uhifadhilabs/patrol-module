@@ -11,13 +11,13 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Integration\Fixtures;
+namespace Uhifadhi\Patrol\Tests\Integration\Fixtures;
 
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 use Uhifadhi\Entity\User;
-use UhifadhiLabs\Patrol\Controller\PatrolRecordController;
+use Uhifadhi\Patrol\Controller\PatrolRecordController;
 
 /**
  * Test stand-in for the HOST's permission voter: the bundle only DECLARES

@@ -11,20 +11,20 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Unit\Storage;
+namespace Uhifadhi\Patrol\Tests\Unit\Storage;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\AreaOfInterest;
-use UhifadhiLabs\Patrol\Entity\Observation;
-use UhifadhiLabs\Patrol\Entity\ObservationPhoto;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Service\PhotoEvidenceKey;
-use UhifadhiLabs\Patrol\Storage\PatrolFileSource;
-use UhifadhiLabs\Storage\Enum\FileKindEnum;
-use UhifadhiLabs\Storage\Enum\GuardStateEnum;
-use UhifadhiLabs\Storage\Enum\ThumbStateEnum;
+use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\ObservationPhoto;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
+use Uhifadhi\Patrol\Storage\PatrolFileSource;
+use Uhifadhi\Storage\Enum\FileKindEnum;
+use Uhifadhi\Storage\Enum\GuardStateEnum;
+use Uhifadhi\Storage\Enum\ThumbStateEnum;
 
 /**
  * What the Files hub is told about a patrol photograph.

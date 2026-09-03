@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\ApiResource;
+namespace Uhifadhi\Patrol\ApiResource;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Post;
-use UhifadhiLabs\Patrol\Api\State\UploadPhotoProcessor;
+use Uhifadhi\Patrol\Api\State\UploadPhotoProcessor;
 
 /**
  * `POST /api/observations/{uuid}/photos` — API-CONTRACT.md §8.

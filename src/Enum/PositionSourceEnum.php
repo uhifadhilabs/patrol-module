@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Enum;
+namespace Uhifadhi\Patrol\Enum;
 
 /**
  * Where an observation's position actually came from — API-CONTRACT.md §6.

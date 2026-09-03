@@ -11,12 +11,12 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Security;
+namespace Uhifadhi\Patrol\Security;
 
 use Symfony\Component\Security\Core\User\UserInterface;
-use UhifadhiLabs\Patrol\Repository\ObservationPhotoRepository;
-use UhifadhiLabs\Patrol\Service\PhotoEvidenceKey;
-use UhifadhiLabs\Storage\Security\EvidenceAccessVoterInterface;
+use Uhifadhi\Patrol\Repository\ObservationPhotoRepository;
+use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
+use Uhifadhi\Storage\Security\EvidenceAccessVoterInterface;
 
 /**
  * Who may read a patrol photograph — the module half of storage-module's

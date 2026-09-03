@@ -11,10 +11,10 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Service;
+namespace Uhifadhi\Patrol\Service;
 
-use UhifadhiLabs\Patrol\Exception\InvalidGpxException;
-use UhifadhiLabs\Patrol\Model\ParsedTrack;
+use Uhifadhi\Patrol\Exception\InvalidGpxException;
+use Uhifadhi\Patrol\Model\ParsedTrack;
 
 /**
  * Reads a GPX 1.0/1.1 document into a {@see ParsedTrack}: points in document

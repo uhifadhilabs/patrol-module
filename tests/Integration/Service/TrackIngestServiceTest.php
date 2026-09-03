@@ -11,15 +11,15 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Integration\Service;
+namespace Uhifadhi\Patrol\Tests\Integration\Service;
 
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
-use UhifadhiLabs\Patrol\Entity\Observation;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Enum\PatrolSourceEnum;
-use UhifadhiLabs\Patrol\Service\TrackIngestService;
-use UhifadhiLabs\Patrol\Tests\Integration\IntegrationTestCase;
+use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Service\TrackIngestService;
+use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 final class TrackIngestServiceTest extends IntegrationTestCase
 {

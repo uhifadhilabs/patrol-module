@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Controller;
+namespace Uhifadhi\Patrol\Controller;
 
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -24,13 +24,13 @@ use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Uid\Uuid;
 use Twig\Environment;
 use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
+use Uhifadhi\Patrol\Model\PatrolWidgets;
+use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\PatrolWidgetUrls;
 use Uhifadhi\Service\WidgetEndpoint;
 use Uhifadhi\Service\WidgetService;
-use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
-use UhifadhiLabs\Patrol\Model\PatrolWidgets;
-use UhifadhiLabs\Patrol\Repository\PatrolRepository;
-use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
-use UhifadhiLabs\Patrol\Service\PatrolWidgetUrls;
 
 /**
  * THE WIDGET LIBRARY for the patrols surface — the one editing screen.
@@ -102,7 +102,7 @@ final class PatrolWidgetsController
             ),
         );
 
-        return new Response($this->twig->render('@UhifadhiLabsPatrol/widgets/show.html.twig', [
+        return new Response($this->twig->render('@UhifadhiPatrol/widgets/show.html.twig', [
             'area' => $area,
             // The preset component, whole, over this surface's catalogue and
             // this AREA's routes.
@@ -111,7 +111,7 @@ final class PatrolWidgetsController
             'customPresets' => $this->widgets->customPresets($catalog, $userId, $areaUuid),
             'active' => $this->widgets->activeRef($catalog, $userId, $areaUuid),
             'widgets' => $this->widgets->resolve($catalog, $userId, $areaUuid),
-            'partial' => '@UhifadhiLabsPatrol/dashboard/_w_%s.html.twig',
+            'partial' => '@UhifadhiPatrol/dashboard/_w_%s.html.twig',
             // EVERY widget partial renders the REAL widget on REAL data here,
             // at full size — the picture of a widget IS the widget, so what you
             // arrange is exactly what you get.

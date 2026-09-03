@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Entity;
+namespace Uhifadhi\Patrol\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
-use UhifadhiLabs\Patrol\Repository\FlightRepository;
+use Uhifadhi\Patrol\Repository\FlightRepository;
 
 /**
  * One sortie from a {@see LaunchPoint} — API-CONTRACT.md §7.

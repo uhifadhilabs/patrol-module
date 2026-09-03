@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Repository;
+namespace Uhifadhi\Patrol\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
@@ -20,8 +20,8 @@ use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\Department;
 use Uhifadhi\Entity\Zone;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 
 /**
  * @extends ServiceEntityRepository<Patrol>
@@ -306,7 +306,7 @@ final class PatrolRepository extends ServiceEntityRepository
      * credit each of them with ground only the others covered.
      *
      * THE SLICE is the module's one and only slice, the same one
-     * {@see \UhifadhiLabs\Patrol\Module\PatrolDepartmentKpiProvider} counts
+     * {@see \Uhifadhi\Patrol\Module\PatrolDepartmentKpiProvider} counts
      * patrols by: patrol → lead → position → department. Three INNER JOINs
      * express in SQL exactly what that provider expresses in PHP, and a patrol
      * that fails any link — no lead, a lead with no position, a position filed

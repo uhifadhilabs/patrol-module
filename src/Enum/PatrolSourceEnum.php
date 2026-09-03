@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Enum;
+namespace Uhifadhi\Patrol\Enum;
 
 /**
  * Where a patrol record came from. A sketched manual route must never

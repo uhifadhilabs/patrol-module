@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Service;
+namespace Uhifadhi\Patrol\Service;
 
 /**
  * Small geodesy helpers the bundle owns. Pure math — no I/O, no state — so it
@@ -57,7 +57,7 @@ final class GeoService
 
     /**
      * The [lon, lat] pairs inside a GeoJSON LineString — the exact shape
-     * {@see \UhifadhiLabs\Patrol\Model\ParsedTrack::toGeoJson()} writes into the
+     * {@see \Uhifadhi\Patrol\Model\ParsedTrack::toGeoJson()} writes into the
      * geometry column, read back for anything that has to walk the route (the
      * GPX export, most of all).
      *

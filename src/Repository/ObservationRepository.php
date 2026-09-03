@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Repository;
+namespace Uhifadhi\Patrol\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\ArrayParameterType;
@@ -19,7 +19,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\Zone;
-use UhifadhiLabs\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\Observation;
 
 /**
  * @extends ServiceEntityRepository<Observation>

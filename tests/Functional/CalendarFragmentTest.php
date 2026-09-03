@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Functional;
+namespace Uhifadhi\Patrol\Tests\Functional;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -20,9 +20,9 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
-use UhifadhiLabs\Patrol\Entity\Observation;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 
 /**
  * The calendar's month fragment (PL·11 ‹ ›): one month of REAL day cells served

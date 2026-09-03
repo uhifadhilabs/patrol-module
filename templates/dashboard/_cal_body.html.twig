@@ -13,7 +13,7 @@
    The root carries the month it IS: the Stimulus controller reads the label
    back off it after a swap, so the card's "· august 2026" caption above the grid
    stays in step without the JS formatting a date itself. #}
-{% import '@UhifadhiLabsPatrol/dashboard/_ui.html.twig' as ui %}
+{% import '@UhifadhiPatrol/dashboard/_ui.html.twig' as ui %}
 <div class="patrol-calmonth"
      data-patrol-cal-month="{{ month|date('Y-m') }}"
      data-patrol-cal-label="{{ month|date('F Y')|lower }}">

@@ -11,14 +11,14 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Functional;
+namespace Uhifadhi\Patrol\Tests\Functional;
 
 use League\Flysystem\FilesystemOperator;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Uid\Uuid;
-use UhifadhiLabs\Patrol\Entity\ObservationPhoto;
-use UhifadhiLabs\Patrol\Service\PhotoEvidenceKey;
-use UhifadhiLabs\Storage\Service\EvidenceKey;
+use Uhifadhi\Patrol\Entity\ObservationPhoto;
+use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
+use Uhifadhi\Storage\Service\EvidenceKey;
 
 /**
  * A photograph's whole life, after the module adopted storage-module: the phone

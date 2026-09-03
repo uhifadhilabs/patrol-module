@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Functional;
+namespace Uhifadhi\Patrol\Tests\Functional;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -19,13 +19,13 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
-use UhifadhiLabs\Patrol\Controller\ObservationAmendmentController;
-use UhifadhiLabs\Patrol\Entity\Observation;
-use UhifadhiLabs\Patrol\Entity\ObservationAmendment;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Enum\ObservationAmendmentKindEnum;
-use UhifadhiLabs\Patrol\Enum\PatrolSourceEnum;
-use UhifadhiLabs\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
+use Uhifadhi\Patrol\Controller\ObservationAmendmentController;
+use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\ObservationAmendment;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Enum\ObservationAmendmentKindEnum;
+use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 
 /**
  * AMENDMENTS (settled design: observation.html PL·06–PL·09).

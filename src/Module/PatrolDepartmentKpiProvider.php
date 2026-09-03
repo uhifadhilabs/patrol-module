@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Module;
+namespace Uhifadhi\Patrol\Module;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Uhifadhi\Entity\AreaOfInterest;
@@ -19,10 +19,10 @@ use Uhifadhi\Entity\Department;
 use Uhifadhi\Entity\User;
 use Uhifadhi\Module\DepartmentKpi;
 use Uhifadhi\Module\DepartmentKpiProviderInterface;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
-use UhifadhiLabs\Patrol\Repository\PatrolRepository;
-use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
+use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Service\PatrolDashboardService;
 
 /**
  * What THIS department did with the Patrols module, this month.

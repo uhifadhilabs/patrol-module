@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Functional;
+namespace Uhifadhi\Patrol\Tests\Functional;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -20,10 +20,10 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
-use UhifadhiLabs\Patrol\Entity\Observation;
-use UhifadhiLabs\Patrol\Entity\ObservationPhoto;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\ObservationPhoto;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 
 /**
  * The observation detail screen: the location plate (this observation's point
@@ -270,7 +270,7 @@ final class ObservationDetailPageTest extends WebTestCase
      * own tiles in. This module owns none of that markup — it includes the
      * partial and fills the contract — so what is asserted here is exactly the
      * seam: the shell is on the page, and every tile speaks the contract.
-     * → @UhifadhiLabsStorage/overlay/_preview.html.twig
+     * → @UhifadhiStorage/overlay/_preview.html.twig
      */
     public function testAPhotographOpensInTheSharedFilePreview(): void
     {
@@ -295,7 +295,7 @@ final class ObservationDetailPageTest extends WebTestCase
         self::assertCount(1, $overlay, 'the page includes the storage bundle’s preview, and does not draw one of its own');
         self::assertSame('uhifadhi--storage-module--preview', $overlay->attr('data-controller'));
         self::assertStringContainsString(
-            'bundles/uhifadhilabsstorage/preview.css',
+            'bundles/uhifadhistorage/preview.css',
             (string) $this->client->getResponse()->getContent(),
             'consuming the component means loading its vocabulary too',
         );

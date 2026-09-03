@@ -11,17 +11,17 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Integration\Overview;
+namespace Uhifadhi\Patrol\Tests\Integration\Overview;
 
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
 use Uhifadhi\Entity\Zone;
-use UhifadhiLabs\Patrol\Entity\Observation;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Entity\TrackBatch;
-use UhifadhiLabs\Patrol\Entity\TrackPoint;
-use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
-use UhifadhiLabs\Patrol\Tests\Integration\IntegrationTestCase;
+use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Entity\TrackBatch;
+use Uhifadhi\Patrol\Entity\TrackPoint;
+use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
+use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
  * ONE MORNING, BUILT ONCE, read by every test of the module's five overview

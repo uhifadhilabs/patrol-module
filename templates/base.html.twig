@@ -9,7 +9,7 @@
    automatically have that directory added as an asset path, using the namespace:
    bundles/<BundleName>" — and under AssetMapper those assets are automatically
    content-versioned. So public/patrol.css is served as
-   bundles/uhifadhilabspatrol/patrol.css with a digest, no assets:install. #}
+   bundles/uhifadhipatrol/patrol.css with a digest, no assets:install. #}
 {% block stylesheets %}
     {{ parent() }}
     {# Leaflet FIRST, so patrol.css can restyle its controls into the design's
@@ -18,7 +18,7 @@
        map and an area map cannot disagree about how a layer draws. A host of
        this module ships those two assets; that is part of the seam, like the
        host's AreaOfInterest the bundle already binds to. #}
-    <link rel="stylesheet" href="{{ asset(constant('UhifadhiLabs\\Map\\UhifadhiLabsMapBundle::LEAFLET_CSS')) }}">
+    <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Map\\UhifadhiMapBundle::LEAFLET_CSS')) }}">
     {# The FILE PREVIEW's vocabulary, from the bundle that owns it. A patrol
        photograph opens in the same overlay a file on the hub opens in, so this
        module draws none of it and states none of it — it loads the component's
@@ -26,13 +26,13 @@
 
        Unconditional, like the evidence route the photos card already asks for:
        this module refuses to boot without uhifadhi/storage-module (see
-       UhifadhiLabsPatrolBundle), because that is where its photographs live.
-       → @UhifadhiLabsStorage/overlay/_preview.html.twig #}
-    <link rel="stylesheet" href="{{ asset('bundles/uhifadhilabsstorage/preview.css') }}">
+       UhifadhiPatrolBundle), because that is where its photographs live.
+       → @UhifadhiStorage/overlay/_preview.html.twig #}
+    <link rel="stylesheet" href="{{ asset('bundles/uhifadhistorage/preview.css') }}">
     {# The path is the bundle's own constant, not a literal: the area overview is
        rendered by the HOST, which links this same sheet from the contributor's
        stylesheet() — and a path typed twice is a path that eventually differs. #}
-    <link rel="stylesheet" href="{{ asset(constant('UhifadhiLabs\\Patrol\\UhifadhiLabsPatrolBundle::STYLESHEET')) }}">
+    <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Patrol\\UhifadhiPatrolBundle::STYLESHEET')) }}">
 {% endblock %}
 
 {# Leaflet is a classic script exposing `window.L`, which is what the map
@@ -42,7 +42,7 @@
    tiles + GeoJSON need no WebGL, and WebGL failed silently (blank map) in
    constrained environments. #}
 {% block javascripts %}
-    <script src="{{ asset(constant('UhifadhiLabs\\Map\\UhifadhiLabsMapBundle::LEAFLET_JS')) }}"></script>
+    <script src="{{ asset(constant('Uhifadhi\\Map\\UhifadhiMapBundle::LEAFLET_JS')) }}"></script>
     {{ parent() }}
 {% endblock %}
 

@@ -7,7 +7,7 @@
    screen and the library, so a preview can never drift from the real thing.
    Which widgets, how wide and in what order comes from the host widget framework resolving PatrolWidgets —
    the design's layout until this person changes it. #}
-{% extends '@UhifadhiLabsPatrol/base.html.twig' %}
+{% extends '@UhifadhiPatrol/base.html.twig' %}
 
 {% block title %}{{ area.name }} — Patrols{% endblock %}
 
@@ -26,7 +26,7 @@
             <a class="tgl patrol-act" href="{{ path('patrol_widgets', {uuid: area.uuid}) }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Customize widgets</a>
         {% endif %}
         {# The two recording screens exist only where the host runs SecurityBundle
-           (they enforce patrols.record — see UhifadhiLabsPatrolBundle), so the
+           (they enforce patrols.record — see UhifadhiPatrolBundle), so the
            links are rendered only when their routes do. #}
         {% if recordScreens %}
             <a class="tgl patrol-act" href="{{ path('patrol_import', {uuid: area.uuid}) }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>Import GPX</a>
@@ -42,7 +42,7 @@
         {% if widget.on %}
             <div data-w="{{ widget.id }}" class="patrol-w{{ widget.cols }}">
                 <div class="patrol-winner">
-                    {{ include('@UhifadhiLabsPatrol/dashboard/_w_' ~ widget.id ~ '.html.twig') }}
+                    {{ include('@UhifadhiPatrol/dashboard/_w_' ~ widget.id ~ '.html.twig') }}
                 </div>
             </div>
         {% endif %}

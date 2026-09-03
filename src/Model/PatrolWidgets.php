@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Model;
+namespace Uhifadhi\Patrol\Model;
 
 use Uhifadhi\Model\Widget;
 use Uhifadhi\Model\WidgetCatalog;

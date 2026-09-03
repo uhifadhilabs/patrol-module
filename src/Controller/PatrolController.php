@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Controller;
+namespace Uhifadhi\Patrol\Controller;
 
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,11 +21,11 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 use Twig\Environment;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
+use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
+use Uhifadhi\Patrol\Model\PatrolWidgets;
+use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Service\WidgetService;
-use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
-use UhifadhiLabs\Patrol\Model\PatrolWidgets;
-use UhifadhiLabs\Patrol\Repository\PatrolRepository;
-use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
 
 /**
  * The patrols widget dashboard for one area: KPIs, the coverage map, the patrol
@@ -88,7 +88,7 @@ final class PatrolController
             ),
         );
 
-        return new Response($this->twig->render('@UhifadhiLabsPatrol/dashboard/show.html.twig', [
+        return new Response($this->twig->render('@UhifadhiPatrol/dashboard/show.html.twig', [
             'area' => $area,
             'types' => $this->types,
             'typeColor' => PatrolDashboardService::typeColors($this->types),

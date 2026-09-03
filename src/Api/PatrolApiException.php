@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Api;
+namespace Uhifadhi\Patrol\Api;
 
 use Symfony\Component\HttpFoundation\Response;
 
@@ -127,7 +127,7 @@ final class PatrolApiException extends \RuntimeException
      *
      * The sync contract lets the phone name only two of the three: a patrol
      * arrives `recording` (the default, and what §4 means) or `discarded`.
-     * `complete` is reached through {@see \UhifadhiLabs\Patrol\Service\Api\PatrolCompletionService},
+     * `complete` is reached through {@see \Uhifadhi\Patrol\Service\Api\PatrolCompletionService},
      * which VERIFIES before it agrees — so accepting "complete" as a word in a
      * body would be a way around the one check that keeps a published patrol
      * honest.

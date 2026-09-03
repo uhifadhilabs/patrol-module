@@ -11,15 +11,15 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Integration\Repository;
+namespace Uhifadhi\Patrol\Tests\Integration\Repository;
 
 use Uhifadhi\Entity\AreaOfInterest;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Entity\TrackBatch;
-use UhifadhiLabs\Patrol\Entity\TrackPoint;
-use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
-use UhifadhiLabs\Patrol\Repository\TrackPointRepository;
-use UhifadhiLabs\Patrol\Tests\Integration\IntegrationTestCase;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Entity\TrackBatch;
+use Uhifadhi\Patrol\Entity\TrackPoint;
+use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
+use Uhifadhi\Patrol\Repository\TrackPointRepository;
+use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
  * THE LAST PING, WHICH IS NOT A COLUMN.

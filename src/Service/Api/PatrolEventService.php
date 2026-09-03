@@ -11,16 +11,16 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Service\Api;
+namespace Uhifadhi\Patrol\Service\Api;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Uhifadhi\Entity\User;
-use UhifadhiLabs\Patrol\Api\PatrolApiException;
-use UhifadhiLabs\Patrol\Api\Payload;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Entity\PatrolEvent;
-use UhifadhiLabs\Patrol\Enum\PatrolEventKindEnum;
-use UhifadhiLabs\Patrol\Repository\PatrolEventRepository;
+use Uhifadhi\Patrol\Api\PatrolApiException;
+use Uhifadhi\Patrol\Api\Payload;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Entity\PatrolEvent;
+use Uhifadhi\Patrol\Enum\PatrolEventKindEnum;
+use Uhifadhi\Patrol\Repository\PatrolEventRepository;
 
 /**
  * `POST /api/patrols/{uuid}/events` — API-CONTRACT.md §9A.

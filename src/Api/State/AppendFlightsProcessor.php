@@ -11,12 +11,12 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Api\State;
+namespace Uhifadhi\Patrol\Api\State;
 
 use Symfony\Component\HttpFoundation\Response;
-use UhifadhiLabs\Patrol\Api\ContractResponse;
-use UhifadhiLabs\Patrol\Api\PatrolApiContext;
-use UhifadhiLabs\Patrol\Service\Api\FlightSyncService;
+use Uhifadhi\Patrol\Api\ContractResponse;
+use Uhifadhi\Patrol\Api\PatrolApiContext;
+use Uhifadhi\Patrol\Service\Api\FlightSyncService;
 
 /**
  * `POST /api/patrols/{uuid}/flights` — API-CONTRACT.md §7, the drone branch.

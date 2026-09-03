@@ -11,16 +11,16 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Service\Api;
+namespace Uhifadhi\Patrol\Service\Api;
 
 use Doctrine\ORM\EntityManagerInterface;
-use UhifadhiLabs\Patrol\Api\PatrolApiException;
-use UhifadhiLabs\Patrol\Api\Payload;
-use UhifadhiLabs\Patrol\Entity\Flight;
-use UhifadhiLabs\Patrol\Entity\LaunchPoint;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Repository\FlightRepository;
-use UhifadhiLabs\Patrol\Repository\LaunchPointRepository;
+use Uhifadhi\Patrol\Api\PatrolApiException;
+use Uhifadhi\Patrol\Api\Payload;
+use Uhifadhi\Patrol\Entity\Flight;
+use Uhifadhi\Patrol\Entity\LaunchPoint;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Repository\FlightRepository;
+use Uhifadhi\Patrol\Repository\LaunchPointRepository;
 
 /**
  * `POST /api/patrols/{uuid}/flights` — API-CONTRACT.md §7. The drone branch.

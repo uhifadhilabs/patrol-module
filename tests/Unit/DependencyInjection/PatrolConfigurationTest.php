@@ -11,13 +11,13 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Unit\DependencyInjection;
+namespace Uhifadhi\Patrol\Tests\Unit\DependencyInjection;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\Definition\Processor;
-use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
+use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
 
 final class PatrolConfigurationTest extends TestCase
 {

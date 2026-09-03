@@ -43,12 +43,12 @@
     },
     "autoload": {
         "psr-4": {
-            "UhifadhiLabs\\Patrol\\": "src/"
+            "Uhifadhi\\Patrol\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "UhifadhiLabs\\Patrol\\Tests\\": "tests/",
+            "Uhifadhi\\Patrol\\Tests\\": "tests/",
             "Uhifadhi\\Entity\\": "tests/Fixtures/Uhifadhi/Entity/",
             "Uhifadhi\\Exception\\": "tests/Fixtures/Uhifadhi/Exception/",
             "Uhifadhi\\Model\\": "tests/Fixtures/Uhifadhi/Model/",

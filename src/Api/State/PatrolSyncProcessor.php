@@ -11,13 +11,13 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Api\State;
+namespace Uhifadhi\Patrol\Api\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use Symfony\Component\HttpFoundation\Response;
-use UhifadhiLabs\Patrol\Api\ContractResponse;
-use UhifadhiLabs\Patrol\Api\PatrolApiException;
+use Uhifadhi\Patrol\Api\ContractResponse;
+use Uhifadhi\Patrol\Api\PatrolApiException;
 
 /**
  * What every one of this module's sync endpoints has in common: it answers with

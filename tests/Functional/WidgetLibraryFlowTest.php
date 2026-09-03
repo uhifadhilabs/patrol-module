@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Functional;
+namespace Uhifadhi\Patrol\Tests\Functional;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -21,9 +21,9 @@ use Symfony\Component\DomCrawler\Crawler;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
 use Uhifadhi\Model\WidgetDom;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Model\PatrolWidgets;
 use Uhifadhi\Service\WidgetEndpoint;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Model\PatrolWidgets;
 
 /**
  * THE WIDGET LIBRARY, on the HOST's framework.

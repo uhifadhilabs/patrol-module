@@ -11,13 +11,13 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Service\Api;
+namespace Uhifadhi\Patrol\Service\Api;
 
 use Doctrine\ORM\EntityManagerInterface;
-use UhifadhiLabs\Patrol\Api\PatrolApiException;
-use UhifadhiLabs\Patrol\Api\Payload;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
+use Uhifadhi\Patrol\Api\PatrolApiException;
+use Uhifadhi\Patrol\Api\Payload;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 
 /**
  * `POST /api/patrols/{uuid}/complete` — API-CONTRACT.md §9.

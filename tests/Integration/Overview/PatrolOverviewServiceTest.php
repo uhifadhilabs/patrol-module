@@ -11,10 +11,10 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Integration\Overview;
+namespace Uhifadhi\Patrol\Tests\Integration\Overview;
 
-use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
-use UhifadhiLabs\Patrol\Service\PatrolOverviewService;
+use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
+use Uhifadhi\Patrol\Service\PatrolOverviewService;
 
 /**
  * The module's reading of one morning — the numbers all five contributions are

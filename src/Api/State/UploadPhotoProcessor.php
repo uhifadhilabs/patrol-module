@@ -11,17 +11,17 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Api\State;
+namespace Uhifadhi\Patrol\Api\State;
 
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Uid\Uuid;
-use UhifadhiLabs\Patrol\Api\ContractResponse;
-use UhifadhiLabs\Patrol\Api\PatrolApiContext;
-use UhifadhiLabs\Patrol\Api\PatrolApiException;
-use UhifadhiLabs\Patrol\Api\Payload;
-use UhifadhiLabs\Patrol\Service\Api\PhotoSyncService;
+use Uhifadhi\Patrol\Api\ContractResponse;
+use Uhifadhi\Patrol\Api\PatrolApiContext;
+use Uhifadhi\Patrol\Api\PatrolApiException;
+use Uhifadhi\Patrol\Api\Payload;
+use Uhifadhi\Patrol\Service\Api\PhotoSyncService;
 
 /**
  * `POST /api/observations/{uuid}/photos` — API-CONTRACT.md §8.

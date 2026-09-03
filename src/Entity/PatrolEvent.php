@@ -11,14 +11,14 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Entity;
+namespace Uhifadhi\Patrol\Entity;
 
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\User;
-use UhifadhiLabs\Patrol\Enum\PatrolEventKindEnum;
-use UhifadhiLabs\Patrol\Repository\PatrolEventRepository;
+use Uhifadhi\Patrol\Enum\PatrolEventKindEnum;
+use Uhifadhi\Patrol\Repository\PatrolEventRepository;
 
 /**
  * One thing that happened to a patrol — API-CONTRACT.md §9A.
@@ -176,7 +176,7 @@ class PatrolEvent
      *
      * Filled in by the sync service at write time from the row it was about to
      * overwrite, unless the phone sent its own; see
-     * {@see \UhifadhiLabs\Patrol\Service\Api\PatrolEventService}.
+     * {@see \Uhifadhi\Patrol\Service\Api\PatrolEventService}.
      */
     public function getPrevious(): ?string
     {

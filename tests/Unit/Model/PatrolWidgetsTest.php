@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Unit\Model;
+namespace Uhifadhi\Patrol\Tests\Unit\Model;
 
 use PHPUnit\Framework\TestCase;
 use Uhifadhi\Model\WidgetCatalog;
-use UhifadhiLabs\Patrol\Model\PatrolWidgets;
+use Uhifadhi\Patrol\Model\PatrolWidgets;
 
 /**
  * THE CATALOGUE IS A TRANSCRIPTION of the design's surface declaration

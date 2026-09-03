@@ -11,20 +11,20 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Integration\Module;
+namespace Uhifadhi\Patrol\Tests\Integration\Module;
 
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\Department;
 use Uhifadhi\Entity\Position;
 use Uhifadhi\Entity\User;
 use Uhifadhi\Module\DepartmentKpi;
-use UhifadhiLabs\Patrol\Entity\Observation;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
-use UhifadhiLabs\Patrol\Module\PatrolDepartmentKpiProvider;
-use UhifadhiLabs\Patrol\Repository\PatrolRepository;
-use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
-use UhifadhiLabs\Patrol\Tests\Integration\IntegrationTestCase;
+use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
+use Uhifadhi\Patrol\Module\PatrolDepartmentKpiProvider;
+use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
  * THE test this whole feature turns on: TWO DEPARTMENTS SHARING THE PATROLS MODULE.

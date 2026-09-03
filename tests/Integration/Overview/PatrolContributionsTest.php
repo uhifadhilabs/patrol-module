@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Integration\Overview;
+namespace Uhifadhi\Patrol\Tests\Integration\Overview;
 
 use Uhifadhi\Model\Widget;
 use Uhifadhi\Overview\AttentionItem;
@@ -26,15 +26,15 @@ use Uhifadhi\Overview\OverviewContributorInterface;
 use Uhifadhi\Overview\OverviewCopyProviderInterface;
 use Uhifadhi\Overview\PulseEvent;
 use Uhifadhi\Overview\PulseProviderInterface;
-use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
-use UhifadhiLabs\Patrol\Module\PatrolModuleProvider;
-use UhifadhiLabs\Patrol\Overview\PatrolAttention;
-use UhifadhiLabs\Patrol\Overview\PatrolMapLayers;
-use UhifadhiLabs\Patrol\Overview\PatrolNowTiles;
-use UhifadhiLabs\Patrol\Overview\PatrolOverviewContributor;
-use UhifadhiLabs\Patrol\Overview\PatrolOverviewCopy;
-use UhifadhiLabs\Patrol\Overview\PatrolPulse;
-use UhifadhiLabs\Patrol\UhifadhiLabsPatrolBundle;
+use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
+use Uhifadhi\Patrol\Module\PatrolModuleProvider;
+use Uhifadhi\Patrol\Overview\PatrolAttention;
+use Uhifadhi\Patrol\Overview\PatrolMapLayers;
+use Uhifadhi\Patrol\Overview\PatrolNowTiles;
+use Uhifadhi\Patrol\Overview\PatrolOverviewContributor;
+use Uhifadhi\Patrol\Overview\PatrolOverviewCopy;
+use Uhifadhi\Patrol\Overview\PatrolPulse;
+use Uhifadhi\Patrol\UhifadhiPatrolBundle;
 
 /**
  * THE FIVE SEAMS, on one morning.
@@ -139,7 +139,7 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
 
         foreach ($contributor->widgets() as $widget) {
             $partial = \sprintf($contributor->partialPattern(), $widget->id);
-            self::assertStringStartsWith('@UhifadhiLabsPatrol/overview/', $partial);
+            self::assertStringStartsWith('@UhifadhiPatrol/overview/', $partial);
             /** @var \Twig\Environment $twig */
             $twig = static::getContainer()->get('twig');
             self::assertTrue($twig->getLoader()->exists($partial), $partial.' is missing');
@@ -163,10 +163,10 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
         // What AssetMapper serves the bundle's public/ under — the SAME string
         // base.html.twig links, because both read the bundle's own constant and
         // the path is therefore written once.
-        self::assertSame('bundles/uhifadhilabspatrol/patrol.css', $contributor->stylesheet());
-        self::assertSame(UhifadhiLabsPatrolBundle::STYLESHEET, $contributor->stylesheet());
+        self::assertSame('bundles/uhifadhipatrol/patrol.css', $contributor->stylesheet());
+        self::assertSame(UhifadhiPatrolBundle::STYLESHEET, $contributor->stylesheet());
         self::assertStringContainsString(
-            "constant('UhifadhiLabs\\\\Patrol\\\\UhifadhiLabsPatrolBundle::STYLESHEET')",
+            "constant('Uhifadhi\\\\Patrol\\\\UhifadhiPatrolBundle::STYLESHEET')",
             (string) file_get_contents(__DIR__.'/../../../templates/base.html.twig'),
         );
     }

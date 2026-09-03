@@ -11,16 +11,16 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Overview;
+namespace Uhifadhi\Patrol\Overview;
 
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Model\Widget;
 use Uhifadhi\Model\WidgetGroup;
 use Uhifadhi\Overview\ContributesStylesheetInterface;
 use Uhifadhi\Overview\OverviewContributorInterface;
-use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
-use UhifadhiLabs\Patrol\Service\PatrolOverviewService;
-use UhifadhiLabs\Patrol\UhifadhiLabsPatrolBundle;
+use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\PatrolOverviewService;
+use Uhifadhi\Patrol\UhifadhiPatrolBundle;
 
 /**
  * WHAT PATROLS PUTS ON THE AREA OVERVIEW — a transcription of the design's own
@@ -52,7 +52,7 @@ use UhifadhiLabs\Patrol\UhifadhiLabsPatrolBundle;
 final readonly class PatrolOverviewContributor implements ContributesStylesheetInterface, OverviewContributorInterface
 {
     /**
-     * The same slug {@see \UhifadhiLabs\Patrol\Module\PatrolModuleProvider} declares.
+     * The same slug {@see \Uhifadhi\Patrol\Module\PatrolModuleProvider} declares.
      * The host asks this contributor for widgets ONLY where a module of that
      * slug is switched on, so the two must match or the section never appears.
      */
@@ -104,7 +104,7 @@ final readonly class PatrolOverviewContributor implements ContributesStylesheetI
 
     public function partialPattern(): string
     {
-        return '@UhifadhiLabsPatrol/overview/_w_%s.html.twig';
+        return '@UhifadhiPatrol/overview/_w_%s.html.twig';
     }
 
     /**
@@ -122,7 +122,7 @@ final readonly class PatrolOverviewContributor implements ContributesStylesheetI
      */
     public function stylesheet(): string
     {
-        return UhifadhiLabsPatrolBundle::STYLESHEET;
+        return UhifadhiPatrolBundle::STYLESHEET;
     }
 
     /**

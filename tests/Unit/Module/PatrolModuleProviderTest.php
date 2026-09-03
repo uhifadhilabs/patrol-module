@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Unit\Module;
+namespace Uhifadhi\Patrol\Tests\Unit\Module;
 
 use PHPUnit\Framework\TestCase;
-use UhifadhiLabs\Patrol\Controller\PatrolRecordController;
-use UhifadhiLabs\Patrol\Module\PatrolModuleProvider;
+use Uhifadhi\Patrol\Controller\PatrolRecordController;
+use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 
 final class PatrolModuleProviderTest extends TestCase
 {

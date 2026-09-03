@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Controller;
+namespace Uhifadhi\Patrol\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
@@ -28,12 +28,12 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Twig\Environment;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Enum\PatrolSourceEnum;
-use UhifadhiLabs\Patrol\Exception\InvalidGpxException;
-use UhifadhiLabs\Patrol\Repository\PatrolRepository;
-use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
-use UhifadhiLabs\Patrol\Service\TrackIngestService;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Exception\InvalidGpxException;
+use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\TrackIngestService;
 
 /**
  * The two screens that CREATE patrols (settled designs "import" and "log"):
@@ -41,7 +41,7 @@ use UhifadhiLabs\Patrol\Service\TrackIngestService;
  *
  * Both are entirely about recording, so both — GET included — require the one
  * permission this module declares, "patrols.record". The bundle DECLARES the
- * requirement (see {@see \UhifadhiLabs\Patrol\Module\PatrolModuleProvider});
+ * requirement (see {@see \Uhifadhi\Patrol\Module\PatrolModuleProvider});
  * the host's voter decides who holds it. Installing a module may never hand
  * existing users a new power, so the bundle grants it to nobody.
  *
@@ -52,7 +52,7 @@ use UhifadhiLabs\Patrol\Service\TrackIngestService;
  * security-* under require-dev and injects a nullable AuthorizationCheckerInterface).
  * Here the service is only registered when the host has security at all, so the
  * checker is never null and the routes simply do not exist otherwise — see
- * UhifadhiLabsPatrolBundle::loadExtension().
+ * UhifadhiPatrolBundle::loadExtension().
  *
  * Neither screen parses or persists a track itself: TrackIngestService is THE
  * ingest path (one service, two doors — this form today, the tracker app's API
@@ -167,7 +167,7 @@ final class PatrolRecordController
         }
 
         return new Response(
-            $this->twig->render('@UhifadhiLabsPatrol/import/show.html.twig', [
+            $this->twig->render('@UhifadhiPatrol/import/show.html.twig', [
                 'area' => $area,
                 'types' => $this->types,
                 'stations' => $this->stations($area),
@@ -250,7 +250,7 @@ final class PatrolRecordController
         }
 
         return new Response(
-            $this->twig->render('@UhifadhiLabsPatrol/log/show.html.twig', [
+            $this->twig->render('@UhifadhiPatrol/log/show.html.twig', [
                 'area' => $area,
                 'types' => $this->types,
                 'stations' => $this->stations($area),

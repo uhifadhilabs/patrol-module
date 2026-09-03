@@ -11,19 +11,19 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Integration\Command;
+namespace Uhifadhi\Patrol\Tests\Integration\Command;
 
 use League\Flysystem\FilesystemOperator;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\AreaOfInterest;
-use UhifadhiLabs\Patrol\Entity\Observation;
-use UhifadhiLabs\Patrol\Entity\ObservationPhoto;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Service\PhotoEvidenceKey;
-use UhifadhiLabs\Patrol\Tests\Integration\IntegrationTestCase;
-use UhifadhiLabs\Storage\Service\EvidenceKey;
+use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\ObservationPhoto;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
+use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
+use Uhifadhi\Storage\Service\EvidenceKey;
 
 /**
  * patrol:photos:backfill-thumbs — the previews for photographs that arrived

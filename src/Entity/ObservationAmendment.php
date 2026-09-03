@@ -11,13 +11,13 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Entity;
+namespace Uhifadhi\Patrol\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\User;
-use UhifadhiLabs\Patrol\Enum\ObservationAmendmentKindEnum;
-use UhifadhiLabs\Patrol\Repository\ObservationAmendmentRepository;
+use Uhifadhi\Patrol\Enum\ObservationAmendmentKindEnum;
+use Uhifadhi\Patrol\Repository\ObservationAmendmentRepository;
 
 /**
  * ONE CORRECTION APPENDED TO AN OBSERVATION — never a rewrite of it.
@@ -37,7 +37,7 @@ use UhifadhiLabs\Patrol\Repository\ObservationAmendmentRepository;
  * corrected the way everything else is — by another amendment. It is exactly
  * that property that makes the record worth anything; a row somebody could
  * quietly rewrite proves nothing. Same shape and same reasoning as the incidents
- * module's timeline ({@see \UhifadhiLabs\Incident\Entity\IncidentEvent}), stated
+ * module's timeline ({@see \Uhifadhi\Incident\Entity\IncidentEvent}), stated
  * again here rather than shared, because the two modules must be installable
  * independently.
  *

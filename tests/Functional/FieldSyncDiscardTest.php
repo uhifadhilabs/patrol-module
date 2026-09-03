@@ -11,13 +11,13 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Functional;
+namespace Uhifadhi\Patrol\Tests\Functional;
 
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Uid\Uuid;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Enum\PatrolEventKindEnum;
-use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Enum\PatrolEventKindEnum;
+use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 
 /**
  * Discarding a patrol, over the wire — API-CONTRACT.md §4, §9 and §9A.

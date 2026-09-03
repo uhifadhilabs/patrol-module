@@ -11,16 +11,16 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Entity;
+namespace Uhifadhi\Patrol\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\User;
-use UhifadhiLabs\Patrol\Entity\Trait\TimestampableTrait;
-use UhifadhiLabs\Patrol\Enum\PositionSourceEnum;
-use UhifadhiLabs\Patrol\Repository\ObservationRepository;
+use Uhifadhi\Patrol\Entity\Trait\TimestampableTrait;
+use Uhifadhi\Patrol\Enum\PositionSourceEnum;
+use Uhifadhi\Patrol\Repository\ObservationRepository;
 
 /**
  * A georeferenced field note logged en route — the patrol's eyes: a category
@@ -114,7 +114,7 @@ class Observation
      * BEFORE flights, so when a drone observation arrives the flight it refers
      * to does not exist here yet and the association cannot be made. Dropping
      * the reference would lose which sortie saw what; holding the id lets
-     * {@see \UhifadhiLabs\Patrol\Service\Api\FlightSyncService} link them the
+     * {@see \Uhifadhi\Patrol\Service\Api\FlightSyncService} link them the
      * moment the flights land, and makes the module indifferent to the order
      * the two parts actually arrive in.
      */

@@ -11,12 +11,12 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Api\State;
+namespace Uhifadhi\Patrol\Api\State;
 
 use Symfony\Component\HttpFoundation\Response;
-use UhifadhiLabs\Patrol\Api\ContractResponse;
-use UhifadhiLabs\Patrol\Api\PatrolApiContext;
-use UhifadhiLabs\Patrol\Service\Api\PatrolCompletionService;
+use Uhifadhi\Patrol\Api\ContractResponse;
+use Uhifadhi\Patrol\Api\PatrolApiContext;
+use Uhifadhi\Patrol\Service\Api\PatrolCompletionService;
 
 /**
  * `POST /api/patrols/{uuid}/complete` — API-CONTRACT.md §9. The call that turns

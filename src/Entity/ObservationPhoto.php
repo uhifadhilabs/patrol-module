@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Entity;
+namespace Uhifadhi\Patrol\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
-use UhifadhiLabs\Patrol\Repository\ObservationPhotoRepository;
+use Uhifadhi\Patrol\Repository\ObservationPhotoRepository;
 
 /**
  * A photograph attached to an observation — API-CONTRACT.md §8.

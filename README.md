@@ -84,7 +84,7 @@ back through its authenticated route. Register both bundles it needs:
 
 ```php
 League\FlysystemBundle\FlysystemBundle::class => ['all' => true],
-UhifadhiLabs\Storage\UhifadhiLabsStorageBundle::class => ['all' => true],
+Uhifadhi\Storage\UhifadhiStorageBundle::class => ['all' => true],
 ```
 
 A host that forgets says so at compile time, not on the first upload.

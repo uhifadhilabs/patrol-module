@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Api;
+namespace Uhifadhi\Patrol\Api;
 
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -19,11 +19,11 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\User;
-use UhifadhiLabs\Patrol\Controller\PatrolRecordController;
-use UhifadhiLabs\Patrol\Entity\Observation;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Repository\ObservationRepository;
-use UhifadhiLabs\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Controller\PatrolRecordController;
+use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Repository\ObservationRepository;
+use Uhifadhi\Patrol\Repository\PatrolRepository;
 
 /**
  * The three questions every sync endpoint asks before it does anything: who is

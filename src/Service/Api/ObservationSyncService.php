@@ -11,18 +11,18 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Service\Api;
+namespace Uhifadhi\Patrol\Service\Api;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Uhifadhi\Entity\User;
-use UhifadhiLabs\Patrol\Api\PatrolApiException;
-use UhifadhiLabs\Patrol\Api\Payload;
-use UhifadhiLabs\Patrol\Entity\Observation;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Enum\PositionSourceEnum;
-use UhifadhiLabs\Patrol\Repository\FlightRepository;
-use UhifadhiLabs\Patrol\Repository\LaunchPointRepository;
-use UhifadhiLabs\Patrol\Repository\ObservationRepository;
+use Uhifadhi\Patrol\Api\PatrolApiException;
+use Uhifadhi\Patrol\Api\Payload;
+use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Enum\PositionSourceEnum;
+use Uhifadhi\Patrol\Repository\FlightRepository;
+use Uhifadhi\Patrol\Repository\LaunchPointRepository;
+use Uhifadhi\Patrol\Repository\ObservationRepository;
 
 /**
  * `POST /api/patrols/{uuid}/observations` — API-CONTRACT.md §6.

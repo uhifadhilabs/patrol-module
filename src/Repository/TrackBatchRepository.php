@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Repository;
+namespace Uhifadhi\Patrol\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use UhifadhiLabs\Patrol\Entity\TrackBatch;
+use Uhifadhi\Patrol\Entity\TrackBatch;
 
 /**
  * @extends ServiceEntityRepository<TrackBatch>

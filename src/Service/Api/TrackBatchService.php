@@ -11,17 +11,17 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Service\Api;
+namespace Uhifadhi\Patrol\Service\Api;
 
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
-use UhifadhiLabs\Patrol\Api\PatrolApiException;
-use UhifadhiLabs\Patrol\Api\Payload;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Entity\TrackBatch;
-use UhifadhiLabs\Patrol\Entity\TrackPoint;
-use UhifadhiLabs\Patrol\Repository\TrackBatchRepository;
-use UhifadhiLabs\Patrol\Service\GeoService;
+use Uhifadhi\Patrol\Api\PatrolApiException;
+use Uhifadhi\Patrol\Api\Payload;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Entity\TrackBatch;
+use Uhifadhi\Patrol\Entity\TrackPoint;
+use Uhifadhi\Patrol\Repository\TrackBatchRepository;
+use Uhifadhi\Patrol\Service\GeoService;
 
 /**
  * `POST /api/patrols/{uuid}/track` — API-CONTRACT.md §5.

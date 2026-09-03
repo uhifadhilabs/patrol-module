@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Entity;
+namespace Uhifadhi\Patrol\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -20,11 +20,11 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
-use UhifadhiLabs\Patrol\Entity\Trait\TimestampableTrait;
-use UhifadhiLabs\Patrol\Enum\PatrolEventKindEnum;
-use UhifadhiLabs\Patrol\Enum\PatrolSourceEnum;
-use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
-use UhifadhiLabs\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Entity\Trait\TimestampableTrait;
+use Uhifadhi\Patrol\Enum\PatrolEventKindEnum;
+use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
+use Uhifadhi\Patrol\Repository\PatrolRepository;
 
 /**
  * One patrol: a typed, timed record of field effort — who led it, from which
@@ -146,7 +146,7 @@ class Patrol
      * Why the ranger threw this patrol away, in their own words.
      *
      * REQUIRED whenever the status is Discarded and enforced at the door
-     * ({@see \UhifadhiLabs\Patrol\Api\PatrolApiException::discardReasonRequired()}),
+     * ({@see \Uhifadhi\Patrol\Api\PatrolApiException::discardReasonRequired()}),
      * because a discard with no reason is indistinguishable from a bug: the one
      * question anybody reading a discarded patrol asks is why, and the app
      * already makes the ranger answer it. Free text, and deliberately not a

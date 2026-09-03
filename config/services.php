@@ -13,32 +13,32 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use Uhifadhi\Patrol\Controller\PatrolCalendarController;
+use Uhifadhi\Patrol\Controller\PatrolController;
+use Uhifadhi\Patrol\Controller\PatrolDetailController;
+use Uhifadhi\Patrol\Repository\FlightRepository;
+use Uhifadhi\Patrol\Repository\LaunchPointRepository;
+use Uhifadhi\Patrol\Repository\ObservationAmendmentRepository;
+use Uhifadhi\Patrol\Repository\ObservationPhotoRepository;
+use Uhifadhi\Patrol\Repository\ObservationRepository;
+use Uhifadhi\Patrol\Repository\PatrolEventRepository;
+use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Repository\TrackBatchRepository;
+use Uhifadhi\Patrol\Repository\TrackPointRepository;
+use Uhifadhi\Patrol\Service\GeoService;
+use Uhifadhi\Patrol\Service\GpxParser;
+use Uhifadhi\Patrol\Service\GpxWriter;
+use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\PatrolWidgetUrls;
+use Uhifadhi\Patrol\Service\TrackIngestService;
 use Uhifadhi\Service\WidgetService;
-use UhifadhiLabs\Patrol\Controller\PatrolCalendarController;
-use UhifadhiLabs\Patrol\Controller\PatrolController;
-use UhifadhiLabs\Patrol\Controller\PatrolDetailController;
-use UhifadhiLabs\Patrol\Repository\FlightRepository;
-use UhifadhiLabs\Patrol\Repository\LaunchPointRepository;
-use UhifadhiLabs\Patrol\Repository\ObservationAmendmentRepository;
-use UhifadhiLabs\Patrol\Repository\ObservationPhotoRepository;
-use UhifadhiLabs\Patrol\Repository\ObservationRepository;
-use UhifadhiLabs\Patrol\Repository\PatrolEventRepository;
-use UhifadhiLabs\Patrol\Repository\PatrolRepository;
-use UhifadhiLabs\Patrol\Repository\TrackBatchRepository;
-use UhifadhiLabs\Patrol\Repository\TrackPointRepository;
-use UhifadhiLabs\Patrol\Service\GeoService;
-use UhifadhiLabs\Patrol\Service\GpxParser;
-use UhifadhiLabs\Patrol\Service\GpxWriter;
-use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
-use UhifadhiLabs\Patrol\Service\PatrolWidgetUrls;
-use UhifadhiLabs\Patrol\Service\TrackIngestService;
 
 /*
  * The bundle's static service wiring.
  *
  * PHP (not YAML) on purpose: a reusable bundle must not force symfony/yaml onto
  * hosts, and FQCN references stay refactor-safe and phpstan-checked. Imported by
- * UhifadhiLabsPatrolBundle::loadExtension(), which keeps only the config-DRIVEN
+ * UhifadhiPatrolBundle::loadExtension(), which keeps only the config-DRIVEN
  * definitions (module category, vocabulary parameters).
  *
  * Everything below is defined EXPLICITLY — no autowire(), no autoconfigure(), and

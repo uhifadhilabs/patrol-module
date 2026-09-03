@@ -11,14 +11,14 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Integration\Repository;
+namespace Uhifadhi\Patrol\Tests\Integration\Repository;
 
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\Zone;
-use UhifadhiLabs\Patrol\Entity\Observation;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Repository\ObservationRepository;
-use UhifadhiLabs\Patrol\Tests\Integration\IntegrationTestCase;
+use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Repository\ObservationRepository;
+use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
  * What PL·A4 reads: the area's observations by when they were logged, and the

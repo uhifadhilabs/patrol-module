@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Exception;
+namespace Uhifadhi\Patrol\Exception;
 
 /** The uploaded file is not a usable GPX track (broken XML, or no track points). */
 final class InvalidGpxException extends \RuntimeException

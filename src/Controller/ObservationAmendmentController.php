@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Controller;
+namespace Uhifadhi\Patrol\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
@@ -30,15 +30,15 @@ use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\User;
-use UhifadhiLabs\Patrol\Entity\Observation;
-use UhifadhiLabs\Patrol\Entity\ObservationAmendment;
-use UhifadhiLabs\Patrol\Entity\ObservationPhoto;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Enum\ObservationAmendmentKindEnum;
-use UhifadhiLabs\Patrol\Service\PhotoEvidenceKey;
-use UhifadhiLabs\Storage\Exception\EvidenceRejectedException;
-use UhifadhiLabs\Storage\Exception\EvidenceStorageFailedException;
-use UhifadhiLabs\Storage\Service\EvidenceStorage;
+use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\ObservationAmendment;
+use Uhifadhi\Patrol\Entity\ObservationPhoto;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Enum\ObservationAmendmentKindEnum;
+use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
+use Uhifadhi\Storage\Exception\EvidenceRejectedException;
+use Uhifadhi\Storage\Exception\EvidenceStorageFailedException;
+use Uhifadhi\Storage\Service\EvidenceStorage;
 
 /**
  * APPENDING ONE CORRECTION to an observation — the settled design's PL·06–PL·09.

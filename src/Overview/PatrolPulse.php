@@ -11,16 +11,16 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Overview;
+namespace Uhifadhi\Patrol\Overview;
 
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Overview\PulseEvent;
 use Uhifadhi\Overview\PulseProviderInterface;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Repository\ObservationRepository;
-use UhifadhiLabs\Patrol\Repository\PatrolRepository;
-use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
-use UhifadhiLabs\Patrol\Service\PatrolOverviewService;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Repository\ObservationRepository;
+use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\PatrolOverviewService;
 
 /**
  * WHAT PATROLS DID WHILE YOU WERE AWAY.
@@ -31,7 +31,7 @@ use UhifadhiLabs\Patrol\Service\PatrolOverviewService;
  * interpret any of them, which is why a new module needs no work on that widget.
  *
  * FOUR MOVES, AND THREE OF THEM ARE NOT EVENTS. This module keeps a real event
- * table ({@see \UhifadhiLabs\Patrol\Entity\PatrolEvent}), but it records
+ * table ({@see \Uhifadhi\Patrol\Entity\PatrolEvent}), but it records
  * CORRECTIONS — renamed, retyped, discarded — because those are the things that
  * need a signature and an audit trail. Opening and closing a patrol are not
  * corrections; they are the record's own timestamps, and `startedAt` /`endedAt`

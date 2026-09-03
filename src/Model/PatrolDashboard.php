@@ -11,13 +11,13 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Model;
+namespace Uhifadhi\Patrol\Model;
 
-use UhifadhiLabs\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Entity\Patrol;
 
 /**
  * Everything the dashboard screen binds, in one immutable bag — computed by
- * {@see \UhifadhiLabs\Patrol\Service\PatrolDashboardService}, consumed by
+ * {@see \Uhifadhi\Patrol\Service\PatrolDashboardService}, consumed by
  * the dashboard and widget-library templates (both render the same widgets).
  */
 final readonly class PatrolDashboard
@@ -27,7 +27,7 @@ final readonly class PatrolDashboard
      * @param int                                                                                      $monthCount       patrols started this month
      * @param float                                                                                    $monthDistanceKm  distance sum this month
      * @param array<string, int>                                                                       $monthTypeCounts  this month, keyed by type
-     * @param float|null                                                                               $coverageFraction PL·03 — the share of the area within {@see \UhifadhiLabs\Patrol\Service\PatrolDashboardService::COVERAGE_BUFFER_M} of a track recorded this month, as a fraction of 1; null where there is nothing to measure (no recorded track this month, or an area with no boundary) — the KPI then shows the design's em dash rather than a false 0 %
+     * @param float|null                                                                               $coverageFraction PL·03 — the share of the area within {@see \Uhifadhi\Patrol\Service\PatrolDashboardService::COVERAGE_BUFFER_M} of a track recorded this month, as a fraction of 1; null where there is nothing to measure (no recorded track this month, or an area with no boundary) — the KPI then shows the design's em dash rather than a false 0 %
      * @param array<string, int>                                                                       $typeCounts       all listed patrols, every configured type present (filter chips)
      * @param list<array{label: string, counts: array<string, int>}>                                   $weeklySeries     five weeks, oldest first
      * @param list<array{station: string, count: int}>                                                 $stationSeries    this month, ranked

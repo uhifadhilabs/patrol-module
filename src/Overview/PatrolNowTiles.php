@@ -11,12 +11,12 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Overview;
+namespace Uhifadhi\Patrol\Overview;
 
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Overview\NowTile;
 use Uhifadhi\Overview\NowTileProviderInterface;
-use UhifadhiLabs\Patrol\Service\PatrolOverviewService;
+use Uhifadhi\Patrol\Service\PatrolOverviewService;
 
 /**
  * PATROLS' TWO TILES IN THE HOST'S RIGHT-NOW STRIP — PL·N1 and PL·N2.

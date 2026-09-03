@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Enum;
+namespace Uhifadhi\Patrol\Enum;
 
 /**
  * How a drone launch point's coverage sector is described — API-CONTRACT.md §7.
@@ -22,7 +22,7 @@ namespace UhifadhiLabs\Patrol\Enum;
  */
 enum SectorTypeEnum: string
 {
-    /** A circle of {@see \UhifadhiLabs\Patrol\Entity\LaunchPoint::getSectorRadiusM()} around the launch point. */
+    /** A circle of {@see \Uhifadhi\Patrol\Entity\LaunchPoint::getSectorRadiusM()} around the launch point. */
     case Radius = 'radius';
 
     /** An explicit GeoJSON Polygon (lon/lat) the operator drew. */

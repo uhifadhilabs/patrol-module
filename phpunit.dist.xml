@@ -8,7 +8,7 @@
          failOnNotice="true"
          failOnWarning="true">
     <php>
-        <env name="KERNEL_CLASS" value="UhifadhiLabs\Patrol\Tests\Integration\TestKernel"/>
+        <env name="KERNEL_CLASS" value="Uhifadhi\Patrol\Tests\Integration\TestKernel"/>
         <!-- Real PostGIS for integration tests (fundi-postgis-test container). -->
         <env name="PATROL_TEST_DATABASE_URL"
              value="postgresql://app:app@127.0.0.1:5434/patrol_bundle_test?serverVersion=17&amp;charset=utf8"/>

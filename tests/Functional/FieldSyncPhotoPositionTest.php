@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Functional;
+namespace Uhifadhi\Patrol\Tests\Functional;
 
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Uid\Uuid;
-use UhifadhiLabs\Patrol\Entity\ObservationPhoto;
+use Uhifadhi\Patrol\Entity\ObservationPhoto;
 
 /**
  * WHERE THE SHUTTER FIRED (API-CONTRACT.md §8).

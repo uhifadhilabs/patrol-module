@@ -11,12 +11,12 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Module;
+namespace Uhifadhi\Patrol\Module;
 
-use UhifadhiLabs\ModuleContracts\ModulePermission;
-use UhifadhiLabs\ModuleContracts\ModuleProviderInterface;
-use UhifadhiLabs\ModuleContracts\ModuleProviderTrait;
-use UhifadhiLabs\Patrol\Controller\PatrolRecordController;
+use Uhifadhi\ModuleContracts\ModulePermission;
+use Uhifadhi\ModuleContracts\ModuleProviderInterface;
+use Uhifadhi\ModuleContracts\ModuleProviderTrait;
+use Uhifadhi\Patrol\Controller\PatrolRecordController;
 
 /**
  * Declares the one module this bundle contributes — "Patrols". It owns its

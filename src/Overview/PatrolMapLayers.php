@@ -11,14 +11,14 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Overview;
+namespace Uhifadhi\Patrol\Overview;
 
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Overview\MapLayer;
 use Uhifadhi\Overview\MapLayerProviderInterface;
-use UhifadhiLabs\Patrol\Repository\PatrolRepository;
-use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
-use UhifadhiLabs\Patrol\Service\PatrolOverviewService;
+use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\PatrolOverviewService;
 
 /**
  * PATROLS' THREE LAYERS ON THE HOST'S OPERATIONAL PLATE, each with its legend.

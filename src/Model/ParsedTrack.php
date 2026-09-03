@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Model;
+namespace Uhifadhi\Patrol\Model;
 
 /**
  * What a GPX file actually contained, before anything is saved: the points in

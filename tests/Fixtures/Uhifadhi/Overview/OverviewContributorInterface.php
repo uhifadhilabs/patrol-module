@@ -93,7 +93,7 @@ interface OverviewContributorInterface
 
     /**
      * A sprintf pattern naming the Twig partial for one widget id, e.g.
-     * `'@UhifadhiLabsPatrol/overview/_w_%s.html.twig'`.
+     * `'@UhifadhiPatrol/overview/_w_%s.html.twig'`.
      *
      * A PATTERN PER CONTRIBUTOR, not per surface: on every other surface one
      * module wrote every widget, so one pattern was enough. Here each plate is

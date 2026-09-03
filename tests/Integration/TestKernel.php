@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Integration;
+namespace Uhifadhi\Patrol\Tests\Integration;
 
 use ApiPlatform\Symfony\Bundle\ApiPlatformBundle;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
@@ -27,15 +27,15 @@ use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 use Symfony\UX\Icons\UXIconsBundle;
 use Symfony\UX\StimulusBundle\StimulusBundle;
 use Uhifadhi\Entity\User;
+use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
+use Uhifadhi\Patrol\Tests\Integration\Fixtures\HeaderUserAuthenticator;
+use Uhifadhi\Patrol\UhifadhiPatrolBundle;
 use Uhifadhi\Repository\WidgetCustomPresetRepository;
 use Uhifadhi\Repository\WidgetPreferenceRepository;
 use Uhifadhi\Service\WidgetEndpoint;
 use Uhifadhi\Service\WidgetService;
-use UhifadhiLabs\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
-use UhifadhiLabs\Patrol\Tests\Integration\Fixtures\HeaderUserAuthenticator;
-use UhifadhiLabs\Patrol\UhifadhiLabsPatrolBundle;
-use UhifadhiLabs\Storage\Controller\EvidenceController;
-use UhifadhiLabs\Storage\UhifadhiLabsStorageBundle;
+use Uhifadhi\Storage\Controller\EvidenceController;
+use Uhifadhi\Storage\UhifadhiStorageBundle;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
@@ -65,8 +65,8 @@ final class TestKernel extends Kernel
         // registered here in the order a host registers it: flysystem first,
         // because the storage bundle PREPENDS a flysystem storage.
         yield new FlysystemBundle();
-        yield new UhifadhiLabsStorageBundle();
-        yield new UhifadhiLabsPatrolBundle();
+        yield new UhifadhiStorageBundle();
+        yield new UhifadhiPatrolBundle();
     }
 
     protected function configureContainer(ContainerConfigurator $container): void
@@ -192,24 +192,24 @@ final class TestKernel extends Kernel
         // by class name for readability (see IntegrationTestCase). Needed only
         // until controllers reference them.
         foreach ([
-            \UhifadhiLabs\Patrol\Service\TrackIngestService::class => 'patrol.track_ingest',
-            \UhifadhiLabs\Patrol\Service\GpxParser::class => 'patrol.gpx_parser',
+            \Uhifadhi\Patrol\Service\TrackIngestService::class => 'patrol.track_ingest',
+            \Uhifadhi\Patrol\Service\GpxParser::class => 'patrol.gpx_parser',
             // The two halves of the storage seam, and the registry the hub reads
             // through — so a test can prove the tag was applied AND that the two
             // halves still claim the same keys.
-            \UhifadhiLabs\Patrol\Storage\PatrolFileSource::class => 'patrol.file_source',
-            \UhifadhiLabs\Patrol\Security\PatrolEvidenceVoter::class => 'patrol.evidence_voter',
-            \UhifadhiLabs\Storage\Registry\FileRegistry::class => 'storage.file_registry',
+            \Uhifadhi\Patrol\Storage\PatrolFileSource::class => 'patrol.file_source',
+            \Uhifadhi\Patrol\Security\PatrolEvidenceVoter::class => 'patrol.evidence_voter',
+            \Uhifadhi\Storage\Registry\FileRegistry::class => 'storage.file_registry',
             // The module's six contributions to the host's area overview, and
             // the one reading behind all of them. A host reaches them through
             // their TAGS; these aliases only let a test hold one directly.
-            \UhifadhiLabs\Patrol\Service\PatrolOverviewService::class => 'patrol.overview',
-            \UhifadhiLabs\Patrol\Overview\PatrolOverviewContributor::class => 'patrol.overview.contributor',
-            \UhifadhiLabs\Patrol\Overview\PatrolNowTiles::class => 'patrol.overview.now_tiles',
-            \UhifadhiLabs\Patrol\Overview\PatrolAttention::class => 'patrol.overview.attention',
-            \UhifadhiLabs\Patrol\Overview\PatrolMapLayers::class => 'patrol.overview.map_layers',
-            \UhifadhiLabs\Patrol\Overview\PatrolPulse::class => 'patrol.overview.pulse',
-            \UhifadhiLabs\Patrol\Overview\PatrolOverviewCopy::class => 'patrol.overview.copy',
+            \Uhifadhi\Patrol\Service\PatrolOverviewService::class => 'patrol.overview',
+            \Uhifadhi\Patrol\Overview\PatrolOverviewContributor::class => 'patrol.overview.contributor',
+            \Uhifadhi\Patrol\Overview\PatrolNowTiles::class => 'patrol.overview.now_tiles',
+            \Uhifadhi\Patrol\Overview\PatrolAttention::class => 'patrol.overview.attention',
+            \Uhifadhi\Patrol\Overview\PatrolMapLayers::class => 'patrol.overview.map_layers',
+            \Uhifadhi\Patrol\Overview\PatrolPulse::class => 'patrol.overview.pulse',
+            \Uhifadhi\Patrol\Overview\PatrolOverviewCopy::class => 'patrol.overview.copy',
         ] as $class => $serviceId) {
             $container->services()->alias('test_public.'.$class, $serviceId)->public();
         }

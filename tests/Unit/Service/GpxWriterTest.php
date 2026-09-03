@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Unit\Service;
+namespace Uhifadhi\Patrol\Tests\Unit\Service;
 
 use PHPUnit\Framework\TestCase;
-use UhifadhiLabs\Patrol\Service\GpxParser;
-use UhifadhiLabs\Patrol\Service\GpxWriter;
+use Uhifadhi\Patrol\Service\GpxParser;
+use Uhifadhi\Patrol\Service\GpxWriter;
 
 /**
  * The writer is the inverse of {@see GpxParser}: what it emits must parse back

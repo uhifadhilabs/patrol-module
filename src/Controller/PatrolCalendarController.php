@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Controller;
+namespace Uhifadhi\Patrol\Controller;
 
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,8 +21,8 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Twig\Environment;
 use Uhifadhi\Entity\AreaOfInterest;
-use UhifadhiLabs\Patrol\Repository\PatrolRepository;
-use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Service\PatrolDashboardService;
 
 /**
  * One month of the patrol calendar (PL·11) as an HTML FRAGMENT — what the
@@ -88,7 +88,7 @@ final class PatrolCalendarController
         // leading/trailing days, which carry pills too.
         [$from, $until] = PatrolDashboardService::calendarRange($month);
 
-        return new Response($this->twig->render('@UhifadhiLabsPatrol/dashboard/_cal_body.html.twig', [
+        return new Response($this->twig->render('@UhifadhiPatrol/dashboard/_cal_body.html.twig', [
             'area' => $area,
             'types' => $this->types,
             'typeColor' => PatrolDashboardService::typeColors($this->types),

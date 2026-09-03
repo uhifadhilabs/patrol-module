@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Integration\Overview;
+namespace Uhifadhi\Patrol\Tests\Integration\Overview;
 
 use Twig\Environment;
-use UhifadhiLabs\Patrol\Enum\PatrolStatusEnum;
-use UhifadhiLabs\Patrol\Overview\PatrolOverviewContributor;
+use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
+use Uhifadhi\Patrol\Overview\PatrolOverviewContributor;
 
 /**
  * THE FIVE PLATES, RENDERED THE WAY THE HOST RENDERS THEM: one partial, one map,
@@ -56,7 +56,7 @@ final class PatrolOverviewTemplatesTest extends PatrolOverviewTestCase
         \assert($twig instanceof Environment);
 
         return $twig->render(
-            \sprintf('@UhifadhiLabsPatrol/overview/_w_%s.html.twig', $widgetId),
+            \sprintf('@UhifadhiPatrol/overview/_w_%s.html.twig', $widgetId),
             $this->hostContext(),
         );
     }

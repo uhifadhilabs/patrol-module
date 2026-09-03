@@ -11,17 +11,17 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Service;
+namespace Uhifadhi\Patrol\Service;
 
-use UhifadhiLabs\Patrol\Entity\Observation;
-use UhifadhiLabs\Storage\Service\EvidenceKey;
+use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Storage\Service\EvidenceKey;
 
 /**
  * Which evidence keys are PATROL's, in one place.
  *
  * Three collaborators need the same answer and must never disagree about it:
  * {@see Api\PhotoSyncService} writes keys under
- * this prefix, {@see \UhifadhiLabs\Patrol\Security\PatrolEvidenceVoter} claims
+ * this prefix, {@see \Uhifadhi\Patrol\Security\PatrolEvidenceVoter} claims
  * them back on the way out, and the thumbnail backfill walks them. A prefix
  * remembered in three places is a prefix that eventually differs in one, and the
  * failure mode there is silent: a photograph nobody is allowed to look at.

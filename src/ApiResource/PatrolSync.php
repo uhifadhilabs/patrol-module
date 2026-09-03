@@ -11,16 +11,16 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\ApiResource;
+namespace Uhifadhi\Patrol\ApiResource;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Post;
-use UhifadhiLabs\Patrol\Api\State\AppendEventsProcessor;
-use UhifadhiLabs\Patrol\Api\State\AppendFlightsProcessor;
-use UhifadhiLabs\Patrol\Api\State\AppendObservationsProcessor;
-use UhifadhiLabs\Patrol\Api\State\AppendTrackProcessor;
-use UhifadhiLabs\Patrol\Api\State\CompletePatrolProcessor;
-use UhifadhiLabs\Patrol\Api\State\CreatePatrolProcessor;
+use Uhifadhi\Patrol\Api\State\AppendEventsProcessor;
+use Uhifadhi\Patrol\Api\State\AppendFlightsProcessor;
+use Uhifadhi\Patrol\Api\State\AppendObservationsProcessor;
+use Uhifadhi\Patrol\Api\State\AppendTrackProcessor;
+use Uhifadhi\Patrol\Api\State\CompletePatrolProcessor;
+use Uhifadhi\Patrol\Api\State\CreatePatrolProcessor;
 
 /**
  * The field app's patrol endpoints — API-CONTRACT.md §4, §5, §6, §7, §9, §9A.
@@ -44,14 +44,14 @@ use UhifadhiLabs\Patrol\Api\State\CreatePatrolProcessor;
  * their rules are per-field and contract-specific: a `batchUuid` that is not a
  * UUID at all, a position that must be refused for being off the planet, a
  * timestamp that must be trusted verbatim rather than normalised. That checking
- * lives in {@see \UhifadhiLabs\Patrol\Api\Payload}, where the error it raises
+ * lives in {@see \Uhifadhi\Patrol\Api\Payload}, where the error it raises
  * carries the contract code the app has a rule for. A DTO layer on top would add
  * a second place for these field names to drift from the document, and no
  * safety: the serializer cannot express "trust this timestamp exactly".
  *
  * Entities are never exposed. Nothing here is a Doctrine entity, and every
  * response is written by hand in
- * {@see \UhifadhiLabs\Patrol\Api\ContractResponse}.
+ * {@see \Uhifadhi\Patrol\Api\ContractResponse}.
  */
 #[ApiResource(
     shortName: 'PatrolSync',

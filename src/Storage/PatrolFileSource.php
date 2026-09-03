@@ -11,19 +11,19 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Storage;
+namespace Uhifadhi\Patrol\Storage;
 
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Uid\Uuid;
-use UhifadhiLabs\Patrol\Entity\ObservationPhoto;
-use UhifadhiLabs\Patrol\Repository\ObservationPhotoRepository;
-use UhifadhiLabs\Patrol\Service\PhotoEvidenceKey;
-use UhifadhiLabs\Storage\Enum\FileKindEnum;
-use UhifadhiLabs\Storage\Enum\GuardStateEnum;
-use UhifadhiLabs\Storage\Model\FileEntry;
-use UhifadhiLabs\Storage\Model\FileGuard;
-use UhifadhiLabs\Storage\Registry\FileSourceInterface;
+use Uhifadhi\Patrol\Entity\ObservationPhoto;
+use Uhifadhi\Patrol\Repository\ObservationPhotoRepository;
+use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
+use Uhifadhi\Storage\Enum\FileKindEnum;
+use Uhifadhi\Storage\Enum\GuardStateEnum;
+use Uhifadhi\Storage\Model\FileEntry;
+use Uhifadhi\Storage\Model\FileGuard;
+use Uhifadhi\Storage\Registry\FileSourceInterface;
 
 /**
  * PATROL'S FILES, ON THE PLATFORM'S FILES HUB.
@@ -43,7 +43,7 @@ use UhifadhiLabs\Storage\Registry\FileSourceInterface;
  * The two seams patrol ships into storage answer two different questions and
  * must never disagree about which keys are patrol's:
  *
- *   - {@see \UhifadhiLabs\Patrol\Security\PatrolEvidenceVoter} — may you READ
+ *   - {@see \Uhifadhi\Patrol\Security\PatrolEvidenceVoter} — may you READ
  *     these bytes;
  *   - this class — may you take this file OFF its record.
  *
@@ -68,7 +68,7 @@ final class PatrolFileSource implements FileSourceInterface
     /**
      * THE ONE TOKEN PATROL PUTS ON THE WIRE for itself, singular: the value of
      * `source` in the File-as-incident seam
-     * ({@see \UhifadhiLabs\Patrol\Controller\PatrolDetailController::fileAsIncidentUrl()})
+     * ({@see \Uhifadhi\Patrol\Controller\PatrolDetailController::fileAsIncidentUrl()})
      * and the value another module hands back to {@see filesForRecord()} to ask
      * for one observation's photographs.
      *
@@ -185,7 +185,7 @@ final class PatrolFileSource implements FileSourceInterface
      * removal that nothing records would be the one failure the hub's whole
      * "remove, never delete" wording exists to prevent. If observations grow a
      * trail, this becomes Reason and the class grows
-     * {@see \UhifadhiLabs\Storage\Removal\FileRemovalInterface} beside it —
+     * {@see \Uhifadhi\Storage\Removal\FileRemovalInterface} beside it —
      * which is why that interface is absent here rather than throwing.
      */
     public static function lockedGuard(): FileGuard

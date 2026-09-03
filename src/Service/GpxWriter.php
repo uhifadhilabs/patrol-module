@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Service;
+namespace Uhifadhi\Patrol\Service;
 
 /**
  * Writes a GPX 1.1 document — the exact inverse of {@see GpxParser}: the stored

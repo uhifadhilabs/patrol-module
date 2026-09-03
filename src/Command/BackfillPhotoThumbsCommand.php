@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Command;
+namespace Uhifadhi\Patrol\Command;
 
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\FilesystemException;
@@ -22,10 +22,10 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use UhifadhiLabs\Patrol\Entity\ObservationPhoto;
-use UhifadhiLabs\Patrol\Repository\ObservationPhotoRepository;
-use UhifadhiLabs\Storage\Service\EvidenceKey;
-use UhifadhiLabs\Storage\Thumbnail\ThumbnailGenerator;
+use Uhifadhi\Patrol\Entity\ObservationPhoto;
+use Uhifadhi\Patrol\Repository\ObservationPhotoRepository;
+use Uhifadhi\Storage\Service\EvidenceKey;
+use Uhifadhi\Storage\Thumbnail\ThumbnailGenerator;
 
 /**
  * Give the photographs that arrived BEFORE storage-module the preview every

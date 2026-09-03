@@ -11,19 +11,19 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Service\Api;
+namespace Uhifadhi\Patrol\Service\Api;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Uid\Uuid;
-use UhifadhiLabs\Patrol\Api\PatrolApiException;
-use UhifadhiLabs\Patrol\Entity\Observation;
-use UhifadhiLabs\Patrol\Entity\ObservationPhoto;
-use UhifadhiLabs\Patrol\Repository\ObservationPhotoRepository;
-use UhifadhiLabs\Patrol\Service\PhotoEvidenceKey;
-use UhifadhiLabs\Storage\Exception\EvidenceRejectedException;
-use UhifadhiLabs\Storage\Exception\EvidenceStorageFailedException;
-use UhifadhiLabs\Storage\Service\EvidenceStorage;
+use Uhifadhi\Patrol\Api\PatrolApiException;
+use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\ObservationPhoto;
+use Uhifadhi\Patrol\Repository\ObservationPhotoRepository;
+use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
+use Uhifadhi\Storage\Exception\EvidenceRejectedException;
+use Uhifadhi\Storage\Exception\EvidenceStorageFailedException;
+use Uhifadhi\Storage\Service\EvidenceStorage;
 
 /**
  * `POST /api/observations/{uuid}/photos` — API-CONTRACT.md §8. One request per

@@ -3,14 +3,14 @@
    with the photos card across the bottom at plate width.
 
    View-only by ruling — the design carries no edit or upload controls here. #}
-{% extends '@UhifadhiLabsPatrol/base.html.twig' %}
+{% extends '@UhifadhiPatrol/base.html.twig' %}
 
-{% import '@UhifadhiLabsPatrol/_ui.html.twig' as ui %}
+{% import '@UhifadhiPatrol/_ui.html.twig' as ui %}
 
 {# The FILE PREVIEW is storage-module's, not this module's: the same component
    the Files hub opens its tiles in. This page fills its contract and includes
    its shell — see the photos card below. #}
-{% import '@UhifadhiLabsStorage/overlay/_preview.html.twig' as preview %}
+{% import '@UhifadhiStorage/overlay/_preview.html.twig' as preview %}
 
 {# The parent patrol's track colour, cycled exactly as on the dashboard and the
    patrol detail plate — the same track must never change colour between them. #}
@@ -212,7 +212,7 @@
                     </div>
                 {% endfor %}
             </div>
-            {{ include('@UhifadhiLabsStorage/overlay/_preview.html.twig') }}
+            {{ include('@UhifadhiStorage/overlay/_preview.html.twig') }}
         {% endif %}
         <div class="use">{% if photoCount %}Photographs are stored on the observation and travel with it when it is filed as an incident.{% else %}Photos taken at an observation attach here and travel with it when it is filed as an incident.{% endif %}</div>
     </div>

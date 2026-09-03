@@ -11,12 +11,12 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Repository;
+namespace Uhifadhi\Patrol\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
-use UhifadhiLabs\Patrol\Entity\LaunchPoint;
+use Uhifadhi\Patrol\Entity\LaunchPoint;
 
 /**
  * @extends ServiceEntityRepository<LaunchPoint>

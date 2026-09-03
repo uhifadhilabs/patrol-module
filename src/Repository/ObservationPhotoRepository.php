@@ -11,13 +11,13 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Repository;
+namespace Uhifadhi\Patrol\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
-use UhifadhiLabs\Patrol\Entity\ObservationPhoto;
+use Uhifadhi\Patrol\Entity\ObservationPhoto;
 
 /**
  * @extends ServiceEntityRepository<ObservationPhoto>
@@ -41,7 +41,7 @@ final class ObservationPhotoRepository extends ServiceEntityRepository
 
     /**
      * The row that owns an evidence key — the lookup the evidence voter rests
-     * on (@see \UhifadhiLabs\Patrol\Security\PatrolEvidenceVoter).
+     * on (@see \Uhifadhi\Patrol\Security\PatrolEvidenceVoter).
      *
      * Answering NULL is what refuses a key this module does not actually hold,
      * so it must never be widened into a LIKE or a prefix match.
@@ -95,7 +95,7 @@ final class ObservationPhotoRepository extends ServiceEntityRepository
      * ONE OBSERVATION'S PHOTOGRAPHS, with the same chain the hub prints.
      *
      * The narrow half of {@see findForFilesHub()}, for the cross-module seam
-     * ({@see \UhifadhiLabs\Storage\Registry\FileSourceInterface::filesForRecord()}):
+     * ({@see \Uhifadhi\Storage\Registry\FileSourceInterface::filesForRecord()}):
      * the incidents report flow shows the photographs of the observation it is
      * being filed from, and it must not read every photograph in the deployment
      * to draw two thumbnails.

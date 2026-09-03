@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Functional;
+namespace Uhifadhi\Patrol\Tests\Functional;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
-use UhifadhiLabs\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Entity\Patrol;
 
 /**
  * Every sync endpoint WRITES field records, so every one demands the same

@@ -11,13 +11,13 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Overview;
+namespace Uhifadhi\Patrol\Overview;
 
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Overview\AttentionItem;
 use Uhifadhi\Overview\AttentionProviderInterface;
 use Uhifadhi\Overview\AttentionSeverity;
-use UhifadhiLabs\Patrol\Service\PatrolOverviewService;
+use Uhifadhi\Patrol\Service\PatrolOverviewService;
 
 /**
  * THE TWO THINGS PATROLS ASKS SOMEBODY TO DO TODAY.

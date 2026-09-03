@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Command;
+namespace Uhifadhi\Patrol\Command;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -20,16 +20,16 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Repository\PatrolRepository;
-use UhifadhiLabs\Storage\Exception\InvalidEvidenceKeyException;
-use UhifadhiLabs\Storage\Service\EvidenceStorage;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Storage\Exception\InvalidEvidenceKeyException;
+use Uhifadhi\Storage\Service\EvidenceStorage;
 
 /**
  * Delete the discarded patrols whose retention window has elapsed — the row, its
  * fixes, its observations, its events and the photographs' actual bytes.
  *
- * A discarded patrol is kept on purpose (see {@see \UhifadhiLabs\Patrol\Enum\PatrolStatusEnum::Discarded}):
+ * A discarded patrol is kept on purpose (see {@see \Uhifadhi\Patrol\Enum\PatrolStatusEnum::Discarded}):
  * long enough that a mistake can be caught, not forever. `patrol.discard_retention_days`
  * is how long, measured from {@see Patrol::discardedAt()}, and a patrol HELD for
  * review is skipped for as long as the hold stands — that is the whole point of

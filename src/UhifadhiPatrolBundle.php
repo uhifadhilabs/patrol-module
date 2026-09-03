@@ -11,59 +11,59 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol;
+namespace Uhifadhi\Patrol;
 
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
+use Uhifadhi\Patrol\Api\PatrolApiContext;
+use Uhifadhi\Patrol\Api\State\AppendEventsProcessor;
+use Uhifadhi\Patrol\Api\State\AppendFlightsProcessor;
+use Uhifadhi\Patrol\Api\State\AppendObservationsProcessor;
+use Uhifadhi\Patrol\Api\State\AppendTrackProcessor;
+use Uhifadhi\Patrol\Api\State\CompletePatrolProcessor;
+use Uhifadhi\Patrol\Api\State\CreatePatrolProcessor;
+use Uhifadhi\Patrol\Api\State\UploadPhotoProcessor;
+use Uhifadhi\Patrol\Command\BackfillPhotoThumbsCommand;
+use Uhifadhi\Patrol\Command\PurgeDiscardedCommand;
+use Uhifadhi\Patrol\Command\SeedDemoCommand;
+use Uhifadhi\Patrol\Controller\ObservationAmendmentController;
+use Uhifadhi\Patrol\Controller\PatrolHoldController;
+use Uhifadhi\Patrol\Controller\PatrolRecordController;
+use Uhifadhi\Patrol\Controller\PatrolWidgetsController;
+use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
+use Uhifadhi\Patrol\Module\PatrolDepartmentKpiProvider;
+use Uhifadhi\Patrol\Module\PatrolModuleProvider;
+use Uhifadhi\Patrol\Overview\PatrolAttention;
+use Uhifadhi\Patrol\Overview\PatrolMapLayers;
+use Uhifadhi\Patrol\Overview\PatrolNowTiles;
+use Uhifadhi\Patrol\Overview\PatrolOverviewContributor;
+use Uhifadhi\Patrol\Overview\PatrolOverviewCopy;
+use Uhifadhi\Patrol\Overview\PatrolPulse;
+use Uhifadhi\Patrol\Repository\FlightRepository;
+use Uhifadhi\Patrol\Repository\LaunchPointRepository;
+use Uhifadhi\Patrol\Repository\ObservationPhotoRepository;
+use Uhifadhi\Patrol\Repository\ObservationRepository;
+use Uhifadhi\Patrol\Repository\PatrolEventRepository;
+use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Repository\TrackBatchRepository;
+use Uhifadhi\Patrol\Repository\TrackPointRepository;
+use Uhifadhi\Patrol\Security\PatrolEvidenceVoter;
+use Uhifadhi\Patrol\Service\Api\FlightSyncService;
+use Uhifadhi\Patrol\Service\Api\ObservationSyncService;
+use Uhifadhi\Patrol\Service\Api\PatrolCompletionService;
+use Uhifadhi\Patrol\Service\Api\PatrolEventService;
+use Uhifadhi\Patrol\Service\Api\PatrolUpsertService;
+use Uhifadhi\Patrol\Service\Api\PhotoSyncService;
+use Uhifadhi\Patrol\Service\Api\RangerResolver;
+use Uhifadhi\Patrol\Service\Api\TrackBatchService;
+use Uhifadhi\Patrol\Service\PatrolOverviewService;
+use Uhifadhi\Patrol\Storage\PatrolFileSource;
 use Uhifadhi\Service\WidgetEndpoint;
 use Uhifadhi\Service\WidgetService;
-use UhifadhiLabs\Patrol\Api\PatrolApiContext;
-use UhifadhiLabs\Patrol\Api\State\AppendEventsProcessor;
-use UhifadhiLabs\Patrol\Api\State\AppendFlightsProcessor;
-use UhifadhiLabs\Patrol\Api\State\AppendObservationsProcessor;
-use UhifadhiLabs\Patrol\Api\State\AppendTrackProcessor;
-use UhifadhiLabs\Patrol\Api\State\CompletePatrolProcessor;
-use UhifadhiLabs\Patrol\Api\State\CreatePatrolProcessor;
-use UhifadhiLabs\Patrol\Api\State\UploadPhotoProcessor;
-use UhifadhiLabs\Patrol\Command\BackfillPhotoThumbsCommand;
-use UhifadhiLabs\Patrol\Command\PurgeDiscardedCommand;
-use UhifadhiLabs\Patrol\Command\SeedDemoCommand;
-use UhifadhiLabs\Patrol\Controller\ObservationAmendmentController;
-use UhifadhiLabs\Patrol\Controller\PatrolHoldController;
-use UhifadhiLabs\Patrol\Controller\PatrolRecordController;
-use UhifadhiLabs\Patrol\Controller\PatrolWidgetsController;
-use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
-use UhifadhiLabs\Patrol\Module\PatrolDepartmentKpiProvider;
-use UhifadhiLabs\Patrol\Module\PatrolModuleProvider;
-use UhifadhiLabs\Patrol\Overview\PatrolAttention;
-use UhifadhiLabs\Patrol\Overview\PatrolMapLayers;
-use UhifadhiLabs\Patrol\Overview\PatrolNowTiles;
-use UhifadhiLabs\Patrol\Overview\PatrolOverviewContributor;
-use UhifadhiLabs\Patrol\Overview\PatrolOverviewCopy;
-use UhifadhiLabs\Patrol\Overview\PatrolPulse;
-use UhifadhiLabs\Patrol\Repository\FlightRepository;
-use UhifadhiLabs\Patrol\Repository\LaunchPointRepository;
-use UhifadhiLabs\Patrol\Repository\ObservationPhotoRepository;
-use UhifadhiLabs\Patrol\Repository\ObservationRepository;
-use UhifadhiLabs\Patrol\Repository\PatrolEventRepository;
-use UhifadhiLabs\Patrol\Repository\PatrolRepository;
-use UhifadhiLabs\Patrol\Repository\TrackBatchRepository;
-use UhifadhiLabs\Patrol\Repository\TrackPointRepository;
-use UhifadhiLabs\Patrol\Security\PatrolEvidenceVoter;
-use UhifadhiLabs\Patrol\Service\Api\FlightSyncService;
-use UhifadhiLabs\Patrol\Service\Api\ObservationSyncService;
-use UhifadhiLabs\Patrol\Service\Api\PatrolCompletionService;
-use UhifadhiLabs\Patrol\Service\Api\PatrolEventService;
-use UhifadhiLabs\Patrol\Service\Api\PatrolUpsertService;
-use UhifadhiLabs\Patrol\Service\Api\PhotoSyncService;
-use UhifadhiLabs\Patrol\Service\Api\RangerResolver;
-use UhifadhiLabs\Patrol\Service\Api\TrackBatchService;
-use UhifadhiLabs\Patrol\Service\PatrolOverviewService;
-use UhifadhiLabs\Patrol\Storage\PatrolFileSource;
-use UhifadhiLabs\Storage\Registry\FileSourceInterface;
+use Uhifadhi\Storage\Registry\FileSourceInterface;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
@@ -77,7 +77,7 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
  * block needed) and registers the domain services. Spatial columns ride on
  * fundistadi/postgis-bundle.
  */
-final class UhifadhiLabsPatrolBundle extends AbstractBundle
+final class UhifadhiPatrolBundle extends AbstractBundle
 {
     /**
      * WHERE THIS BUNDLE'S VOCABULARY IS SERVED FROM — what AssetMapper serves
@@ -88,7 +88,7 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
      * which hands it to a HOST that is rendering this module's plates on the
      * area overview. The bundle's name is the bundle's own knowledge.
      */
-    public const string STYLESHEET = 'bundles/uhifadhilabspatrol/patrol.css';
+    public const string STYLESHEET = 'bundles/uhifadhipatrol/patrol.css';
 
     /** Config lives under "patrol:", not the class-derived "uhifadhi_labs_patrol:". */
     protected string $extensionAlias = 'patrol';
@@ -101,7 +101,7 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
         // The bundle's public/ dir is auto-registered by AssetMapper under the
-        // namespace `bundles/uhifadhilabspatrol` and content-versioned — no
+        // namespace `bundles/uhifadhipatrol` and content-versioned — no
         // config here, no assets:install.
 
         // Ship the bundle's Stimulus controllers (assets/) under an AssetMapper
@@ -123,10 +123,10 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
             $container->extension('doctrine', [
                 'orm' => [
                     'mappings' => [
-                        'UhifadhiLabsPatrol' => [
+                        'UhifadhiPatrol' => [
                             'type' => 'attribute',
                             'dir' => __DIR__.'/Entity',
-                            'prefix' => 'UhifadhiLabs\\Patrol\\Entity',
+                            'prefix' => 'Uhifadhi\\Patrol\\Entity',
                             'is_bundle' => false,
                         ],
                     ],
@@ -210,8 +210,8 @@ final class UhifadhiLabsPatrolBundle extends AbstractBundle
          * storage" branch that no deployment would ever run. One composer
          * dependency and one line in bundles.php is the cheaper contract.
          */
-        if (!\is_array($bundles) || !isset($bundles['UhifadhiLabsStorageBundle'])) {
-            throw new \LogicException('UhifadhiLabsPatrolBundle stores observation photos in uhifadhi/storage-module. Register FlysystemBundle and UhifadhiLabs\Storage\UhifadhiLabsStorageBundle in config/bundles.php.');
+        if (!\is_array($bundles) || !isset($bundles['UhifadhiStorageBundle'])) {
+            throw new \LogicException('UhifadhiPatrolBundle stores observation photos in uhifadhi/storage-module. Register FlysystemBundle and Uhifadhi\Storage\UhifadhiStorageBundle in config/bundles.php.');
         }
 
         /*

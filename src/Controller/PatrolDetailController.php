@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Controller;
+namespace Uhifadhi\Patrol\Controller;
 
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\HttpFoundation\HeaderUtils;
@@ -26,15 +26,15 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
 use Uhifadhi\Entity\AreaOfInterest;
-use UhifadhiLabs\Patrol\DependencyInjection\PatrolConfiguration;
-use UhifadhiLabs\Patrol\Entity\Observation;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Enum\ObservationAmendmentKindEnum;
-use UhifadhiLabs\Patrol\Repository\ObservationAmendmentRepository;
-use UhifadhiLabs\Patrol\Service\GeoService;
-use UhifadhiLabs\Patrol\Service\GpxWriter;
-use UhifadhiLabs\Patrol\Service\PatrolDashboardService;
-use UhifadhiLabs\Patrol\Storage\PatrolFileSource;
+use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
+use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Enum\ObservationAmendmentKindEnum;
+use Uhifadhi\Patrol\Repository\ObservationAmendmentRepository;
+use Uhifadhi\Patrol\Service\GeoService;
+use Uhifadhi\Patrol\Service\GpxWriter;
+use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Storage\PatrolFileSource;
 
 /**
  * The two patrol detail screens (settled designs "detail" and "observation"):
@@ -89,7 +89,7 @@ final class PatrolDetailController
 
         $rows = $this->observationRows($patrol);
 
-        return new Response($this->twig->render('@UhifadhiLabsPatrol/patrol/show.html.twig', [
+        return new Response($this->twig->render('@UhifadhiPatrol/patrol/show.html.twig', [
             'area' => $area,
             'patrol' => $patrol,
             'types' => $this->types,
@@ -237,7 +237,7 @@ final class PatrolDetailController
             'next' => $this->observationLink($area, $patrol, $rows[($index + 1) % $total]),
         ] : ['prev' => null, 'next' => null];
 
-        return new Response($this->twig->render('@UhifadhiLabsPatrol/observation/show.html.twig', [
+        return new Response($this->twig->render('@UhifadhiPatrol/observation/show.html.twig', [
             'area' => $area,
             'patrol' => $patrol,
             'observation' => $observation,

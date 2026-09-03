@@ -11,12 +11,12 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Entity;
+namespace Uhifadhi\Patrol\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
-use UhifadhiLabs\Patrol\Enum\SectorTypeEnum;
-use UhifadhiLabs\Patrol\Repository\LaunchPointRepository;
+use Uhifadhi\Patrol\Enum\SectorTypeEnum;
+use Uhifadhi\Patrol\Repository\LaunchPointRepository;
 
 /**
  * A spot a drone took off from, and the sector it was said to cover —

@@ -11,12 +11,12 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Repository;
+namespace Uhifadhi\Patrol\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\Persistence\ManagerRegistry;
-use UhifadhiLabs\Patrol\Entity\TrackPoint;
+use Uhifadhi\Patrol\Entity\TrackPoint;
 
 /**
  * @extends ServiceEntityRepository<TrackPoint>

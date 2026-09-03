@@ -11,10 +11,10 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Service;
+namespace Uhifadhi\Patrol\Service;
 
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Model\PatrolDashboard;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Model\PatrolDashboard;
 
 /**
  * Computes the dashboard's data contract from plain entities. Pure — "now" is
@@ -36,7 +36,7 @@ use UhifadhiLabs\Patrol\Model\PatrolDashboard;
  * every screen is indistinguishable from one the sync lost. So it stays in the
  * lists, subdued and pilled, and nowhere else.
  *
- * {@see \UhifadhiLabs\Patrol\Enum\PatrolStatusEnum::countsTowardsStatistics()}
+ * {@see \Uhifadhi\Patrol\Enum\PatrolStatusEnum::countsTowardsStatistics()}
  * is the one predicate all of that goes through.
  */
 final class PatrolDashboardService
@@ -68,7 +68,7 @@ final class PatrolDashboardService
      *
      * Public because the coverage KPI is the one month figure that CANNOT be
      * computed from the loaded entities — it is a PostGIS set operation
-     * ({@see \UhifadhiLabs\Patrol\Repository\PatrolRepository::coverageFractionWithin()}) —
+     * ({@see \Uhifadhi\Patrol\Repository\PatrolRepository::coverageFractionWithin()}) —
      * so its caller must ask the database for exactly the window this service
      * counts in. Decided here, in the one place that defines "this month", never
      * re-derived at the call site.

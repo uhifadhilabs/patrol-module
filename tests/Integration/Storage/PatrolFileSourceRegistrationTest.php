@@ -11,18 +11,18 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Integration\Storage;
+namespace Uhifadhi\Patrol\Tests\Integration\Storage;
 
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\AreaOfInterest;
-use UhifadhiLabs\Patrol\Entity\Observation;
-use UhifadhiLabs\Patrol\Entity\ObservationPhoto;
-use UhifadhiLabs\Patrol\Entity\Patrol;
-use UhifadhiLabs\Patrol\Security\PatrolEvidenceVoter;
-use UhifadhiLabs\Patrol\Storage\PatrolFileSource;
-use UhifadhiLabs\Patrol\Tests\Integration\IntegrationTestCase;
-use UhifadhiLabs\Storage\Enum\GuardStateEnum;
-use UhifadhiLabs\Storage\Registry\FileRegistry;
+use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\ObservationPhoto;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Security\PatrolEvidenceVoter;
+use Uhifadhi\Patrol\Storage\PatrolFileSource;
+use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
+use Uhifadhi\Storage\Enum\GuardStateEnum;
+use Uhifadhi\Storage\Registry\FileRegistry;
 
 /**
  * PATROL REACHES THE FILES HUB — through the tag, not through a template.

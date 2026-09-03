@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace UhifadhiLabs\Patrol\Tests\Unit\Service;
+namespace Uhifadhi\Patrol\Tests\Unit\Service;
 
 use PHPUnit\Framework\TestCase;
-use UhifadhiLabs\Patrol\Exception\InvalidGpxException;
-use UhifadhiLabs\Patrol\Service\GpxParser;
+use Uhifadhi\Patrol\Exception\InvalidGpxException;
+use Uhifadhi\Patrol\Service\GpxParser;
 
 final class GpxParserTest extends TestCase
 {
