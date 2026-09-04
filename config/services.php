@@ -152,10 +152,17 @@ return static function (ContainerConfigurator $container): void {
             param('patrol.types'),
             param('patrol.record_screens'),
             param('patrol.widget_screens'),
-            // Null where the host runs no security: nobody is signed in, so the
-            // dashboard renders the design's default layout for everyone.
+            // Null where the installation runs no security: nobody is signed
+            // in, so the dashboard renders the shipped composition for everyone.
             service('security.token_storage')->nullOnInvalid(),
             param('patrol.discard_retention_days'),
+            // Whether THIS VIEWER may record — a different question from whether
+            // the recording screens exist, and the dashboard has to ask both
+            // before it offers a door. Null under the same condition as the
+            // token storage, and the answer is then "no door", which is right:
+            // an installation with no authorization checker cannot enforce
+            // patrols.record either, so the recording routes do not exist.
+            service('security.authorization_checker')->nullOnInvalid(),
         ])
         ->public();
 

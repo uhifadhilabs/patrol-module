@@ -20,6 +20,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 use Uhifadhi\Team\Entity\User;
 
 /**
@@ -252,5 +253,56 @@ final class DashboardPageTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('[data-kpi="coverage"] .kpi b', '—');
         self::assertSelectorTextContains('[data-kpi="coverage"] .kpi span', 'of area within 2 km of a track');
+    }
+
+    /**
+     * A DOOR THAT IS LOCKED IS NOT DRAWN.
+     *
+     * "Import GPX" and "Log patrol" open the two screens that CREATE patrols,
+     * and both enforce `patrols.record` in code. Whether the SCREENS exist is a
+     * question about the installation (they need SecurityBundle); whether THIS
+     * PERSON may open one is a question about the viewer, and the dashboard was
+     * only ever asking the first. Somebody without the permission was handed two
+     * links that answered 403 — the fleet's own rule is that a control the viewer
+     * may not have is ABSENT rather than greyed out, and a link that fails when
+     * you follow it is worse than either.
+     *
+     * Found in a browser, in a real installation, on a page every test called
+     * successful.
+     */
+    public function testSomebodyWhoMayNotRecordIsOfferedNeitherRecordingScreen(): void
+    {
+        $bystander = new User()->setPassword('x')->setEmail('bystander@example.test')
+            ->setFirstName('Ben')->setLastName('Bystander');
+        $this->em->persist($bystander);
+        $this->em->flush();
+        $this->client->loginUser($bystander);
+
+        $crawler = $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString('Import GPX', $crawler->filter('.pgact')->html());
+        self::assertStringNotContainsString('Log patrol', $crawler->filter('.pgact')->html());
+
+        // And the routes agree, which is the half that already worked: the
+        // absence above is the page telling the same truth the screen enforces.
+        $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols/import');
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testSomebodyWhoMayRecordIsOfferedBoth(): void
+    {
+        $recorder = new User()->setPassword('x')->setEmail(FixedRecordVoter::RECORDER_EMAIL)
+            ->setFirstName('Rita')->setLastName('Recorder');
+        $this->em->persist($recorder);
+        $this->em->flush();
+        $this->client->loginUser($recorder);
+
+        $crawler = $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols');
+
+        self::assertResponseIsSuccessful();
+        $actions = $crawler->filter('.pgact')->html();
+        self::assertStringContainsString('Import GPX', $actions);
+        self::assertStringContainsString('Log patrol', $actions);
     }
 }
