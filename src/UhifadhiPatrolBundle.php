@@ -402,7 +402,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
 
             // The bytes go to the platform's evidence storage, by service id —
             // the storage bundle is a reusable bundle and its ids are its public
-            // surface (README, "Service reference").
+            // surface (its docs/service-reference.md).
             $services->set('patrol.api.photo_sync', PhotoSyncService::class)
                 ->args([
                     service('doctrine.orm.entity_manager'),

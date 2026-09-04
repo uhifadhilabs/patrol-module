@@ -178,9 +178,10 @@ final class PatrolFileSource implements FileSourceInterface
      * Locked rather than Reason, and it does not vary with $user — a Denied here
      * would say "somebody else could", which is not true of anyone.
      *
-     * This is a DEVIATION from storage-module's README, which sketches Reason
-     * for a filed observation's photographs, and it is the deviation that README
-     * itself provides for: Reason promises a line on the record's own trail, and
+     * This is a DEVIATION from storage-module's docs/adopting-in-a-module.md,
+     * which sketches Reason for a filed observation's photographs, and it is the
+     * deviation that document itself provides for: Reason promises a line on the
+     * record's own trail, and
      * an Observation HAS NO TRAIL to write one onto. Promising a recorded
      * removal that nothing records would be the one failure the hub's whole
      * "remove, never delete" wording exists to prevent. If observations grow a
