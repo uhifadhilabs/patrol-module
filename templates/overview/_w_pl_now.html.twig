@@ -13,7 +13,7 @@
 {% import '@UhifadhiPatrol/dashboard/_ui.html.twig' as ui %}
 {% set pl = by.patrols %}
 <div class="c" data-w="pl_now">
-    <span class="tab"><span class="idx">PL·A1</span>Out right now<span class="src">· <span class="ao-live"><i></i>live</span> · {{ pl.out|length }} open {{ pl.out|length == 1 ? 'patrol' : 'patrols' }}</span></span>
+    <span class="tab">Out right now<span class="src">· <span class="ao-live"><i></i>live</span> · {{ pl.out|length }} open {{ pl.out|length == 1 ? 'patrol' : 'patrols' }}</span></span>
     <span class="ao-by patrols"><i></i>patrols</span>
     {# The card says its own rule, and says it with the number the code uses:
        stalePingMinutes is PatrolOverviewService::PING_STALE_AFTER_SECONDS, so

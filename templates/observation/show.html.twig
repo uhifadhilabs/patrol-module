@@ -61,7 +61,7 @@
 
 <div class="patrol-detail-row">
     <div class="c patrol-plate" data-patrol-location>
-        <span class="tab"><span class="idx">PL·01</span>Location<span class="src">· on the {{ patrol.ref }} track · satellite · live</span></span>
+        <span class="tab">Location<span class="src">· on the {{ patrol.ref }} track · satellite · live</span></span>
         <span class="lib">observation</span>
         {{ ui.viewer(
             payload,
@@ -77,7 +77,7 @@
 
     <div class="patrol-side">
         <div class="c" data-patrol-observation-meta>
-            <span class="tab"><span class="idx">PL·02</span>Observation meta</span>
+            <span class="tab">Observation meta</span>
             <div class="patrol-meta-r"><span>observation</span><b>{{ n }} of {{ total }} · {{ patrol.ref }}</b></div>
             <div class="patrol-meta-r"><span>category</span><b>{{ categoryLabel|lower }}</b></div>
             <div class="patrol-meta-r"><span>logged</span><b>{{ ui.stamp(observation.loggedAt) }}</b></div>
@@ -97,7 +97,7 @@
         </div>
 
         <div class="c" data-patrol-note>
-            <span class="tab"><span class="idx">PL·03</span>Note<span class="src">· field record · verbatim</span></span>
+            <span class="tab">Note<span class="src">· field record · verbatim</span></span>
             <div class="patrol-quote">{% if observation.note %}&ldquo;{{ observation.note }}&rdquo;{% else %}No note was recorded with this observation.{% endif %}</div>
             {# NEVER A SILENTLY STALE NOTE. These are the words as typed; the
                fact that they were corrected later belongs BESIDE them, not only
@@ -115,7 +115,7 @@
         {# DEFERRED(audit-trail): as on the patrol detail — no audit-log entity
            yet, so only the entry derivable from the record itself is shown. #}
         <div class="c" data-patrol-history>
-            <span class="tab"><span class="idx">PL·04</span>History<span class="src">· audit trail · append-only</span></span>
+            <span class="tab">History<span class="src">· audit trail · append-only</span></span>
             <div class="rln">
                 <span class="d">{{ ui.log_stamp(observation.loggedAt ?: observation.createdAt) }}</span>
                 <span>observation logged en route{% if observation.recordedBy %} by {{ ui.person_name(observation.recordedBy) }}{% endif %}</span>
@@ -135,7 +135,7 @@
 
 <div class="patrol-detail-row patrol-detail-row-bottom">
     <div class="c patrol-plate" data-patrol-photos>
-        <span class="tab"><span class="idx">PL·05</span>Photos<span class="src">{% if photoCount %}· {{ photoCount }} {% endif %}· from the field</span></span>
+        <span class="tab">Photos<span class="src">{% if photoCount %}· {{ photoCount }} {% endif %}· from the field</span></span>
         {# The real photographs the field app synced. Every one of them comes
            back out through storage-module's authenticated route and nowhere
            else: there is no public URL and no document-root path, so knowing a
@@ -236,7 +236,7 @@
    ═════════════════════════════════════════════════════════════════════════ #}
 <div class="patrol-detail-row patrol-detail-row-bottom">
     <div class="c patrol-amd-card" id="patrol-amd" data-patrol-amendments>
-        <span class="tab"><span class="idx">PL·06</span>Amendments<span class="src">{% if amendments|length %}· {{ amendments|length }} {% endif %}· append-only</span></span>
+        <span class="tab">Amendments<span class="src">{% if amendments|length %}· {{ amendments|length }} {% endif %}· append-only</span></span>
 
         {% if amendments|length %}
             <div class="use patrol-amd-intro">{{ amendmentCountWord|capitalize }} {{ amendments|length == 1 ? 'thing was' : 'things were' }} corrected after this observation synced. {{ amendments|length == 1 ? 'It is' : 'They are' }} shown here, under the words that were actually typed in the field &mdash; which have not changed and will not.</div>
@@ -393,7 +393,7 @@
        do. #}
     <div class="patrol-side">
         <div class="c">
-            <span class="tab"><span class="idx">PL·09</span>What an amendment may not do<span class="src">· the rules, plainly</span></span>
+            <span class="tab">What an amendment may not do<span class="src">· the rules, plainly</span></span>
             <div class="rln"><span>edit the original</span><span class="mono">never</span></div>
             <div class="rln"><span>delete an amendment</span><span class="mono">never</span></div>
             <div class="rln"><span>go in unsigned</span><span class="mono">never</span></div>

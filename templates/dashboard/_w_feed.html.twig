@@ -4,7 +4,7 @@
 {% import '@UhifadhiPatrol/dashboard/_ui.html.twig' as ui %}
 <div class="grid g32 patrol-flush">
     <div class="c" data-patrol-feed {{ stimulus_controller('@uhifadhi/patrol-module/rows') }}>
-        <span class="tab"><span class="idx">PL·07</span>Patrol feed<span class="src">· latest first</span></span>
+        <span class="tab">Patrol feed<span class="src">· latest first</span></span>
         {% for patrol in dashboard.patrols %}
             {# Discarded patrols read quietly here and are drawn on no map: the
                plate beside this feed is the coverage picture, and a discarded
@@ -38,7 +38,7 @@
     </div>
 
     <div class="c">
-        <span class="tab"><span class="idx">PL·08</span>Tracks<span class="src">· hover a row to highlight</span></span>
+        <span class="tab">Tracks<span class="src">· hover a row to highlight</span></span>
         {{ ui.viewer(coveragePayload, 'Patrol tracks') }}
         {{ ui.legend(types, typeColor) }}
     </div>

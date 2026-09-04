@@ -87,14 +87,15 @@ final class PatrolOverviewTemplatesTest extends PatrolOverviewTestCase
 
     // ---- PL·A1 ------------------------------------------------------------
 
-    public function testTheLiveCardCarriesItsIndexItsContributorTagAndItsLiveDot(): void
+    public function testTheLiveCardCarriesItsContributorTagAndItsLiveDot(): void
     {
         $this->busyMorning();
 
         $html = $this->render('pl_now');
 
         self::assertStringContainsString('data-w="pl_now"', $html);
-        self::assertStringContainsString('<span class="idx">PL·A1</span>', $html);
+        // The workshop's own reference for this frame stays in the design files.
+        self::assertStringNotContainsString("PL\u{00B7}A1", $html);
         self::assertStringContainsString('Out right now', $html);
         // Provenance has to survive a screenshot.
         self::assertStringContainsString('<span class="ao-by patrols"><i></i>patrols</span>', $html);
@@ -145,7 +146,8 @@ final class PatrolOverviewTemplatesTest extends PatrolOverviewTestCase
 
         $html = $this->render('pl_today');
 
-        self::assertStringContainsString('<span class="idx">PL·A2</span>', $html);
+        // The workshop's own reference for this frame stays in the design files.
+        self::assertStringNotContainsString("PL\u{00B7}A2", $html);
         self::assertStringContainsString('· sat 21 mar · vs sat 14 mar', $html);
         self::assertStringContainsString('<b class="disp">1<em>closed</em></b>', $html);
         self::assertStringContainsString('<b class="disp">42<em>km</em></b>', $html);
@@ -183,7 +185,8 @@ final class PatrolOverviewTemplatesTest extends PatrolOverviewTestCase
 
         $html = $this->render('pl_gaps');
 
-        self::assertStringContainsString('<span class="idx">PL·A3</span>', $html);
+        // The workshop's own reference for this frame stays in the design files.
+        self::assertStringNotContainsString("PL\u{00B7}A3", $html);
         self::assertStringContainsString('· by zone · worst first', $html);
         // South has never been entered and leads the table.
         self::assertLessThan(mb_strpos($html, 'North'), (int) mb_strpos($html, 'South'));
@@ -206,7 +209,8 @@ final class PatrolOverviewTemplatesTest extends PatrolOverviewTestCase
 
         $html = $this->render('pl_obsq');
 
-        self::assertStringContainsString('<span class="idx">PL·A4</span>', $html);
+        // The workshop's own reference for this frame stays in the design files.
+        self::assertStringNotContainsString("PL\u{00B7}A4", $html);
         self::assertStringContainsString('filed as an incident is not recorded on this side', $html);
         // NO INVENTED QUEUE: the design's "18 unfiled" is a count this module has
         // no evidence for, so the caption says what the rows actually are.

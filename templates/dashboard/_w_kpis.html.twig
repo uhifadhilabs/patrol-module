@@ -2,14 +2,14 @@
    the widget library, so the library's preview IS the widget. #}
 <div class="grid g4 patrol-flush">
     <div class="c" data-kpi="month">
-        <span class="tab"><span class="idx">PL·01</span>Patrols<span class="src">· this month</span></span>
+        <span class="tab">Patrols<span class="src">· this month</span></span>
         <div class="kpi">
             <b>{{ dashboard.monthCount|number_format }}</b>
             <span>{% for key, type in types %}{{ dashboard.monthTypeCounts[key]|default(0) }} {{ type.label|lower }}{% if not loop.last %} · {% endif %}{% endfor %}</span>
         </div>
     </div>
     <div class="c" data-kpi="distance">
-        <span class="tab"><span class="idx">PL·02</span>Distance<span class="src">· tracks</span></span>
+        <span class="tab">Distance<span class="src">· tracks</span></span>
         <div class="kpi hot">
             <b>{{ dashboard.monthDistanceKm|number_format }}<em>km</em></b>
             <span>this month · from GPX</span>
@@ -21,7 +21,7 @@
        with no boundary, or a month whose patrols were all hand-logged, has
        nothing to measure — see PatrolRepository::coverageFractionWithin(). #}
     <div class="c" data-kpi="coverage">
-        <span class="tab"><span class="idx">PL·03</span>Coverage<span class="src">· 2 km buffer</span></span>
+        <span class="tab">Coverage<span class="src">· 2 km buffer</span></span>
         <div class="kpi">
             {% if dashboard.coverageFraction is not null %}
                 <b>{{ (dashboard.coverageFraction * 100)|round }}<em>%</em></b>
@@ -32,7 +32,7 @@
         </div>
     </div>
     <div class="c" data-kpi="last">
-        <span class="tab"><span class="idx">PL·04</span>Last patrol<span class="src">· live</span></span>
+        <span class="tab">Last patrol<span class="src">· live</span></span>
         <div class="kpi">
             {% set last = dashboard.lastPatrol %}
             {% if last and last.startedAt %}

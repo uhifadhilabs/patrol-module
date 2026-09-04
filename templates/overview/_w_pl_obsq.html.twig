@@ -19,7 +19,7 @@
 {% set pl = by.patrols %}
 {% set q = pl.observations %}
 <div class="c" data-w="pl_obsq">
-    <span class="tab"><span class="idx">PL·A4</span>Observations awaiting action<span class="src">· oldest first · the latest {{ q.rows|length }}</span></span>
+    <span class="tab">Observations awaiting action<span class="src">· oldest first · the latest {{ q.rows|length }}</span></span>
     <span class="ao-by patrols"><i></i>patrols</span>
     <div class="use patrol-ao-lead">An observation is <b>not</b> an incident. Most stay notes; these are the ones somebody has to decide about. Whether one has already been <b>filed as an incident is not recorded on this side</b> — the incidents module holds that link — so this card counts no queue and marks nothing as unfiled.</div>
 

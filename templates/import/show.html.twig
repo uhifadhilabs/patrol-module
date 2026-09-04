@@ -28,7 +28,7 @@
 <form class="grid g32" method="post" enctype="multipart/form-data" action="{{ path('patrol_import', {uuid: area.uuid}) }}" data-patrol-import>
     <div class="patrol-formcol">
         <div class="c" data-patrol-upload>
-            <span class="tab"><span class="idx">PL·01</span>GPX file<span class="src">· step 1 · upload</span></span>
+            <span class="tab">GPX file<span class="src">· step 1 · upload</span></span>
             {# TODO(dropzone controller): assets/controllers/dropzone — drag-and-drop
                onto this frame, which today is a styled label around a real file
                input. The plain input works with no JavaScript at all. #}
@@ -46,7 +46,7 @@
         </div>
 
         <div class="c" data-patrol-details>
-            <span class="tab"><span class="idx">PL·02</span>Patrol details<span class="src">· step 2 · confirm</span></span>
+            <span class="tab">Patrol details<span class="src">· step 2 · confirm</span></span>
             <div class="patrol-frow"><label>type</label>{{ ui.type_chips(types, form.type) }}</div>
             <div class="patrol-frow"><label>station</label>{{ ui.station_field(stations, form.station) }}</div>
             <div class="patrol-frow"><label>lead</label>{{ ui.lead_select(users, form.lead) }}</div>
@@ -75,7 +75,7 @@
 
     {% if track %}
         <div class="c patrol-plate" data-patrol-preview>
-            <span class="tab"><span class="idx">PL·03</span>Parsed preview<span class="src">· from the file, before saving</span></span>
+            <span class="tab">Parsed preview<span class="src">· from the file, before saving</span></span>
             <span class="lib">step 1 result</span>
             {{ ui.viewer(
                 payload,

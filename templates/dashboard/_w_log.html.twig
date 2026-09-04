@@ -1,7 +1,7 @@
 {# Widget "log" — the patrol log table (PL·06). #}
 {% import '@UhifadhiPatrol/dashboard/_ui.html.twig' as ui %}
 <div class="c" data-patrol-log {{ stimulus_controller('@uhifadhi/patrol-module/rows') }}>
-    <span class="tab"><span class="idx">PL·06</span>Patrol log<span class="src">· patrol · latest {{ dashboard.patrols|length }}</span></span>
+    <span class="tab">Patrol log<span class="src">· patrol · latest {{ dashboard.patrols|length }}</span></span>
     {{ ui.filters(dashboard, types, typeColor) }}
     <table class="tbl">
         <thead>

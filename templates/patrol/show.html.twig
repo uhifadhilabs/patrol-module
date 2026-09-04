@@ -107,7 +107,7 @@
 
 <div class="patrol-detail-row">
     <div class="c patrol-plate" data-patrol-track>
-        <span class="tab"><span class="idx">PL·01</span>Track plate<span class="src">· {{ patrol.ref }} · satellite · live</span></span>
+        <span class="tab">Track plate<span class="src">· {{ patrol.ref }} · satellite · live</span></span>
         <span class="lib">{{ patrol.source.value == 'gpx' ? 'gpx track' : (patrol.source.value == 'api' ? 'api track' : 'sketched route') }}</span>
         {{ ui.viewer(
             payload,
@@ -125,7 +125,7 @@
 
     <div class="patrol-side">
         <div class="c" data-patrol-meta>
-            <span class="tab"><span class="idx">PL·02</span>Patrol meta<span class="src">· {{ patrol.source.value == 'gpx' ? 'from GPX + form' : 'from the patrol form' }}</span></span>
+            <span class="tab">Patrol meta<span class="src">· {{ patrol.source.value == 'gpx' ? 'from GPX + form' : 'from the patrol form' }}</span></span>
             <div class="patrol-meta-r"><span>id</span><b>{{ patrol.ref }}</b></div>
             {# Only where the ranger actually named it. An empty "name — " row on
                every unnamed patrol would advertise a field nobody fills. #}
@@ -169,7 +169,7 @@
            links are not events yet. What is rendered is what actually happened
            and is actually stored — never a placeholder for what is not. #}
         <div class="c" data-patrol-history>
-            <span class="tab"><span class="idx">PL·03</span>History<span class="src">· {{ patrol.events|length + (patrol.held ? 2 : 1) }} · append-only</span></span>
+            <span class="tab">History<span class="src">· {{ patrol.events|length + (patrol.held ? 2 : 1) }} · append-only</span></span>
 
             {% if patrol.held %}
                 <div class="rln patrol-hist-r">
@@ -206,7 +206,7 @@
 
 <div class="patrol-detail-row patrol-detail-row-bottom">
     <div class="c patrol-plate" data-patrol-observations>
-        <span class="tab"><span class="idx">PL·04</span>Observations<span class="src">· {{ observations|length }} · logged en route</span></span>
+        <span class="tab">Observations<span class="src">· {{ observations|length }} · logged en route</span></span>
         {% for row in observations %}
             <div class="patrol-obs-r">
                 <span class="patrol-obs-n">{{ row.n }}</span>

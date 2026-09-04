@@ -1,5 +1,5 @@
 /* Patrol screen styles — the widget-dashboard additions on top of the host's
-   design system. Everything the host already ships (.page, .c/.tab/.idx, .kpi,
+   design system. Everything the host already ships (.page, .c/.tab, .kpi,
    .chip, .mchip, .tbl, .ch chart classes, .crumb/.pghead/.backbtn/.open-btn,
    .map-frame/.map-btn) is REUSED, never redefined here; only what the host has
    no equivalent for lives below, and every class is patrol-prefixed so it can

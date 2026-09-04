@@ -1,6 +1,6 @@
 {# Widget "chstation" — patrols by station, ranked (PL·10). #}
 <div class="c" data-patrol-stations>
-    <span class="tab"><span class="idx">PL·10</span>Patrols by station<span class="src">· this month</span></span>
+    <span class="tab">Patrols by station<span class="src">· this month</span></span>
     {# Horizontal bars, ranked, five rows like the design; the plot runs
        x=118..433 and the axis maximum rounds up to a multiple of three. #}
     {% set stationRows = dashboard.stationSeries|slice(0, 5) %}

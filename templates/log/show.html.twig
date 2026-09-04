@@ -22,7 +22,7 @@
 
 <div class="grid g32">
     <form class="c" method="post" action="{{ path('patrol_log', {uuid: area.uuid}) }}" data-patrol-log>
-        <span class="tab"><span class="idx">PL·01</span>Patrol details<span class="src">· manual entry · no GPX</span></span>
+        <span class="tab">Patrol details<span class="src">· manual entry · no GPX</span></span>
         <div class="patrol-frow"><label>type</label>{{ ui.type_chips(types, form.type) }}</div>
         <div class="patrol-frow"><label>station</label>{{ ui.station_field(stations, form.station) }}</div>
         <div class="patrol-frow"><label>lead</label>{{ ui.lead_select(users, form.lead) }}</div>
@@ -65,7 +65,7 @@
        geometry the manual form can post; the card and its frame render empty
        until then, so nothing on the page pretends a sketch was captured. #}
     <div class="c patrol-plate" data-patrol-sketch>
-        <span class="tab"><span class="idx">PL·02</span>Route sketch<span class="src">· click to add points · double-click to finish</span></span>
+        <span class="tab">Route sketch<span class="src">· click to add points · double-click to finish</span></span>
         <span class="lib">optional</span>
         {{ ui.viewer(
             {'boundary': area.geom, 'track': null},
