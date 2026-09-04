@@ -68,10 +68,20 @@ final class PatrolModuleProvider implements ModuleProviderInterface
      * uninstall. The value is the exact attribute the two recording screens
      * (import GPX, log patrol) check.
      *
+     * THE SENTENCE IS THE ROW. "Patrols · Record" names the words this module
+     * chose; the description says what ticking the box hands over, and it is
+     * printed under the name in the host's matrix — where somebody is deciding
+     * whether this person should be able to put field effort on the record.
+     *
      * @return list<ModulePermission>
      */
     public function permissions(): array
     {
-        return [new ModulePermission(PatrolRecordController::RECORD_PERMISSION, 'Patrols', 'Record')];
+        return [new ModulePermission(
+            PatrolRecordController::RECORD_PERMISSION,
+            'Patrols',
+            'Record',
+            'Record patrols: import a GPS track or log one by hand, and add the observations made along the way.',
+        )];
     }
 }

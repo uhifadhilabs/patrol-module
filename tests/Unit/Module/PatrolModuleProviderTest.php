@@ -44,6 +44,22 @@ final class PatrolModuleProviderTest extends TestCase
         self::assertSame('Record', $permissions[0]->action);
     }
 
+    /**
+     * The sentence the host's permission matrix prints under the name. "Patrols ·
+     * Record" says which words this module chose; the sentence says what ticking
+     * the box hands over, and it is the only part of the row an administrator can
+     * actually decide from.
+     */
+    public function testTheDeclaredPermissionCarriesTheSentenceTheMatrixPrints(): void
+    {
+        $permissions = new PatrolModuleProvider('operations')->permissions();
+
+        self::assertSame(
+            'Record patrols: import a GPS track or log one by hand, and add the observations made along the way.',
+            $permissions[0]->description,
+        );
+    }
+
     public function testCategoryIsDeploymentConfigured(): void
     {
         self::assertSame('biodiversity', new PatrolModuleProvider('biodiversity')->category());
