@@ -9,7 +9,9 @@
    the design's layout until this person changes it. #}
 {% extends '@UhifadhiPatrol/base.html.twig' %}
 
-{% block title %}{{ area.name }} — Patrols{% endblock %}
+{# A PAGE SAYS ONLY WHAT IT IS. The shell's document composes the tab title as
+   page — place — brand, so naming the area here would print it twice. #}
+{% block title %}Patrols{% endblock %}
 
 {% block shell_page_title %}{{ area.name }} — Patrols{% endblock %}
 

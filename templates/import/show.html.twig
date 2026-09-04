@@ -9,7 +9,9 @@
 
 {% import '@UhifadhiPatrol/_ui.html.twig' as ui %}
 
-{% block title %}{{ area.name }} — Patrols · import GPX{% endblock %}
+{# A PAGE SAYS ONLY WHAT IT IS. The shell's document composes the tab title as
+   page — place — brand, so naming the area here would print it twice. #}
+{% block title %}Patrols · import GPX{% endblock %}
 
 {% block patrol_trail_tail %} <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / import{% endblock %}
 

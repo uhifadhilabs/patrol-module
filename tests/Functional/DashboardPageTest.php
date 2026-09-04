@@ -118,6 +118,17 @@ final class DashboardPageTest extends WebTestCase
         // Page header: "<Area> — Patrols", per the design's title convention.
         self::assertSelectorTextContains('h1.pg', 'demo reserve — Patrols');
 
+        /*
+         * THE TAB TITLE NAMES THE AREA EXACTLY ONCE.
+         *
+         * The shell's document composes it as page — place — brand, where the
+         * place is the area the request is in, so a page that names the area
+         * itself prints it twice ("Demo Reserve — Patrols — Demo Reserve —
+         * Uhifadhi"). Every screen of this module did, which is what a
+         * `layout.html.twig` that composed nothing left behind.
+         */
+        self::assertSame(1, substr_count($crawler->filter('title')->first()->text(), 'demo reserve'));
+
         // KPI strip: this month's count, its per-type breakdown, the distance
         // sum, and PL·03's coverage as a whole percent. The two recorded tracks
         // (~20 km between them) sweep a 2 km buffer over roughly a tenth of the

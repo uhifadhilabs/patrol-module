@@ -12,7 +12,9 @@
    ========================================================================== #}
 {% extends '@UhifadhiPatrol/base.html.twig' %}
 
-{% block title %}{{ area.name }} — Patrols · widget library{% endblock %}
+{# A PAGE SAYS ONLY WHAT IT IS. The shell's document composes the tab title as
+   page — place — brand, so naming the area here would print it twice. #}
+{% block title %}Patrols · widget library{% endblock %}
 
 {% block javascripts %}
     {{ parent() }}
