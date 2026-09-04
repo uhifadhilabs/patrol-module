@@ -19,7 +19,7 @@ use Uhifadhi\Widget\Model\WidgetCatalog;
 
 /**
  * THE CATALOGUE IS A TRANSCRIPTION of the design's surface declaration
- * (areas/ngorongoro/modules/patrols/patrols.widgets.js). Every assertion here
+ * (the patrols surface's patrols.widgets.js). Every assertion here
  * quotes that file, because a catalogue that drifted from it would put a widget
  * on the dashboard that the design app has never drawn.
  */

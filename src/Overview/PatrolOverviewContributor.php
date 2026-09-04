@@ -24,7 +24,7 @@ use Uhifadhi\Widget\Model\WidgetGroup;
 
 /**
  * WHAT PATROLS PUTS ON THE AREA OVERVIEW — a transcription of the design's own
- * surface declaration (areas/ngorongoro/overview.widgets.js), which is the spec.
+ * surface declaration (the area overview's widgets.js), which is the spec.
  *
  * NOT THE PATROLS DASHBOARD IN MINIATURE. The module's own screen is a month:
  * 142 patrols, 2,214 km, a calendar, a five-week series. These four cards are

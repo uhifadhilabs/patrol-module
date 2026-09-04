@@ -274,7 +274,7 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
 
         // A second area with its own Ecology patrol, so the per-area figures are emitted at all.
         $second = new AreaOfInterest()->setSource('test fixture')
-            ->setName('Serengeti')
+            ->setName('Second reserve')
             ->setGeom('{"type":"MultiPolygon","coordinates":[[[[34.4,-2.3],[34.6,-2.3],[34.6,-2.1],[34.4,-2.1],[34.4,-2.3]]]]}');
         $this->em->persist($second);
         $this->tracked($second, $world['analyst'], '{"type":"LineString","coordinates":[[34.4,-2.2],[34.6,-2.2]]}');
@@ -343,7 +343,7 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
     private function world(): array
     {
         $area = new AreaOfInterest()->setSource('test fixture')
-            ->setName('Ngorongoro')
+            ->setName('Example reserve')
             ->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.4,-3.3],[35.6,-3.3],[35.6,-3.1],[35.4,-3.1],[35.4,-3.3]]]]}');
         $this->em->persist($area);
 
