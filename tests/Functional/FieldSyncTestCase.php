@@ -18,9 +18,9 @@ use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
-use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
+use Uhifadhi\Team\Entity\User;
 
 /**
  * Shared ground for the field-sync tests: a real database, a real area, a user
@@ -55,14 +55,14 @@ abstract class FieldSyncTestCase extends WebTestCase
         $schemaTool->dropSchema($metadata);
         $schemaTool->createSchema($metadata);
 
-        $this->area = new AreaOfInterest()->setName('demo reserve')->setGeom(
+        $this->area = new AreaOfInterest()->setSource('test fixture')->setName('demo reserve')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[35.41,-3.25],[35.52,-3.25],[35.52,-3.15],[35.41,-3.15],[35.41,-3.25]]]]}',
         );
         $this->em->persist($this->area);
 
-        $this->recorder = new User()->setEmail(FixedRecordVoter::RECORDER_EMAIL)
+        $this->recorder = new User()->setPassword('x')->setEmail(FixedRecordVoter::RECORDER_EMAIL)
             ->setFirstName('Rita')->setLastName('Recorder')->setRangerCode('sl-0142');
-        $this->bystander = new User()->setEmail('bystander@example.test')
+        $this->bystander = new User()->setPassword('x')->setEmail('bystander@example.test')
             ->setFirstName('Ben')->setLastName('Bystander')->setRangerCode('nk-0088');
         $this->em->persist($this->recorder);
         $this->em->persist($this->bystander);
@@ -158,7 +158,7 @@ abstract class FieldSyncTestCase extends WebTestCase
 
         $this->postJson('/api/patrols', array_merge([
             'clientUuid' => $clientUuid,
-            'areaId' => $this->area->getUuid()->toRfc4122(),
+            'areaId' => $this->area->getUuidString(),
             // A type from THIS deployment's configured vocabulary — see the
             // note in TestKernel on why the tests do not hard-code the app's.
             'type' => 'walk',

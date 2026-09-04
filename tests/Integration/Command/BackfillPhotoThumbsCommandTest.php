@@ -17,7 +17,7 @@ use League\Flysystem\FilesystemOperator;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
@@ -44,7 +44,7 @@ final class BackfillPhotoThumbsCommandTest extends IntegrationTestCase
     {
         parent::setUp();
 
-        $area = new AreaOfInterest()->setName('demo reserve')->setGeom(
+        $area = new AreaOfInterest()->setSource('test fixture')->setName('demo reserve')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[12.2,-5.8],[12.5,-5.8],[12.5,-5.5],[12.2,-5.5],[12.2,-5.8]]]]}',
         );
         $this->em->persist($area);

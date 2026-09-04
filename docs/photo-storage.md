@@ -11,7 +11,7 @@ League\FlysystemBundle\FlysystemBundle::class => ['all' => true],
 Uhifadhi\Storage\UhifadhiStorageBundle::class => ['all' => true],
 ```
 
-A host that forgets says so at compile time, not on the first upload.
+An installation that forgets says so at compile time, not on the first upload.
 
 Where the bytes go, how large a photograph may be and which types count as one
 are configured **once for the whole deployment**, under `storage:` — never per
@@ -38,11 +38,11 @@ bin/console patrol:photos:backfill-thumbs   # idempotent; --dry-run to look firs
 
 ## Patrol's photographs on the Files hub
 
-Where a host also mounts storage-module's cross-module hub at `/files`, patrol's
+Where an installation also mounts storage-module's cross-module hub at `/files`, patrol's
 photographs appear on it: `PatrolFileSource` is tagged `storage.file_source` and
 hands over one entry per `ObservationPhoto`, carrying the observation it belongs
 to (`OBS-0214`, linked to its own page), the patrol's area, the handset's
-`takenAt` and the sync time. Nothing is registered on the host's side.
+`takenAt` and the sync time. Nothing is registered on the hub's side.
 
 It is the SECOND half of the same seam. `PatrolEvidenceVoter` answers *may you
 read these bytes*; the source answers *what may be done to this file*, and both

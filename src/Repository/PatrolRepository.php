@@ -17,9 +17,8 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Entity\Department;
-use Uhifadhi\Entity\Zone;
+use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\Zone;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 
@@ -322,18 +321,21 @@ final class PatrolRepository extends ServiceEntityRepository
      * dragging the figure towards zero with boundaries nobody was asked about.
      *
      * Null — never 0.0 — where there is nothing to measure: no track recorded
-     * by this department's people in the window, an area with no stored
-     * boundary, or a department the host has not persisted yet. Unknown
-     * coverage and zero coverage are different facts, and the plate says the
-     * first with the design's em dash.
+     * by this department's people in the window, or an area with no stored
+     * boundary. Unknown coverage and zero coverage are different facts, and the
+     * plate says the first with the design's em dash.
+     *
+     * THE DEPARTMENT ARRIVES AS AN ID, NOT AS AN ENTITY, and that is the whole
+     * of what this query needs: the key `position.department_id` is compared
+     * against. Departments belong to uhifadhi/team-module and NOTHING PUBLISHES
+     * A CONTRACT FOR ONE, so a signature naming that bundle's class would make
+     * every installation of this module install team's — for a value that is
+     * one integer by the time it reaches SQL. The same reasoning the area
+     * module's KPI seam states for its own DepartmentRef, applied one layer
+     * down.
      */
-    public function coverageFractionForDepartment(?AreaOfInterest $area, Department $department, float $bufferMetres, \DateTimeImmutable $from, \DateTimeImmutable $until): ?float
+    public function coverageFractionForDepartment(?AreaOfInterest $area, int $departmentId, float $bufferMetres, \DateTimeImmutable $from, \DateTimeImmutable $until): ?float
     {
-        $departmentId = $department->getId();
-        if (null === $departmentId) {
-            return null;
-        }
-
         $entityManager = $this->getEntityManager();
         $patrol = $this->getClassMetadata();
         $areaMeta = $entityManager->getClassMetadata(AreaOfInterest::class);

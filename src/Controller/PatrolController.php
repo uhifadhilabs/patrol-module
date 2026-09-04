@@ -19,13 +19,13 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Twig\Environment;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
-use Uhifadhi\Patrol\Model\PatrolWidgets;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
-use Uhifadhi\Service\WidgetService;
+use Uhifadhi\Patrol\Widget\PatrolWidgets;
+use Uhifadhi\Widget\Service\WidgetService;
 
 /**
  * The patrols widget dashboard for one area: KPIs, the coverage map, the patrol
@@ -99,18 +99,23 @@ final class PatrolController
             // Which widgets this person keeps, how wide, in what order — the
             // HOST's widget framework resolving this surface's catalogue: the
             // shipped composition until they change it in the widget library.
-            'widgets' => $this->widgets->resolve(PatrolWidgets::catalog(), $this->userId(), $area->getUuid()),
+            'widgets' => $this->widgets->resolve(PatrolWidgets::declaration(), $this->widgetUser(), $area->getUuid()),
             'dashboard' => $dashboard,
             // What the coverage map draws — boundary + every recorded track.
             'coveragePayload' => $this->dashboard->coveragePayload($area->getGeom(), $dashboard, $this->types),
         ]));
     }
 
-    /** Null where the host has no security, or nobody is signed in: the defaults. */
-    private function userId(): ?int
+    /**
+     * WHOSE LAYOUT TO RESOLVE — the contract's person, never an installation's
+     * own account class. Null where the installation has no security, or nobody
+     * is signed in, and the framework then draws the shipped composition, which
+     * is the right screen for a reader who has arranged nothing.
+     */
+    private function widgetUser(): ?UserInterface
     {
         $user = $this->tokenStorage?->getToken()?->getUser();
 
-        return $user instanceof UserInterface ? $user->getId() : null;
+        return $user instanceof UserInterface ? $user : null;
     }
 }

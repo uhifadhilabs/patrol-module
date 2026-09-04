@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Service;
 
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Repository\ObservationRepository;
@@ -341,7 +341,7 @@ final readonly class PatrolOverviewService
      * One function rather than a Twig filter beside it, because the same age is
      * printed on the card, in the strip's alarm and on the attention row — and
      * the host prints the attention row's age from a string this module hands it
-     * ({@see \Uhifadhi\Overview\AttentionItem::$ageLabel}). Two formatters would
+     * ({@see \Uhifadhi\Area\Overview\AttentionItem::$ageLabel}). Two formatters would
      * eventually disagree about the same patrol on the same screen.
      */
     public static function ageLabel(int $seconds): string

@@ -13,18 +13,19 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Tests\Integration\Module;
 
-use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Entity\Department;
-use Uhifadhi\Entity\Position;
-use Uhifadhi\Module\DepartmentKpi;
+use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Area\Kpi\DepartmentKpi;
+use Uhifadhi\Area\Kpi\DepartmentRef;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 use Uhifadhi\Patrol\Module\PatrolDepartmentKpiProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
-use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
+use Uhifadhi\Team\Entity\Department;
+use Uhifadhi\Team\Entity\Position;
+use Uhifadhi\Team\Entity\User;
 
 /**
  * THE test this whole feature turns on: TWO DEPARTMENTS SHARING THE PATROLS MODULE.
@@ -42,8 +43,8 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
     {
         $world = $this->world();
 
-        $ecology = self::figures($this->provider()->kpisFor($world['ecology'], self::now()));
-        $protection = self::figures($this->provider()->kpisFor($world['protection'], self::now()));
+        $ecology = self::figures($this->provider()->kpisFor(self::ref($world['ecology']), self::now()));
+        $protection = self::figures($this->provider()->kpisFor(self::ref($world['protection']), self::now()));
 
         // 5 patrols exist this month in one area. Ecology's people led 2 of them, Protection's 3.
         // Neither department "sees" fewer rows — the SPLIT is by recording position.
@@ -60,8 +61,8 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
     {
         $world = $this->world();
 
-        $ecology = self::figures($this->provider()->kpisFor($world['ecology'], self::now()));
-        $protection = self::figures($this->provider()->kpisFor($world['protection'], self::now()));
+        $ecology = self::figures($this->provider()->kpisFor(self::ref($world['ecology']), self::now()));
+        $protection = self::figures($this->provider()->kpisFor(self::ref($world['protection']), self::now()));
 
         // Three observations exist. Two were logged by Ecology's analyst — one of them DURING a
         // patrol Protection led. An observation carries its own recorder, so it counts for the
@@ -87,8 +88,8 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         $this->em->persist(new Observation($thrownAway, 'sighting')->setRecordedBy($world['analyst']));
         $this->em->flush();
 
-        $ecology = self::figures($this->provider()->kpisFor($world['ecology'], self::now()));
-        $protection = self::figures($this->provider()->kpisFor($world['protection'], self::now()));
+        $ecology = self::figures($this->provider()->kpisFor(self::ref($world['ecology']), self::now()));
+        $protection = self::figures($this->provider()->kpisFor(self::ref($world['protection']), self::now()));
 
         // Unchanged from the baseline the other tests assert.
         self::assertSame(3.0, $protection['patrols'], 'The discarded patrol is not a fourth.');
@@ -111,8 +112,8 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         $this->em->persist(new Observation($stillArriving, 'sighting')->setRecordedBy($world['analyst']));
         $this->em->flush();
 
-        $ecology = self::figures($this->provider()->kpisFor($world['ecology'], self::now()));
-        $protection = self::figures($this->provider()->kpisFor($world['protection'], self::now()));
+        $ecology = self::figures($this->provider()->kpisFor(self::ref($world['ecology']), self::now()));
+        $protection = self::figures($this->provider()->kpisFor(self::ref($world['protection']), self::now()));
 
         // The same baseline the discard test holds to.
         self::assertSame(3.0, $protection['patrols'], 'A patrol still arriving is not a fourth.');
@@ -167,8 +168,8 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         $this->patrol($world['area'], $unfiled, 700.0);
         $this->em->flush();
 
-        $ecology = self::figures($this->provider()->kpisFor($world['ecology'], self::now()));
-        $protection = self::figures($this->provider()->kpisFor($world['protection'], self::now()));
+        $ecology = self::figures($this->provider()->kpisFor(self::ref($world['ecology']), self::now()));
+        $protection = self::figures($this->provider()->kpisFor(self::ref($world['protection']), self::now()));
 
         // Real work the org chart cannot place. It is shared out among NOBODY rather than
         // among everybody — 500 and 700 km appear in neither column.
@@ -185,7 +186,7 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         $this->patrol($world['area'], $world['analyst'], 6.0, '2026-07-19 07:00:00');
         $this->em->flush();
 
-        $kpis = $this->provider()->kpisFor($world['ecology'], self::now());
+        $kpis = $this->provider()->kpisFor(self::ref($world['ecology']), self::now());
         $patrols = self::kpi($kpis, 'patrols');
 
         self::assertSame(2.0, $patrols->value);
@@ -204,14 +205,14 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         // The module IS attached (the host only calls this provider when it is), but nobody in
         // Tourism has recorded a row. Three zeros would read as "they did nothing"; an empty list
         // makes the host draw dashed labelled slots, which is the true statement.
-        self::assertSame([], $this->provider()->kpisFor($tourism, self::now()));
+        self::assertSame([], $this->provider()->kpisFor(self::ref($tourism), self::now()));
     }
 
     public function testTheFiguresCarrySixMonthsOfTheirOwnSliceForTheSparkline(): void
     {
         $world = $this->world();
 
-        $patrols = self::kpi($this->provider()->kpisFor($world['ecology'], self::now()), 'patrols');
+        $patrols = self::kpi($this->provider()->kpisFor(self::ref($world['ecology']), self::now()), 'patrols');
 
         self::assertCount(6, $patrols->spark);
         // Oldest first, current month last — the month with Ecology's two patrols.
@@ -231,8 +232,8 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[35.4,-3.15],[35.6,-3.15]]}');
         $this->em->flush();
 
-        $ecology = self::kpi($this->provider()->kpisFor($world['ecology'], self::now()), 'coverage');
-        $protection = self::kpi($this->provider()->kpisFor($world['protection'], self::now()), 'coverage');
+        $ecology = self::kpi($this->provider()->kpisFor(self::ref($world['ecology']), self::now()), 'coverage');
+        $protection = self::kpi($this->provider()->kpisFor(self::ref($world['protection']), self::now()), 'coverage');
 
         // A share, so the host prints it with a '%' and moves it in POINTS, not percent.
         self::assertSame(DepartmentKpi::SHARE, $ecology->unit);
@@ -260,7 +261,7 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
 
         // The world's patrols are hand-logged: real work, no route. "We did not measure" is not
         // "we covered none of it", and the plate must show the design's dash.
-        $coverage = self::kpi($this->provider()->kpisFor($world['ecology'], self::now()), 'coverage');
+        $coverage = self::kpi($this->provider()->kpisFor(self::ref($world['ecology']), self::now()), 'coverage');
 
         self::assertNull($coverage->value);
         self::assertFalse($coverage->isKnown());
@@ -272,14 +273,14 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         $world = $this->world();
 
         // A second area with its own Ecology patrol, so the per-area figures are emitted at all.
-        $second = new AreaOfInterest()
+        $second = new AreaOfInterest()->setSource('test fixture')
             ->setName('Serengeti')
             ->setGeom('{"type":"MultiPolygon","coordinates":[[[[34.4,-2.3],[34.6,-2.3],[34.6,-2.1],[34.4,-2.1],[34.4,-2.3]]]]}');
         $this->em->persist($second);
         $this->tracked($second, $world['analyst'], '{"type":"LineString","coordinates":[[34.4,-2.2],[34.6,-2.2]]}');
         $this->em->flush();
 
-        $kpis = $this->provider()->kpisFor($world['ecology'], self::now());
+        $kpis = $this->provider()->kpisFor(self::ref($world['ecology']), self::now());
         $coverages = array_values(array_filter($kpis, static fn (DepartmentKpi $k): bool => 'coverage' === $k->key));
 
         // Coverage over two areas is not the sum, the mean, or a per-area row of two coverages.
@@ -294,7 +295,7 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         $world = $this->world();
 
         $keys = array_map(static fn (DepartmentKpi $k): string => $k->key, array_filter(
-            $this->provider()->kpisFor($world['ecology'], self::now()),
+            $this->provider()->kpisFor(self::ref($world['ecology']), self::now()),
             static fn (DepartmentKpi $k): bool => $k->isTotal(),
         ));
 
@@ -305,7 +306,7 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
     {
         $world = $this->world();
 
-        foreach ($this->provider()->kpisFor($world['ecology'], self::now()) as $kpi) {
+        foreach ($this->provider()->kpisFor(self::ref($world['ecology']), self::now()) as $kpi) {
             // The host only asks a provider whose slug the department attaches, so a figure
             // captioned with another module's name would be untraceable on the page.
             self::assertSame('patrols', $kpi->moduleSlug);
@@ -315,13 +316,33 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
     }
 
     /**
+     * A department as the SEAM hands it over — id, name and uuid, never the
+     * entity.
+     *
+     * This is the shape uhifadhi/area-module's KPI seam takes, and the reason it
+     * takes it: departments belong to uhifadhi/team-module and nothing publishes
+     * a contract for one, so a seam typed against team's class would make every
+     * module that reports a figure hard-require team. Whoever holds the
+     * department resolves it to a ref — here, the test playing the surface that
+     * renders a performance page.
+     */
+    private static function ref(Department $department): DepartmentRef
+    {
+        return new DepartmentRef(
+            (int) $department->getId(),
+            (string) $department->getName(),
+            $department->getUuid()?->toRfc4122(),
+        );
+    }
+
+    /**
      * One area, two departments, five patrols this month and three observations.
      *
      * @return array{area: AreaOfInterest, ecology: Department, protection: Department, analyst: User, ranger: User}
      */
     private function world(): array
     {
-        $area = new AreaOfInterest()
+        $area = new AreaOfInterest()->setSource('test fixture')
             ->setName('Ngorongoro')
             ->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.4,-3.3],[35.6,-3.3],[35.6,-3.1],[35.4,-3.1],[35.4,-3.3]]]]}');
         $this->em->persist($area);
@@ -358,7 +379,7 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
 
         return $repository->coverageFractionForDepartment(
             null,
-            $department,
+            (int) $department->getId(),
             PatrolDashboardService::COVERAGE_BUFFER_M,
             ...PatrolDashboardService::monthRange(self::now()),
         );
@@ -409,7 +430,7 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
 
     private function user(string $first, string $last, Position $position): User
     {
-        $user = new User()
+        $user = new User()->setPassword('x')
             ->setEmail(strtolower($first.'.'.$last).'@example.test')
             ->setFirstName($first)
             ->setLastName($last)

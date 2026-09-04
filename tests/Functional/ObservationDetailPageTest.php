@@ -18,12 +18,12 @@ use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
-use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
+use Uhifadhi\Team\Entity\User;
 
 /**
  * The observation detail screen: the location plate (this observation's point
@@ -57,17 +57,17 @@ final class ObservationDetailPageTest extends WebTestCase
         $schemaTool->dropSchema($metadata);
         $schemaTool->createSchema($metadata);
 
-        $this->area = new AreaOfInterest()->setName('demo reserve')->setGeom(
+        $this->area = new AreaOfInterest()->setSource('test fixture')->setName('demo reserve')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[12.2,-5.8],[12.5,-5.8],[12.5,-5.5],[12.2,-5.5],[12.2,-5.8]]]]}',
         );
         $this->em->persist($this->area);
 
-        $this->otherArea = new AreaOfInterest()->setName('other reserve')->setGeom(
+        $this->otherArea = new AreaOfInterest()->setSource('test fixture')->setName('other reserve')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[10.2,-5.8],[10.5,-5.8],[10.5,-5.5],[10.2,-5.5],[10.2,-5.8]]]]}',
         );
         $this->em->persist($this->otherArea);
 
-        $recorder = new User()->setEmail('lead@example.test')->setFirstName('Ada')->setLastName('Alpha');
+        $recorder = new User()->setPassword('x')->setEmail('lead@example.test')->setFirstName('Ada')->setLastName('Alpha');
         $this->em->persist($recorder);
 
         $this->patrol = new Patrol($this->area, 'walk')
@@ -294,8 +294,13 @@ final class ObservationDetailPageTest extends WebTestCase
         $overlay = $crawler->filter('.f-ov[data-f-overlay]');
         self::assertCount(1, $overlay, 'the page includes the storage bundle’s preview, and does not draw one of its own');
         self::assertSame('uhifadhi--storage-module--preview', $overlay->attr('data-controller'));
-        self::assertStringContainsString(
-            'bundles/uhifadhistorage/preview.css',
+        // THE DIGEST IS NOT ASSERTED, only the sheet. AssetMapper
+        // content-versions a bundle's public/ files, so the href is
+        // `/assets/bundles/uhifadhistorage/preview-<digest>.css` and pinning the
+        // whole path would make this test fail every time that bundle edits its
+        // stylesheet — which is a release note, not a defect here.
+        self::assertMatchesRegularExpression(
+            '#bundles/uhifadhistorage/preview(-[A-Za-z0-9_-]+)?\.css#',
             (string) $this->client->getResponse()->getContent(),
             'consuming the component means loading its vocabulary too',
         );
@@ -369,7 +374,7 @@ final class ObservationDetailPageTest extends WebTestCase
 
         $crawler = $this->client->request(
             'GET',
-            '/areas/'.$this->area->getUuid()->toRfc4122().'/modules/patrols/'.$this->patrol->getUuid()->toRfc4122(),
+            '/areas/'.$this->area->getUuidString().'/modules/patrols/'.$this->patrol->getUuid()->toRfc4122(),
         );
 
         self::assertResponseIsSuccessful();
@@ -484,7 +489,7 @@ final class ObservationDetailPageTest extends WebTestCase
 
     private function url(AreaOfInterest $area, Patrol $patrol, Observation $observation): string
     {
-        return '/areas/'.$area->getUuid()->toRfc4122()
+        return '/areas/'.$area->getUuidString()
             .'/modules/patrols/'.$patrol->getUuid()->toRfc4122()
             .'/observations/'.$observation->getUuid()->toRfc4122();
     }

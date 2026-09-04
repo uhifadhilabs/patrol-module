@@ -13,13 +13,13 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Tests\Integration\Service;
 
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Service\TrackIngestService;
-use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
+use Uhifadhi\Team\Entity\User;
 
 final class TrackIngestServiceTest extends IntegrationTestCase
 {
@@ -41,8 +41,8 @@ final class TrackIngestServiceTest extends IntegrationTestCase
 
     private function makeArea(): AreaOfInterest
     {
-        $area = new AreaOfInterest();
-        $area->setName('Example reserve');
+        $area = new AreaOfInterest()->setSource('test fixture');
+        $area->setName('Example reserve')->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.1,-3.0],[35.1,-2.9],[35.0,-2.9],[35.0,-3.0]]]]}');
         $this->em->persist($area);
         $this->em->flush();
 
@@ -51,7 +51,7 @@ final class TrackIngestServiceTest extends IntegrationTestCase
 
     public function testIngestsAGpxFileIntoAStoredPatrol(): void
     {
-        $lead = new User()->setEmail('lead@example.test')->setFirstName('Alex')->setLastName('Example');
+        $lead = new User()->setPassword('x')->setEmail('lead@example.test')->setFirstName('Alex')->setLastName('Example');
         $this->em->persist($lead);
         $area = $this->makeArea();
 

@@ -8,16 +8,13 @@
 
 {% block title %}{{ area.name }} — Patrols · log patrol{% endblock %}
 
+{% block patrol_trail_tail %} <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / log{% endblock %}
+
+{% block shell_page_title %}{{ area.name }} — Patrols · log patrol{% endblock %}
+
+{% block shell_page_subtitle %}Record a patrol without a GPX file — details, observations, and an optional sketched route.{% endblock %}
+
 {% block patrol_page %}
-<div class="crumb"><a href="{{ path('dashboard_index') }}">uhifadhi</a> / <a href="{{ path('dashboard_index') }}">areas</a> / <a href="{{ path('dashboard_area_show', {uuid: area.uuid}) }}">{{ area.name|lower }}</a> / <a href="{{ path('dashboard_area_modules_grid', {uuid: area.uuid}) }}">modules</a> / <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / log</div>
-
-<div class="pghead">
-    <div>
-        <h1 class="pg">{{ area.name }} — Patrols · log patrol</h1>
-        <p class="pgsub">Record a patrol without a GPX file — details, observations, and an optional sketched route.</p>
-    </div>
-</div>
-
 <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}" class="backbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>All patrols</a>
 
 <div class="grid g32">

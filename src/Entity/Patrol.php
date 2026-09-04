@@ -18,7 +18,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Trait\TimestampableTrait;
 use Uhifadhi\Patrol\Enum\PatrolEventKindEnum;

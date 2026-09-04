@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Tests\Integration\Repository;
 
-use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Entity\Zone;
+use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\Zone;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Repository\ObservationRepository;
@@ -43,7 +43,7 @@ final class ObservationRepositoryOverviewTest extends IntegrationTestCase
     {
         parent::setUp();
 
-        $this->area = new AreaOfInterest()->setName('Example square');
+        $this->area = new AreaOfInterest()->setSource('test fixture')->setName('Example square')->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.1,-3.0],[35.1,-2.9],[35.0,-2.9],[35.0,-3.0]]]]}');
         $this->em->persist($this->area);
         $this->patrol = new Patrol($this->area, 'walk')
             ->setStartedAt(new \DateTimeImmutable('2026-03-20T06:00:00Z'));
@@ -102,7 +102,7 @@ final class ObservationRepositoryOverviewTest extends IntegrationTestCase
 
     public function testAnotherAreasObservationsAreNotThisAreas(): void
     {
-        $elsewhere = new AreaOfInterest()->setName('Elsewhere');
+        $elsewhere = new AreaOfInterest()->setSource('test fixture')->setName('Elsewhere')->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.1,-3.0],[35.1,-2.9],[35.0,-2.9],[35.0,-3.0]]]]}');
         $this->em->persist($elsewhere);
         $otherPatrol = new Patrol($elsewhere, 'walk')->setStartedAt(new \DateTimeImmutable('2026-03-20T06:00:00Z'));
         $this->em->persist($otherPatrol);

@@ -17,15 +17,15 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Controller\ObservationAmendmentController;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\ObservationAmendment;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\ObservationAmendmentKindEnum;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
-use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
+use Uhifadhi\Team\Entity\User;
 
 /**
  * AMENDMENTS (settled design: observation.html PL·06–PL·09).
@@ -67,14 +67,14 @@ final class ObservationAmendmentTest extends WebTestCase
         $schemaTool->dropSchema($metadata);
         $schemaTool->createSchema($metadata);
 
-        $this->area = new AreaOfInterest()->setName('demo reserve')->setGeom(
+        $this->area = new AreaOfInterest()->setSource('test fixture')->setName('demo reserve')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[12.2,-5.8],[12.5,-5.8],[12.5,-5.5],[12.2,-5.5],[12.2,-5.8]]]]}',
         );
         $this->em->persist($this->area);
 
-        $this->recorder = new User()->setEmail(FixedRecordVoter::RECORDER_EMAIL)
+        $this->recorder = new User()->setPassword('x')->setEmail(FixedRecordVoter::RECORDER_EMAIL)
             ->setFirstName('Sara')->setLastName('Laizer');
-        $this->bystander = new User()->setEmail('bystander@example.test')
+        $this->bystander = new User()->setPassword('x')->setEmail('bystander@example.test')
             ->setFirstName('Ben')->setLastName('Bystander');
         $this->em->persist($this->recorder);
         $this->em->persist($this->bystander);
@@ -364,7 +364,7 @@ final class ObservationAmendmentTest extends WebTestCase
     /** The area nesting is the access rule here as on every patrol screen. */
     public function testAnObservationReachedThroughTheWrongAreaIsNotFound(): void
     {
-        $other = new AreaOfInterest()->setName('elsewhere')->setGeom(
+        $other = new AreaOfInterest()->setSource('test fixture')->setName('elsewhere')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[1.0,1.0],[1.1,1.0],[1.1,1.1],[1.0,1.1],[1.0,1.0]]]]}',
         );
         $this->em->persist($other);
@@ -373,7 +373,7 @@ final class ObservationAmendmentTest extends WebTestCase
         $this->client->loginUser($this->recorder);
         $this->client->request('POST', \sprintf(
             '/areas/%s/modules/patrols/%s/observations/%s/amendments',
-            $other->getUuid()->toRfc4122(),
+            $other->getUuidString(),
             $this->patrol->getUuid()->toRfc4122(),
             $this->observation->getUuid()->toRfc4122(),
         ), ['kind' => 'note', 'body' => 'x', '_token' => $this->token()]);
@@ -516,7 +516,7 @@ final class ObservationAmendmentTest extends WebTestCase
     {
         return \sprintf(
             '/areas/%s/modules/patrols/%s/observations/%s',
-            $this->area->getUuid()->toRfc4122(),
+            $this->area->getUuidString(),
             $this->patrol->getUuid()->toRfc4122(),
             $this->observation->getUuid()->toRfc4122(),
         );

@@ -16,7 +16,7 @@ namespace Uhifadhi\Patrol\Tests\Unit\Service;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
@@ -105,7 +105,7 @@ final class PhotoEvidenceKeyTest extends TestCase
 
     private function observation(?string $patrolClientUuid): Observation
     {
-        $area = new AreaOfInterest()->setName('demo reserve');
+        $area = new AreaOfInterest()->setSource('test fixture')->setName('demo reserve');
         $patrol = new Patrol($area, 'walk');
         if (null !== $patrolClientUuid) {
             $patrol->setClientUuid(Uuid::fromString($patrolClientUuid));

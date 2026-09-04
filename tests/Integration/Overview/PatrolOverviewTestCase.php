@@ -13,15 +13,15 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Tests\Integration\Overview;
 
-use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Entity\Zone;
+use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\Zone;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Entity\TrackBatch;
 use Uhifadhi\Patrol\Entity\TrackPoint;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
-use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
+use Uhifadhi\Team\Entity\User;
 
 /**
  * ONE MORNING, BUILT ONCE, read by every test of the module's five overview
@@ -50,7 +50,7 @@ abstract class PatrolOverviewTestCase extends IntegrationTestCase
     {
         parent::setUp();
 
-        $this->area = new AreaOfInterest()->setName('Example square');
+        $this->area = new AreaOfInterest()->setSource('test fixture')->setName('Example square');
         $this->area->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.1,-3.0],[35.1,-2.9],[35.0,-2.9],[35.0,-3.0]]]]}');
         $this->em->persist($this->area);
         $this->em->flush();
@@ -63,7 +63,7 @@ abstract class PatrolOverviewTestCase extends IntegrationTestCase
 
     protected function makeUser(string $first, string $last): User
     {
-        $user = new User()
+        $user = new User()->setPassword('x')
             ->setEmail(strtolower($first.'.'.$last).'@example.test')
             ->setFirstName($first)
             ->setLastName($last);

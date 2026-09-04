@@ -17,8 +17,8 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Entity\Zone;
+use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\Zone;
 use Uhifadhi\Patrol\Entity\Observation;
 
 /**

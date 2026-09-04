@@ -26,25 +26,45 @@ use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 use Symfony\UX\Icons\UXIconsBundle;
 use Symfony\UX\StimulusBundle\StimulusBundle;
-use Uhifadhi\ModuleContracts\Entity\UserInterface;
-use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
+use Uhifadhi\Area\UhifadhiAreaBundle;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\HeaderUserAuthenticator;
 use Uhifadhi\Patrol\UhifadhiPatrolBundle;
-use Uhifadhi\Repository\WidgetCustomPresetRepository;
-use Uhifadhi\Repository\WidgetPreferenceRepository;
-use Uhifadhi\Service\WidgetEndpoint;
-use Uhifadhi\Service\WidgetService;
+use Uhifadhi\Seam\UhifadhiSeamBundle;
+use Uhifadhi\Shell\UhifadhiShellBundle;
 use Uhifadhi\Storage\Controller\EvidenceController;
 use Uhifadhi\Storage\UhifadhiStorageBundle;
+use Uhifadhi\Team\Entity\User;
+use Uhifadhi\Team\UhifadhiTeamBundle;
+use Uhifadhi\Widget\UhifadhiWidgetBundle;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 /**
- * Smallest possible host app for integration tests: framework + doctrine +
- * the PostGIS bundle + patrol, talking to a REAL PostGIS database
- * (PATROL_TEST_DATABASE_URL, see phpunit.dist.xml). Vocabulary config uses the
- * synthetic example domain.
+ * The smallest INSTALLATION this bundle can live in, and every part of it is
+ * real: framework + twig + doctrine + PostGIS + security + api-platform, the
+ * shell every patrol screen renders through, the widget framework the dashboard
+ * IS, the area a patrol happens in, the seam that switches this module on there,
+ * the team the account class comes from and the storage the photographs go to —
+ * against a REAL PostGIS database (PATROL_TEST_DATABASE_URL, see
+ * phpunit.dist.xml). Vocabulary config uses the synthetic example domain.
+ *
+ * NOTHING HERE IS A COPY ANY MORE, and that is the change. This kernel used to
+ * assemble a stand-in: a `layout.html.twig` typed into a fixture directory, a
+ * hand-wired WidgetService pointing at classes copied under tests/Fixtures, and
+ * three route definitions standing in for an application's own pages. A copy
+ * cannot hold a contract — it pins whatever the copyist believed — so each of
+ * them is now the published bundle it was imitating.
+ *
+ * THE AREA, THE PLACE AND THE PERSON ALL COME FROM MODULES. Patrol's records
+ * point at an area (uhifadhi/area-module) and at a person (the class an
+ * installation resolves the contract to, played by team's). Neither is this
+ * bundle's to define, and neither is stubbed here.
+ *
+ * TEAM AND AREA ARE BOOTED FOR THEIR MODELS, NOT FOR THEIR DASHBOARDS. Both are
+ * modules with widget surfaces of their own, which would land in the registry
+ * beside this module's; {@see OnlyThisModulesSurfacesPass} keeps them out, so
+ * what this suite asserts about the registry stays about PATROLS.
  */
 final class TestKernel extends Kernel
 {
@@ -59,9 +79,22 @@ final class TestKernel extends Kernel
         yield new DoctrineBundle();
         yield new FundiStadiPostGISBundle();
         yield new SecurityBundle();
-        // The host installs api-platform; this stands in for that host so the
-        // bundle's own sync endpoints can be exercised without one.
+        // An installation installs api-platform; this stands in for one so the
+        // bundle's own sync endpoints can be exercised.
         yield new ApiPlatformBundle();
+        // The frame every patrol screen renders in.
+        yield new UhifadhiShellBundle();
+        // Hard-required: the dashboard is a widget surface, not a page with
+        // widgets on it.
+        yield new UhifadhiWidgetBundle();
+        // The place a patrol happens in, the zones the gap card reads, and the
+        // six seams this module contributes to an area's overview.
+        yield new UhifadhiAreaBundle();
+        // The per-area catalogue this module registers itself in.
+        yield new UhifadhiSeamBundle();
+        // For the account class every patrol, observation and stored layout is
+        // keyed by — and for the org chart the department figures walk.
+        yield new UhifadhiTeamBundle();
         // Where observation photos go. A hard dependency of this bundle, and
         // registered here in the order a host registers it: flysystem first,
         // because the storage bundle PREPENDS a flysystem storage.
@@ -92,12 +125,31 @@ final class TestKernel extends Kernel
             'property_info' => ['enabled' => true],
             'serializer' => ['enabled' => true],
             'validation' => ['enabled' => true],
+            // asset() has to exist: the shell's document and this module's base
+            // template both link stylesheets with it. AssetMapper takes over
+            // path resolution here, exactly as in a real installation.
+            'assets' => true,
+            'asset_mapper' => [
+                'paths' => [__DIR__.'/Fixtures/app/assets' => ''],
+            ],
         ]);
 
         // A minimal but REAL security setup: loginUser() needs a stateful
         // firewall, and permission checks must go through the real
-        // AuthorizationChecker rather than a stub that always says yes.
+        // AuthorizationChecker rather than a stub that always says yes. The
+        // people are TEAM's own entity rather than InMemoryUser, because a
+        // patrol and a stored layout both carry a foreign key to a person and an
+        // in-memory one has no row to point at.
         $container->extension('security', [
+            'password_hashers' => [
+                'Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface' => [
+                    // Test-only cost floor, the documented Symfony practice.
+                    'algorithm' => 'auto',
+                    'cost' => 4,
+                    'time_cost' => 3,
+                    'memory_cost' => 10,
+                ],
+            ],
             'providers' => [
                 'app_users' => ['entity' => ['class' => User::class, 'property' => 'email']],
             ],
@@ -133,48 +185,24 @@ final class TestKernel extends Kernel
             'dbal' => [
                 'url' => '%env(PATROL_TEST_DATABASE_URL)%',
             ],
-            // Map the dev-only Uhifadhi\Entity stubs (Position, AreaOfInterest,
-            // Zone, Department) so the Patrol relations resolve standalone. They
-            // stand in for host things this module has no published contract for
-            // yet; the PERSON is not among them any more — see the account
-            // mapping and the resolution below.
             'orm' => [
-                // The host's own choice (config/packages/doctrine.yaml), mirrored
-                // here so the bundle's metadata-driven SQL is exercised against
-                // the column names it will actually meet.
+                // The skeleton's own choice (config/packages/doctrine.yaml),
+                // mirrored here so the bundle's metadata-driven SQL is exercised
+                // against the column names it will actually meet.
                 'naming_strategy' => 'doctrine.orm.naming_strategy.underscore',
-                'mappings' => [
-                    'UhifadhiHostStubs' => [
-                        'type' => 'attribute',
-                        'dir' => \dirname(__DIR__).'/Fixtures/Uhifadhi/Entity',
-                        'prefix' => 'Uhifadhi\\Entity',
-                        'is_bundle' => false,
-                    ],
-                    // The test installation's own account class, mapped the way
-                    // an installation maps the module that provides its team.
-                    'TestInstallationAccount' => [
-                        'type' => 'attribute',
-                        'dir' => \dirname(__DIR__).'/Fixtures/Account',
-                        'prefix' => 'Uhifadhi\\Patrol\\Tests\\Fixtures\\Account',
-                        'is_bundle' => false,
-                    ],
-                ],
-                // THE ONE LINE AN INSTALLATION WRITES. Every person on a patrol
-                // record is declared against the contract, so without this the
-                // bundle cannot build a schema at all — and with it, the FKs
-                // point at whatever account table the installation actually has.
-                'resolve_target_entities' => [
-                    UserInterface::class => User::class,
-                ],
+                // NO 'mappings' AND NO 'resolve_target_entities' HERE, both
+                // deliberately. Every entity this module points at now arrives
+                // with the module that owns it — the area and its zones from
+                // uhifadhi/area-module, the person and the org chart from
+                // uhifadhi/team-module — and each maps its own; team prepends the
+                // contract's resolution from its own bundle, which is the one
+                // line an installation used to have to write. If either ever
+                // stopped happening the schema would not build and this whole
+                // suite would say so at once.
             ],
         ]);
 
-        // Any uhifadhi instance provides layout.html.twig; tests stub it.
-        $container->extension('twig', [
-            'paths' => [\dirname(__DIR__).'/Integration/Fixtures/templates'],
-        ]);
-
-        // A real host vendors its icon set (bin/console ux:icons:import). These
+        // A real installation vendors its icon set (bin/console ux:icons:import). These
         // tests are about the module's markup, not about which glyph an icon
         // resolves to, so a missing one renders as nothing rather than failing
         // the page — and the assertions never depend on an icon being there.
@@ -183,29 +211,7 @@ final class TestKernel extends Kernel
             'ignore_not_found' => true,
         ]);
 
-        /*
-         * THE HOST'S WIDGET FRAMEWORK, registered the way the host registers it.
-         * The patrols surface rides this rather than shipping a copy, so the
-         * tests have to exercise the real thing — a library that only worked
-         * against a stand-in would be a library nobody has proved works. (The
-         * storage bundle's Files hub controller reads the same framework, so
-         * the container needs it compiled here either way.)
-         */
         $services = $container->services();
-        $services->set(WidgetPreferenceRepository::class)
-            ->args([service('doctrine')])->tag('doctrine.repository_service');
-        $services->set(WidgetCustomPresetRepository::class)
-            ->args([service('doctrine')])->tag('doctrine.repository_service');
-        $services->set(WidgetService::class)->args([
-            service(WidgetPreferenceRepository::class),
-            service(WidgetCustomPresetRepository::class),
-            service('doctrine.orm.entity_manager'),
-        ]);
-        $services->set(WidgetEndpoint::class)->args([
-            service(WidgetService::class),
-            service('security.token_storage'),
-            service('security.csrf.token_manager'),
-        ]);
 
         // Public aliases so tests can fetch the bundle's private services, keyed
         // by class name for readability (see IntegrationTestCase). Needed only
@@ -229,11 +235,20 @@ final class TestKernel extends Kernel
             \Uhifadhi\Patrol\Overview\PatrolMapLayers::class => 'patrol.overview.map_layers',
             \Uhifadhi\Patrol\Overview\PatrolPulse::class => 'patrol.overview.pulse',
             \Uhifadhi\Patrol\Overview\PatrolOverviewCopy::class => 'patrol.overview.copy',
+            // The widget framework, by the ids uhifadhi/widget-module publishes,
+            // plus the registry a surface has to be findable in.
+            \Uhifadhi\Widget\Service\WidgetService::class => 'widget.service',
+            \Uhifadhi\Widget\Service\WidgetEndpoint::class => 'widget.endpoint',
+            \Uhifadhi\Widget\Registry\WidgetSurfaceRegistry::class => 'widget.surfaces',
+            // The catalogue this module registers itself in, so a test can ask
+            // whether Patrols is in it rather than trusting the tag.
+            \Uhifadhi\Seam\Service\ModuleCatalogue::class => 'seam.catalogue',
+            \Uhifadhi\Seam\Service\ModuleEntryRouteResolver::class => 'seam.entry_routes',
         ] as $class => $serviceId) {
             $container->services()->alias('test_public.'.$class, $serviceId)->public();
         }
 
-        // Mirrors the host's api_platform.yaml: JSON only, stateless. The sync
+        // Mirrors an installation's api_platform.yaml: JSON only, stateless. The sync
         // endpoints are asserted against the CONTRACT's literal field names, so
         // a JSON-LD default here would be testing something the app never sees.
         $container->extension('api_platform', [
@@ -299,11 +314,36 @@ final class TestKernel extends Kernel
         // see src/ApiResource/PatrolSync.php.
         $routes->import('.', 'api_platform')->prefix('/api');
 
-        // The host routes the bundle's crumbs/back-links generate URLs for —
-        // stubbed here (URL generation needs only the definition).
-        $routes->add('dashboard_index', '/_host/dashboard');
-        $routes->add('dashboard_area_show', '/_host/areas/{uuid}');
-        $routes->add('dashboard_area_modules_grid', '/_host/areas/{uuid}/modules');
+        // THE SCREENS THIS MODULE'S CRUMB POINTS AT, mounted from the bundles
+        // that own them rather than declared as bare paths here. The area
+        // register and the area page are uhifadhi/area-module's; the front door
+        // is the shell's. `seam_area_modules` is deliberately absent — the
+        // per-area module grid is the seam's page and the seam does not ship one
+        // yet, which is exactly the case patrol_url() answers null for and the
+        // crumb prints as plain text.
+        $routes->import('@UhifadhiShellBundle/src/Controller/', 'attribute');
+        $routes->import('@UhifadhiAreaBundle/src/Controller/', 'attribute');
+    }
+
+    public function build(\Symfony\Component\DependencyInjection\ContainerBuilder $container): void
+    {
+        parent::build($container);
+
+        // Team and area are booted for their models, not for their dashboards.
+        $container->addCompilerPass(new OnlyThisModulesSurfacesPass());
+    }
+
+    /**
+     * THE STAND-IN INSTALLATION'S PROJECT DIRECTORY — an application's asset side
+     * and nothing else. The shell's document renders the importmap of whatever
+     * application it is installed in, so a suite that renders any page through
+     * the page frame needs an application that has one. Pointing the kernel at a
+     * fixture is how it gets one without this bundle growing an importmap of its
+     * own, which a shipped bundle has no business carrying.
+     */
+    public function getProjectDir(): string
+    {
+        return __DIR__.'/Fixtures/app';
     }
 
     public function getCacheDir(): string

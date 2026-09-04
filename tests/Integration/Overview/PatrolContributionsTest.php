@@ -13,19 +13,18 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Tests\Integration\Overview;
 
-use Uhifadhi\Model\Widget;
-use Uhifadhi\Overview\AttentionItem;
-use Uhifadhi\Overview\AttentionProviderInterface;
-use Uhifadhi\Overview\AttentionSeverity;
-use Uhifadhi\Overview\ContributesStylesheetInterface;
-use Uhifadhi\Overview\MapLayer;
-use Uhifadhi\Overview\MapLayerProviderInterface;
-use Uhifadhi\Overview\NowTile;
-use Uhifadhi\Overview\NowTileProviderInterface;
-use Uhifadhi\Overview\OverviewContributorInterface;
-use Uhifadhi\Overview\OverviewCopyProviderInterface;
-use Uhifadhi\Overview\PulseEvent;
-use Uhifadhi\Overview\PulseProviderInterface;
+use Uhifadhi\Area\Overview\AttentionItem;
+use Uhifadhi\Area\Overview\AttentionProviderInterface;
+use Uhifadhi\Area\Overview\AttentionSeverity;
+use Uhifadhi\Area\Overview\ContributesStylesheetInterface;
+use Uhifadhi\Area\Overview\MapLayer;
+use Uhifadhi\Area\Overview\MapLayerProviderInterface;
+use Uhifadhi\Area\Overview\NowTile;
+use Uhifadhi\Area\Overview\NowTileProviderInterface;
+use Uhifadhi\Area\Overview\OverviewContributorInterface;
+use Uhifadhi\Area\Overview\OverviewCopyProviderInterface;
+use Uhifadhi\Area\Overview\PulseEvent;
+use Uhifadhi\Area\Overview\PulseProviderInterface;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Overview\PatrolAttention;
@@ -35,6 +34,7 @@ use Uhifadhi\Patrol\Overview\PatrolOverviewContributor;
 use Uhifadhi\Patrol\Overview\PatrolOverviewCopy;
 use Uhifadhi\Patrol\Overview\PatrolPulse;
 use Uhifadhi\Patrol\UhifadhiPatrolBundle;
+use Uhifadhi\Widget\Model\Widget;
 
 /**
  * THE FIVE SEAMS, on one morning.

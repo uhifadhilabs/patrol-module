@@ -11,31 +11,31 @@
 
 {% block title %}{{ area.name }} — Patrols{% endblock %}
 
+{% block shell_page_title %}{{ area.name }} — Patrols{% endblock %}
+
+{% block shell_page_subtitle %}Field patrol effort across the area — every track, observation and station at a glance.{% endblock %}
+
+{% block shell_page_actions %}
+    {# The library edits ONE PERSON's layout, so the link exists only where the
+       route does (a host running SecurityBundle — see the bundle class). #}
+    {% if widgetScreens %}
+        <a class="tgl patrol-act" href="{{ path('patrol_widgets', {uuid: area.uuid}) }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Customize widgets</a>
+    {% endif %}
+    {# The two recording screens exist only where the host runs SecurityBundle
+       (they enforce patrols.record — see UhifadhiPatrolBundle), so the
+       links are rendered only when their routes do. #}
+    {% if recordScreens %}
+        <a class="tgl patrol-act" href="{{ path('patrol_import', {uuid: area.uuid}) }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>Import GPX</a>
+        <a class="cta" href="{{ path('patrol_log', {uuid: area.uuid}) }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Log patrol</a>
+    {% endif %}
+{% endblock %}
+
 {% block patrol_page %}
-<div class="crumb"><a href="{{ path('dashboard_index') }}">uhifadhi</a> / <a href="{{ path('dashboard_index') }}">areas</a> / <a href="{{ path('dashboard_area_show', {uuid: area.uuid}) }}">{{ area.name|lower }}</a> / <a href="{{ path('dashboard_area_modules_grid', {uuid: area.uuid}) }}">modules</a> / patrols</div>
-
-<div class="pghead">
-    <div>
-        <h1 class="pg">{{ area.name }} — Patrols</h1>
-        <p class="pgsub">Field patrol effort across the area — every track, observation and station at a glance.</p>
-    </div>
-    <div class="pgact patrol-pgact">
-        {# The library edits ONE PERSON's layout, so the link exists only where the
-           route does (a host running SecurityBundle — see the bundle class). #}
-        {% if widgetScreens %}
-            <a class="tgl patrol-act" href="{{ path('patrol_widgets', {uuid: area.uuid}) }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Customize widgets</a>
-        {% endif %}
-        {# The two recording screens exist only where the host runs SecurityBundle
-           (they enforce patrols.record — see UhifadhiPatrolBundle), so the
-           links are rendered only when their routes do. #}
-        {% if recordScreens %}
-            <a class="tgl patrol-act" href="{{ path('patrol_import', {uuid: area.uuid}) }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>Import GPX</a>
-            <a class="cta" href="{{ path('patrol_log', {uuid: area.uuid}) }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Log patrol</a>
-        {% endif %}
-    </div>
-</div>
-
-<a href="{{ path('dashboard_area_modules_grid', {uuid: area.uuid}) }}" class="backbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>All modules</a>
+{# The way back out of the module, which is the AREA'S module grid and not this
+   module's page — so it is rendered only where the installation mounted that
+   screen. A back button to a route nobody registered is a 500 on the way home. #}
+{% set modules = patrol_url('seam_area_modules', {uuid: area.uuid}) %}
+{% if modules %}<a href="{{ modules }}" class="backbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>All modules</a>{% endif %}
 
 <div class="patrol-wgrid">
     {% for widget in widgets %}

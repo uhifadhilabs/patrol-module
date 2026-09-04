@@ -18,11 +18,11 @@ use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
-use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
+use Uhifadhi\Team\Entity\User;
 
 /**
  * The GPX import screen end to end. Creating patrols is the privilege, so access
@@ -52,14 +52,14 @@ final class ImportFlowTest extends WebTestCase
         $schemaTool->dropSchema($metadata);
         $schemaTool->createSchema($metadata);
 
-        $this->area = new AreaOfInterest()->setName('demo reserve')->setGeom(
+        $this->area = new AreaOfInterest()->setSource('test fixture')->setName('demo reserve')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[-30.1,-1.1],[-29.9,-1.1],[-29.9,-0.9],[-30.1,-0.9],[-30.1,-1.1]]]]}',
         );
         $this->em->persist($this->area);
 
-        $this->recorder = new User()->setEmail(FixedRecordVoter::RECORDER_EMAIL)
+        $this->recorder = new User()->setPassword('x')->setEmail(FixedRecordVoter::RECORDER_EMAIL)
             ->setFirstName('Rita')->setLastName('Recorder');
-        $this->staff = new User()->setEmail('staff@example.test')
+        $this->staff = new User()->setPassword('x')->setEmail('staff@example.test')
             ->setFirstName('Sam')->setLastName('Staff');
         $this->em->persist($this->recorder);
         $this->em->persist($this->staff);
@@ -175,7 +175,7 @@ final class ImportFlowTest extends WebTestCase
 
         $patrol = $this->onlyPatrol();
         self::assertResponseRedirects(
-            '/areas/'.$this->area->getUuid()->toRfc4122().'/modules/patrols/'.$patrol->getUuid()->toRfc4122(),
+            '/areas/'.$this->area->getUuidString().'/modules/patrols/'.$patrol->getUuid()->toRfc4122(),
         );
 
         // Time, distance and route come from the FILE; the form contributed
@@ -193,7 +193,10 @@ final class ImportFlowTest extends WebTestCase
         self::assertStringContainsString('LineString', (string) $patrol->getTrack());
 
         $this->client->followRedirect();
-        self::assertSelectorTextContains('[data-patrol-flash]', 'imported from the GPX track');
+        // THE FRAME SAYS "SAVED", NOT THIS MODULE. The flash used to be this
+        // bundle's own markup in its own base template; it is the shell's socket
+        // now, so a saved patrol reads exactly like a saved anything else.
+        self::assertSelectorTextContains('[data-shell-flash]', 'imported from the GPX track');
     }
 
     public function testAFileThatIsNotATrackIsRefused(): void
@@ -221,7 +224,7 @@ final class ImportFlowTest extends WebTestCase
 
     private function importUrl(): string
     {
-        return '/areas/'.$this->area->getUuid()->toRfc4122().'/modules/patrols/import';
+        return '/areas/'.$this->area->getUuidString().'/modules/patrols/import';
     }
 
     private function fixtureXml(): string

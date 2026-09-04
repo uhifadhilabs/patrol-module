@@ -11,18 +11,18 @@ oversight.
 - [3 · Observation photos are deferred — SETTLED](#3--observation-photos-are-deferred--settled-this-decision-has-fallen)
 - [4 · Sources are honest: sketch ≠ track](#4--sources-are-honest-sketch--track)
 - [5 · Live tracking is v2, and it is a third door](#5--live-tracking-is-v2-and-it-is-a-third-door)
-- [6 · The maps run on the host's Leaflet and the host's basemaps](#6--the-maps-run-on-the-hosts-leaflet-and-the-hosts-basemaps)
+- [6 · The maps run on the map module's Leaflet and the map module's basemaps](#6--the-maps-run-on-the-map-modules-leaflet-and-the-map-modules-basemaps)
 
 ## 1 · Station is a string, not an entity
 
 `Patrol.station` is a free string ("North post"), not a foreign key.
 
-**Why:** stations are a concept the host platform will eventually own (a
+**Why:** stations are a concept the platform will eventually own (a
 stations module exists in its catalogue roadmap); this bundle must not invent
-a competing `Station` entity that the host would later have to reconcile.
+a competing `Station` entity the platform would later have to reconcile.
 A string ships the screens now and loses nothing that matters yet.
 
-**Revisit when:** the host's stations module exists. Migration path: add a
+**Revisit when:** a stations module exists. Migration path: add a
 nullable FK, backfill by name-matching, keep the string as a fallback label
 until every deployment has migrated.
 
@@ -37,7 +37,7 @@ with real geometry, that derivation goes away.
 ## 2 · Team is free text
 
 `Patrol.team` is a comma-separated roster string; only `lead` is a real
-relation to the host `User`.
+relation to the person contract.
 
 **Why:** matches the settled designs (the roster is display information), and
 many patrol members will not have accounts at all. One accountable relation
@@ -95,7 +95,7 @@ assembles the streamed positions into the same stored LineString with the
 same honesty metadata as an import. Wildlife-collar feeds (vendor APIs) are
 consumers of the same pipeline shape, on sibling topics.
 
-**Sequencing:** after the v1 screens are ported and installed in the host.
+**Sequencing:** after the v1 screens are ported and installed.
 
 ## 6 · The maps run on the map module's Leaflet and the map module's basemaps
 
@@ -108,7 +108,7 @@ sources or boundary styling of their own. The bundle defines no boundary colour,
 weight or opacity anywhere: there is one definition, in the map module, and
 nothing to keep in sync.
 
-This used to say "the host's". The map platform left the host application for a
+This used to say "the host's". The map platform left the old monolith for a
 module of its own, and nothing in this bundle changed to follow it: the import
 names are bare specifiers, so they went on resolving to the same three files at
 a new address. Only the Leaflet `<link>` and `<script>` moved, from a literal
@@ -119,7 +119,7 @@ WHICH IMAGERY a satellite layer draws is now the deployment's configuration
 seam from the document. This bundle neither knows nor needs to.
 
 The one thing each map decides for itself is whether the outside-the-area SCRIM
-is drawn. The coverage map (PL·05/PL·08) shows it, like the host's area map: it
+is drawn. The coverage map (PL·05/PL·08) shows it, like the area map: it
 frames the whole area, and dimming the outside is what makes the boundary read
 at a glance. The detail and observation plates do NOT: they open deep inside the
 area at close zoom, where "outside" is not in frame at all and the scrim would
@@ -129,10 +129,12 @@ line.
 **Why:** the platform rule is that the same layer renders identically wherever
 it appears — a patrol map and an area map must not disagree about what
 "satellite" means, and two copies of Leaflet on one page is a bug waiting to
-happen. This bundle is a uhifadhi module: it already binds to the host's
-`AreaOfInterest`, so depending on the host's map seam costs nothing extra. No
+happen. This bundle is a uhifadhi module: it already binds to
+`uhifadhi/area-module`'s `AreaOfInterest`, so depending on the map seam costs
+nothing extra. No
 CDN, and never MapLibre (raster tiles + GeoJSON need no WebGL).
 
-**Revisit when:** the bundle is ever wanted in a non-uhifadhi host. Then the two
+**Revisit when:** the bundle is ever wanted outside a uhifadhi installation.
+Then the two
 asset paths and the two module specifiers become configuration, with the current
 values as defaults.

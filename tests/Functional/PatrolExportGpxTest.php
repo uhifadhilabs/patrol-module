@@ -18,7 +18,7 @@ use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
@@ -50,12 +50,12 @@ final class PatrolExportGpxTest extends WebTestCase
         $schemaTool->dropSchema($metadata);
         $schemaTool->createSchema($metadata);
 
-        $this->area = new AreaOfInterest()->setName('demo reserve')->setGeom(
+        $this->area = new AreaOfInterest()->setSource('test fixture')->setName('demo reserve')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[12.2,-5.8],[12.5,-5.8],[12.5,-5.5],[12.2,-5.5],[12.2,-5.8]]]]}',
         );
         $this->em->persist($this->area);
 
-        $this->otherArea = new AreaOfInterest()->setName('other reserve')->setGeom(
+        $this->otherArea = new AreaOfInterest()->setSource('test fixture')->setName('other reserve')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[10.2,-5.8],[10.5,-5.8],[10.5,-5.5],[10.2,-5.5],[10.2,-5.8]]]]}',
         );
         $this->em->persist($this->otherArea);
@@ -184,7 +184,7 @@ final class PatrolExportGpxTest extends WebTestCase
 
     private function patrolUrl(AreaOfInterest $area, Patrol $patrol): string
     {
-        return '/areas/'.$area->getUuid()->toRfc4122().'/modules/patrols/'.$patrol->getUuid()->toRfc4122();
+        return '/areas/'.$area->getUuidString().'/modules/patrols/'.$patrol->getUuid()->toRfc4122();
     }
 
     private function exportUrl(AreaOfInterest $area, Patrol $patrol): string

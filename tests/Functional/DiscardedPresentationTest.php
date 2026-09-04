@@ -18,13 +18,13 @@ use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Entity\PatrolEvent;
 use Uhifadhi\Patrol\Enum\PatrolEventKindEnum;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
-use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
+use Uhifadhi\Team\Entity\User;
 
 /**
  * How a discarded patrol READS on the web — the settled discard design's web
@@ -59,14 +59,14 @@ final class DiscardedPresentationTest extends WebTestCase
         $schemaTool->dropSchema($metadata);
         $schemaTool->createSchema($metadata);
 
-        $this->area = new AreaOfInterest()->setName('demo reserve')->setGeom(
+        $this->area = new AreaOfInterest()->setSource('test fixture')->setName('demo reserve')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[12.2,-5.8],[12.5,-5.8],[12.5,-5.5],[12.2,-5.5],[12.2,-5.8]]]]}',
         );
         $this->em->persist($this->area);
 
-        $this->recorder = new User()->setEmail(FixedRecordVoter::RECORDER_EMAIL)
+        $this->recorder = new User()->setPassword('x')->setEmail(FixedRecordVoter::RECORDER_EMAIL)
             ->setFirstName('Rita')->setLastName('Recorder');
-        $this->bystander = new User()->setEmail('bystander@example.test')
+        $this->bystander = new User()->setPassword('x')->setEmail('bystander@example.test')
             ->setFirstName('Ben')->setLastName('Bystander');
         $this->em->persist($this->recorder);
         $this->em->persist($this->bystander);

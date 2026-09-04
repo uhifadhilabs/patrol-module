@@ -25,7 +25,7 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
 use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface;
-use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
+use Uhifadhi\Team\Entity\User;
 
 /**
  * Test stand-in for the HOST's bearer-token authenticator.

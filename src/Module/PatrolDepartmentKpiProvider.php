@@ -14,10 +14,10 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Module;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Entity\Department;
-use Uhifadhi\Module\DepartmentKpi;
-use Uhifadhi\Module\DepartmentKpiProviderInterface;
+use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Area\Kpi\DepartmentKpi;
+use Uhifadhi\Area\Kpi\DepartmentKpiProviderInterface;
+use Uhifadhi\Area\Kpi\DepartmentRef;
 use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
@@ -86,12 +86,9 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
      *
      * @return list<DepartmentKpi>
      */
-    public function kpisFor(Department $department, \DateTimeImmutable $now): array
+    public function kpisFor(DepartmentRef $department, \DateTimeImmutable $now): array
     {
-        $departmentId = $department->getId();
-        if (null === $departmentId) {
-            return [];
-        }
+        $departmentId = $department->id;
 
         [$monthStart, $nextMonth] = PatrolDashboardService::monthRange($now);
         $previousStart = $monthStart->modify('-1 month');
@@ -127,10 +124,10 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
                 'Coverage',
                 $this->slug,
                 $this->name,
-                $this->coverage($department, $monthStart, $nextMonth),
+                $this->coverage($departmentId, $monthStart, $nextMonth),
                 DepartmentKpi::SHARE,
-                $this->coverage($department, $previousStart, $monthStart),
-                $this->coverageSpark($department, $monthStart),
+                $this->coverage($departmentId, $previousStart, $monthStart),
+                $this->coverageSpark($departmentId, $monthStart),
                 // Its own provenance line: the buffer is part of what the number MEANS, not a
                 // setting, and a share printed without the distance it was measured at is
                 // unreadable. The label stays short because a table header wears it too.
@@ -226,11 +223,11 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
      * Null stays null the whole way: no track recorded by these people in this window is not
      * zero coverage, and the host draws it as a dash.
      */
-    private function coverage(Department $department, \DateTimeImmutable $from, \DateTimeImmutable $until): ?float
+    private function coverage(int $departmentId, \DateTimeImmutable $from, \DateTimeImmutable $until): ?float
     {
         $fraction = $this->patrols->coverageFractionForDepartment(
             null,
-            $department,
+            $departmentId,
             PatrolDashboardService::COVERAGE_BUFFER_M,
             $from,
             $until,
@@ -249,13 +246,13 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
      *
      * @return list<float>
      */
-    private function coverageSpark(Department $department, \DateTimeImmutable $monthStart): array
+    private function coverageSpark(int $departmentId, \DateTimeImmutable $monthStart): array
     {
         $series = [];
 
         for ($back = self::SPARK_MONTHS - 1; $back >= 0; --$back) {
             $from = $monthStart->modify(\sprintf('-%d month', $back));
-            $reading = $this->coverage($department, $from, $from->modify('+1 month'));
+            $reading = $this->coverage($departmentId, $from, $from->modify('+1 month'));
             if (null === $reading) {
                 return [];
             }

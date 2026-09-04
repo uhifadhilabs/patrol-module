@@ -160,7 +160,7 @@ final class FieldSyncPhotoPositionTest extends FieldSyncTestCase
 
         $this->client->request('GET', \sprintf(
             '/areas/%s/modules/patrols/%s/observations/%s',
-            $this->area->getUuid()->toRfc4122(),
+            $this->area->getUuidString(),
             $patrol->getUuid()->toRfc4122(),
             $observation->getUuid()->toRfc4122(),
         ));
@@ -188,7 +188,7 @@ final class FieldSyncPhotoPositionTest extends FieldSyncTestCase
 
         $this->client->request('GET', \sprintf(
             '/areas/%s/modules/patrols/%s/observations/%s',
-            $this->area->getUuid()->toRfc4122(),
+            $this->area->getUuidString(),
             $observation->getPatrol()->getUuid()->toRfc4122(),
             $observation->getUuid()->toRfc4122(),
         ));

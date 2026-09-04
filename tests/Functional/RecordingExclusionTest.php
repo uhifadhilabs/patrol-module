@@ -17,14 +17,14 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
-use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
+use Uhifadhi\Team\Entity\User;
 
 /**
  * A PATROL THAT IS STILL RECORDING IS NOT A RECORD YET — asserted on every
@@ -67,12 +67,12 @@ final class RecordingExclusionTest extends WebTestCase
         $schemaTool->dropSchema($metadata);
         $schemaTool->createSchema($metadata);
 
-        $this->area = new AreaOfInterest()->setName('demo reserve')->setGeom(
+        $this->area = new AreaOfInterest()->setSource('test fixture')->setName('demo reserve')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[12.2,-5.8],[12.5,-5.8],[12.5,-5.5],[12.2,-5.5],[12.2,-5.8]]]]}',
         );
         $this->em->persist($this->area);
 
-        $lead = new User()->setEmail(FixedRecordVoter::RECORDER_EMAIL)
+        $lead = new User()->setPassword('x')->setEmail(FixedRecordVoter::RECORDER_EMAIL)
             ->setFirstName('Rita')->setLastName('Recorder');
         $this->em->persist($lead);
 

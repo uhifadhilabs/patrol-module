@@ -23,14 +23,14 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Uid\Uuid;
 use Twig\Environment;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
-use Uhifadhi\Patrol\Model\PatrolWidgets;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolWidgetUrls;
-use Uhifadhi\Service\WidgetEndpoint;
-use Uhifadhi\Service\WidgetService;
+use Uhifadhi\Patrol\Widget\PatrolWidgets;
+use Uhifadhi\Widget\Service\WidgetEndpoint;
+use Uhifadhi\Widget\Service\WidgetService;
 
 /**
  * THE WIDGET LIBRARY for the patrols surface — the one editing screen.
@@ -82,8 +82,8 @@ final class PatrolWidgetsController
     public function library(
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
     ): Response {
-        $catalog = PatrolWidgets::catalog();
-        $userId = $this->endpoint->userId();
+        $catalog = PatrolWidgets::declaration();
+        $person = $this->endpoint->user();
         $areaUuid = $area->getUuid();
         // Same instant for the last-patrol KPI and the calendar title, exactly
         // as the dashboard does it.
@@ -108,9 +108,9 @@ final class PatrolWidgetsController
             // this AREA's routes.
             'catalog' => $catalog,
             'builtins' => $catalog->builtins(),
-            'customPresets' => $this->widgets->customPresets($catalog, $userId, $areaUuid),
-            'active' => $this->widgets->activeRef($catalog, $userId, $areaUuid),
-            'widgets' => $this->widgets->resolve($catalog, $userId, $areaUuid),
+            'customPresets' => $this->widgets->customPresets($catalog, $person, $areaUuid),
+            'active' => $this->widgets->activeRef($catalog, $person, $areaUuid),
+            'widgets' => $this->widgets->resolve($catalog, $person, $areaUuid),
             'partial' => '@UhifadhiPatrol/dashboard/_w_%s.html.twig',
             // EVERY widget partial renders the REAL widget on REAL data here,
             // at full size — the picture of a widget IS the widget, so what you
@@ -134,7 +134,7 @@ final class PatrolWidgetsController
         Request $request,
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
     ): Response {
-        return $this->endpoint->save($request, PatrolWidgets::catalog(), $area->getUuid());
+        return $this->endpoint->save($request, PatrolWidgets::declaration(), $area->getUuid());
     }
 
     #[Route('/areas/{uuid}/modules/patrols/widgets/reset', name: 'patrol_widgets_reset', requirements: ['uuid' => Requirement::UUID], methods: ['POST'])]
@@ -145,7 +145,7 @@ final class PatrolWidgetsController
         return $this->afterWrite(
             $request,
             $area,
-            $this->endpoint->reset($request, PatrolWidgets::catalog(), $area->getUuid()),
+            $this->endpoint->reset($request, PatrolWidgets::declaration(), $area->getUuid()),
             \sprintf('This area’s patrols dashboard is back to “%s”.', PatrolWidgets::DEFAULT_LABEL),
         );
     }
@@ -156,7 +156,7 @@ final class PatrolWidgetsController
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
         string $presetId,
     ): Response {
-        $catalog = PatrolWidgets::catalog();
+        $catalog = PatrolWidgets::declaration();
         // A design the surface does not ship is refused by the endpoint below;
         // naming it in the flash is only for the case where it IS shipped.
         $adopted = $catalog->preset($presetId);
@@ -178,7 +178,7 @@ final class PatrolWidgetsController
         return $this->afterWrite(
             $request,
             $area,
-            $this->endpoint->copyPreset($request, PatrolWidgets::catalog(), $presetId, $area->getUuid()),
+            $this->endpoint->copyPreset($request, PatrolWidgets::declaration(), $presetId, $area->getUuid()),
             'Copied — the copy is yours to edit, and the design it came from is untouched.',
         );
     }
@@ -191,7 +191,7 @@ final class PatrolWidgetsController
         return $this->afterWrite(
             $request,
             $area,
-            $this->endpoint->createCustomPreset($request, PatrolWidgets::catalog(), $area->getUuid()),
+            $this->endpoint->createCustomPreset($request, PatrolWidgets::declaration(), $area->getUuid()),
             'Saved — this arrangement is now one of your own designs.',
         );
     }
@@ -205,7 +205,7 @@ final class PatrolWidgetsController
         return $this->afterWrite(
             $request,
             $area,
-            $this->endpoint->applyCustomPreset($request, PatrolWidgets::catalog(), Uuid::fromString($presetUuid), $area->getUuid()),
+            $this->endpoint->applyCustomPreset($request, PatrolWidgets::declaration(), Uuid::fromString($presetUuid), $area->getUuid()),
             'Your design is on.',
         );
     }
@@ -219,7 +219,7 @@ final class PatrolWidgetsController
         return $this->afterWrite(
             $request,
             $area,
-            $this->endpoint->renameCustomPreset($request, PatrolWidgets::catalog(), Uuid::fromString($presetUuid), $area->getUuid()),
+            $this->endpoint->renameCustomPreset($request, PatrolWidgets::declaration(), Uuid::fromString($presetUuid), $area->getUuid()),
             'Renamed.',
         );
     }
@@ -233,7 +233,7 @@ final class PatrolWidgetsController
         return $this->afterWrite(
             $request,
             $area,
-            $this->endpoint->deleteCustomPreset($request, PatrolWidgets::catalog(), Uuid::fromString($presetUuid), $area->getUuid()),
+            $this->endpoint->deleteCustomPreset($request, PatrolWidgets::declaration(), Uuid::fromString($presetUuid), $area->getUuid()),
             'Design deleted. Your dashboard is back on the one this module ships with.',
         );
     }

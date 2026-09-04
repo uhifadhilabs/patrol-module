@@ -1,24 +1,50 @@
-{# Bundle base: the host's shell plus patrol's own stylesheet. Every patrol page
-   extends this instead of the host layout directly, so the widget-dashboard
-   additions load only where the module renders — the host's own stylesheet
-   never references patrol. #}
-{% extends 'layout.html.twig' %}
+{# Bundle base: the SHELL's page frame plus the sheets a patrol screen needs.
 
-{# Symfony docs — https://symfony.com/doc/current/frontend/asset_mapper.html :
+   Every patrol screen extends this rather than the shell directly, so the
+   module's vocabulary loads only where the module renders and the file-preview
+   overlay is linked exactly once per page.
+
+   THE FRAME IS THE SHELL'S (uhifadhi/shell-module), not this module's. Before
+   the fleet had a shell, these pages extended a `layout.html.twig` an
+   application was expected to provide, and typed their own `<div class="page">`
+   and their own flash loop inside it — which is why both are gone from here:
+   the trail, the page head, the area's tab strip and the flashes are the
+   frame's sockets now, and a module that types its own copies is a module that
+   drifts from every other screen in the installation.
+
+   THE TAB STRIP IS LEFT AT ITS DEFAULT, deliberately, and it is the one line
+   worth reading twice. Patrols is an AREA-SCOPED module — every route under
+   this base sits at /areas/{uuid}/modules/patrols — so the area's own strip is
+   exactly right above it, and blanking the socket (which an org-wide hub like
+   the files hub does) would be this module claiming to be nowhere in
+   particular.
+
+   THE WIDGET MODULE'S SHEET IS NOT OPTIONAL. The dashboard IS a widget
+   dashboard, so `.w-grid`, `.w-cell`, `.w-span-*` and the whole library chrome
+   are drawn by uhifadhi/widget-module's stylesheet, which its own header says
+   must be linked by the page rendering it. Without it the grid has nothing
+   declaring a span and every widget draws one column wide.
+
+   Ordered leaflet → widget → preview → patrol, weakest to strongest: this
+   module's own sheet is the one allowed to override, and it is last.
+
+   Symfony docs — https://symfony.com/doc/current/frontend/asset_mapper.html :
    "All bundles that have a Resources/public/ or public/ directory will
    automatically have that directory added as an asset path, using the namespace:
    bundles/<BundleName>" — and under AssetMapper those assets are automatically
    content-versioned. So public/patrol.css is served as
    bundles/uhifadhipatrol/patrol.css with a digest, no assets:install. #}
+{% extends '@UhifadhiShell/page.html.twig' %}
+
 {% block stylesheets %}
     {{ parent() }}
     {# Leaflet FIRST, so patrol.css can restyle its controls into the design's
        pills. Both files come from uhifadhi/map-module, by its own constants —
-       never a CDN, and the same Leaflet the host's area map runs on, so a patrol
-       map and an area map cannot disagree about how a layer draws. A host of
-       this module ships those two assets; that is part of the seam, like the
-       host's AreaOfInterest the bundle already binds to. #}
+       never a CDN, and the same Leaflet the area map runs on, so a patrol map
+       and an area map cannot disagree about how a layer draws. #}
     <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Map\\UhifadhiMapBundle::LEAFLET_CSS')) }}">
+    {# The dashboard grid's own vocabulary, from the bundle that owns it. #}
+    <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Widget\\UhifadhiWidgetBundle::STYLESHEET')) }}">
     {# The FILE PREVIEW's vocabulary, from the bundle that owns it. A patrol
        photograph opens in the same overlay a file on the hub opens in, so this
        module draws none of it and states none of it — it loads the component's
@@ -30,36 +56,35 @@
        → @UhifadhiStorage/overlay/_preview.html.twig #}
     <link rel="stylesheet" href="{{ asset('bundles/uhifadhistorage/preview.css') }}">
     {# The path is the bundle's own constant, not a literal: the area overview is
-       rendered by the HOST, which links this same sheet from the contributor's
-       stylesheet() — and a path typed twice is a path that eventually differs. #}
+       rendered by the AREA module, which links this same sheet from the
+       contributor's stylesheet() — and a path typed twice is a path that
+       eventually differs. #}
     <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Patrol\\UhifadhiPatrolBundle::STYLESHEET')) }}">
 {% endblock %}
 
 {# Leaflet is a classic script exposing `window.L`, which is what the map
    controllers read. A classic <script> in <head> runs before the deferred
    importmap modules, so `window.L` is there by the time a controller connects.
-   MapLibre is deliberately NOT used — see the host's map_controller.js: raster
-   tiles + GeoJSON need no WebGL, and WebGL failed silently (blank map) in
-   constrained environments. #}
+   MapLibre is deliberately NOT used: raster tiles + GeoJSON need no WebGL, and
+   WebGL failed silently (blank map) in constrained environments. #}
 {% block javascripts %}
     <script src="{{ asset(constant('Uhifadhi\\Map\\UhifadhiMapBundle::LEAFLET_JS')) }}"></script>
     {{ parent() }}
 {% endblock %}
 
-{# The host layout expects each page to supply its own `.page` container (the
-   max-width + side padding wrapper the built-in pages use). Provide it once here
-   so every patrol page inherits the same margins; pages fill `patrol_page`. #}
-{% block content %}
-    <div class="page">
-        {# Flashes render the way the host's own pages render them (a .c card
-           with the accent tick, above the page content) — a saved patrol must
-           read the same whichever screen the user came from. The style lives in
-           patrol.css rather than inline, unlike the host's copy. #}
-        {% for label, messages in app.flashes %}
-            {% for message in messages %}
-                <div class="c patrol-flash" data-patrol-flash="{{ label }}"><span class="acc">✓</span> {{ message }}</div>
-            {% endfor %}
-        {% endfor %}
-        {% block patrol_page %}{% endblock %}
-    </div>
+{# THE TRAIL'S SHARED PREFIX, said once. Every patrol screen sits under the same
+   four steps — the installation, the areas, this area, its modules — and only
+   the tail differs, so screens fill `patrol_trail_tail` and never retype the
+   prefix. Each step is a link only where the installation mounted the screen it
+   names; see PatrolTrailExtension. #}
+{% block shell_breadcrumbs %}
+    {%- set areas = patrol_url('area_index') -%}
+    {%- set here = patrol_url('area_show', {uuid: area.uuid}) -%}
+    {%- set modules = patrol_url('seam_area_modules', {uuid: area.uuid}) -%}
+    {%- if areas %}<a href="{{ areas }}">areas</a>{% else %}areas{% endif %} /
+    {%- if here %} <a href="{{ here }}">{{ area.name|lower }}</a>{% else %} {{ area.name|lower }}{% endif %} /
+    {%- if modules %} <a href="{{ modules }}">modules</a>{% else %} modules{% endif %} /
+    {%- block patrol_trail_tail %} patrols{% endblock %}
 {% endblock %}
+
+{% block shell_page %}{% block patrol_page %}{% endblock %}{% endblock %}

@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Overview;
 
-use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Overview\AttentionItem;
-use Uhifadhi\Overview\AttentionProviderInterface;
-use Uhifadhi\Overview\AttentionSeverity;
+use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Area\Overview\AttentionItem;
+use Uhifadhi\Area\Overview\AttentionProviderInterface;
+use Uhifadhi\Area\Overview\AttentionSeverity;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
 
 /**

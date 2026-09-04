@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Tests\Integration\Repository;
 
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Entity\TrackBatch;
 use Uhifadhi\Patrol\Entity\TrackPoint;
@@ -48,7 +48,7 @@ final class TrackPointRepositoryTrailTest extends IntegrationTestCase
 
     private function makePatrol(): Patrol
     {
-        $area = new AreaOfInterest()->setName('Example square');
+        $area = new AreaOfInterest()->setSource('test fixture')->setName('Example square')->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.1,-3.0],[35.1,-2.9],[35.0,-2.9],[35.0,-3.0]]]]}');
         $this->em->persist($area);
         $patrol = new Patrol($area, 'walk')
             ->setStatus(PatrolStatusEnum::Recording)

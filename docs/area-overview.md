@@ -1,7 +1,8 @@
 # What patrols puts on the area overview
 
-The host's `/areas/{uuid}` is **composed from module-contributed widgets**: the
-host owns the surface, the grid, the preset framework and the area's identity,
+The area module's `/areas/{uuid}` is **composed from module-contributed widgets**: the
+area module owns the surface, the grid, the preset framework and the area's
+identity,
 and every operational number arrives through a seam. This module fills five of
 them, all tagged explicitly in the bundle extension (a reusable bundle is not
 autoconfigured):
@@ -24,11 +25,11 @@ dashboard, and none should: the overview answers who is out and how today is
 going. `PatrolOverviewService` measures that morning once and all five seams read
 it, so the strip's count and the live card's rows cannot disagree.
 
-## What the host provides for these plates
+## What the area module provides for these plates
 
 The `.ao-*` vocabulary (`.ao-by`, `.ao-live`, `.ao-col`, `.ao-colstack`,
-`.ao-att`, `.ao-legend`, `.ao-move`, `.ao-dot`) belongs to the host's area
-overview and is **not** shipped here. The host paints every contributor dot a
+`.ao-att`, `.ao-legend`, `.ao-move`, `.ao-dot`) belongs to `uhifadhi/area-module`'s
+overview and is **not** shipped here. That module paints every contributor dot a
 neutral fog and names no module in a rule; `public/patrol.css` paints this
 module's own six selectors with the accent its tracks already wear.
 

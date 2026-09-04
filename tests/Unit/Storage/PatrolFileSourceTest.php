@@ -16,7 +16,7 @@ namespace Uhifadhi\Patrol\Tests\Unit\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
@@ -181,7 +181,7 @@ final class PatrolFileSourceTest extends TestCase
 
     private function photo(): ObservationPhoto
     {
-        $area = new AreaOfInterest();
+        $area = new AreaOfInterest()->setSource('test fixture');
         $area->setName('Kifaru Sector');
         $patrol = new Patrol($area, 'walk');
         $observation = new Observation($patrol, 'maintenance');

@@ -26,7 +26,7 @@ use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Twig\Environment;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
@@ -159,7 +159,7 @@ final class PatrolRecordController
                     $this->addFlash($request, 'success', \sprintf('Patrol %s imported from the GPX track.', $patrol->getRef()));
 
                     return new RedirectResponse($this->urlGenerator->generate('patrol_show', [
-                        'uuid' => $area->getUuid()->toRfc4122(),
+                        'uuid' => $area->getUuidString(),
                         'patrol' => $patrol->getUuid()->toRfc4122(),
                     ]));
                 }
@@ -241,7 +241,7 @@ final class PatrolRecordController
                 $this->addFlash($request, 'success', \sprintf('Patrol %s logged.', $patrol->getRef()));
 
                 return new RedirectResponse($this->urlGenerator->generate('patrol_show', [
-                    'uuid' => $area->getUuid()->toRfc4122(),
+                    'uuid' => $area->getUuidString(),
                     'patrol' => $patrol->getUuid()->toRfc4122(),
                 ]));
             }

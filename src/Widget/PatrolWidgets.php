@@ -11,11 +11,12 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Uhifadhi\Patrol\Model;
+namespace Uhifadhi\Patrol\Widget;
 
-use Uhifadhi\Model\Widget;
-use Uhifadhi\Model\WidgetCatalog;
-use Uhifadhi\Model\WidgetGroup;
+use Uhifadhi\Widget\Model\Widget;
+use Uhifadhi\Widget\Model\WidgetCatalog;
+use Uhifadhi\Widget\Model\WidgetGroup;
+use Uhifadhi\Widget\Registry\WidgetSurfaceInterface;
 
 /**
  * THE CATALOGUE of the per-area PATROLS surface — a transcription of the
@@ -38,18 +39,24 @@ use Uhifadhi\Model\WidgetGroup;
  * lands as a preset in the change that lands its widgets; the gallery at
  * presets/patrols/ is the spec they land against.
  *
- * It rides the HOST's widget framework rather than a copy of it: the
- * dashboard, the library and the save endpoints all read this one object, so a
- * widget can never exist on one screen and not the other.
+ * It rides uhifadhi/widget-module rather than a copy of it: the dashboard, the
+ * library and the save endpoints all read this one object, so a widget can
+ * never exist on one screen and not the other.
  *
  * AREA-SCOPED: the same person may lay one area's patrols out one way and
  * another area's another, so every widget-framework call passes the area's
  * UUID and the stored preference rows are keyed by (surface, user, area).
  *
- * Static rather than a service: a catalogue is a statement of what a surface
- * ships. It has no dependencies and nothing may vary it at runtime.
+ * A CATALOGUE IS A STATEMENT OF WHAT A SURFACE SHIPS, so this class has no
+ * dependencies and nothing may vary it at runtime. It is nonetheless a
+ * {@see WidgetSurfaceInterface} and TAGGED as one (see the bundle's
+ * loadExtension), because being FINDABLE is the half a catalogue alone cannot
+ * do: `widget:prune` walks the registry, and a surface no service claims is a
+ * surface whose stored layouts read as orphans and get deleted. The static
+ * accessors stay — they are how this module's own controllers and templates
+ * reach the catalogue without a container round-trip.
  */
-final class PatrolWidgets
+final class PatrolWidgets implements WidgetSurfaceInterface
 {
     /** What a stored preference row is keyed by. */
     public const string SURFACE = 'patrols';
@@ -59,7 +66,13 @@ final class PatrolWidgets
 
     public const string DEFAULT_DESCRIPTION = 'What the module ships with: the counts, then where, then every patrol, then the feed and the month. The direction-neutral screen — adopt one of the five below to lead with something sharper.';
 
-    public static function catalog(): WidgetCatalog
+    public function catalog(): WidgetCatalog
+    {
+        return self::declaration();
+    }
+
+    /** The catalogue, reachable without an instance — see the class docblock. */
+    public static function declaration(): WidgetCatalog
     {
         return new WidgetCatalog(
             self::SURFACE,

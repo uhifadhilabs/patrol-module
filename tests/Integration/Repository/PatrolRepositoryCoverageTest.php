@@ -13,7 +13,8 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Tests\Integration\Repository;
 
-use Uhifadhi\Entity\AreaOfInterest;
+use Doctrine\DBAL\Exception\NotNullConstraintViolationException;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
@@ -57,7 +58,7 @@ final class PatrolRepositoryCoverageTest extends IntegrationTestCase
     /** A ~11.1 km square: lon 35.0–35.1, lat −3.0 to −2.9. */
     private function makeArea(bool $withBoundary = true): AreaOfInterest
     {
-        $area = new AreaOfInterest()->setName('Example square');
+        $area = new AreaOfInterest()->setSource('test fixture')->setName('Example square');
         if ($withBoundary) {
             $area->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.1,-3.0],[35.1,-2.9],[35.0,-2.9],[35.0,-3.0]]]]}');
         }
@@ -166,12 +167,27 @@ final class PatrolRepositoryCoverageTest extends IntegrationTestCase
         self::assertNull($this->coverage($area));
     }
 
-    public function testAnAreaWithNoBoundaryHasNothingToMeasureAgainst(): void
+    /**
+     * AN AREA WITHOUT A BOUNDARY CANNOT EXIST ANY MORE, and this is the test
+     * that used to prove what happened when one did.
+     *
+     * The coverage query answers null for an area with no stored boundary —
+     * there is nothing to be a share OF — and that branch is still in the
+     * repository, deliberately, because it is cheap and it is honest. What
+     * changed is that the case is no longer REACHABLE: `area_of_interest.geom`
+     * is NOT NULL in uhifadhi/area-module, where this module used to carry a
+     * dev-only stub of the entity that allowed one. A test that persisted a
+     * boundaryless area was therefore testing a shape the fleet does not have.
+     *
+     * So it asserts the constraint instead. That keeps the drift written down
+     * where somebody meets it, rather than leaving a deleted test and a null
+     * branch nobody can explain.
+     */
+    public function testTheAreaModuleRefusesAnAreaWithNoBoundary(): void
     {
-        $area = $this->makeArea(withBoundary: false);
-        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}');
+        $this->expectException(NotNullConstraintViolationException::class);
 
-        self::assertNull($this->coverage($area));
+        $this->makeArea(withBoundary: false);
     }
 
     /**

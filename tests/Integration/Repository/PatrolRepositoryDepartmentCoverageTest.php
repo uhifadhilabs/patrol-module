@@ -13,14 +13,15 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Tests\Integration\Repository;
 
-use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Entity\Department;
-use Uhifadhi\Entity\Position;
+use Doctrine\DBAL\Exception\NotNullConstraintViolationException;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
-use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
+use Uhifadhi\Team\Entity\Department;
+use Uhifadhi\Team\Entity\Position;
+use Uhifadhi\Team\Entity\User;
 
 /**
  * PL·03 SLICED BY DEPARTMENT, against real PostGIS.
@@ -156,13 +157,27 @@ final class PatrolRepositoryDepartmentCoverageTest extends IntegrationTestCase
         self::assertNull($this->departmentCoverage($area, $ecology));
     }
 
-    public function testAnAreaWithNoBoundaryHasNothingToMeasureAgainst(): void
+    /**
+     * AN AREA WITHOUT A BOUNDARY CANNOT EXIST ANY MORE, and this is the test
+     * that used to prove what happened when one did.
+     *
+     * The coverage query answers null for an area with no stored boundary —
+     * there is nothing to be a share OF — and that branch is still in the
+     * repository, deliberately, because it is cheap and it is honest. What
+     * changed is that the case is no longer REACHABLE: `area_of_interest.geom`
+     * is NOT NULL in uhifadhi/area-module, where this module used to carry a
+     * dev-only stub of the entity that allowed one. A test that persisted a
+     * boundaryless area was therefore testing a shape the fleet does not have.
+     *
+     * So it asserts the constraint instead. That keeps the drift written down
+     * where somebody meets it, rather than leaving a deleted test and a null
+     * branch nobody can explain.
+     */
+    public function testTheAreaModuleRefusesAnAreaWithNoBoundary(): void
     {
-        $area = $this->makeArea(withBoundary: false);
-        $ecology = $this->department('Ecology');
-        $this->makeTrackedPatrol($area, $this->member('Grace', $ecology), '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}');
+        $this->expectException(NotNullConstraintViolationException::class);
 
-        self::assertNull($this->departmentCoverage($area, $ecology));
+        $this->makeArea(withBoundary: false);
     }
 
     public function testNoAreaMeasuresEveryAreaTheDepartmentWalkedAtOnce(): void
@@ -218,7 +233,11 @@ final class PatrolRepositoryDepartmentCoverageTest extends IntegrationTestCase
 
     private function departmentCoverage(?AreaOfInterest $area, Department $department): ?float
     {
-        return $this->repository()->coverageFractionForDepartment($area, $department, self::BUFFER_M, $this->monthStart, $this->nextMonth);
+        // The repository takes the department's KEY, not the entity: nothing
+        // publishes a contract for a department, and by the time the question
+        // reaches SQL it is one integer. Resolving it here is what a surface
+        // holding a department does.
+        return $this->repository()->coverageFractionForDepartment($area, (int) $department->getId(), self::BUFFER_M, $this->monthStart, $this->nextMonth);
     }
 
     private function areaCoverage(AreaOfInterest $area): ?float
@@ -229,7 +248,7 @@ final class PatrolRepositoryDepartmentCoverageTest extends IntegrationTestCase
     /** A ~11.1 km square: 0.1° wide from $lonWest, lat −3.0 to −2.9. */
     private function makeArea(bool $withBoundary = true, float $lonWest = 35.0): AreaOfInterest
     {
-        $area = new AreaOfInterest()->setName(\sprintf('Square at %.1f', $lonWest));
+        $area = new AreaOfInterest()->setSource('test fixture')->setName(\sprintf('Square at %.1f', $lonWest));
         if ($withBoundary) {
             $area->setGeom(\sprintf(
                 '{"type":"MultiPolygon","coordinates":[[[[%1$.1f,-3.0],[%2$.1f,-3.0],[%2$.1f,-2.9],[%1$.1f,-2.9],[%1$.1f,-3.0]]]]}',
@@ -271,7 +290,7 @@ final class PatrolRepositoryDepartmentCoverageTest extends IntegrationTestCase
         $position = new Position()->setName('Ranger')->setDepartment($department);
         $this->em->persist($position);
 
-        $user = new User()
+        $user = new User()->setPassword('x')
             ->setEmail(strtolower($firstName).'@example.test')
             ->setFirstName($firstName)
             ->setLastName('Fixture')

@@ -16,7 +16,7 @@ namespace Uhifadhi\Patrol\Tests\Integration\Command;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
@@ -37,7 +37,7 @@ final class SeedDemoCommandTest extends IntegrationTestCase
 {
     private function makeArea(): AreaOfInterest
     {
-        $area = new AreaOfInterest();
+        $area = new AreaOfInterest()->setSource('test fixture');
         $area->setName('Example reserve')
             ->setGeom((string) json_encode([
                 'type' => 'MultiPolygon',

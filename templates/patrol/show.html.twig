@@ -22,39 +22,38 @@
 
 {% block title %}Patrol {{ patrol.ref }} — {{ patrolTitle }}{% endblock %}
 
+{% block patrol_trail_tail %} <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / {{ patrol.ref|lower }}{% endblock %}
+
+{% block shell_page_title %}Patrol {{ patrol.ref }} — {{ patrolTitle }}{% if patrol.discarded %} <span class="chip patrol-discard-pill">discarded</span>{% endif %}{% endblock %}
+
+{# The design's subtitle, assembled from what this patrol actually knows — a
+   segment with no data is omitted, never rendered empty. #}
+{% block shell_page_subtitle %}
+    {%- set segments = [typeLabel|lower ~ ' patrol'] -%}
+    {%- if patrol.lead %}{% set segments = segments|merge([ui.person_name(patrol.lead)|trim]) %}{% endif -%}
+    {%- if patrol.team %}{% set segments = segments|merge(['+ ' ~ patrol.team]) %}{% endif -%}
+    {%- if patrol.startedAt and patrol.endedAt -%}
+        {%- set segments = segments|merge([patrol.startedAt|date('D j M')|lower ~ ' ' ~ patrol.startedAt|date('H:i') ~ '–' ~ patrol.endedAt|date('H:i')]) -%}
+    {%- elseif patrol.startedAt -%}
+        {%- set segments = segments|merge([patrol.startedAt|date('D j M')|lower ~ ' ' ~ patrol.startedAt|date('H:i')]) -%}
+    {%- endif -%}
+    {%- if patrol.distanceKm is not null %}{% set segments = segments|merge([patrol.distanceKm|number_format(1) ~ ' km']) %}{% endif -%}
+    {%- if observations|length %}{% set segments = segments|merge([observations|length ~ (observations|length == 1 ? ' observation' : ' observations')]) %}{% endif -%}
+    {{- segments|join(' · ') }}.
+{% endblock %}
+
+{% block shell_page_actions %}
+    {# Only a RECORDED track can be exported; a sketched manual route must
+       never be handed out as a .gpx, or it re-enters the world as a
+       recording (docs/design-decisions.md §4). The action is absent, not
+       disabled: there is no file here to be had later, so a greyed control
+       would promise one. The route enforces the same rule (404). #}
+    {% if patrol.hasRecordedTrack %}
+        <a class="tgl patrol-act" href="{{ path('patrol_export_gpx', {uuid: area.uuid, patrol: patrol.uuid}) }}" download="{{ patrol.ref }}.gpx"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export GPX</a>
+    {% endif %}
+{% endblock %}
+
 {% block patrol_page %}
-<div class="crumb"><a href="{{ path('dashboard_index') }}">uhifadhi</a> / <a href="{{ path('dashboard_index') }}">areas</a> / <a href="{{ path('dashboard_area_show', {uuid: area.uuid}) }}">{{ area.name|lower }}</a> / <a href="{{ path('dashboard_area_modules_grid', {uuid: area.uuid}) }}">modules</a> / <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / {{ patrol.ref|lower }}</div>
-
-<div class="pghead">
-    <div>
-        <h1 class="pg">Patrol {{ patrol.ref }} — {{ patrolTitle }}{% if patrol.discarded %} <span class="chip patrol-discard-pill">discarded</span>{% endif %}</h1>
-        {# The design's subtitle, assembled from what this patrol actually
-           knows — a segment with no data is omitted, never rendered empty. #}
-        {% set segments = [] %}
-        {% set segments = segments|merge([typeLabel|lower ~ ' patrol']) %}
-        {% if patrol.lead %}{% set segments = segments|merge([ui.person_name(patrol.lead)|trim]) %}{% endif %}
-        {% if patrol.team %}{% set segments = segments|merge(['+ ' ~ patrol.team]) %}{% endif %}
-        {% if patrol.startedAt and patrol.endedAt %}
-            {% set segments = segments|merge([patrol.startedAt|date('D j M')|lower ~ ' ' ~ patrol.startedAt|date('H:i') ~ '–' ~ patrol.endedAt|date('H:i')]) %}
-        {% elseif patrol.startedAt %}
-            {% set segments = segments|merge([patrol.startedAt|date('D j M')|lower ~ ' ' ~ patrol.startedAt|date('H:i')]) %}
-        {% endif %}
-        {% if patrol.distanceKm is not null %}{% set segments = segments|merge([patrol.distanceKm|number_format(1) ~ ' km']) %}{% endif %}
-        {% if observations|length %}{% set segments = segments|merge([observations|length ~ (observations|length == 1 ? ' observation' : ' observations')]) %}{% endif %}
-        <p class="pgsub">{{ segments|join(' · ') }}.</p>
-    </div>
-    <div class="pgact patrol-pgact">
-        {# Only a RECORDED track can be exported; a sketched manual route must
-           never be handed out as a .gpx, or it re-enters the world as a
-           recording (docs/design-decisions.md §4). The action is absent, not
-           disabled: there is no file here to be had later, so a greyed control
-           would promise one. The route enforces the same rule (404). #}
-        {% if patrol.hasRecordedTrack %}
-            <a class="tgl patrol-act" href="{{ path('patrol_export_gpx', {uuid: area.uuid, patrol: patrol.uuid}) }}" download="{{ patrol.ref }}.gpx"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export GPX</a>
-        {% endif %}
-    </div>
-</div>
-
 <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}" class="backbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>All patrols</a>
 
 {# The discarded notice. Everything a reader needs in one block, in the order

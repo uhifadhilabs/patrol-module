@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Tests\Integration\Storage;
 
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
@@ -208,7 +208,7 @@ final class PatrolFileSourceRegistrationTest extends IntegrationTestCase
 
     private function storedPhoto(): ObservationPhoto
     {
-        $area = new AreaOfInterest();
+        $area = new AreaOfInterest()->setSource('test fixture');
         $area->setName('Ndovu Sector');
         $area->setGeom('{"type":"MultiPolygon","coordinates":[[[[36.0,-3.0],[36.1,-3.0],[36.1,-2.9],[36.0,-2.9],[36.0,-3.0]]]]}');
         $this->em->persist($area);

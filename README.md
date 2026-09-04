@@ -64,22 +64,16 @@ League\FlysystemBundle\FlysystemBundle::class => ['all' => true],
 Uhifadhi\Storage\UhifadhiStorageBundle::class => ['all' => true],
 ```
 
-A host that forgets says so at compile time, not on the first upload. Where the
+An installation that forgets says so at compile time, not on the first upload. Where the
 bytes go — and how a pre-storage-module deployment keeps the photographs it
 already has — is in [docs/photo-storage.md](docs/photo-storage.md).
 
 ### Stimulus controllers
 
-Its Stimulus controllers are enabled in the host's `assets/controllers.json`:
-
-```json
-"@uhifadhi/patrol-module": {
-    "coverage-map": { "enabled": true, "fetch": "eager" },
-    "track-plate":  { "enabled": true, "fetch": "eager" },
-    "filters":      { "enabled": true, "fetch": "eager" },
-    "rows":         { "enabled": true, "fetch": "eager" }
-}
-```
+Nothing to do. The package declares `symfony-ux`, so Flex reads
+`assets/package.json` and maintains the five controllers — `coverage-map`,
+`track-plate`, `filters`, `rows` and `calendar` — in the application's
+`assets/controllers.json` for you, and removes them again on uninstall.
 
 ### Deployment vocabulary
 
@@ -96,16 +90,22 @@ patrol:
         maintenance: { label: Maintenance need }
 ```
 
-### What the host must already provide
+### What this module stands on
 
-The dashboard rides the host's widget framework and the maps ride the
-platform's map seam — this bundle ships neither. Both requirements are spelled
-out in [docs/host-requirements.md](docs/host-requirements.md).
+Everything that is not about patrols arrives as another module bundle: the page
+frame from `uhifadhi/shell-module`, the dashboard mechanics from
+`uhifadhi/widget-module`, the area and its overview seams from
+`uhifadhi/area-module`, the evidence store from `uhifadhi/storage-module`, the
+maps from `uhifadhi/map-module` and the per-area catalogue from
+`uhifadhi/seam-module`. This bundle ships none of them, and each is a composer
+requirement rather than something an installation is expected to have written.
+What each one carries is in
+[docs/what-it-stands-on.md](docs/what-it-stands-on.md).
 
 ## Learn more
 
-- [docs/host-requirements.md](docs/host-requirements.md) — the widget framework
-  and the map seam the host must provide before these screens can draw.
+- [docs/what-it-stands-on.md](docs/what-it-stands-on.md) — the frame, the widget
+  framework, the area, the evidence store and the map seam these screens draw on.
 - [docs/configuration.md](docs/configuration.md) — every `patrol.yaml` key.
 - [docs/screens.md](docs/screens.md) — the screens this module adds, by route.
 - [docs/ingest.md](docs/ingest.md) — one parsing service, two doors into it.
@@ -114,7 +114,7 @@ out in [docs/host-requirements.md](docs/host-requirements.md).
 - [docs/discarded-patrols.md](docs/discarded-patrols.md) — what a discard means,
   what it is counted in, the retention clock and how a review hold stops it.
 - [docs/area-overview.md](docs/area-overview.md) — the five seams patrols fills
-  on the host's area page, and the one thing it cannot tell that page.
+  on an area's overview page, and the one thing it cannot tell that page.
 - [docs/design-decisions.md](docs/design-decisions.md) — deliberate modeling
   choices (station as string, free-text team, how photos are stored, honest
   sources, live tracking as a v2 third door) recorded with their revisit
@@ -126,6 +126,6 @@ out in [docs/host-requirements.md](docs/host-requirements.md).
 ## License
 
 **AGPL-3.0-or-later** — see [LICENSE](LICENSE): the same license as the
-uhifadhi host this module plugs into. Use, modify and self-host freely; if you
+uhifadhi platform this module is part of. Use, modify and self-host freely; if you
 offer a modified version to users over a network, they are entitled to the
 source of what they're running.

@@ -18,6 +18,13 @@ use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
+use Uhifadhi\Area\Kpi\DepartmentKpiProviderInterface;
+use Uhifadhi\Area\Overview\AttentionProviderInterface;
+use Uhifadhi\Area\Overview\MapLayerProviderInterface;
+use Uhifadhi\Area\Overview\NowTileProviderInterface;
+use Uhifadhi\Area\Overview\OverviewContributorInterface;
+use Uhifadhi\Area\Overview\OverviewCopyProviderInterface;
+use Uhifadhi\Area\Overview\PulseProviderInterface;
 use Uhifadhi\Patrol\Api\PatrolApiContext;
 use Uhifadhi\Patrol\Api\State\AppendEventsProcessor;
 use Uhifadhi\Patrol\Api\State\AppendFlightsProcessor;
@@ -61,9 +68,9 @@ use Uhifadhi\Patrol\Service\Api\RangerResolver;
 use Uhifadhi\Patrol\Service\Api\TrackBatchService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
 use Uhifadhi\Patrol\Storage\PatrolFileSource;
-use Uhifadhi\Service\WidgetEndpoint;
-use Uhifadhi\Service\WidgetService;
+use Uhifadhi\Patrol\Widget\PatrolWidgets;
 use Uhifadhi\Storage\Registry\FileSourceInterface;
+use Uhifadhi\Widget\Registry\WidgetSurfaceInterface;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
@@ -257,6 +264,23 @@ final class UhifadhiPatrolBundle extends AbstractBundle
         // user for the same reason and lives under the same guard; a host without
         // security simply renders the design's default layout for everyone.
         $builder->setParameter('patrol.widget_screens', $hasSecurity);
+
+        /*
+         * THE PATROLS DASHBOARD IS A DECLARED WIDGET SURFACE, tagged by hand
+         * because a reusable bundle is not autoconfigured. The tag is what makes
+         * the surface FINDABLE: `widget:prune` walks the registry, and layouts
+         * keyed to a surface no service claims are exactly what it deletes.
+         *
+         * OUTSIDE the security guard, unlike the library screen. The catalogue
+         * is a statement of what this module ships and is true of every
+         * installation that registered the bundle; an installation with no
+         * firewall still RENDERS the surface — as the shipped composition, for
+         * everyone — and the rows already stored against it from before a
+         * firewall was removed must not read as orphans while it is gone.
+         */
+        $services->set('patrol.widget_surface', PatrolWidgets::class)
+            ->tag(WidgetSurfaceInterface::TAG);
+
         if ($hasSecurity) {
             $services->set('patrol.controller.widgets', PatrolWidgetsController::class)
                 ->args([
@@ -264,14 +288,14 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service('router'),
                     service(PatrolRepository::class),
                     service('patrol.dashboard'),
-                    // The HOST's widget framework, by its own service ids: the
+                    // uhifadhi/widget-module, BY ITS PUBLISHED SERVICE IDS: the
                     // module ships a catalogue (PatrolWidgets), never a copy of
-                    // the algebra that resolves it — and the host's endpoint
+                    // the algebra that resolves it — and that bundle's endpoint
                     // service answers every widget write, so this module
                     // validates no token and chooses no status code.
-                    service(WidgetService::class),
+                    service('widget.service'),
                     service('patrol.widget_urls'),
-                    service(WidgetEndpoint::class),
+                    service('widget.endpoint'),
                     param('patrol.types'),
                     param('patrol.discard_retention_days'),
                 ])
@@ -505,7 +529,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 'patrols',
                 'Patrols',
             ])
-            ->tag('uhifadhi.department_kpi');
+            ->tag(DepartmentKpiProviderInterface::TAG);
 
         /*
          * THE AREA OVERVIEW SEAM — the module's contribution to /areas/{uuid}.
@@ -518,16 +542,17 @@ final class UhifadhiPatrolBundle extends AbstractBundle
          * what stops "Right now" and "Needs attention" from becoming a hard-coded
          * list of every module the product ever shipped.
          *
-         * Tagged EXPLICITLY, exactly like 'uhifadhi.module' and
-         * 'uhifadhi.department_kpi' above and for the same reason: a reusable bundle
-         * is not autoconfigured (symfony.com/doc/current/bundles/best_practices.html),
-         * so the host's registerForAutoconfiguration never fires for these classes.
+         * Tagged EXPLICITLY, exactly like 'uhifadhi.module' and the KPI provider
+         * above and for the same reason: a reusable bundle is not autoconfigured
+         * (symfony.com/doc/current/bundles/best_practices.html), so an
+         * installation's registerForAutoconfiguration never fires for these classes.
          *
-         * THE TAG NAMES ARE LITERALS, not the interfaces' TAG constants. Those
-         * constants live on host classes, and the host is not on this bundle's
-         * classpath at build time — reading one here would make the bundle
-         * unbuildable outside an app. They are pinned to the interfaces by
-         * PatrolOverviewWiringTest, which reads them off the stubs.
+         * THE TAG NAMES ARE THE INTERFACES' OWN CONSTANTS, which they could not be
+         * before: these seams used to be an application's classes, off this bundle's
+         * classpath at build time, so the names were literals pinned to a stub by a
+         * test. They belong to uhifadhi/area-module now and it is a requirement of
+         * this package, so the constant is readable here — and a rename is a compile
+         * error rather than a module that silently stops contributing.
          *
          * ONE READING, FIVE CONSUMERS. All five share 'patrol.overview', so the
          * strip's "3 out", the live card's three rows and the plate's three live
@@ -546,26 +571,26 @@ final class UhifadhiPatrolBundle extends AbstractBundle
 
         $services->set('patrol.overview.contributor', PatrolOverviewContributor::class)
             ->args([service('patrol.overview'), param('patrol.types')])
-            ->tag('uhifadhi.overview.widget_provider');
+            ->tag(OverviewContributorInterface::TAG);
 
         $services->set('patrol.overview.now_tiles', PatrolNowTiles::class)
             ->args([service('patrol.overview'), param('patrol.types')])
-            ->tag('uhifadhi.overview.now_tile');
+            ->tag(NowTileProviderInterface::TAG);
 
         $services->set('patrol.overview.attention', PatrolAttention::class)
             ->args([service('patrol.overview'), param('patrol.types')])
-            ->tag('uhifadhi.overview.attention');
+            ->tag(AttentionProviderInterface::TAG);
 
         $services->set('patrol.overview.map_layers', PatrolMapLayers::class)
             ->args([service('patrol.overview'), service(PatrolRepository::class), param('patrol.types')])
-            ->tag('uhifadhi.map.layer');
+            ->tag(MapLayerProviderInterface::TAG);
 
         // THE MODULE'S WORDS INSIDE THE HOST'S SENTENCES. Not a widget and not a
         // part of one: the phrases the host drops into its own copy about the
         // operational plate, so "today's tracks" is said by the module that draws
         // them rather than written into the host.
         $services->set('patrol.overview.copy', PatrolOverviewCopy::class)
-            ->tag('uhifadhi.overview.copy');
+            ->tag(OverviewCopyProviderInterface::TAG);
 
         $services->set('patrol.overview.pulse', PatrolPulse::class)
             ->args([
@@ -575,6 +600,6 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 param('patrol.types'),
                 param('patrol.observation_categories'),
             ])
-            ->tag('uhifadhi.overview.pulse');
+            ->tag(PulseProviderInterface::TAG);
     }
 }

@@ -24,31 +24,29 @@
     </script>
 {% endblock %}
 
-{% block patrol_page %}
-<div class="crumb"><a href="{{ path('dashboard_index') }}">uhifadhi</a> / <a href="{{ path('dashboard_area_show', {uuid: area.uuid}) }}">{{ area.name|lower }}</a> / <a href="{{ path('dashboard_area_modules_grid', {uuid: area.uuid}) }}">modules</a> / <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / widget library</div>
+{% block patrol_trail_tail %} <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / widget library{% endblock %}
 
-<div class="pghead">
-    <div>
-        <h1 class="pg">{{ area.name }} — Patrols · widget library</h1>
-        <p class="pgsub">Adopt a design this module ships, or compose your own. Every widget below is the real
+{% block shell_page_title %}{{ area.name }} — Patrols · widget library{% endblock %}
+
+{% block shell_page_subtitle %}Adopt a design this module ships, or compose your own. Every widget below is the real
             thing at full size, exactly as the dashboard renders it — and the headed sections are the
-            directions patrols is drawn in.</p>
-    </div>
-    <div class="pgact patrol-pgact">
-        {# Throwing the whole composition away asks first — through the host's
-           reusable confirm-modal controller, never the browser's own dialog. #}
-        <button type="button" class="tgl patrol-act" {{ constant('Uhifadhi\\Model\\WidgetDom::RESET') }}
-                {{ stimulus_controller('confirm-modal') }}
-                data-action="click->confirm-modal#ask"
-                data-confirm-modal-title-value="Reset your widget layout?"
-                data-confirm-modal-message-value="This area's patrols dashboard goes back to the composition the module ships with. Your own presets are kept, and your other areas are untouched."
-                data-confirm-modal-confirm-label-value="Reset layout"
-                data-confirm-modal-danger-value="true">{{ ux_icon('lucide:rotate-ccw') }}Reset to defaults</button>
-        <a class="cta" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">{{ ux_icon('lucide:chevron-left') }}Back to dashboard</a>
-    </div>
-</div>
+            directions patrols is drawn in.{% endblock %}
 
-{{ include('widgets/_library.html.twig', {
+{% block shell_page_actions %}
+    {# Throwing the whole composition away asks first — through the host's
+       reusable confirm-modal controller, never the browser's own dialog. #}
+    <button type="button" class="tgl patrol-act" {{ constant('Uhifadhi\\Widget\\Model\\WidgetDom::RESET') }}
+            {{ stimulus_controller('confirm-modal') }}
+            data-action="click->confirm-modal#ask"
+            data-confirm-modal-title-value="Reset your widget layout?"
+            data-confirm-modal-message-value="This area's patrols dashboard goes back to the composition the module ships with. Your own presets are kept, and your other areas are untouched."
+            data-confirm-modal-confirm-label-value="Reset layout"
+            data-confirm-modal-danger-value="true">{{ ux_icon('lucide:rotate-ccw') }}Reset to defaults</button>
+    <a class="cta" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">{{ ux_icon('lucide:chevron-left') }}Back to dashboard</a>
+{% endblock %}
+
+{% block patrol_page %}
+{{ include('@UhifadhiWidget/widgets/_library.html.twig', {
     catalog: catalog,
     builtins: builtins,
     customPresets: customPresets,

@@ -17,10 +17,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
-use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
+use Uhifadhi\Team\Entity\User;
 
 /**
  * The patrols widget dashboard: the KPI strip, the coverage map payload, the
@@ -48,12 +48,12 @@ final class DashboardPageTest extends WebTestCase
         $schemaTool->dropSchema($metadata);
         $schemaTool->createSchema($metadata);
 
-        $this->area = new AreaOfInterest()->setName('demo reserve')->setGeom(
+        $this->area = new AreaOfInterest()->setSource('test fixture')->setName('demo reserve')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[12.2,-5.8],[12.5,-5.8],[12.5,-5.5],[12.2,-5.5],[12.2,-5.8]]]]}',
         );
         $this->em->persist($this->area);
 
-        $lead = new User()->setEmail('lead@example.test')->setFirstName('Ada')->setLastName('Alpha');
+        $lead = new User()->setPassword('x')->setEmail('lead@example.test')->setFirstName('Ada')->setLastName('Alpha');
         $this->em->persist($lead);
 
         // Today's patrol: a recorded track and two en-route observations.
@@ -111,7 +111,7 @@ final class DashboardPageTest extends WebTestCase
 
     public function testTheDashboardRendersEveryWidgetFromRealRows(): void
     {
-        $crawler = $this->client->request('GET', '/areas/'.$this->area->getUuid()->toRfc4122().'/modules/patrols');
+        $crawler = $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols');
 
         self::assertResponseIsSuccessful();
 
@@ -226,7 +226,7 @@ final class DashboardPageTest extends WebTestCase
      */
     public function testTheCoverageKpiShowsTheEmptyStateWithoutARecordedTrack(): void
     {
-        $bare = new AreaOfInterest()->setName('sketch reserve')->setGeom(
+        $bare = new AreaOfInterest()->setSource('test fixture')->setName('sketch reserve')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[12.2,-5.8],[12.5,-5.8],[12.5,-5.5],[12.2,-5.5],[12.2,-5.8]]]]}',
         );
         $this->em->persist($bare);
@@ -236,7 +236,7 @@ final class DashboardPageTest extends WebTestCase
             ->setDistanceKm(9.4));
         $this->em->flush();
 
-        $this->client->request('GET', '/areas/'.$bare->getUuid()->toRfc4122().'/modules/patrols');
+        $this->client->request('GET', '/areas/'.$bare->getUuidString().'/modules/patrols');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('[data-kpi="coverage"] .kpi b', '—');

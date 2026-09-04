@@ -17,7 +17,7 @@ use League\Flysystem\FilesystemOperator;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
@@ -26,9 +26,9 @@ use Uhifadhi\Patrol\Entity\TrackBatch;
 use Uhifadhi\Patrol\Entity\TrackPoint;
 use Uhifadhi\Patrol\Enum\PatrolEventKindEnum;
 use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
-use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 use Uhifadhi\Storage\Service\EvidenceKey;
+use Uhifadhi\Team\Entity\User;
 
 /**
  * patrol:purge-discarded — the retention sweep.
@@ -46,7 +46,7 @@ final class PurgeDiscardedCommandTest extends IntegrationTestCase
     {
         parent::setUp();
 
-        $this->area = new AreaOfInterest()->setName('demo reserve')->setGeom(
+        $this->area = new AreaOfInterest()->setSource('test fixture')->setName('demo reserve')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[12.2,-5.8],[12.5,-5.8],[12.5,-5.5],[12.2,-5.5],[12.2,-5.8]]]]}',
         );
         $this->em->persist($this->area);
@@ -117,7 +117,7 @@ final class PurgeDiscardedCommandTest extends IntegrationTestCase
      */
     public function testAHeldPatrolSurvivesTheSweepIndefinitely(): void
     {
-        $reviewer = new User()->setEmail('reviewer@example.test')->setFirstName('Rita')->setLastName('Reviewer');
+        $reviewer = new User()->setPassword('x')->setEmail('reviewer@example.test')->setFirstName('Rita')->setLastName('Reviewer');
         $this->em->persist($reviewer);
 
         $patrol = $this->discardedPatrol('2020-01-01T08:00:00Z');

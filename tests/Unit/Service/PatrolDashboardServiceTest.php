@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Tests\Unit\Service;
 
 use PHPUnit\Framework\TestCase;
-use Uhifadhi\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
@@ -39,7 +39,7 @@ final class PatrolDashboardServiceTest extends TestCase
 
     private function patrol(string $type, string $startedAt, float $km, ?string $station = null, int $observations = 0): Patrol
     {
-        $patrol = new Patrol(new AreaOfInterest(), $type)
+        $patrol = new Patrol(new AreaOfInterest()->setSource('test fixture'), $type)
             ->setSource(PatrolSourceEnum::Gpx)
             ->setStation($station)
             ->setStartedAt(new \DateTimeImmutable($startedAt))

@@ -17,7 +17,7 @@ use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 use Uhifadhi\Patrol\Controller\PatrolRecordController;
-use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
+use Uhifadhi\Team\Entity\User;
 
 /**
  * Test stand-in for the HOST's permission voter: the bundle only DECLARES

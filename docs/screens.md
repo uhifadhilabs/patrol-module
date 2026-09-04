@@ -10,5 +10,5 @@
 | Import GPX | `patrol_import` |
 | Log patrol (manual) | `patrol_log` |
 
-The dashboard and the widget library are compositions on the host's widget
-framework — see [host-requirements.md](host-requirements.md).
+The dashboard and the widget library are compositions on
+uhifadhi/widget-module — see [what-it-stands-on.md](what-it-stands-on.md).

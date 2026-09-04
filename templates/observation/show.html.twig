@@ -29,34 +29,32 @@
 
 {% block title %}Observation {{ n }} — {{ categoryLabel }}{% endblock %}
 
+{% block patrol_trail_tail %} <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / <a href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">{{ patrol.ref|lower }}</a> / obs {{ n }}{% endblock %}
+
+{% block shell_page_title %}Observation {{ n }} — {{ categoryLabel }}{% endblock %}
+
+{% block shell_page_subtitle %}{{ categoryLabel|lower }} · {{ patrol.ref }} {{ typeLabel|lower }} patrol · {{ ui.stamp(observation.loggedAt) }} · {{ ui.person_name(observation.recordedBy) }}{% if photoCount %} · {{ photoCount }} photo{{ photoCount == 1 ? '' : 's' }}{% endif %}{% endblock %}
+
+{% block shell_page_actions %}
+    {# Circling the patrol's observations without going back up to it. Plain
+       links, so they work before any JavaScript does; they WRAP (last →
+       first), and a patrol with a single observation renders none. #}
+    {% if prev and next %}
+        <span class="patrol-obsnav" aria-label="Observations of patrol {{ patrol.ref }}">
+            <a class="tgl patrol-obsnav-a" href="{{ prev.url }}" rel="prev" title="Observation {{ prev.n }} — {{ prev.category }}" aria-label="Previous observation: {{ prev.n }} of {{ total }}, {{ prev.category }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></a>
+            <span class="patrol-obsnav-c">{{ n }} / {{ total }}</span>
+            <a class="tgl patrol-obsnav-a" href="{{ next.url }}" rel="next" title="Observation {{ next.n }} — {{ next.category }}" aria-label="Next observation: {{ next.n }} of {{ total }}, {{ next.category }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+        </span>
+    {% endif %}
+    {# The incidents seam: the URL exists only when the host installs an
+       incidents module exposing `incident_new` (prefill query contract —
+       see fileAsIncidentUrl()); without it the button honestly is not there. #}
+    {% if fileAsIncidentUrl %}
+        <a class="cta" href="{{ fileAsIncidentUrl }}">File as incident →</a>
+    {% endif %}
+{% endblock %}
+
 {% block patrol_page %}
-<div class="crumb"><a href="{{ path('dashboard_index') }}">uhifadhi</a> / <a href="{{ path('dashboard_index') }}">areas</a> / <a href="{{ path('dashboard_area_show', {uuid: area.uuid}) }}">{{ area.name|lower }}</a> / <a href="{{ path('dashboard_area_modules_grid', {uuid: area.uuid}) }}">modules</a> / <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / <a href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">{{ patrol.ref|lower }}</a> / obs {{ n }}</div>
-
-<div class="pghead">
-    <div>
-        <h1 class="pg">Observation {{ n }} — {{ categoryLabel }}</h1>
-        <p class="pgsub">{{ categoryLabel|lower }} · {{ patrol.ref }} {{ typeLabel|lower }} patrol · {{ ui.stamp(observation.loggedAt) }} · {{ ui.person_name(observation.recordedBy) }}{% if photoCount %} · {{ photoCount }} photo{{ photoCount == 1 ? '' : 's' }}{% endif %}</p>
-    </div>
-    <div class="pgact">
-        {# Circling the patrol's observations without going back up to it. Plain
-           links, so they work before any JavaScript does; they WRAP (last →
-           first), and a patrol with a single observation renders none. #}
-        {% if prev and next %}
-            <span class="patrol-obsnav" aria-label="Observations of patrol {{ patrol.ref }}">
-                <a class="tgl patrol-obsnav-a" href="{{ prev.url }}" rel="prev" title="Observation {{ prev.n }} — {{ prev.category }}" aria-label="Previous observation: {{ prev.n }} of {{ total }}, {{ prev.category }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></a>
-                <span class="patrol-obsnav-c">{{ n }} / {{ total }}</span>
-                <a class="tgl patrol-obsnav-a" href="{{ next.url }}" rel="next" title="Observation {{ next.n }} — {{ next.category }}" aria-label="Next observation: {{ next.n }} of {{ total }}, {{ next.category }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
-            </span>
-        {% endif %}
-        {# The incidents seam: the URL exists only when the host installs an
-           incidents module exposing `incident_new` (prefill query contract —
-           see fileAsIncidentUrl()); without it the button honestly is not there. #}
-        {% if fileAsIncidentUrl %}
-            <a class="cta" href="{{ fileAsIncidentUrl }}">File as incident →</a>
-        {% endif %}
-    </div>
-</div>
-
 <a href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}" class="backbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Patrol {{ patrol.ref }}</a>
 
 <div class="patrol-detail-row">

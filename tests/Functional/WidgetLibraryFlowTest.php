@@ -18,12 +18,12 @@ use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
-use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Model\WidgetDom;
+use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Patrol;
-use Uhifadhi\Patrol\Model\PatrolWidgets;
-use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
-use Uhifadhi\Service\WidgetEndpoint;
+use Uhifadhi\Patrol\Widget\PatrolWidgets;
+use Uhifadhi\Team\Entity\User;
+use Uhifadhi\Widget\Model\WidgetDom;
+use Uhifadhi\Widget\Service\WidgetEndpoint;
 
 /**
  * THE WIDGET LIBRARY, on the HOST's framework.
@@ -56,12 +56,12 @@ final class WidgetLibraryFlowTest extends WebTestCase
         $schemaTool->dropSchema($metadata);
         $schemaTool->createSchema($metadata);
 
-        $this->area = new AreaOfInterest()->setName('demo reserve')->setGeom(
+        $this->area = new AreaOfInterest()->setSource('test fixture')->setName('demo reserve')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[12.2,-5.8],[12.5,-5.8],[12.5,-5.5],[12.2,-5.5],[12.2,-5.8]]]]}',
         );
         $this->em->persist($this->area);
 
-        $this->ranger = new User()->setEmail('ranger@example.test')
+        $this->ranger = new User()->setPassword('x')->setEmail('ranger@example.test')
             ->setFirstName('Ada')->setLastName('Alpha');
         $this->em->persist($this->ranger);
 
@@ -244,14 +244,14 @@ final class WidgetLibraryFlowTest extends WebTestCase
     /** The token is scoped per area, so one area's library cannot rearrange another's. */
     public function testAnotherAreasTokenIsRefused(): void
     {
-        $other = new AreaOfInterest()->setName('other reserve')->setGeom(
+        $other = new AreaOfInterest()->setSource('test fixture')->setName('other reserve')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[1.0,1.0],[1.2,1.0],[1.2,1.2],[1.0,1.2],[1.0,1.0]]]]}',
         );
         $this->em->persist($other);
         $this->em->flush();
 
         $this->client->loginUser($this->ranger);
-        $crawler = $this->client->request('GET', '/areas/'.$other->getUuid()->toRfc4122().'/modules/patrols/widgets');
+        $crawler = $this->client->request('GET', '/areas/'.$other->getUuidString().'/modules/patrols/widgets');
         $otherToken = (string) $crawler->filter('['.WidgetDom::CSRF_TOKEN.']')->attr(WidgetDom::CSRF_TOKEN);
 
         $this->client->request('POST', $this->libraryUrl().'/reset', ['_token' => $otherToken]);
@@ -263,7 +263,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
     public function testTheTokenIsScopedToThisSurfaceAndThisArea(): void
     {
         self::assertSame(
-            'widgets_patrols_'.$this->area->getUuid()->toRfc4122(),
+            'widgets_patrols_'.$this->area->getUuidString(),
             WidgetEndpoint::csrfTokenId(PatrolWidgets::SURFACE, $this->area->getUuid()),
         );
     }
@@ -279,7 +279,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
     /** One person's layout is not another's. */
     public function testOnePersonsLayoutIsNotAnothers(): void
     {
-        $other = new User()->setEmail('other@example.test')->setFirstName('Ben')->setLastName('Beta');
+        $other = new User()->setPassword('x')->setEmail('other@example.test')->setFirstName('Ben')->setLastName('Beta');
         $this->em->persist($other);
         $this->em->flush();
 
@@ -301,7 +301,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
     /** Arranging one area leaves every other area alone. */
     public function testArrangingOneAreaLeavesAnotherUntouched(): void
     {
-        $other = new AreaOfInterest()->setName('other reserve')->setGeom(
+        $other = new AreaOfInterest()->setSource('test fixture')->setName('other reserve')->setGeom(
             '{"type":"MultiPolygon","coordinates":[[[[1.0,1.0],[1.2,1.0],[1.2,1.2],[1.0,1.2],[1.0,1.0]]]]}',
         );
         $this->em->persist($other);
@@ -317,7 +317,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
         ]);
         self::assertResponseStatusCodeSame(204);
 
-        $crawler = $this->client->request('GET', '/areas/'.$other->getUuid()->toRfc4122().'/modules/patrols');
+        $crawler = $this->client->request('GET', '/areas/'.$other->getUuidString().'/modules/patrols');
         self::assertCount(1, $crawler->filter('[data-w="map"]'));
     }
 
@@ -436,7 +436,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
 
     private function dashboardUrl(): string
     {
-        return '/areas/'.$this->area->getUuid()->toRfc4122().'/modules/patrols';
+        return '/areas/'.$this->area->getUuidString().'/modules/patrols';
     }
 
     private function libraryUrl(): string

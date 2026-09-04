@@ -419,9 +419,6 @@ button.patrol-menu-item {
 .patrol-save-row .cta { border: 0; cursor: pointer; font-family: inherit; }
 .patrol-error { font-size: 12.5px; line-height: 1.5; color: rgb(var(--c-fail)); margin: 12px 2px 0; }
 
-/* ---- flash messages ----------------------------------------------------- */
-.patrol-flash { padding: 12px 16px; margin-bottom: 16px; }
-
 /* ---- calendar: month navigation + hover cards (PL·11) ------------------- */
 /* Appended block: everything the interactive calendar adds on top of the ported
    grid above (.patrol-cal / .patrol-dc / .patrol-daypill, unchanged).

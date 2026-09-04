@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Tests\Integration\Repository;
 
-use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Entity\Zone;
+use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Area\Entity\Zone;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
@@ -60,7 +60,7 @@ final class PatrolRepositoryOverviewTest extends IntegrationTestCase
 
     private function makeArea(): AreaOfInterest
     {
-        $area = new AreaOfInterest()->setName('Example square');
+        $area = new AreaOfInterest()->setSource('test fixture')->setName('Example square');
         $area->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.1,-3.0],[35.1,-2.9],[35.0,-2.9],[35.0,-3.0]]]]}');
         $this->em->persist($area);
         $this->em->flush();

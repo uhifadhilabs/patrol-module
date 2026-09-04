@@ -31,7 +31,7 @@ use Uhifadhi\Patrol\Service\GpxWriter;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolWidgetUrls;
 use Uhifadhi\Patrol\Service\TrackIngestService;
-use Uhifadhi\Service\WidgetService;
+use Uhifadhi\Patrol\Twig\PatrolTrailExtension;
 
 /*
  * The bundle's static service wiring.
@@ -121,6 +121,15 @@ return static function (ContainerConfigurator $container): void {
         ->tag('doctrine.repository_service');
 
     /*
+     * THE CRUMB'S ONE HELPER — `patrol_url()`, which answers null for a screen
+     * the installation did not mount instead of throwing the page away. See
+     * PatrolTrailExtension for why a module's breadcrumb cannot use path().
+     */
+    $services->set('patrol.twig.trail', PatrolTrailExtension::class)
+        ->args([service('router')])
+        ->tag('twig.extension');
+
+    /*
      * Controllers: plain classes (they extend nothing), explicit collaborators,
      * prefixed ids. Routes reference "PatrolController::dashboard" and Symfony's
      * controller resolver asks the container for that class name, so each gets the
@@ -135,9 +144,11 @@ return static function (ContainerConfigurator $container): void {
             service('twig'),
             service(PatrolRepository::class),
             service('patrol.dashboard'),
-            // The HOST's widget framework, by its own service id: the module
+            // uhifadhi/widget-module, BY ITS PUBLISHED SERVICE ID: the module
             // ships a catalogue, never a copy of the algebra that resolves it.
-            service(WidgetService::class),
+            // The id is that bundle's public surface (its service reference),
+            // which is what a reusable bundle names another one by.
+            service('widget.service'),
             param('patrol.types'),
             param('patrol.record_screens'),
             param('patrol.widget_screens'),

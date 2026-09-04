@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Uhifadhi\Patrol\Tests\Unit\Model;
+namespace Uhifadhi\Patrol\Tests\Unit\Widget;
 
 use PHPUnit\Framework\TestCase;
-use Uhifadhi\Model\WidgetCatalog;
-use Uhifadhi\Patrol\Model\PatrolWidgets;
+use Uhifadhi\Patrol\Widget\PatrolWidgets;
+use Uhifadhi\Widget\Model\WidgetCatalog;
 
 /**
  * THE CATALOGUE IS A TRANSCRIPTION of the design's surface declaration
@@ -27,7 +27,7 @@ final class PatrolWidgetsTest extends TestCase
 {
     public function testItIsThePatrolsSurface(): void
     {
-        self::assertSame('patrols', PatrolWidgets::catalog()->surface);
+        self::assertSame('patrols', PatrolWidgets::declaration()->surface);
     }
 
     /**
@@ -36,7 +36,7 @@ final class PatrolWidgetsTest extends TestCase
      */
     public function testTheLibrarysSectionsAreTheFiveDirections(): void
     {
-        $groups = PatrolWidgets::catalog()->groups();
+        $groups = PatrolWidgets::declaration()->groups();
 
         self::assertSame(['a', 'b', 'c', 'd', 'e'], array_map(static fn ($g) => $g->id, $groups));
         self::assertSame(
@@ -56,14 +56,14 @@ final class PatrolWidgetsTest extends TestCase
     {
         self::assertSame(
             ['kpis', 'map', 'log', 'feed', 'chweek', 'chstation', 'cal'],
-            PatrolWidgets::catalog()->ids(),
+            PatrolWidgets::declaration()->ids(),
         );
     }
 
     /** Each of the seven is filed under the direction the design files it under. */
     public function testEveryWidgetIsFiledWhereTheDesignFilesIt(): void
     {
-        $catalog = PatrolWidgets::catalog();
+        $catalog = PatrolWidgets::declaration();
 
         $expected = [
             'kpis' => 'b',
@@ -85,7 +85,7 @@ final class PatrolWidgetsTest extends TestCase
      */
     public function testOnlyTheTallWidgetsOfferFullWidth(): void
     {
-        $catalog = PatrolWidgets::catalog();
+        $catalog = PatrolWidgets::declaration();
 
         foreach (['kpis', 'map', 'log', 'feed', 'cal'] as $tall) {
             self::assertSame([12, 9, 6, 3], $catalog->spans($tall), \sprintf('"%s" is drawn tall and offers every span.', $tall));
@@ -102,7 +102,7 @@ final class PatrolWidgetsTest extends TestCase
     {
         self::assertSame(
             ['kpis' => 12, 'map' => 12, 'log' => 12, 'feed' => 12, 'chweek' => 6, 'chstation' => 6, 'cal' => 12],
-            PatrolWidgets::catalog()->defaultLayout(),
+            PatrolWidgets::declaration()->defaultLayout(),
         );
     }
 
@@ -112,7 +112,7 @@ final class PatrolWidgetsTest extends TestCase
      */
     public function testTheShippedCompositionIsItsOwnNamedDesign(): void
     {
-        $catalog = PatrolWidgets::catalog();
+        $catalog = PatrolWidgets::declaration();
 
         self::assertSame(WidgetCatalog::DEFAULT_PRESET_ID, $catalog->defaultPresetId());
 
@@ -131,13 +131,13 @@ final class PatrolWidgetsTest extends TestCase
      */
     public function testNoDirectionShipsUntilItsWidgetsDo(): void
     {
-        self::assertSame([], PatrolWidgets::catalog()->presets());
+        self::assertSame([], PatrolWidgets::declaration()->presets());
     }
 
     /** Every widget carries the one line the add-widget picker prints — the design's own. */
     public function testEveryWidgetSaysWhatItShows(): void
     {
-        $catalog = PatrolWidgets::catalog();
+        $catalog = PatrolWidgets::declaration();
 
         foreach ($catalog->ids() as $id) {
             self::assertNotNull($catalog->get($id)->note, \sprintf('Widget "%s" has no picker line.', $id));

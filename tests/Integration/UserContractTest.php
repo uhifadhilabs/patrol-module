@@ -20,7 +20,7 @@ use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\ObservationAmendment;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Entity\PatrolEvent;
-use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
+use Uhifadhi\Team\Entity\User;
 
 /**
  * EVERY PERSON ON A PATROL RECORD IS POINTED AT THROUGH THE CONTRACT.
@@ -81,14 +81,24 @@ final class UserContractTest extends IntegrationTestCase
      * meaning once its owner is gone. The guarantee is the database's, so it
      * holds for a DELETE written by hand as well as one the ORM issues.
      */
-    public function testRemovingAnAccountLeavesTheRecordsThatNamedIt(): void
+    #[\PHPUnit\Framework\Attributes\DataProvider('personAssociations')]
+    public function testRemovingAnAccountLeavesTheRecordThatNamedIt(string $entity, string $property): void
     {
-        $sql = implode("\n", new SchemaTool($this->em)->getCreateSchemaSql($this->em->getMetadataFactory()->getAllMetadata()));
+        $metadata = $this->em->getClassMetadata($entity);
 
-        self::assertSame(
-            5,
-            substr_count($sql, 'REFERENCES "user" (id) ON DELETE SET NULL'),
-            'Every person column must survive the account being deleted.',
+        // THE ACCOUNT TABLE IS READ, NEVER NAMED. What an installation calls its
+        // people is its own business — this one resolves the contract to
+        // uhifadhi/team-module's class, which stores them in `team_user`, and an
+        // installation with its own account class stores them somewhere else
+        // again. Asking the mapping is the same reading the module's own SQL
+        // does, and it is why this assertion survived that change.
+        $account = $this->em->getClassMetadata(User::class)->getTableName();
+        $sql = implode("\n", new SchemaTool($this->em)->getCreateSchemaSql([$metadata]));
+
+        self::assertStringContainsString(
+            \sprintf('REFERENCES %s (id) ON DELETE SET NULL', $account),
+            $sql,
+            \sprintf('%s::$%s must survive the account being deleted.', $entity, $property),
         );
     }
 }

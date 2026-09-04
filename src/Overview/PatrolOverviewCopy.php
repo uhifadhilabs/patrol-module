@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Overview;
 
-use Uhifadhi\Overview\OverviewCopyProviderInterface;
+use Uhifadhi\Area\Overview\OverviewCopyProviderInterface;
 
 /**
  * THE MODULE'S WORDS INSIDE THE HOST'S SENTENCES.
