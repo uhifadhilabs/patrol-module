@@ -26,7 +26,8 @@ use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 use Symfony\UX\Icons\UXIconsBundle;
 use Symfony\UX\StimulusBundle\StimulusBundle;
-use Uhifadhi\Entity\User;
+use Uhifadhi\ModuleContracts\Entity\UserInterface;
+use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\HeaderUserAuthenticator;
 use Uhifadhi\Patrol\UhifadhiPatrolBundle;
@@ -132,8 +133,11 @@ final class TestKernel extends Kernel
             'dbal' => [
                 'url' => '%env(PATROL_TEST_DATABASE_URL)%',
             ],
-            // Map the dev-only Uhifadhi\Entity stubs (User, Position, AreaOfInterest)
-            // so the Patrol relations resolve standalone (the real ones inside uhifadhi).
+            // Map the dev-only Uhifadhi\Entity stubs (Position, AreaOfInterest,
+            // Zone, Department) so the Patrol relations resolve standalone. They
+            // stand in for host things this module has no published contract for
+            // yet; the PERSON is not among them any more — see the account
+            // mapping and the resolution below.
             'orm' => [
                 // The host's own choice (config/packages/doctrine.yaml), mirrored
                 // here so the bundle's metadata-driven SQL is exercised against
@@ -146,6 +150,21 @@ final class TestKernel extends Kernel
                         'prefix' => 'Uhifadhi\\Entity',
                         'is_bundle' => false,
                     ],
+                    // The test installation's own account class, mapped the way
+                    // an installation maps the module that provides its team.
+                    'TestInstallationAccount' => [
+                        'type' => 'attribute',
+                        'dir' => \dirname(__DIR__).'/Fixtures/Account',
+                        'prefix' => 'Uhifadhi\\Patrol\\Tests\\Fixtures\\Account',
+                        'is_bundle' => false,
+                    ],
+                ],
+                // THE ONE LINE AN INSTALLATION WRITES. Every person on a patrol
+                // record is declared against the contract, so without this the
+                // bundle cannot build a schema at all — and with it, the FKs
+                // point at whatever account table the installation actually has.
+                'resolve_target_entities' => [
+                    UserInterface::class => User::class,
                 ],
             ],
         ]);

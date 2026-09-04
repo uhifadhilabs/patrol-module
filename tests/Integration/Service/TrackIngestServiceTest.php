@@ -14,11 +14,11 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Tests\Integration\Service;
 
 use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Entity\User;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Service\TrackIngestService;
+use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 final class TrackIngestServiceTest extends IntegrationTestCase

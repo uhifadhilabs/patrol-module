@@ -29,7 +29,7 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Entity\User;
+use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\ObservationAmendment;
 use Uhifadhi\Patrol\Entity\ObservationPhoto;
@@ -236,10 +236,10 @@ final class ObservationAmendmentController
      * Who signs it. PL·09's "go in unsigned: never" — so this refuses rather
      * than filing an anonymous correction onto an evidence trail.
      */
-    private function currentUser(): User
+    private function currentUser(): UserInterface
     {
         $user = $this->tokenStorage->getToken()?->getUser();
-        if (!$user instanceof User) {
+        if (!$user instanceof UserInterface) {
             throw new AccessDeniedException('An amendment is signed, so it needs a signed-in user.');
         }
 

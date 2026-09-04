@@ -15,7 +15,7 @@ namespace Uhifadhi\Patrol\Service;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Entity\User;
+use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Model\ParsedTrack;
@@ -54,7 +54,7 @@ final class TrackIngestService
         string $type,
         PatrolSourceEnum $source = PatrolSourceEnum::Gpx,
         ?string $station = null,
-        ?User $lead = null,
+        ?UserInterface $lead = null,
         ?string $team = null,
         ?string $note = null,
     ): Patrol {

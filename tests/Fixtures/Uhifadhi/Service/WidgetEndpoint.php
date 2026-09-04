@@ -21,11 +21,11 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Entity\User;
 use Uhifadhi\Exception\InvalidWidgetPreferenceException;
 use Uhifadhi\Exception\UnknownWidgetPresetException;
 use Uhifadhi\Model\WidgetCatalog;
 use Uhifadhi\Model\WidgetDom;
+use Uhifadhi\ModuleContracts\Entity\UserInterface;
 
 /**
  * The three write endpoints every widget library needs, once: save a layout,
@@ -267,7 +267,7 @@ final readonly class WidgetEndpoint
     public function userId(): int
     {
         $user = $this->tokenStorage->getToken()?->getUser();
-        $id = $user instanceof User ? $user->getId() : null;
+        $id = $user instanceof UserInterface ? $user->getId() : null;
         if (null === $id) {
             throw new AccessDeniedException('Widget preferences belong to a signed-in user.');
         }

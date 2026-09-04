@@ -27,7 +27,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Twig\Environment;
 use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Entity\User;
+use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Exception\InvalidGpxException;
@@ -314,20 +314,23 @@ final class PatrolRecordController
         }
     }
 
-    private function lead(?int $id): ?User
+    private function lead(?int $id): ?UserInterface
     {
-        return null !== $id ? $this->entityManager->getRepository(User::class)->find($id) : null;
+        return null !== $id ? $this->entityManager->getRepository(UserInterface::class)->find($id) : null;
     }
 
     /**
-     * The people the deployment can name as a lead. `lead` is a User relation,
-     * never free text — the detail screen prints "A. Alpha" from the record.
+     * The people the deployment can name as a lead. `lead` is a relation to a
+     * person, never free text — the detail screen prints "A. Alpha" from the
+     * record. The repository is asked for by the CONTRACT, which the
+     * installation has resolved to its own account class; this module never
+     * learns what that class is.
      *
-     * @return list<User>
+     * @return list<UserInterface>
      */
     private function users(): array
     {
-        return $this->entityManager->getRepository(User::class)
+        return $this->entityManager->getRepository(UserInterface::class)
             ->findBy([], ['lastName' => 'ASC', 'firstName' => 'ASC']);
     }
 

@@ -20,7 +20,7 @@ use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Twig\Environment;
 use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Entity\User;
+use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
 use Uhifadhi\Patrol\Model\PatrolWidgets;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
@@ -111,6 +111,6 @@ final class PatrolController
     {
         $user = $this->tokenStorage?->getToken()?->getUser();
 
-        return $user instanceof User ? $user->getId() : null;
+        return $user instanceof UserInterface ? $user->getId() : null;
     }
 }

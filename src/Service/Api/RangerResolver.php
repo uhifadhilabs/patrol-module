@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Service\Api;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Uhifadhi\Entity\User;
+use Uhifadhi\ModuleContracts\Entity\UserInterface;
 
 /**
  * Turns the ranger ids a phone sends back into the people they name.
@@ -42,7 +42,7 @@ final class RangerResolver
      *
      * @param list<string> $rangerIds
      *
-     * @return array<string, User>
+     * @return array<string, UserInterface>
      */
     public function resolve(array $rangerIds): array
     {
@@ -55,10 +55,10 @@ final class RangerResolver
             $rangerIds,
         )));
 
-        /** @var list<User> $users */
+        /** @var list<UserInterface> $users */
         $users = $this->entityManager->createQueryBuilder()
             ->select('u')
-            ->from(User::class, 'u')
+            ->from(UserInterface::class, 'u')
             ->where('LOWER(u.rangerCode) IN (:needles)')
             ->orWhere('LOWER(u.email) IN (:needles)')
             ->setParameter('needles', $needles)

@@ -19,10 +19,10 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Entity\User;
 use Uhifadhi\Model\WidgetDom;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Model\PatrolWidgets;
+use Uhifadhi\Patrol\Tests\Fixtures\Account\User;
 use Uhifadhi\Service\WidgetEndpoint;
 
 /**

@@ -28,7 +28,7 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Entity\User;
+use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Patrol;
 
 /**
@@ -147,10 +147,10 @@ final class PatrolHoldController
     }
 
     /** Who pulled the brake, so the page can name them. */
-    private function currentUser(): ?User
+    private function currentUser(): ?UserInterface
     {
         $user = $this->tokenStorage->getToken()?->getUser();
 
-        return $user instanceof User ? $user : null;
+        return $user instanceof UserInterface ? $user : null;
     }
 }

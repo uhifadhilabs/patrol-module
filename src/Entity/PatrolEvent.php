@@ -16,7 +16,7 @@ namespace Uhifadhi\Patrol\Entity;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Entity\User;
+use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Enum\PatrolEventKindEnum;
 use Uhifadhi\Patrol\Repository\PatrolEventRepository;
 
@@ -74,9 +74,9 @@ class PatrolEvent
      * field, so this is the recorder the sync call was made by, and a patrol
      * imported or migrated without one says so plainly.
      */
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(targetEntity: UserInterface::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?User $actor = null;
+    private ?UserInterface $actor = null;
 
     /**
      * What the event carried, as the phone sent it.
@@ -129,12 +129,12 @@ class PatrolEvent
         return $this->at;
     }
 
-    public function getActor(): ?User
+    public function getActor(): ?UserInterface
     {
         return $this->actor;
     }
 
-    public function setActor(?User $actor): static
+    public function setActor(?UserInterface $actor): static
     {
         $this->actor = $actor;
 

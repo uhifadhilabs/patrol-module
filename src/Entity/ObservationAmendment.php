@@ -15,7 +15,7 @@ namespace Uhifadhi\Patrol\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Entity\User;
+use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Enum\ObservationAmendmentKindEnum;
 use Uhifadhi\Patrol\Repository\ObservationAmendmentRepository;
 
@@ -104,9 +104,9 @@ class ObservationAmendment
      * enforced at the door — but nullable in the column so that deleting a user
      * can never take an evidence trail with it.
      */
-    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\ManyToOne(targetEntity: UserInterface::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?User $author = null;
+    private ?UserInterface $author = null;
 
     /**
      * The name the signature is printed under, copied at the time of writing and
@@ -187,7 +187,7 @@ class ObservationAmendment
         return $this->writtenAt;
     }
 
-    public function getAuthor(): ?User
+    public function getAuthor(): ?UserInterface
     {
         return $this->author;
     }
@@ -198,7 +198,7 @@ class ObservationAmendment
     }
 
     /** Set once, at assembly time — see {@see withSupersededValue()}. */
-    public function withAuthor(?User $author, ?string $authorName = null): static
+    public function withAuthor(?UserInterface $author, ?string $authorName = null): static
     {
         $this->author = $author;
         $this->authorName = $authorName ?? $author?->getFullName();

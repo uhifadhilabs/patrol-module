@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Service\Api;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Uhifadhi\Entity\User;
+use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Api\PatrolApiException;
 use Uhifadhi\Patrol\Api\Payload;
 use Uhifadhi\Patrol\Entity\Patrol;
@@ -68,7 +68,7 @@ final class PatrolEventService
      *
      * @throws PatrolApiException
      */
-    public function append(Patrol $patrol, array $data, User $recorder): array
+    public function append(Patrol $patrol, array $data, UserInterface $recorder): array
     {
         if (!$patrol->acceptsFieldUploads()) {
             throw PatrolApiException::patrolImmutable((string) $patrol->getClientUuid()?->toRfc4122());

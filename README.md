@@ -8,6 +8,7 @@ A [uhifadhi](https://github.com/uhifadhilabs) module bundle.
 
 - [What it does](#what-it-does)
 - [Installation](#installation)
+  - [Who the records point at](#who-the-records-point-at)
 - [Configuration](#configuration)
 - [Discarded patrols and retention](#discarded-patrols-and-retention)
 - [Screens](#screens)
@@ -48,8 +49,34 @@ symfony/ux-icons with the `lucide` set imported.
 composer require uhifadhi/patrol-module
 ```
 
-The bundle maps its own entities and ships its own assets (AssetMapper) —
-zero host configuration beyond the recipe.
+The bundle maps its own entities and ships its own assets (AssetMapper), so
+there is no doctrine block and no asset wiring to write.
+
+### Who the records point at
+
+Five columns name a person — who led the patrol, who put it on hold, who
+recorded the observation, who acted on the event, who signed the amendment —
+and none of them names an account class. They are mapped to
+`Uhifadhi\ModuleContracts\Entity\UserInterface`, and the installation resolves
+that interface to whatever it calls its people. Install
+`uhifadhi/team-module` and the answer arrives with it (0.3.2 and later states
+the resolution from its own bundle); otherwise write one line naming your own
+class, under the `orm:` key already in `config/packages/doctrine.yaml`:
+
+```yaml
+doctrine:
+    orm:
+        resolve_target_entities:
+            Uhifadhi\ModuleContracts\Entity\UserInterface: App\Entity\Person
+```
+
+Until something answers it, the bundle installs and the kernel boots, but
+anything that walks the metadata — `doctrine:migrations:diff` included — stops
+on the unresolved interface. The recipe's `config/packages/patrol.yaml` says the
+same at length.
+
+Deleting an account sets those five columns null and leaves the records
+standing: removing somebody from the team does not un-walk the patrol they led.
 
 Its Stimulus controllers are enabled in the host's `assets/controllers.json`:
 

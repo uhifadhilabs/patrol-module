@@ -17,7 +17,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Entity\User;
+use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Trait\TimestampableTrait;
 use Uhifadhi\Patrol\Enum\PositionSourceEnum;
 use Uhifadhi\Patrol\Repository\ObservationRepository;
@@ -147,9 +147,9 @@ class Observation
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $loggedAt = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(targetEntity: UserInterface::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?User $recordedBy = null;
+    private ?UserInterface $recordedBy = null;
 
     public function __construct(Patrol $patrol, string $category)
     {
@@ -418,12 +418,12 @@ class Observation
         return $this->heldPhotoCount() >= $this->photoCount;
     }
 
-    public function getRecordedBy(): ?User
+    public function getRecordedBy(): ?UserInterface
     {
         return $this->recordedBy;
     }
 
-    public function setRecordedBy(?User $recordedBy): static
+    public function setRecordedBy(?UserInterface $recordedBy): static
     {
         $this->recordedBy = $recordedBy;
 

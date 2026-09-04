@@ -19,7 +19,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Entity\User;
+use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Trait\TimestampableTrait;
 use Uhifadhi\Patrol\Enum\PatrolEventKindEnum;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
@@ -99,9 +99,9 @@ class Patrol
     #[ORM\Column(length: 80, nullable: true)]
     private ?string $station = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(targetEntity: UserInterface::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?User $lead = null;
+    private ?UserInterface $lead = null;
 
     /** Free-text team roster ("A. Example, B. Example"). */
     #[ORM\Column(length: 255, nullable: true)]
@@ -170,9 +170,9 @@ class Patrol
     private ?\DateTimeImmutable $heldAt = null;
 
     /** Who applied the hold — the page names them, so a hold has an owner. */
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(targetEntity: UserInterface::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?User $heldBy = null;
+    private ?UserInterface $heldBy = null;
 
     /** The aircraft's identifier, drone patrols only (API-CONTRACT.md §4). */
     #[ORM\Column(length: 80, nullable: true)]
@@ -337,12 +337,12 @@ class Patrol
         return $this;
     }
 
-    public function getLead(): ?User
+    public function getLead(): ?UserInterface
     {
         return $this->lead;
     }
 
-    public function setLead(?User $lead): static
+    public function setLead(?UserInterface $lead): static
     {
         $this->lead = $lead;
 
@@ -551,7 +551,7 @@ class Patrol
         return $this->heldAt;
     }
 
-    public function getHeldBy(): ?User
+    public function getHeldBy(): ?UserInterface
     {
         return $this->heldBy;
     }
@@ -562,7 +562,7 @@ class Patrol
         return null !== $this->heldAt;
     }
 
-    public function hold(?User $by, ?\DateTimeImmutable $at = null): static
+    public function hold(?UserInterface $by, ?\DateTimeImmutable $at = null): static
     {
         $this->heldAt = $at ?? new \DateTimeImmutable();
         $this->heldBy = $by;

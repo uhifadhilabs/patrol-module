@@ -16,9 +16,9 @@ namespace Uhifadhi\Patrol\Module;
 use Doctrine\ORM\EntityManagerInterface;
 use Uhifadhi\Entity\AreaOfInterest;
 use Uhifadhi\Entity\Department;
-use Uhifadhi\Entity\User;
 use Uhifadhi\Module\DepartmentKpi;
 use Uhifadhi\Module\DepartmentKpiProviderInterface;
+use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
@@ -55,6 +55,9 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
 {
     /** How many months of history the sparklines carry, including the current one. */
     private const int SPARK_MONTHS = 6;
+
+    /** @var array<int, int>|null user id → department id, read once per request */
+    private ?array $departmentByUser = null;
 
     public function __construct(
         private readonly PatrolRepository $patrols,
@@ -190,7 +193,7 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
                     continue;
                 }
 
-                if (self::departmentOf($patrol->getLead()) === $departmentId) {
+                if ($this->departmentOf($patrol->getLead()) === $departmentId) {
                     ++$patrols;
                     $distanceKm += $patrol->getDistanceKm() ?? 0.0;
                 }
@@ -199,7 +202,7 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
                 // and a member of another department logging one during this department's patrol
                 // is that department's observation.
                 foreach ($patrol->getObservations() as $observation) {
-                    if (self::departmentOf($observation->getRecordedBy()) === $departmentId) {
+                    if ($this->departmentOf($observation->getRecordedBy()) === $departmentId) {
                         ++$observations;
                     }
                 }
@@ -324,10 +327,57 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
      * Null at any link means the row belongs to NO department's figures — not to all of them and
      * not to a default. An unattributed patrol is real work that the org chart cannot yet place,
      * and inventing a placement for it would put someone else's kilometres in this column.
+     *
+     * THE WALK IS DONE IN DQL, NOT THROUGH THE OBJECT, and it has to be. The module points at a
+     * person through {@see UserInterface}, which describes who a
+     * record is about and deliberately says nothing about the org chart — there is no published
+     * contract for "the position somebody holds" or "the department it is filed under". So this
+     * reads the chart the same way {@see PatrolRepository::coverageFractionForDepartment()} reads
+     * it: off the mapping, through the class the installation resolved the contract to. Asking the
+     * object for a `getPosition()` the contract does not promise would be a module that only works
+     * against one account class, which is the thing the contract exists to prevent.
      */
-    private static function departmentOf(?User $recorder): ?int
+    private function departmentOf(?UserInterface $recorder): ?int
     {
-        return $recorder?->getPosition()?->getDepartment()?->getId();
+        $id = $recorder?->getId();
+
+        return null !== $id ? ($this->departmentByUser()[$id] ?? null) : null;
+    }
+
+    /**
+     * user id → department id, for everybody who holds a position filed under one.
+     *
+     * ONE QUERY, memoized: the figures walk every patrol and every observation in a month and ask
+     * this of each recorder, and a lazy association per row would be a page of round-trips. Anyone
+     * absent from the map holds no position, or a position under no department, and is therefore
+     * in nobody's figures.
+     *
+     * @return array<int, int>
+     */
+    private function departmentByUser(): array
+    {
+        if (null !== $this->departmentByUser) {
+            return $this->departmentByUser;
+        }
+
+        $accountClass = $this->entityManager->getClassMetadata(Patrol::class)->getAssociationTargetClass('lead');
+
+        /** @var list<array{id: int, department: int|null}> $rows */
+        $rows = $this->entityManager->createQueryBuilder()
+            ->select('u.id AS id', 'IDENTITY(p.department) AS department')
+            ->from($accountClass, 'u')
+            ->innerJoin('u.position', 'p')
+            ->getQuery()
+            ->getArrayResult();
+
+        $map = [];
+        foreach ($rows as $row) {
+            if (null !== $row['department']) {
+                $map[$row['id']] = $row['department'];
+            }
+        }
+
+        return $this->departmentByUser = $map;
     }
 }
 

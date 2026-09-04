@@ -17,7 +17,7 @@ use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Entity\AreaOfInterest;
-use Uhifadhi\Entity\User;
+use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Api\PatrolApiException;
 use Uhifadhi\Patrol\Api\Payload;
 use Uhifadhi\Patrol\Entity\Patrol;
@@ -53,7 +53,7 @@ final class PatrolUpsertService
      *
      * @throws PatrolApiException
      */
-    public function upsert(array $data, User $recorder): array
+    public function upsert(array $data, UserInterface $recorder): array
     {
         $clientUuid = Payload::uuid($data, 'clientUuid');
 

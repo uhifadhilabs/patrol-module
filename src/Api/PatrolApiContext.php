@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Entity\User;
+use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Controller\PatrolRecordController;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
@@ -55,11 +55,11 @@ final class PatrolApiContext
      *
      * @throws PatrolApiException
      */
-    public function requireRecorder(): User
+    public function requireRecorder(): UserInterface
     {
         $user = $this->tokenStorage->getToken()?->getUser();
 
-        if (!$user instanceof User) {
+        if (!$user instanceof UserInterface) {
             throw new PatrolApiException(401, 'unauthorized', 'Sign in again.');
         }
 
