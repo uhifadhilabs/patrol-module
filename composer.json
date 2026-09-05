@@ -38,8 +38,8 @@
         "symfony/twig-bundle": "^7.3 || ^8.0",
         "symfony/uid": "^7.3 || ^8.0",
         "symfony/ux-icons": "^3.4",
-        "uhifadhi/area-module": "^0.2 || ^0.3 || ^0.4 || ^0.5",
-        "uhifadhi/map-module": "^0.1",
+        "uhifadhi/area-module": "^0.2 || ^0.3 || ^0.4 || ^0.5 || ^0.6",
+        "uhifadhi/map-module": "^0.1 || ^0.2",
         "uhifadhi/module-contracts": "^0.3",
         "uhifadhi/storage-module": "^0.2",
         "uhifadhi/widget-module": "^0.1"
