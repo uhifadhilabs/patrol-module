@@ -31,6 +31,8 @@ use Uhifadhi\Team\Entity\User;
  */
 final class CalendarFragmentTest extends WebTestCase
 {
+    use EveryAreaRunsPatrols;
+
     /**
      * A month safely in the past: "today" then falls outside it whenever the
      * suite runs, so the fixtures never drift with the clock.
@@ -114,6 +116,8 @@ final class CalendarFragmentTest extends WebTestCase
             ->setStartedAt(new \DateTimeImmutable('2019-08-14 06:00')));
 
         $this->em->flush();
+
+        $this->everyAreaRunsPatrols($this->em);
     }
 
     protected function tearDown(): void

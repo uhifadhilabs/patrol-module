@@ -25,6 +25,7 @@ use Symfony\Component\Uid\Uuid;
 use Twig\Environment;
 use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
+use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolWidgetUrls;
@@ -54,6 +55,9 @@ use Uhifadhi\Widget\Service\WidgetService;
  * A plain class, not a Symfony AbstractController subclass — see
  * PatrolController and config/services.php for the reusable-bundle rule.
  */
+// EVERY ROUTE BELOW BELONGS TO THIS MODULE, and says so: where an area has
+// parked Patrols, the seam closes these routes before the controller runs.
+#[Route(defaults: [PatrolModuleProvider::SEAM_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class PatrolWidgetsController
 {
     /**

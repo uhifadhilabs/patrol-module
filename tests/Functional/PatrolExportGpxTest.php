@@ -31,6 +31,8 @@ use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
  */
 final class PatrolExportGpxTest extends WebTestCase
 {
+    use EveryAreaRunsPatrols;
+
     private KernelBrowser $client;
     private EntityManagerInterface $em;
     private AreaOfInterest $area;
@@ -88,6 +90,8 @@ final class PatrolExportGpxTest extends WebTestCase
         $this->em->persist($this->manualPatrol);
 
         $this->em->flush();
+
+        $this->everyAreaRunsPatrols($this->em);
     }
 
     protected function tearDown(): void

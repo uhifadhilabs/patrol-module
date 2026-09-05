@@ -31,6 +31,8 @@ use Uhifadhi\Team\Entity\User;
  */
 final class DashboardPageTest extends WebTestCase
 {
+    use EveryAreaRunsPatrols;
+
     private KernelBrowser $client;
     private EntityManagerInterface $em;
     private AreaOfInterest $area;
@@ -91,6 +93,8 @@ final class DashboardPageTest extends WebTestCase
         $this->em->persist($this->boat);
 
         $this->em->flush();
+
+        $this->everyAreaRunsPatrols($this->em);
     }
 
     protected function tearDown(): void
@@ -247,6 +251,7 @@ final class DashboardPageTest extends WebTestCase
             ->setStartedAt(new \DateTimeImmutable('today 06:10'))
             ->setDistanceKm(9.4));
         $this->em->flush();
+        $this->everyAreaRunsPatrols($this->em);
 
         $this->client->request('GET', '/areas/'.$bare->getUuidString().'/modules/patrols');
 

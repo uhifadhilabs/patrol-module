@@ -49,6 +49,8 @@ use Uhifadhi\Team\Entity\User;
  */
 final class RecordingExclusionTest extends WebTestCase
 {
+    use EveryAreaRunsPatrols;
+
     private KernelBrowser $client;
     private EntityManagerInterface $em;
     private AreaOfInterest $area;
@@ -80,6 +82,8 @@ final class RecordingExclusionTest extends WebTestCase
         $this->recording = $this->patrol($lead, 'South post', 40.0, PatrolStatusEnum::Recording);
 
         $this->em->flush();
+
+        $this->everyAreaRunsPatrols($this->em);
     }
 
     protected function tearDown(): void

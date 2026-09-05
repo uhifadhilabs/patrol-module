@@ -30,6 +30,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 
 /**
  * Hold a discarded patrol for review, and let it go again.
@@ -61,6 +62,9 @@ use Uhifadhi\Patrol\Entity\Patrol;
  * A plain class, not a Symfony AbstractController subclass — see PatrolController
  * and config/services.php for the reusable-bundle rule.
  */
+// EVERY ROUTE BELOW BELONGS TO THIS MODULE, and says so: where an area has
+// parked Patrols, the seam closes these routes before the controller runs.
+#[Route(defaults: [PatrolModuleProvider::SEAM_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class PatrolHoldController
 {
     public function __construct(

@@ -30,6 +30,7 @@ use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\ObservationAmendmentKindEnum;
+use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\ObservationAmendmentRepository;
 use Uhifadhi\Patrol\Service\GeoService;
 use Uhifadhi\Patrol\Service\GpxWriter;
@@ -52,6 +53,9 @@ use Uhifadhi\Patrol\Storage\PatrolFileSource;
  * A plain class, not a Symfony AbstractController subclass — see
  * PatrolController and config/services.php for the reusable-bundle rule.
  */
+// EVERY ROUTE BELOW BELONGS TO THIS MODULE, and says so: where an area has
+// parked Patrols, the seam closes these routes before the controller runs.
+#[Route(defaults: [PatrolModuleProvider::SEAM_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class PatrolDetailController
 {
     /**

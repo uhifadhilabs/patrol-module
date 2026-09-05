@@ -30,6 +30,8 @@ use Uhifadhi\Team\Entity\User;
  */
 final class PatrolDetailPageTest extends WebTestCase
 {
+    use EveryAreaRunsPatrols;
+
     private KernelBrowser $client;
     private EntityManagerInterface $em;
     private AreaOfInterest $area;
@@ -101,6 +103,8 @@ final class PatrolDetailPageTest extends WebTestCase
         $this->em->persist($this->manualPatrol);
 
         $this->em->flush();
+
+        $this->everyAreaRunsPatrols($this->em);
     }
 
     protected function tearDown(): void

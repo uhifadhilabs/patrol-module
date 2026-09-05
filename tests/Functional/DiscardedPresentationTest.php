@@ -39,6 +39,8 @@ use Uhifadhi\Team\Entity\User;
  */
 final class DiscardedPresentationTest extends WebTestCase
 {
+    use EveryAreaRunsPatrols;
+
     private KernelBrowser $client;
     private EntityManagerInterface $em;
     private AreaOfInterest $area;
@@ -81,6 +83,8 @@ final class DiscardedPresentationTest extends WebTestCase
         )->setPayload(['reason' => 'Started by mistake'])->setActor($this->recorder));
 
         $this->em->flush();
+
+        $this->everyAreaRunsPatrols($this->em);
     }
 
     protected function tearDown(): void

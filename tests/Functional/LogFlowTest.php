@@ -31,6 +31,8 @@ use Uhifadhi\Team\Entity\User;
  */
 final class LogFlowTest extends WebTestCase
 {
+    use EveryAreaRunsPatrols;
+
     private KernelBrowser $client;
     private EntityManagerInterface $em;
     private AreaOfInterest $area;
@@ -61,6 +63,8 @@ final class LogFlowTest extends WebTestCase
         $this->em->persist($this->recorder);
         $this->em->persist($this->staff);
         $this->em->flush();
+
+        $this->everyAreaRunsPatrols($this->em);
     }
 
     protected function tearDown(): void

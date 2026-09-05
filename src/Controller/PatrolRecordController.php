@@ -31,6 +31,7 @@ use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Exception\InvalidGpxException;
+use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\TrackIngestService;
@@ -41,7 +42,7 @@ use Uhifadhi\Patrol\Service\TrackIngestService;
  *
  * Both are entirely about recording, so both — GET included — require the one
  * permission this module declares, "patrols.record". The bundle DECLARES the
- * requirement (see {@see \Uhifadhi\Patrol\Module\PatrolModuleProvider});
+ * requirement (see {@see PatrolModuleProvider});
  * the host's voter decides who holds it. Installing a module may never hand
  * existing users a new power, so the bundle grants it to nobody.
  *
@@ -61,6 +62,9 @@ use Uhifadhi\Patrol\Service\TrackIngestService;
  * A plain class, not a Symfony AbstractController subclass — see PatrolController
  * and config/services.php for the reusable-bundle rule.
  */
+// EVERY ROUTE BELOW BELONGS TO THIS MODULE, and says so: where an area has
+// parked Patrols, the seam closes these routes before the controller runs.
+#[Route(defaults: [PatrolModuleProvider::SEAM_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class PatrolRecordController
 {
     /**

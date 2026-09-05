@@ -244,6 +244,10 @@ final class TestKernel extends Kernel
             // whether Patrols is in it rather than trusting the tag.
             \Uhifadhi\Seam\Service\ModuleCatalogue::class => 'seam.catalogue',
             \Uhifadhi\Seam\Service\ModuleEntryRouteResolver::class => 'seam.entry_routes',
+            // Per-area install state — what the route gate reads. A page test
+            // has to switch this module on for its area, because a parked one's
+            // routes are 404 and a fixture area starts with no row at all.
+            \Uhifadhi\Seam\Service\AreaModuleService::class => 'seam.area_modules',
         ] as $class => $serviceId) {
             $container->services()->alias('test_public.'.$class, $serviceId)->public();
         }

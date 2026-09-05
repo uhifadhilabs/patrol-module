@@ -35,6 +35,8 @@ use Uhifadhi\Team\Entity\User;
  */
 abstract class FieldSyncTestCase extends WebTestCase
 {
+    use EveryAreaRunsPatrols;
+
     protected KernelBrowser $client;
     /** The account whose credential every subsequent request carries. */
     private ?User $actingAs = null;
@@ -67,6 +69,8 @@ abstract class FieldSyncTestCase extends WebTestCase
         $this->em->persist($this->recorder);
         $this->em->persist($this->bystander);
         $this->em->flush();
+
+        $this->everyAreaRunsPatrols($this->em);
     }
 
     protected function tearDown(): void

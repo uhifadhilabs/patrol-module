@@ -36,6 +36,8 @@ use Uhifadhi\Widget\Service\WidgetEndpoint;
  */
 final class WidgetLibraryFlowTest extends WebTestCase
 {
+    use EveryAreaRunsPatrols;
+
     /** The shipped composition, in the design's own order. */
     private const array WIDGET_IDS = ['kpis', 'map', 'log', 'feed', 'chweek', 'chstation', 'cal'];
 
@@ -75,6 +77,8 @@ final class WidgetLibraryFlowTest extends WebTestCase
             ->setTrack('{"type":"LineString","coordinates":[[12.25,-5.75],[12.30,-5.70]]}'));
 
         $this->em->flush();
+
+        $this->everyAreaRunsPatrols($this->em);
     }
 
     protected function tearDown(): void
@@ -249,6 +253,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
         );
         $this->em->persist($other);
         $this->em->flush();
+        $this->everyAreaRunsPatrols($this->em);
 
         $this->client->loginUser($this->ranger);
         $crawler = $this->client->request('GET', '/areas/'.$other->getUuidString().'/modules/patrols/widgets');
@@ -282,6 +287,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
         $other = new User()->setPassword('x')->setEmail('other@example.test')->setFirstName('Ben')->setLastName('Beta');
         $this->em->persist($other);
         $this->em->flush();
+        $this->everyAreaRunsPatrols($this->em);
 
         $this->client->loginUser($this->ranger);
         $this->client->request('POST', $this->libraryUrl().'/preset/default/copy', [
@@ -306,6 +312,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
         );
         $this->em->persist($other);
         $this->em->flush();
+        $this->everyAreaRunsPatrols($this->em);
 
         $this->client->loginUser($this->ranger);
         $this->client->request('POST', $this->libraryUrl().'/preset/default/copy', [

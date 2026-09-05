@@ -23,6 +23,7 @@ use Twig\Environment;
 use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\ModuleContracts\Entity\UserInterface;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
+use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Widget\PatrolWidgets;
@@ -44,6 +45,9 @@ use Uhifadhi\Widget\Service\WidgetService;
  * AreaOfInterest (never the reverse); the route's uuid resolves to it via
  * MapEntity.
  */
+// EVERY ROUTE BELOW BELONGS TO THIS MODULE, and says so: where an area has
+// parked Patrols, the seam closes these routes before the controller runs.
+#[Route(defaults: [PatrolModuleProvider::SEAM_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class PatrolController
 {
     /**

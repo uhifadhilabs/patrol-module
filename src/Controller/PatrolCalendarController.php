@@ -21,6 +21,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Twig\Environment;
 use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 
@@ -50,6 +51,9 @@ use Uhifadhi\Patrol\Service\PatrolDashboardService;
  * A plain class, not a Symfony AbstractController subclass — see PatrolController
  * and config/services.php for the reusable-bundle rule.
  */
+// EVERY ROUTE BELOW BELONGS TO THIS MODULE, and says so: where an area has
+// parked Patrols, the seam closes these routes before the controller runs.
+#[Route(defaults: [PatrolModuleProvider::SEAM_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class PatrolCalendarController
 {
     /** The only month shape accepted: four-digit year, two-digit month. */

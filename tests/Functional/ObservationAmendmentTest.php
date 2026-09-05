@@ -45,6 +45,8 @@ use Uhifadhi\Team\Entity\User;
  */
 final class ObservationAmendmentTest extends WebTestCase
 {
+    use EveryAreaRunsPatrols;
+
     private const string ORIGINAL_NOTE = 'Fresh lion tracks 400 m from Endulen bomas, heading south-east. Two sets, likely adult + subadult.';
 
     private KernelBrowser $client;
@@ -97,6 +99,8 @@ final class ObservationAmendmentTest extends WebTestCase
         $this->em->persist($this->observation);
 
         $this->em->flush();
+
+        $this->everyAreaRunsPatrols($this->em);
     }
 
     protected function tearDown(): void
@@ -369,6 +373,7 @@ final class ObservationAmendmentTest extends WebTestCase
         );
         $this->em->persist($other);
         $this->em->flush();
+        $this->everyAreaRunsPatrols($this->em);
 
         $this->client->loginUser($this->recorder);
         $this->client->request('POST', \sprintf(
