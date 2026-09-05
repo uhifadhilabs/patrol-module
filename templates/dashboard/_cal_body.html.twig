@@ -67,7 +67,7 @@
                                 {%- else -%}—{%- endif -%}
                                 {%- if patrol.station and patrol.lead %} · {{ patrol.station }}{% endif -%}
                             </span>
-                            <span class="patrol-pop-row"><span>start</span><span class="mono">{% if patrol.startedAt %}{{ patrol.startedAt|date('H:i') }}{% else %}—{% endif %}</span></span>
+                            <span class="patrol-pop-row"><span>start</span><span class="mono">{% if patrol.startedAt %}<time datetime="{{ patrol.startedAt|date('c') }}" data-localtime-format="time">{{ patrol.startedAt|date('H:i') }}</time>{% else %}—{% endif %}</span></span>
                             <span class="patrol-pop-row"><span>duration</span><span class="mono">{{ ui.duration(patrol) }}</span></span>
                             <span class="patrol-pop-row"><span>distance</span><span class="mono">{{ ui.distance(patrol) }}</span></span>
                             <span class="patrol-pop-row"><span>observations</span><span class="mono">{{ patrol.observations|length }}</span></span>

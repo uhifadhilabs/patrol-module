@@ -20,10 +20,13 @@
     <span class="chip patrol-tchip" style="--patrol-track: {{ _self.color(typeColor, key) }}">{{ types[key].label|default(key)|lower }}</span>
 {% endmacro %}
 
-{# Explicit, lowercase, like the design's tables: "sat 22 aug · 06:10". #}
+{# Explicit, lowercase, like the design's tables: "sat 22 aug · 06:10". The
+   stored instant is UTC and the text is the no-JS fallback; the `<time
+   datetime>` lets the shell's frame-level `localtime` scanner rewrite it to the
+   reader's own zone. No controller is named here — portable to any shell host. #}
 {% macro started(patrol) %}
     {%- if patrol.startedAt -%}
-        {{ patrol.startedAt|date('D j M')|lower }} · {{ patrol.startedAt|date('H:i') }}
+        <time datetime="{{ patrol.startedAt|date('c') }}">{{ patrol.startedAt|date('D j M')|lower }} · {{ patrol.startedAt|date('H:i') }}</time>
     {%- else -%}—{%- endif -%}
 {% endmacro %}
 

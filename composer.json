@@ -73,7 +73,7 @@
         "symfony/stimulus-bundle": "^2.20 || ^2.30 || ^2.0",
         "symfony/validator": "^7.3 || ^8.0",
         "uhifadhi/seam-module": "^0.1 || ^0.2",
-        "uhifadhi/shell-module": "^0.6",
+        "uhifadhi/shell-module": "^0.8",
         "uhifadhi/team-module": "^0.4"
     },
     "scripts": {
@@ -92,13 +92,13 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "0.3-dev"
+            "dev-main": "0.4-dev"
         }
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
     "suggest": {
-        "uhifadhi/shell-module": "The page frame every patrol screen renders in. Without it the screens have no frame to extend and the module is field-sync machinery only.",
+        "uhifadhi/shell-module": "The page frame every patrol screen renders in, and (from ^0.8) the frame-level localtime scanner that renders each patrol timestamp in the reader's own timezone. Without it the screens have no frame to extend and times stay in server-rendered UTC.",
         "uhifadhi/seam-module": "The per-area module catalogue this module registers itself in, and the grid an area’s Modules tab draws. Without it the patrol screens are reachable only by their own routes.",
         "api-platform/core": "Required for the field-sync API the handset talks to. Without it the module keeps every screen and loses only /api."
     }

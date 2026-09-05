@@ -75,11 +75,11 @@
         <p class="patrol-discard-why">{{ patrol.discardReason ?: 'No reason was recorded.' }}</p>
         <p class="patrol-discard-fate">
             {%- if patrol.held -%}
-                On hold{% if patrol.heldBy %} by {{ ui.person_name(patrol.heldBy) }}{% endif %}{% if patrol.heldAt %} since {{ patrol.heldAt|date('j M Y')|lower }}{% endif %}.
+                On hold{% if patrol.heldBy %} by {{ ui.person_name(patrol.heldBy) }}{% endif %}{% if patrol.heldAt %} since <time datetime="{{ patrol.heldAt|date('c') }}" data-localtime-format="date">{{ patrol.heldAt|date('j M Y')|lower }}</time>{% endif %}.
                 The retention clock is stopped: this patrol is kept until the hold is released.
             {%- elseif purgeDueAt -%}
                 Kept for {{ retentionDays }} days after it was discarded, then deleted with its
-                photographs — on or after {{ purgeDueAt|date('j M Y')|lower }}.
+                photographs — on or after <time datetime="{{ purgeDueAt|date('c') }}" data-localtime-format="date">{{ purgeDueAt|date('j M Y')|lower }}</time>.
             {%- else -%}
                 Kept for {{ retentionDays }} days after it was discarded, then deleted with its
                 photographs. This patrol carries no date to measure from, so it is left in place.
@@ -209,7 +209,7 @@
         {% for row in observations %}
             <div class="patrol-obs-r">
                 <span class="patrol-obs-n">{{ row.n }}</span>
-                <span class="patrol-obs-t">{{ row.observation.loggedAt ? row.observation.loggedAt|date('H:i') : '—' }}</span>
+                <span class="patrol-obs-t">{% if row.observation.loggedAt %}<time datetime="{{ row.observation.loggedAt|date('c') }}" data-localtime-format="time">{{ row.observation.loggedAt|date('H:i') }}</time>{% else %}—{% endif %}</span>
                 <span class="patrol-obs-bd">
                     <span class="chip warn patrol-obs-chip">{{ ui.category_label(row.observation.category, categories) }}</span>{{ row.observation.note }}
                     {# The design's sub-line ends "· 2 photos". HELD photographs,

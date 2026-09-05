@@ -60,7 +60,7 @@
                             <em class="patrol-rowsub">
                                 {%- if patrol.discardReason %}{{ patrol.discardReason }}{% endif -%}
                                 {%- if patrol.discardReason and patrol.discardedAt %} · {% endif -%}
-                                {%- if patrol.discardedAt %}removed {{ patrol.discardedAt|date_modify('+' ~ retentionDays ~ ' days')|date('j M')|lower }}{% endif -%}
+                                {%- if patrol.discardedAt %}{% set _removedAt = patrol.discardedAt|date_modify('+' ~ retentionDays ~ ' days') %}removed <time datetime="{{ _removedAt|date('c') }}" data-localtime-format="date">{{ _removedAt|date('j M')|lower }}</time>{% endif -%}
                             </em>
                         {% endif %}
                     {% endif %}

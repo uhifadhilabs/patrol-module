@@ -130,7 +130,9 @@ final class PatrolOverviewTemplatesTest extends PatrolOverviewTestCase
         $html = $this->render('pl_now');
 
         self::assertStringContainsString('Handsets reporting', $html);
-        self::assertStringContainsString('1 of 2 · Naabi last seen 09:32', $html);
+        // The "last seen" time is a machine <time> the shell's frame localises;
+        // the readable UTC text stays as the no-JS fallback.
+        self::assertStringContainsString('1 of 2 · Naabi last seen <time datetime="2026-03-21T09:32:00+00:00" data-localtime-format="time">09:32</time>', $html);
     }
 
     public function testAnEmptyLiveCardSaysNobodyIsOut(): void

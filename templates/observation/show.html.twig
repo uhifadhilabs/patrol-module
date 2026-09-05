@@ -183,7 +183,7 @@
                              area: area.name,
                          }) }}>
                         <img src="{{ path('storage_evidence_show', {key: photo.displayKey}) }}" alt="Photograph {{ loop.index }} of {{ photoCount }} from observation {{ n }}" loading="lazy">
-                        <i>photo {{ loop.index }}{% if photo.takenAt %} · {{ photo.takenAt|date('H:i') }}{% endif %}</i>
+                        <i>photo {{ loop.index }}{% if photo.takenAt %} · <time datetime="{{ photo.takenAt|date('c') }}" data-localtime-format="time">{{ photo.takenAt|date('H:i') }}</time>{% endif %}</i>
                         {# WHERE THE SHUTTER FIRED — the photograph's OWN place,
                            which is not the observation's. A ranger stands where
                            it is safe to stand and photographs what is over
@@ -363,7 +363,7 @@
 
                     <div class="frow">
                         <label>signed</label>
-                        <div class="patrol-amd-signed">{{ ui.person_name(app.user) }} · <span class="mono">{{ 'now'|date('D j M Y') |lower }}</span></div>
+                        <div class="patrol-amd-signed">{{ ui.person_name(app.user) }} · <span class="mono"><time datetime="{{ 'now'|date('c') }}" data-localtime-format="date">{{ 'now'|date('D j M Y')|lower }}</time></span></div>
                     </div>
 
                     <div class="patrol-amd-keep"><span>The original note, its position, its time and its photographs are not touched. This is added underneath them and signed with your name.</span></div>

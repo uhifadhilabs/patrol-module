@@ -45,7 +45,7 @@
     {% if pl.handsets.total %}
         <div class="rln patrol-ao-foot">
             <span class="fog">Handsets reporting</span>
-            <span class="mono patrol-ao-mono">{{ pl.handsets.reporting }} of {{ pl.handsets.total }}{% if pl.handsets.worst %} · {{ pl.handsets.worst.patrol.station ?: pl.handsets.worst.patrol.ref }} {{ pl.handsets.worst.lastPingAt ? 'last seen ' ~ pl.handsets.worst.lastPingAt|date('H:i') : 'has not reported at all' }}{% endif %}</span>
+            <span class="mono patrol-ao-mono">{{ pl.handsets.reporting }} of {{ pl.handsets.total }}{% if pl.handsets.worst %} · {{ pl.handsets.worst.patrol.station ?: pl.handsets.worst.patrol.ref }} {% if pl.handsets.worst.lastPingAt %}last seen <time datetime="{{ pl.handsets.worst.lastPingAt|date('c') }}" data-localtime-format="time">{{ pl.handsets.worst.lastPingAt|date('H:i') }}</time>{% else %}has not reported at all{% endif %}{% endif %}</span>
         </div>
     {% endif %}
 </div>

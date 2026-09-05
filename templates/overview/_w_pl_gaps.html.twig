@@ -28,7 +28,7 @@
             {% for z in g.zones %}
                 <tr>
                     <td>{{ z.zone }}</td>
-                    <td class="fog">{% if z.lastEnteredAt %}{{ z.lastEnteredAt|date('D j M')|lower }}{% if z.lastPatrol %} · {{ z.lastPatrol.ref }}{% endif %}{% else %}no track has entered it{% endif %}</td>
+                    <td class="fog">{% if z.lastEnteredAt %}<time datetime="{{ z.lastEnteredAt|date('c') }}" data-localtime-format="date">{{ z.lastEnteredAt|date('D j M')|lower }}</time>{% if z.lastPatrol %} · {{ z.lastPatrol.ref }}{% endif %}{% else %}no track has entered it{% endif %}</td>
                     {# Never is the worst gap there is and has no number, so it
                        wears the failure chip and says the word. #}
                     <td class="num">

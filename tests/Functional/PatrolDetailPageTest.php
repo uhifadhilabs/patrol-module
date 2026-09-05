@@ -17,6 +17,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
@@ -211,6 +212,58 @@ final class PatrolDetailPageTest extends WebTestCase
         self::assertSame(
             $this->url($this->area, $this->patrol).'/observations/'.$this->firstObservation->getUuid()->toRfc4122(),
             $rows->eq(0)->filter('a.open-btn')->attr('href'),
+        );
+    }
+
+    /**
+     * PORTABLE, VIEWER-LOCAL TIMES (Route A: store UTC, format in the browser).
+     * Every human timestamp renders as a machine `<time datetime="…">` carrying
+     * the instant in ISO-8601, with the readable text as the no-JS fallback. The
+     * element names NO controller — the shell's frame-level `localtime` scanner,
+     * mounted on the `<body>` it owns, localises every `time[datetime]` on the
+     * page to the reader's own zone. That absence of coupling is what keeps this
+     * template portable to any host that renders through the shell: a host that
+     * runs the scanner localises the time; one that does not keeps the UTC text.
+     *
+     * Browser-zone conversion itself is JS and is verified separately (see the
+     * shell's localtime controller); this pins the server contract the scanner
+     * depends on — a real instant in `datetime`, and no controller named here.
+     */
+    public function testHumanTimestampsRenderAsPortableMachineTimeElements(): void
+    {
+        $crawler = $this->client->request('GET', $this->url($this->area, $this->patrol));
+
+        self::assertResponseIsSuccessful();
+
+        // The started and ended meta rows are machine <time> elements.
+        $times = $crawler->filter('[data-patrol-meta] time');
+        self::assertGreaterThanOrEqual(2, $times->count(), 'started and ended render as machine <time> elements.');
+
+        // The datetime attribute is the STORED INSTANT — unambiguous across
+        // zones — and the visible text is the no-JS fallback that stays put.
+        $started = $times->first();
+        self::assertNotSame('', (string) $started->attr('datetime'));
+        self::assertSame(
+            new \DateTimeImmutable('today 06:10')->getTimestamp(),
+            new \DateTimeImmutable((string) $started->attr('datetime'))->getTimestamp(),
+            'The datetime attribute carries the stored instant, whatever the offset it is written in.',
+        );
+        self::assertStringContainsString('06:10', $started->text(), 'The server-rendered text remains as the no-JS fallback.');
+
+        // PORTABILITY: no patrol <time> couples itself to a controller — the
+        // frame localises them, so the template renders in a shell-less host too.
+        $controllers = $times->each(static fn (Crawler $node): ?string => $node->attr('data-controller'));
+        self::assertSame(
+            array_fill(0, \count($controllers), null),
+            $controllers,
+            'A patrol <time> must name no controller; the frame localises it.',
+        );
+
+        // The numbered observation rows carry the same machine <time> contract.
+        self::assertGreaterThanOrEqual(
+            1,
+            $crawler->filter('[data-patrol-observations] time[datetime]')->count(),
+            'An observation time is a machine <time> too.',
         );
     }
 
