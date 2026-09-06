@@ -330,6 +330,20 @@ final class TestKernel extends Kernel
         // crumb prints as plain text.
         $routes->import('@UhifadhiShellBundle/src/Controller/', 'attribute');
         $routes->import('@UhifadhiAreaBundle/src/Controller/', 'attribute');
+
+        // THE INCIDENTS MODULE'S FRONT DOOR, STUBBED — but only in the
+        // `incident_seam` environment. The File-as-incident button exists only
+        // where a host installs an incidents module exposing `incident_new`
+        // (the seam is the route name + prefill query keys, and neither bundle
+        // names the other's classes). Most of this suite runs with no such
+        // module, so the button is honestly absent; a test that needs to inspect
+        // the seam URL it builds boots this one environment, where the route
+        // exists to be generated (never dispatched — nothing here navigates to
+        // it, so it carries no controller).
+        if ('incident_seam' === $this->environment) {
+            $routes->add('incident_new', '/areas/{uuid}/modules/incidents/new')
+                ->methods(['GET']);
+        }
     }
 
     public function build(\Symfony\Component\DependencyInjection\ContainerBuilder $container): void
@@ -355,11 +369,14 @@ final class TestKernel extends Kernel
 
     public function getCacheDir(): string
     {
-        return sys_get_temp_dir().'/patrol-module-tests/cache';
+        // Namespaced by environment: a suite that boots a second environment
+        // (see the `incident_seam` route above) must not share a compiled
+        // container with the default one.
+        return sys_get_temp_dir().'/patrol-module-tests/cache/'.$this->environment;
     }
 
     public function getLogDir(): string
     {
-        return sys_get_temp_dir().'/patrol-module-tests/log';
+        return sys_get_temp_dir().'/patrol-module-tests/log/'.$this->environment;
     }
 }

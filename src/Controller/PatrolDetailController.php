@@ -325,7 +325,10 @@ final class PatrolDetailController
             $params['at'] = $observation->getLoggedAt()->format(\DateTimeInterface::ATOM);
         }
         if (null !== $row['position']) {
-            [$lat, $lng] = $this->geo->coordinates($row['position']);
+            // GeoService::coordinates() returns [lon, lat] — GeoJSON order — so
+            // longitude comes first. Naming the first slot $lat here would ship
+            // the seam swapped, relocating the incident into the sea.
+            [$lng, $lat] = $this->geo->coordinates($row['position']);
             $params['lat'] = (string) $lat;
             $params['lng'] = (string) $lng;
         }
