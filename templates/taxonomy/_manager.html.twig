@@ -1,0 +1,120 @@
+{# ── THE MANAGER (populated) ──────────────────────────────────────────────
+   Ruled composition A: kinds on the left, the selected kind's sub-categories on
+   the right. A SHALLOWER right pane than incidents' — patrol sub-categories are
+   labels only: no behaviour blocks, no colour per kind, no term, no money. A
+   deactivated row is DIMMED (.off), never hidden, never struck through. Every
+   action is a small server-rendered form carrying the CSRF token, so the whole
+   screen works with no JavaScript.
+
+   `kinds`, `selected`, `csrfToken`, `area` are supplied by
+   PatrolTaxonomyController.
+   ========================================================================== #}
+{% set activeKinds = kinds|filter(k => k.active)|length %}
+{% set retiredKinds = kinds|length - activeKinds %}
+<div class="tx-mgr">
+  <div class="tx-kinds">
+    <div class="tx-pane-hd"><b>Observation kinds</b><span class="tx-scope">{{ ux_icon('lucide:map-pin', {width: 11, height: 11}) }}{{ area.name }}</span><span class="cnt" style="margin-left:9px">{{ activeKinds }}{% if retiredKinds %} &middot; {{ retiredKinds }} retired{% endif %}</span></div>
+
+    {% for kind in kinds %}
+      <a class="tx-kind{{ kind is same as(selected) ? ' on' }}{{ not kind.active ? ' off' }}" href="{{ path('patrol_taxonomy', {uuid: area.uuid, kind: kind.uuid}) }}">
+        <span class="grip">{{ ux_icon('lucide:grip-vertical', {width: 11, height: 11}) }}</span>
+        <span class="dot"></span>
+        <span class="nm">{{ kind.label }}<em>{{ kind.code }}</em></span>
+        <span class="n">{% if kind.activeSubcategoryCount %}{{ kind.activeSubcategoryCount }} subs{% else %}no subs{% endif %}</span>
+      </a>
+    {% endfor %}
+
+    {# → POST …/taxonomy/kinds {label} — the empty-start "write the first kind"
+       path reaches the same endpoint. #}
+    <form class="tx-form" method="post" action="{{ path('patrol_taxonomy_kind_create', {uuid: area.uuid}) }}" style="padding:11px 13px;gap:7px;border-top:1px dashed color-mix(in srgb,var(--fog) 28%,transparent)">
+      <input type="hidden" name="_token" value="{{ csrfToken }}">
+      <input class="tx-input" type="text" name="label" placeholder="New observation kind" required style="flex:1">
+      <button class="tx-cta" type="submit">{{ ux_icon('lucide:plus', {width: 13, height: 13}) }} Add</button>
+    </form>
+  </div>
+
+  <div class="tx-detail">
+    {% set kindActiveSubs = selected.subcategories|filter(s => s.active)|length %}
+    {% set kindRetiredSubs = selected.subcategories|length - kindActiveSubs %}
+    <div class="tx-khead">
+      <div class="bd">
+        <h3>{{ selected.label }}</h3>
+        <div class="meta">
+          <span class="tx-code locked">{{ selected.code }}</span>
+        </div>
+        {# → POST …/kinds/{uuid}/rename {label} — the wire-code never changes #}
+        <form class="tx-form" method="post" action="{{ path('patrol_taxonomy_kind_rename', {uuid: area.uuid, kind: selected.uuid}) }}" style="margin-top:10px">
+          <input type="hidden" name="_token" value="{{ csrfToken }}">
+          <input class="tx-input" type="text" name="label" value="{{ selected.label }}" aria-label="Rename this kind" required>
+          <button class="tx-act" type="submit">{{ ux_icon('lucide:file-pen', {width: 12, height: 12}) }} Rename</button>
+        </form>
+      </div>
+      <div class="acts">
+        {# → POST …/kinds/{uuid}/deactivate — informative, never a guard #}
+        {% if selected.active %}
+          <form class="tx-actform" method="post" action="{{ path('patrol_taxonomy_kind_deactivate', {uuid: area.uuid, kind: selected.uuid}) }}">
+            <input type="hidden" name="_token" value="{{ csrfToken }}">
+            <button class="tx-act warn" type="submit">{{ ux_icon('lucide:power', {width: 12, height: 12}) }} Deactivate</button>
+          </form>
+        {% else %}
+          <form class="tx-actform" method="post" action="{{ path('patrol_taxonomy_kind_reactivate', {uuid: area.uuid, kind: selected.uuid}) }}">
+            <input type="hidden" name="_token" value="{{ csrfToken }}">
+            <button class="tx-act" type="submit">{{ ux_icon('lucide:rotate-ccw', {width: 12, height: 12}) }} Reactivate</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="tx-subs">
+      <div class="tx-pane-hd" style="border-top:0"><b>Sub-categories</b><span class="cnt">{{ kindActiveSubs }}{% if kindRetiredSubs %} &middot; {{ kindRetiredSubs }} retired{% endif %} &middot; labels only</span></div>
+
+      {% for sub in selected.subcategories %}
+        <div class="tx-sub{{ not sub.active ? ' off' }}">
+          <span class="grip">{{ ux_icon('lucide:grip-vertical', {width: 11, height: 11}) }}</span>
+          <div class="bd">
+            <div class="nm"><b>{{ sub.label }}</b><span class="tx-code locked">{{ sub.code }}</span>{% if not sub.active %} <span class="tx-retired">retired</span>{% endif %}</div>
+            {# → POST …/subcategories/{uuid}/rename {label} — the wire-code never changes #}
+            <form class="tx-form" method="post" action="{{ path('patrol_taxonomy_sub_rename', {uuid: area.uuid, sub: sub.uuid}) }}" style="margin-top:8px">
+              <input type="hidden" name="_token" value="{{ csrfToken }}">
+              <input class="tx-input" type="text" name="label" value="{{ sub.label }}" aria-label="Rename this sub-category" required style="flex:1">
+              <button class="tx-act" type="submit">{{ ux_icon('lucide:file-pen', {width: 12, height: 12}) }} Rename</button>
+            </form>
+          </div>
+          <div class="acts">
+            {% if sub.active %}
+              <form class="tx-actform" method="post" action="{{ path('patrol_taxonomy_sub_deactivate', {uuid: area.uuid, sub: sub.uuid}) }}">
+                <input type="hidden" name="_token" value="{{ csrfToken }}">
+                <button class="tx-act warn" type="submit">{{ ux_icon('lucide:power', {width: 12, height: 12}) }} Deactivate</button>
+              </form>
+            {% else %}
+              <form class="tx-actform" method="post" action="{{ path('patrol_taxonomy_sub_reactivate', {uuid: area.uuid, sub: sub.uuid}) }}">
+                <input type="hidden" name="_token" value="{{ csrfToken }}">
+                <button class="tx-act" type="submit">{{ ux_icon('lucide:rotate-ccw', {width: 12, height: 12}) }} Reactivate</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+
+      {# → POST …/kinds/{uuid}/subcategories {label} — one field, that is all #}
+      <form class="tx-form" method="post" action="{{ path('patrol_taxonomy_sub_create', {uuid: area.uuid, kind: selected.uuid}) }}" style="padding:13px 18px">
+        <input type="hidden" name="_token" value="{{ csrfToken }}">
+        <input class="tx-input" type="text" name="label" placeholder="New sub-category under {{ selected.label }}" required style="flex:1">
+        <button class="tx-cta" type="submit">{{ ux_icon('lucide:plus', {width: 13, height: 13}) }} Add sub-category</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ── WHY THERE ARE NO BEHAVIOUR BLOCKS HERE — and it is deliberate ────────
+   The one line that stops this screen from drifting into the incident admin: a
+   patrol observation is a sighting, not a case. The moment it needs a structured
+   question, a clock or a fine, the right control is "File as incident" — which
+   already exists on the observation page and keeps the link forever. #}
+<div class="tx-shallow">
+  <div class="rln"><span>Sub-categories</span><span class="chip acc">labels only</span></div>
+  <div class="rln"><span>Behaviour blocks</span><span class="chip fail">none — not incidents</span></div>
+  <div class="rln"><span>A colour per kind</span><span class="chip fail">none — the marker colour is the patrol type</span></div>
+  <div class="rln"><span>A term / SLA per row</span><span class="chip fail">none — an observation is not owed a response</span></div>
+  <div class="rln"><span>Money</span><span class="chip fail">none — that is what an incident is for</span></div>
+</div>

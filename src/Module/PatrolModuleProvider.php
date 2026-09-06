@@ -17,6 +17,7 @@ use Uhifadhi\ModuleContracts\ModulePermission;
 use Uhifadhi\ModuleContracts\ModuleProviderInterface;
 use Uhifadhi\ModuleContracts\ModuleProviderTrait;
 use Uhifadhi\Patrol\Controller\PatrolRecordController;
+use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
 
 /**
  * Declares the one module this bundle contributes — "Patrols". It owns its
@@ -106,11 +107,19 @@ final class PatrolModuleProvider implements ModuleProviderInterface
      */
     public function permissions(): array
     {
-        return [new ModulePermission(
-            PatrolRecordController::RECORD_PERMISSION,
-            'Patrols',
-            'Record',
-            'Record patrols: import a GPS track or log one by hand, and add the observations made along the way.',
-        )];
+        return [
+            new ModulePermission(
+                PatrolRecordController::RECORD_PERMISSION,
+                'Patrols',
+                'Record',
+                'Record patrols: import a GPS track or log one by hand, and add the observations made along the way.',
+            ),
+            new ModulePermission(
+                PatrolTaxonomyController::MANAGE_PERMISSION,
+                'Patrols',
+                'Manage',
+                'Manage this area\'s observation taxonomy: the kinds a ranger logs against and the sub-categories under them.',
+            ),
+        ];
     }
 }

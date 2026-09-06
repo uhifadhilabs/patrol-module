@@ -1,0 +1,53 @@
+{# ============================================================================
+   THE AREA-SCOPED PATROL OBSERVATION TAXONOMY ADMIN — the design's taxonomy.html,
+   ported. It rhymes with the incident taxonomy and shares a stylesheet
+   vocabulary, but patrol's is SHALLOW: labels only, no behaviour blocks, no
+   colour, no money.
+
+   ONE ROUTE, TWO DATA CONDITIONS on the same address:
+     · POPULATED — the two-pane manager (_manager.html.twig): kinds on the left,
+       the selected kind's sub-categories on the right.
+     · EMPTY — the first-run start (_empty.html.twig): the ghost sketch of a
+       taxonomy's shape and the "write the first kind" path.
+
+   AREA SCOPE, said once at the top and true of every read and write below: this
+   list is THIS area's own, and nothing here is shared with another area.
+   ========================================================================== #}
+{% extends '@UhifadhiPatrol/base.html.twig' %}
+
+{% block title %}Patrols · observation taxonomy{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    {# The taxonomy admin's own `tx-` vocabulary, by the bundle's own constant so
+       the path is never typed twice. Loaded only on this screen. #}
+    <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Patrol\\UhifadhiPatrolBundle::TAXONOMY_STYLESHEET')) }}">
+{% endblock %}
+
+{% block patrol_trail_tail %} <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / taxonomy{% endblock %}
+
+{% block shell_page_title %}{{ area.name }} — Patrols · observation taxonomy{% endblock %}
+
+{% block shell_page_subtitle %}What a ranger can log on the way round <b>this area</b> — the kinds on top (the chips on
+    the handset) and a level of sub-categories under them, so a carcass can be counted apart from a poached carcass
+    without reading a thousand notes. Sub-categories are <b>labels only</b>: they group, they never ask a question.
+    Every area writes its own; rows can be created, renamed and retired — <b>never deleted</b>.{% endblock %}
+
+{% block shell_page_actions %}
+    <a class="cta" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">{{ ux_icon('lucide:chevron-left', {width: 15, height: 15}) }} Back to dashboard</a>
+{% endblock %}
+
+{% block patrol_page %}
+    {# Area scope, said once, plainly — the one fact that changes how the page is
+       read: the list is this area's, and editing rides on patrols.manage. #}
+    <div class="tx-say">{{ ux_icon('lucide:shield', {width: 17, height: 17}) }}<div><b>This taxonomy is {{ area.name }}&rsquo;s own.</b>
+        Each area keeps its own observation kinds, so a change here reaches only the handsets patrolling {{ area.name }}.
+        Editing rides on <span class="mono">patrols.manage</span> — the authority over the words everybody else must
+        use. Being able to log a patrol (<span class="mono">patrols.record</span>) is not enough.</div></div>
+
+    {% if kinds is empty %}
+        {{ include('@UhifadhiPatrol/taxonomy/_empty.html.twig') }}
+    {% else %}
+        {{ include('@UhifadhiPatrol/taxonomy/_manager.html.twig') }}
+    {% endif %}
+{% endblock %}

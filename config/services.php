@@ -23,6 +23,8 @@ use Uhifadhi\Patrol\Repository\ObservationPhotoRepository;
 use Uhifadhi\Patrol\Repository\ObservationRepository;
 use Uhifadhi\Patrol\Repository\PatrolEventRepository;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;
+use Uhifadhi\Patrol\Repository\TaxonomySubcategoryRepository;
 use Uhifadhi\Patrol\Repository\TrackBatchRepository;
 use Uhifadhi\Patrol\Repository\TrackPointRepository;
 use Uhifadhi\Patrol\Service\GeoService;
@@ -30,6 +32,7 @@ use Uhifadhi\Patrol\Service\GpxParser;
 use Uhifadhi\Patrol\Service\GpxWriter;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolWidgetUrls;
+use Uhifadhi\Patrol\Service\TaxonomyAdminService;
 use Uhifadhi\Patrol\Service\TrackIngestService;
 use Uhifadhi\Patrol\Twig\PatrolTrailExtension;
 
@@ -119,6 +122,31 @@ return static function (ContainerConfigurator $container): void {
     $services->set(ObservationAmendmentRepository::class)
         ->args([service('doctrine')])
         ->tag('doctrine.repository_service');
+
+    // The area-scoped observation-taxonomy's two levels. Registered with the rest
+    // for the same reason: a repository is a query surface over a mapped entity,
+    // and these entities are mapped whether or not this host runs security.
+    $services->set(TaxonomyKindRepository::class)
+        ->args([service('doctrine')])
+        ->tag('doctrine.repository_service');
+    $services->set(TaxonomySubcategoryRepository::class)
+        ->args([service('doctrine')])
+        ->tag('doctrine.repository_service');
+
+    /*
+     * THE AREA-SCOPED OBSERVATION-TAXONOMY ADMIN's logic. Registered
+     * unconditionally — it is pure domain logic (create/rename/retire kinds and
+     * sub-categories, keep wire-codes unique per area) with no security of its
+     * own; the CONTROLLER that fronts it is registered only under the security
+     * guard (see UhifadhiPatrolBundle), because the write rides on
+     * "patrols.manage" and there is nobody to grant it without a firewall.
+     */
+    $services->set('patrol.taxonomy_admin', TaxonomyAdminService::class)
+        ->args([
+            service('doctrine.orm.entity_manager'),
+            service(TaxonomyKindRepository::class),
+            service(TaxonomySubcategoryRepository::class),
+        ]);
 
     /*
      * THE CRUMB'S ONE HELPER — `patrol_url()`, which answers null for a screen

@@ -1,0 +1,79 @@
+{# ── THE EMPTY START ──────────────────────────────────────────────────────
+   The first-run data condition of THIS SAME route — what a brand-new area sees.
+   No seed, no starter pack, nothing to accept. What a first-time administrator
+   needs is not content, it is SHAPE: an inert ghost sketch of what a patrol
+   taxonomy IS, and one honest way in — writing the first kind.
+
+   `area`, `csrfToken` are supplied by PatrolTaxonomyController.
+   ========================================================================== #}
+<div class="tx-empty">
+  <div class="top">
+    <div class="ic">{{ ux_icon('lucide:layers', {width: 38, height: 38}) }}</div>
+    <h3>{{ area.name }} has no observation kinds yet</h3>
+    <p>A ranger patrolling this area has nothing to log against until it says what kinds of observation there are.
+    <b>The words are this area&rsquo;s to choose</b> — the platform ships with none and will never suggest any. Write
+    the first kind from scratch below.</p>
+
+    {# → POST …/taxonomy/kinds {label} — the "write the first kind" path. #}
+    <form class="tx-form" method="post" action="{{ path('patrol_taxonomy_kind_create', {uuid: area.uuid}) }}" style="justify-content:center">
+      <input type="hidden" name="_token" value="{{ csrfToken }}">
+      <input class="tx-input" type="text" name="label" placeholder="e.g. Wildlife" required style="min-width:280px">
+      <button class="tx-cta" type="submit">{{ ux_icon('lucide:plus', {width: 15, height: 15}) }} Write the first observation kind</button>
+    </form>
+  </div>
+
+  {# ══════════════════════════════════════════════════════════════════════════
+     DEFERRED SEAM — "COPY FROM ANOTHER AREA".
+
+     RULED (taxonomy design): at first setup an area may copy ANOTHER real area's
+     patrol taxonomy as an editable starting point, which then diverges and is
+     recorded as provenance. It is NOT a starter pack — every option is a named,
+     dated real area's own words.
+
+     It is DEFERRED here on purpose. Rendering the picker means ENUMERATING the
+     other areas that have a non-empty taxonomy and reading their NAMES, which
+     needs an area-directory contract (Option A: enumerate + getName) that is NOT
+     yet ruled. This module must not reach for area names/enumeration on its own —
+     the frame supplies only the CURRENT area.
+
+     WHEN THE CONTRACT LANDS, this socket takes:
+       · a `<div class="tx-copy">` panel with `.tx-area` buttons — one per source
+         area (name, a one-line summary, "N kinds · N subs"), styled in
+         taxonomy.css and drawn ABOVE the ghost;
+       · each button POSTs to a new `patrol_taxonomy_copy_from`
+         ({source_area_uuid}) action on PatrolTaxonomyController, calling a
+         TaxonomyAdminService::copyFrom(...) that deep-copies kinds and
+         sub-categories and stamps the source as provenance;
+       · a provenance line then renders under the page head on the populated
+         manager ("Started as a copy of <source> on <date>").
+     Nothing below or above depends on it — the core start is complete without it,
+     and TaxonomyAdminPageTest asserts no live copy control ships.
+     ══════════════════════════════════════════════════════════════════════════ #}
+
+  {# THE GHOST. Inert in every sense (pointer-events off on the frame): it teaches
+     the SHAPE of a patrol taxonomy; there is nothing here to adopt or click into
+     being. No behaviour blocks in the patrol sketch — sub-categories are labels
+     only. #}
+  <div class="tx-sketch">
+    <span class="tx-stamp">An illustration of the shape — not a template, nothing here can be added</span>
+    <div role="img" aria-label="An illustration of the shape of a patrol observation taxonomy: one kind with two sub-categories beneath it, labels only. It shows the structure and contains no real values.">
+      <div class="gk"><span class="dot"></span><b>A kind of thing a ranger sees</b>
+        <span class="tag">a kind — a chip on the handset</span></div>
+      <div class="arm first">
+        <div style="flex:1;min-width:0"><div class="gs"><div class="ln"><b>One way it is seen</b><span class="tx-code">sub-one</span></div></div><div class="gs"><div class="ln"><b>Another way it is seen</b><span class="tx-code">sub-two</span></div></div></div>
+      </div>
+    </div>
+    <div class="tx-note"><span class="k">The top level</span><div>One kind. It is a chip the ranger taps first on
+      the handset, and the grouping every count and every filter in this area uses.</div></div>
+    <div class="tx-note"><span class="k">Underneath</span><div>Its sub-categories — a finer label, as many or
+      as few as you like. <b>A kind with none is perfectly normal</b>; the ranger simply never sees a second chip.</div></div>
+    <div class="tx-note"><span class="k">Labels only</span><div>A patrol sub-category <b>never asks a question</b>. It
+      groups, and nothing more. When an observation needs structured detail, it is filed as an incident instead.</div></div>
+    <div class="tx-note"><span class="k">Forever</span><div>Every row keeps a wire-code that never changes, so
+      renaming is safe. Nothing is ever deleted: a row you stop using is <b>retired</b>, and the observations
+      already filed under it keep it.</div></div>
+  </div>
+  <div class="tx-docs">{{ ux_icon('lucide:book-open', {width: 14, height: 14}) }}<span>Not sure where to start?
+    <a href="#">How other areas structure a taxonomy</a> — in the documentation, deliberately not in the
+    product.</span></div>
+</div>

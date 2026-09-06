@@ -219,6 +219,9 @@ final class TestKernel extends Kernel
         foreach ([
             \Uhifadhi\Patrol\Service\TrackIngestService::class => 'patrol.track_ingest',
             \Uhifadhi\Patrol\Service\GpxParser::class => 'patrol.gpx_parser',
+            // The area-scoped observation-taxonomy admin's logic, reached directly
+            // by its integration test.
+            \Uhifadhi\Patrol\Service\TaxonomyAdminService::class => 'patrol.taxonomy_admin',
             // The two halves of the storage seam, and the registry the hub reads
             // through — so a test can prove the tag was applied AND that the two
             // halves still claim the same keys.

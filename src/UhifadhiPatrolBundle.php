@@ -39,6 +39,7 @@ use Uhifadhi\Patrol\Command\SeedDemoCommand;
 use Uhifadhi\Patrol\Controller\ObservationAmendmentController;
 use Uhifadhi\Patrol\Controller\PatrolHoldController;
 use Uhifadhi\Patrol\Controller\PatrolRecordController;
+use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
 use Uhifadhi\Patrol\Controller\PatrolWidgetsController;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
 use Uhifadhi\Patrol\Module\PatrolDepartmentKpiProvider;
@@ -55,6 +56,8 @@ use Uhifadhi\Patrol\Repository\ObservationPhotoRepository;
 use Uhifadhi\Patrol\Repository\ObservationRepository;
 use Uhifadhi\Patrol\Repository\PatrolEventRepository;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;
+use Uhifadhi\Patrol\Repository\TaxonomySubcategoryRepository;
 use Uhifadhi\Patrol\Repository\TrackBatchRepository;
 use Uhifadhi\Patrol\Repository\TrackPointRepository;
 use Uhifadhi\Patrol\Security\PatrolEvidenceVoter;
@@ -96,6 +99,13 @@ final class UhifadhiPatrolBundle extends AbstractBundle
      * area overview. The bundle's name is the bundle's own knowledge.
      */
     public const string STYLESHEET = 'bundles/uhifadhipatrol/patrol.css';
+
+    /**
+     * The observation-taxonomy admin's own component stylesheet, served the same
+     * way and linked ONLY by the taxonomy screen (see taxonomy/show.html.twig) —
+     * its `tx-` vocabulary has no reader anywhere else.
+     */
+    public const string TAXONOMY_STYLESHEET = 'bundles/uhifadhipatrol/taxonomy.css';
 
     /** Config lives under "patrol:", not the class-derived "uhifadhi_labs_patrol:". */
     protected string $extensionAlias = 'patrol';
@@ -351,6 +361,25 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 ])
                 ->public();
             $services->alias(ObservationAmendmentController::class, 'patrol.controller.observation_amend')->public();
+
+            /*
+             * THE AREA-SCOPED OBSERVATION-TAXONOMY ADMIN. A writing screen: every
+             * route on it rides on "patrols.manage", so like the recording screens
+             * it exists only where SecurityBundle can enforce that. Its logic
+             * (patrol.taxonomy_admin) is unconditional; only this door is guarded.
+             */
+            $services->set('patrol.controller.taxonomy', PatrolTaxonomyController::class)
+                ->args([
+                    service('twig'),
+                    service('router'),
+                    service('patrol.taxonomy_admin'),
+                    service(TaxonomyKindRepository::class),
+                    service(TaxonomySubcategoryRepository::class),
+                    service('security.authorization_checker'),
+                    service('security.csrf.token_manager'),
+                ])
+                ->public();
+            $services->alias(PatrolTaxonomyController::class, 'patrol.controller.taxonomy')->public();
         }
 
         /*

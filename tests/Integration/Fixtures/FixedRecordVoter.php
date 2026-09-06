@@ -17,29 +17,51 @@ use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 use Uhifadhi\Patrol\Controller\PatrolRecordController;
+use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
 use Uhifadhi\Team\Entity\User;
 
 /**
  * Test stand-in for the HOST's permission voter: the bundle only DECLARES
- * "patrols.record" (PatrolRecordController::RECORD_PERMISSION); deciding who
- * holds it is the host's job. Here that decision is fixed — exactly one email
- * may record — so tests can exercise both the granted and the denied path.
+ * "patrols.record" (PatrolRecordController::RECORD_PERMISSION) and
+ * "patrols.manage" (PatrolTaxonomyController::MANAGE_PERMISSION); deciding who
+ * holds them is the host's job.
+ *
+ * Here that decision is fixed and DIFFERENT FOR THE TWO TIERS, on purpose: one
+ * account may record and not manage, another may manage. That is the split the
+ * taxonomy admin rests on — logging a patrol (`patrols.record`) is not enough to
+ * name the words everybody else must use (`patrols.manage`) — so the tests have
+ * to be able to exercise a person who has one and not the other, which a single
+ * blanket "may do everything" stub could never show.
  *
  * @extends Voter<string, mixed>
  */
 final class FixedRecordVoter extends Voter
 {
+    /** May record a patrol, and may NOT manage the taxonomy. */
     public const string RECORDER_EMAIL = 'recorder@example.test';
+
+    /** May manage this area's observation taxonomy. */
+    public const string MANAGER_EMAIL = 'manager@example.test';
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return PatrolRecordController::RECORD_PERMISSION === $attribute;
+        return \in_array($attribute, [
+            PatrolRecordController::RECORD_PERMISSION,
+            PatrolTaxonomyController::MANAGE_PERMISSION,
+        ], true);
     }
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token, ?Vote $vote = null): bool
     {
         $user = $token->getUser();
+        if (!$user instanceof User) {
+            return false;
+        }
 
-        return $user instanceof User && self::RECORDER_EMAIL === $user->getEmail();
+        return match ($attribute) {
+            PatrolRecordController::RECORD_PERMISSION => self::RECORDER_EMAIL === $user->getEmail(),
+            PatrolTaxonomyController::MANAGE_PERMISSION => self::MANAGER_EMAIL === $user->getEmail(),
+            default => false,
+        };
     }
 }

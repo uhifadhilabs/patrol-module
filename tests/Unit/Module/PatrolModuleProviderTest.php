@@ -15,6 +15,7 @@ namespace Uhifadhi\Patrol\Tests\Unit\Module;
 
 use PHPUnit\Framework\TestCase;
 use Uhifadhi\Patrol\Controller\PatrolRecordController;
+use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 
 final class PatrolModuleProviderTest extends TestCase
@@ -31,17 +32,25 @@ final class PatrolModuleProviderTest extends TestCase
         self::assertSame('patrol_dashboard', $provider->entryRoute());
     }
 
-    public function testDeclaresTheRecordPermissionForTheHostToAssign(): void
+    public function testDeclaresTheRecordAndManagePermissionsForTheHostToAssign(): void
     {
         $permissions = new PatrolModuleProvider('operations')->permissions();
 
-        self::assertCount(1, $permissions);
-        // The exact attribute the recording screens check — declared here, and
-        // granted to nobody by the bundle.
+        // Two tiers, declared here and granted to nobody by the bundle: recording
+        // a patrol, and managing this area's observation taxonomy.
+        self::assertCount(2, $permissions);
+
+        // The exact attribute the recording screens check.
         self::assertSame(PatrolRecordController::RECORD_PERMISSION, $permissions[0]->value);
         self::assertSame('patrols.record', $permissions[0]->value);
         self::assertSame('Patrols', $permissions[0]->umbrella);
         self::assertSame('Record', $permissions[0]->action);
+
+        // The exact attribute the taxonomy admin checks.
+        self::assertSame(PatrolTaxonomyController::MANAGE_PERMISSION, $permissions[1]->value);
+        self::assertSame('patrols.manage', $permissions[1]->value);
+        self::assertSame('Patrols', $permissions[1]->umbrella);
+        self::assertSame('Manage', $permissions[1]->action);
     }
 
     /**
