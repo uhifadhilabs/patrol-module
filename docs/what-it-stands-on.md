@@ -54,6 +54,18 @@ Two things about that seam are worth stating, because both used to be otherwise:
   boundaryless area this module's coverage query still guards against is no
   longer reachable.
 
+**Why the concrete class, not the `AreaInterface` contract.** The platform
+publishes `Uhifadhi\ModuleContracts\Entity\AreaInterface` so a module can point at
+an area *without* requiring area-module — the way team-module's `Department` does,
+and the mechanism is documented in
+[module-contracts/docs/area-contract.md](https://github.com/uhifadhilabs/module-contracts/blob/main/docs/area-contract.md).
+This module takes the other path deliberately: `Patrol::$area` and the
+area-scoped `TaxonomyKind` are mapped to the concrete `AreaOfInterest`, because a
+patrol is drawn on the area's boundary and reads its zones, so this bundle
+hard-requires area-module already. The contract exists to avoid a dependency this
+module could not avoid anyway; type-hinting the interface here would buy nothing
+and lose the boundary and zone accessors the concrete entity carries.
+
 ## The evidence store
 
 Observation photographs are stored by `uhifadhi/storage-module`, a hard
