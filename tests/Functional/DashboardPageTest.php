@@ -123,6 +123,13 @@ final class DashboardPageTest extends WebTestCase
         // Page header: "<Area> — Patrols", per the design's title convention.
         self::assertSelectorTextContains('h1.pg', 'demo reserve — Patrols');
 
+        // The subtitle is the settled design's own words (index.html pgsub),
+        // ported verbatim.
+        self::assertSelectorTextContains(
+            'p.pgsub',
+            'Every patrol logged in this area — where they went, how far, how much of the area they reached, and what they saw. One filter drives the map, the log and the charts together.',
+        );
+
         /*
          * THE TAB TITLE NAMES THE AREA EXACTLY ONCE.
          *
