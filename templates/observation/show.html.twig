@@ -57,6 +57,33 @@
 {% block patrol_page %}
 <a href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}" class="backbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Patrol {{ patrol.ref }}</a>
 
+{# THE IDENTITY BAND — the observation's own facts, in the platform's shared
+   .factband, below the tabs. This is the settled design's PL·02: the meta moved
+   out of a sidebar card and onto the band every entity-detail screen wears, and
+   it ends with the "The patrol →" more-link back up to the parent record.
+
+   Two of the design's facts are DEFERRED and so OMITTED rather than faked:
+   Accuracy ("± 4 m · tracker T-04") needs a per-point accuracy and a device
+   identity the bundle stores for neither observation nor patrol; Status
+   ("linked to incident draft") lives in the incidents module, which need not be
+   installed. An empty fact would be a claim about evidence that isn't true. #}
+<div class="factband">
+    <span class="f"><span class="k">Observation</span><span class="v">{{ n }} of {{ total }}<em>{{ patrol.ref }}</em></span></span>
+    <span class="f"><span class="k">Category</span><span class="v">{{ categoryLabel|lower }}</span></span>
+    {% if observation.loggedAt %}<span class="f"><span class="k">Logged</span><span class="v">{{ ui.stamp(observation.loggedAt) }}</span></span>{% endif %}
+    <span class="f"><span class="k">Position</span><span class="v">{{ dms ?: '—' }}</span></span>
+    <span class="f"><span class="k">Recorded by</span><span class="v">{{ ui.person_name(observation.recordedBy) }}</span></span>
+    {# Held, not promised — and where the phone said it would send more than
+       arrived, the fact says so rather than quietly showing the smaller number. #}
+    <span class="f"><span class="k">Photos</span><span class="v">
+        {%- if observation.photoCount > photoCount -%}{{ photoCount }} of {{ observation.photoCount }}<em>{{ observation.photoCount - photoCount }} still syncing</em>
+        {%- else -%}{{ photoCount }}
+        {%- endif -%}
+    </span></span>
+    <span class="sp"></span>
+    <a class="more" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">The patrol &rarr;</a>
+</div>
+
 <div class="patrol-detail-row">
     <div class="c patrol-plate" data-patrol-location>
         <span class="tab">Location<span class="src">· on the {{ patrol.ref }} track · satellite · live</span></span>
@@ -74,26 +101,6 @@
     </div>
 
     <div class="patrol-side">
-        <div class="c" data-patrol-observation-meta>
-            <span class="tab">Observation meta</span>
-            <div class="patrol-meta-r"><span>observation</span><b>{{ n }} of {{ total }} · {{ patrol.ref }}</b></div>
-            <div class="patrol-meta-r"><span>category</span><b>{{ categoryLabel|lower }}</b></div>
-            <div class="patrol-meta-r"><span>logged</span><b>{{ ui.stamp(observation.loggedAt) }}</b></div>
-            <div class="patrol-meta-r"><span>position</span><b>{{ dms ?: '—' }}</b></div>
-            {# DEFERRED(gps-accuracy): the design's "accuracy · ± 4 m · tracker T-04"
-               row needs a per-point accuracy and a device identity the bundle
-               stores for neither observations nor patrols. #}
-            <div class="patrol-meta-r"><span>recorded by</span><b>{{ ui.person_name(observation.recordedBy) }}</b></div>
-            {# The design's "photos · 2" row. Held, not promised — and where the
-               phone said it would send more than arrived, the row says so rather
-               than quietly showing the smaller number as if it were the whole. #}
-            <div class="patrol-meta-r"><span>photos</span><b>{{ photoCount }}{% if observation.photoCount > photoCount %} of {{ observation.photoCount }} · {{ observation.photoCount - photoCount }} still syncing{% endif %}</b></div>
-            {# DEFERRED(incident-link): the design's status row says what became
-               of the observation ("linked to incident draft"); that state lives
-               in the incidents module, which does not exist yet. #}
-            <div class="patrol-meta-r"><span>status</span><b>—</b></div>
-        </div>
-
         <div class="c" data-patrol-note>
             <span class="tab">Note<span class="src">· field record · verbatim</span></span>
             <div class="patrol-quote">{% if observation.note %}&ldquo;{{ observation.note }}&rdquo;{% else %}No note was recorded with this observation.{% endif %}</div>

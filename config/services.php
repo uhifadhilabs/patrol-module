@@ -180,6 +180,7 @@ return static function (ContainerConfigurator $container): void {
             param('patrol.types'),
             param('patrol.record_screens'),
             param('patrol.widget_screens'),
+            param('patrol.manage_screens'),
             // Null where the installation runs no security: nobody is signed
             // in, so the dashboard renders the shipped composition for everyone.
             service('security.token_storage')->nullOnInvalid(),

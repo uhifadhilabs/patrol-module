@@ -104,6 +104,33 @@
     </div>
 {% endif %}
 
+{# THE IDENTITY BAND — the patrol's own facts, in the platform's shared
+   .factband, below the tabs. This is the settled design's PL·02: the meta
+   moved out of a sidebar card and onto the band every entity-detail screen in
+   the installation wears (the area overview, an observation, a station). A
+   segment with no data is OMITTED, never rendered empty — the same rule the
+   area band follows for IUCN and boundary. #}
+<div class="factband">
+    <span class="f"><span class="k">Id</span><span class="v">{{ patrol.ref }}</span></span>
+    <span class="f"><span class="k">Type</span><span class="v">{{ typeLabel|lower }}</span></span>
+    <span class="f"><span class="k">Station</span><span class="v">{{ patrol.station ?: '—' }}</span></span>
+    <span class="f"><span class="k">Lead</span><span class="v">{{ ui.person_name(patrol.lead) }}{% if patrol.team %}<em>+ {{ patrol.team }}</em>{% endif %}</span></span>
+    {% if patrol.startedAt %}<span class="f"><span class="k">Started</span><span class="v">{{ ui.stamp(patrol.startedAt) }}</span></span>{% endif %}
+    {% if patrol.endedAt %}<span class="f"><span class="k">Ended</span><span class="v">{{ ui.stamp(patrol.endedAt) }}</span></span>{% endif %}
+    {% if patrol.startedAt and patrol.endedAt %}<span class="f"><span class="k">Duration</span><span class="v">{{ ui.duration(patrol) }}</span></span>{% endif %}
+    {% if patrol.distanceKm is not null %}<span class="f"><span class="k">Distance</span><span class="v">{{ patrol.distanceKm|number_format(1) }}<em>km</em></span></span>{% endif %}
+    {% if avgSpeedKmh is not null %}<span class="f"><span class="k">Avg speed</span><span class="v">{{ avgSpeedKmh|number_format(1) }}<em>km/h</em></span></span>{% endif %}
+    {# The design names the tracker device ("GPX · tracker T-04"); the bundle
+       stores no device identity, so the fact states the source honestly. #}
+    <span class="f"><span class="k">Source</span><span class="v">
+        {%- if patrol.source.value == 'gpx' -%}GPX<em>imported</em>
+        {%- elseif patrol.source.value == 'api' -%}API<em>synced</em>
+        {%- else -%}manual entry
+        {%- endif -%}
+    </span></span>
+    {% if patrol.pointCount is not null %}<span class="f"><span class="k">GPS points</span><span class="v">{{ patrol.pointCount|number_format }}<em>{{ patrol.gapCount }} {{ patrol.gapCount == 1 ? 'gap' : 'gaps' }}</em></span></span>{% endif %}
+</div>
+
 <div class="patrol-detail-row">
     <div class="c patrol-plate" data-patrol-track>
         <span class="tab">Track plate<span class="src">· {{ patrol.ref }} · satellite · live</span></span>
@@ -123,34 +150,6 @@
     </div>
 
     <div class="patrol-side">
-        <div class="c" data-patrol-meta>
-            <span class="tab">Patrol meta<span class="src">· {{ patrol.source.value == 'gpx' ? 'from GPX + form' : 'from the patrol form' }}</span></span>
-            <div class="patrol-meta-r"><span>id</span><b>{{ patrol.ref }}</b></div>
-            {# Only where the ranger actually named it. An empty "name — " row on
-               every unnamed patrol would advertise a field nobody fills. #}
-            {% if patrol.name %}
-                <div class="patrol-meta-r"><span>name</span><b>{{ patrol.name }}</b></div>
-            {% endif %}
-            <div class="patrol-meta-r"><span>type</span><b>{{ typeLabel|lower }}</b></div>
-            <div class="patrol-meta-r"><span>station</span><b>{{ patrol.station ?: '—' }}</b></div>
-            <div class="patrol-meta-r"><span>lead</span><b>{{ ui.person_name(patrol.lead) }}</b></div>
-            <div class="patrol-meta-r"><span>team</span><b>{{ patrol.team ?: '—' }}</b></div>
-            <div class="patrol-meta-r"><span>started</span><b>{{ ui.stamp(patrol.startedAt) }}</b></div>
-            <div class="patrol-meta-r"><span>ended</span><b>{{ ui.stamp(patrol.endedAt) }}</b></div>
-            <div class="patrol-meta-r"><span>duration</span><b>{{ ui.duration(patrol) }}</b></div>
-            <div class="patrol-meta-r"><span>distance</span><b>{{ ui.distance(patrol) }}</b></div>
-            {% if avgSpeedKmh is not null %}
-                <div class="patrol-meta-r"><span>avg speed</span><b>{{ avgSpeedKmh|number_format(1) }} km/h</b></div>
-            {% endif %}
-            {# The design names the tracker device here ("GPX · tracker T-04");
-               the bundle stores no device identity, so the row states the
-               source honestly instead of inventing one. #}
-            <div class="patrol-meta-r"><span>source</span><b>{{ patrol.source.value == 'gpx' ? 'GPX · imported' : (patrol.source.value == 'api' ? 'API' : 'manual entry') }}</b></div>
-            {% if patrol.pointCount is not null %}
-                <div class="patrol-meta-r"><span>gps points</span><b>{{ patrol.pointCount|number_format }} · {{ patrol.gapCount }} {{ patrol.gapCount == 1 ? 'gap' : 'gaps' }}</b></div>
-            {% endif %}
-        </div>
-
         {# The patrol's own history, in the settled discard design's D4 grammar:
            NEWEST FIRST, each entry a title with "time · actor · detail" beneath
            it, and nothing on it editable or removable. "The web shows the same

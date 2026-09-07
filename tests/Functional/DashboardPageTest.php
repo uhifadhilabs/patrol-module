@@ -309,5 +309,62 @@ final class DashboardPageTest extends WebTestCase
         $actions = $crawler->filter('.pgact')->html();
         self::assertStringContainsString('Import GPX', $actions);
         self::assertStringContainsString('Log patrol', $actions);
+        // Recording is not managing: the recorder may log a patrol but not name
+        // the words everybody else must use, so the taxonomy door is not drawn.
+        self::assertStringNotContainsString('Observation kinds', $actions);
+    }
+
+    /**
+     * THE SAME LOCKED-DOOR RULE, FOR THE TAXONOMY ADMIN.
+     *
+     * "Observation kinds" opens the area's observation-taxonomy admin, every
+     * route of which enforces `patrols.manage`. The whole screen is built and
+     * routed, but until this it had no entry point in the product — a
+     * fully-implemented, ruled screen a user could not reach. It is offered on
+     * exactly the same terms as the recording screens: the route must exist (it
+     * needs SecurityBundle) AND the viewer must hold the permission.
+     */
+    public function testSomebodyWhoMayNotManageIsNotOfferedTheTaxonomyScreen(): void
+    {
+        $recorder = new User()->setPassword('x')->setEmail(FixedRecordVoter::RECORDER_EMAIL)
+            ->setFirstName('Rita')->setLastName('Recorder');
+        $this->em->persist($recorder);
+        $this->em->flush();
+        $this->client->loginUser($recorder);
+
+        $crawler = $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString('Observation kinds', $crawler->filter('.pgact')->html());
+
+        // And the route agrees: the absence above is the page telling the same
+        // truth the screen enforces.
+        $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols/taxonomy');
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testSomebodyWhoMayManageIsOfferedTheTaxonomyScreen(): void
+    {
+        $manager = new User()->setPassword('x')->setEmail(FixedRecordVoter::MANAGER_EMAIL)
+            ->setFirstName('Mara')->setLastName('Manager');
+        $this->em->persist($manager);
+        $this->em->flush();
+        $this->client->loginUser($manager);
+
+        $crawler = $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols');
+
+        self::assertResponseIsSuccessful();
+        $taxonomy = $crawler->filter('.pgact a')->reduce(
+            static fn ($node): bool => str_contains($node->text(), 'Observation kinds'),
+        );
+        self::assertCount(1, $taxonomy, 'a manager is offered the taxonomy screen');
+        self::assertSame(
+            '/areas/'.$this->area->getUuidString().'/modules/patrols/taxonomy',
+            $taxonomy->attr('href'),
+        );
+
+        // The door opens: the manager reaches the screen the link names.
+        $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols/taxonomy');
+        self::assertResponseIsSuccessful();
     }
 }

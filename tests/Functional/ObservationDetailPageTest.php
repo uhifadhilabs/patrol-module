@@ -169,15 +169,23 @@ final class ObservationDetailPageTest extends WebTestCase
         self::assertStringContainsString('Point', json_encode($ring, \JSON_THROW_ON_ERROR));
         self::assertStringContainsString('obs 2 · maintenance need · 08:15', $crawler->filter('.patrol-ol-id')->text());
 
-        // PL·02 — meta rows, with the position printed as DMS
-        // (5.72° = 5°43'12", 12.28° = 12°16'48").
-        $meta = $crawler->filter('[data-patrol-observation-meta]')->text();
-        self::assertStringContainsString('2 of 2 · '.$this->patrol->getRef(), $meta);
-        self::assertStringContainsString('5°43\'12"S 12°16\'48"E', $meta);
-        self::assertStringContainsString('A. Alpha', $meta);
+        // The identity band — the observation's own facts in the platform's
+        // shared .factband below the tabs (PL·02 in the settled design is this
+        // band, not a sidebar card), with the position printed as DMS
+        // (5.72° = 5°43'12", 12.28° = 12°16'48") and a "The patrol →" more-link.
+        $facts = $crawler->filter('.factband')->text();
+        self::assertStringContainsString('2 of 2', $facts);
+        self::assertStringContainsString($this->patrol->getRef(), $facts);
+        self::assertStringContainsString('5°43\'12"S 12°16\'48"E', $facts);
+        self::assertStringContainsString('A. Alpha', $facts);
         self::assertStringContainsString(
             strtolower(new \DateTimeImmutable('today 08:15')->format('D j M')).' · 08:15',
-            $meta,
+            $facts,
+        );
+        self::assertSame(
+            '/areas/'.$this->area->getUuidString().'/modules/patrols/'.$this->patrol->getUuid()->toRfc4122(),
+            $crawler->filter('.factband a.more')->attr('href'),
+            'the band ends with a "The patrol →" link back up to the parent patrol',
         );
 
         // PL·03 — the note, verbatim and quoted.
@@ -198,8 +206,8 @@ final class ObservationDetailPageTest extends WebTestCase
         self::assertStringContainsString('Photos', $photos->text());
         self::assertCount(0, $photos->filter('img'));
         self::assertCount(0, $photos->filter('input'));
-        // …and the meta row says none rather than staying silent.
-        self::assertStringContainsString('photos', $meta);
+        // …and the identity band says none rather than staying silent.
+        self::assertStringContainsString('Photos', $facts);
     }
 
     /**
@@ -259,8 +267,8 @@ final class ObservationDetailPageTest extends WebTestCase
         // The count agrees with reality, in all three places the design prints it.
         self::assertStringContainsString('· 2 · from the field', $card->text());
         self::assertStringContainsString('2 photos', $crawler->filter('.pgsub')->text());
-        self::assertStringContainsString('photos', $crawler->filter('[data-patrol-observation-meta]')->text());
-        self::assertStringContainsString('2', $crawler->filter('[data-patrol-observation-meta]')->text());
+        self::assertStringContainsString('Photos', $crawler->filter('.factband')->text());
+        self::assertStringContainsString('2', $crawler->filter('.factband')->text());
 
         // Still view-only: no upload control appeared with the photographs.
         self::assertCount(0, $card->filter('input'));
@@ -360,9 +368,9 @@ final class ObservationDetailPageTest extends WebTestCase
         $crawler = $this->client->request('GET', $this->url($this->area, $this->patrol, $this->observation));
 
         self::assertResponseIsSuccessful();
-        $meta = $crawler->filter('[data-patrol-observation-meta]')->text();
-        self::assertStringContainsString('1 of 3', $meta);
-        self::assertStringContainsString('2 still syncing', $meta);
+        $facts = $crawler->filter('.factband')->text();
+        self::assertStringContainsString('1 of 3', $facts);
+        self::assertStringContainsString('2 still syncing', $facts);
     }
 
     /** The parent patrol's observation rows carry the same honest count. */

@@ -256,10 +256,51 @@ button.patrol-menu-item {
 .patrol-daypill { text-decoration: none; }
 .patrol-daypill .chip { cursor: pointer; }
 
+/* ---- the identity band (PL·02) ----------------------------------------- */
+/* THE PLATFORM'S SHARED .factband — the identity band every entity-detail
+   screen in the installation wears below the tabs (the area overview, a patrol,
+   an observation, a station). The settled patrol designs moved the detail
+   screens' facts out of a sidebar "meta" card and onto this band, so both
+   detail screens now carry it.
+
+   Its CANONICAL copy currently lives in uhifadhi/area-module (area.css); it is
+   mirrored here — verbatim, from the host tokens, so it flips with the theme —
+   because a patrol screen does not load the area sheet, and area-module is the
+   accident of where the rule first landed, not its home. FOLLOW-UP: promote
+   .factband to uhifadhi/shell-module (shell.css, beside .pghead/.crumb) so the
+   platform frame owns it once and both consumers drop their copies. Until then
+   this is the same header-commented mirror the design workspace uses for any
+   platform-derived rule ported ahead of its final home. */
+.factband {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0 26px;
+    padding: 13px 16px;
+    margin-bottom: 18px;
+    border: 1px solid var(--c-ln);
+    border-radius: 12px;
+    background: rgb(var(--c-raised));
+}
+.factband .f { display: flex; flex-direction: column; gap: 3px; }
+.factband .k {
+    font-family: var(--font-mono);
+    font-size: 8.5px;
+    font-weight: 600;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: rgb(var(--c-dim));
+}
+.factband .v { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.factband .v em { font-style: normal; font-size: 10px; font-weight: 500; color: rgb(var(--c-fog)); margin-left: 3px; }
+.factband .sp { flex: 1; }
+.factband .more { font-size: 11px; color: rgb(var(--c-acc)); text-decoration: none; white-space: nowrap; }
+
 /* ---- detail screens: plate + sidebar ----------------------------------- */
 /* The settled layout for both detail screens: a plate card (flex 2) beside a
-   sidebar (flex 1.1) holding meta THEN history; the wide bottom row matches the
-   plate width with an empty spacer under the sidebar. */
+   sidebar (flex 1.1) — history alone on the patrol, note THEN history on the
+   observation, the facts having moved up to the identity band above; the wide
+   bottom row matches the plate width with an empty spacer under the sidebar. */
 .patrol-detail-row { display: flex; gap: 16px; align-items: stretch; flex-wrap: wrap; }
 .patrol-detail-row-bottom { margin-top: 16px; }
 .patrol-plate { flex: 2; min-width: 420px; display: flex; flex-direction: column; }
@@ -271,18 +312,6 @@ button.patrol-menu-item {
 .patrol-plate .patrol-plate-viewer { flex: none; height: min(46vh, 440px); }
 .patrol-plate .patrol-plate-viewer-tall { height: min(58vh, 560px); }
 .patrol-ol-id { left: 10px; top: 10px; }
-
-/* ---- meta rows (PL·02) -------------------------------------------------- */
-.patrol-meta-r {
-    display: flex; justify-content: space-between; gap: 12px; padding: 7px 0;
-    border-bottom: 1px dashed var(--c-ln);
-}
-.patrol-meta-r:last-child { border-bottom: 0; }
-.patrol-meta-r b { font: 600 11px var(--font-mono); color: rgb(var(--c-tx)); text-align: right; }
-.patrol-meta-r span {
-    font: 500 9.5px var(--font-mono); color: rgb(var(--c-dim)); text-transform: uppercase;
-    letter-spacing: .08em; padding-top: 2px; flex: none;
-}
 
 /* ---- observation rows (PL·04 on the patrol detail) ---------------------- */
 /* The design marks a populated row as clickable (its Open → is the affordance

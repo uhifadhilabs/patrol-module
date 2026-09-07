@@ -54,6 +54,7 @@ final class PatrolController
      * @param array<string, array{label: string}> $types         the deployment's patrol.types vocabulary
      * @param bool                                $recordScreens whether the recording screens EXIST in this installation (they need SecurityBundle) — a question about the installation, not about the viewer
      * @param bool                                $widgetScreens whether the widget library exists in this installation (it needs SecurityBundle)
+     * @param bool                                $manageScreens whether the observation-taxonomy admin EXISTS in this installation (it needs SecurityBundle) — the viewer question is asked separately, in {@see self::mayManage()}
      * @param TokenStorageInterface|null          $tokenStorage  null without security — the layout is then the shipped composition for everyone
      * @param AuthorizationCheckerInterface|null  $authorization null without security — see {@see self::mayRecord()}
      * @param int                                 $retentionDays patrol.discard_retention_days — the register row states each discarded patrol's removal date from it
@@ -66,6 +67,7 @@ final class PatrolController
         private readonly array $types,
         private readonly bool $recordScreens = false,
         private readonly bool $widgetScreens = false,
+        private readonly bool $manageScreens = false,
         private readonly ?TokenStorageInterface $tokenStorage = null,
         private readonly int $retentionDays = PatrolConfiguration::DEFAULT_DISCARD_RETENTION_DAYS,
         private readonly ?AuthorizationCheckerInterface $authorization = null,
@@ -101,6 +103,7 @@ final class PatrolController
             'typeColor' => PatrolDashboardService::typeColors($this->types),
             'now' => $now,
             'recordScreens' => $this->mayRecord(),
+            'manageScreens' => $this->mayManage(),
             'retentionDays' => $this->retentionDays,
             'widgetScreens' => $this->widgetScreens,
             // Which widgets this person keeps, how wide, in what order — the
@@ -136,6 +139,23 @@ final class PatrolController
         return $this->recordScreens
             && null !== $this->authorization
             && $this->authorization->isGranted(PatrolRecordController::RECORD_PERMISSION);
+    }
+
+    /**
+     * WHETHER TO OFFER THE OBSERVATION-TAXONOMY ADMIN — the same two questions as
+     * {@see self::mayRecord()}, and for the same reason.
+     *
+     * The admin's every route enforces `patrols.manage`, and the screen exists
+     * only where SecurityBundle can enforce it. So the door is drawn only where
+     * the route exists (`$this->manageScreens`, compile-time) AND the viewer
+     * holds the permission — never as a greyed control a manager-less ranger
+     * would click into a 403.
+     */
+    private function mayManage(): bool
+    {
+        return $this->manageScreens
+            && null !== $this->authorization
+            && $this->authorization->isGranted(PatrolTaxonomyController::MANAGE_PERMISSION);
     }
 
     /**

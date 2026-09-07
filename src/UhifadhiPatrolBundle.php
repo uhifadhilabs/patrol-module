@@ -274,6 +274,11 @@ final class UhifadhiPatrolBundle extends AbstractBundle
         // user for the same reason and lives under the same guard; a host without
         // security simply renders the design's default layout for everyone.
         $builder->setParameter('patrol.widget_screens', $hasSecurity);
+        // The observation-taxonomy admin enforces patrols.manage on every route,
+        // so like the recording screens it exists only where SecurityBundle can;
+        // the dashboard links it only where that route is, and only for a viewer
+        // who holds the permission (PatrolController::mayManage()).
+        $builder->setParameter('patrol.manage_screens', $hasSecurity);
 
         /*
          * THE PATROLS DASHBOARD IS A DECLARED WIDGET SURFACE, tagged by hand

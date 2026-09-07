@@ -18,6 +18,14 @@
 {% block shell_page_subtitle %}Field patrol effort across the area — every track, observation and station at a glance.{% endblock %}
 
 {% block shell_page_actions %}
+    {# The observation-taxonomy admin, first in the settled design's action row.
+       Its every route enforces patrols.manage, so the door is drawn only where
+       the route exists AND this viewer may open it (PatrolController::mayManage()) —
+       never a greyed control a ranger without the permission clicks into a 403.
+       → GET patrol_taxonomy — patrols.manage #}
+    {% if manageScreens %}
+        <a class="tgl patrol-act" href="{{ path('patrol_taxonomy', {uuid: area.uuid}) }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg>Observation kinds</a>
+    {% endif %}
     {# The library edits ONE PERSON's layout, so the link exists only where the
        route does (a host running SecurityBundle — see the bundle class). #}
     {% if widgetScreens %}

@@ -179,17 +179,24 @@ final class PatrolDetailPageTest extends WebTestCase
         self::assertCount(0, $crawler->filter('.patrol-zoomui'));
         self::assertStringContainsString($this->patrol->getRef().' · North post · walking round', $crawler->filter('.patrol-ol-id')->text());
 
-        // PL·02 — meta rows, including the computed duration and average speed
-        // (14.2 km over 6 h 20 = 2.24… km/h) and the GPS honesty row.
-        $meta = $crawler->filter('[data-patrol-meta]')->text();
-        self::assertStringContainsString('6 h 20', $meta);
-        self::assertStringContainsString('2.2 km/h', $meta);
-        self::assertStringContainsString('GPX · imported', $meta);
-        self::assertStringContainsString('1,482 · 2 gaps', $meta);
-        self::assertStringContainsString('B. Beta · C. Gamma', $meta);
+        // The identity band — the patrol's own facts in the platform's shared
+        // .factband below the tabs (PL·02 in the settled design is this band, not
+        // a sidebar card): the computed duration and average speed (14.2 km over
+        // 6 h 20 = 2.24… km/h), the source and the GPS honesty facts, the team as
+        // the lead's secondary line, and the started stamp as a machine <time>.
+        $facts = $crawler->filter('.factband')->text();
+        self::assertStringContainsString('North post', $facts);
+        self::assertStringContainsString('6 h 20', $facts);
+        self::assertStringContainsString('2.2', $facts);
+        self::assertStringContainsString('km/h', $facts);
+        self::assertStringContainsString('GPX', $facts);
+        self::assertStringContainsString('imported', $facts);
+        self::assertStringContainsString('1,482', $facts);
+        self::assertStringContainsString('2 gaps', $facts);
+        self::assertStringContainsString('B. Beta · C. Gamma', $facts);
         self::assertStringContainsString(
             strtolower(new \DateTimeImmutable('today 06:10')->format('D j M')).' · 06:10',
-            $meta,
+            $facts,
         );
 
         // PL·03 — the settled discard design's D4 grammar: a bold title per
@@ -235,8 +242,8 @@ final class PatrolDetailPageTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
 
-        // The started and ended meta rows are machine <time> elements.
-        $times = $crawler->filter('[data-patrol-meta] time');
+        // The started and ended identity-band facts are machine <time> elements.
+        $times = $crawler->filter('.factband time');
         self::assertGreaterThanOrEqual(2, $times->count(), 'started and ended render as machine <time> elements.');
 
         // The datetime attribute is the STORED INSTANT — unambiguous across
@@ -273,8 +280,8 @@ final class PatrolDetailPageTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertStringNotContainsString('Export GPX', $crawler->filter('.pghead')->text());
-        self::assertStringContainsString('manual entry', $crawler->filter('[data-patrol-meta]')->text());
-        self::assertStringNotContainsString('gps points', $crawler->filter('[data-patrol-meta]')->text());
+        self::assertStringContainsString('manual entry', $crawler->filter('.factband')->text());
+        self::assertStringNotContainsString('GPS points', $crawler->filter('.factband')->text());
         self::assertStringContainsString('Logged manually', $crawler->filter('[data-patrol-history]')->text());
         self::assertCount(1, $crawler->filter('[data-patrol-observations] .patrol-obs-empty'));
     }
