@@ -1,49 +1,40 @@
-{# Widget "feed" — the patrol feed beside its mini-map (PL·07 + PL·08). Hovering
-   a feed row spotlights that patrol's track on the map next to it, which is
-   what the design's "hover a row to highlight" caption promises. #}
-{% import '@UhifadhiPatrol/dashboard/_ui.html.twig' as ui %}
-<div class="grid g32 patrol-flush">
-    {# Same overflow rule as the log: the feed is the LATEST few, not all of them,
-       so the card stays a fixed size whatever the month's count. The plate beside
-       it still draws every track. #}
-    {% set patrolFeedLimit = 8 %}
-    <div class="c" data-patrol-feed {{ stimulus_controller('@uhifadhi/patrol-module/rows') }}>
-        <span class="tab">Patrol feed<span class="src">· latest first · {{ min(dashboard.patrols|length, patrolFeedLimit) }} of {{ dashboard.totalCount }}</span></span>
-        {% for patrol in dashboard.patrols|slice(0, patrolFeedLimit) %}
-            {# Discarded patrols read quietly here and are drawn on no map: the
-               plate beside this feed is the coverage picture, and a discarded
-               track is absent from its payload. Hovering the row therefore
-               highlights nothing, which is the honest result. #}
-            <div class="patrol-feed-row{{ patrol.discarded ? ' patrol-abandoned' }}" data-patrol="{{ patrol.uuid.toRfc4122 }}" data-patrol-type="{{ patrol.type }}" data-patrol-station="{{ patrol.station }}" data-patrol-zone="{{ patrolZones[patrol.uuid.toRfc4122]|default('') }}"
-                 {{ stimulus_target('@uhifadhi/patrol-module/rows', 'row') }}
-                 {{ stimulus_action('@uhifadhi/patrol-module/rows', 'hover', 'mouseenter') }}
-                 {{ stimulus_action('@uhifadhi/patrol-module/rows', 'unhover', 'mouseleave') }}>
-                <span class="patrol-avatar">{{ ui.initials(patrol.lead) }}</span>
-                <span class="patrol-who">{{ patrol.ref }}<em>{{ patrol.station ?: '—' }} · {{ ui.lead_name(patrol.lead) }}</em></span>
-                {{ ui.type_chip(patrol.type, types, typeColor) }}
-                <span class="patrol-n">{{ ui.started(patrol) }} · {{ ui.distance(patrol) }}</span>
-                {% if patrol.observations|length %}<span class="chip warn">{{ patrol.observations|length }} obs</span>{% endif %}
-                {# One geometry throughout, as the design rules for the row: the
-                   chip carries the state and nothing else does. The reason is
-                   not repeated here — it lives on the register row and on the
-                   detail page. #}
-                {% if patrol.discarded %}
-                    <span class="chip {{ patrol.held ? 'warn' : 'patrol-discard-pill' }}">{{ patrol.held ? 'held for review' : 'discarded' }}</span>
-                {% endif %}
-                <span class="patrol-spacer"></span>
-                <a class="open-btn" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">Open →</a>
-            </div>
-        {% else %}
-            <p class="patrol-empty">No patrols recorded yet.</p>
-        {% endfor %}
-        {% if dashboard.patrols|length %}
-            <p class="patrol-empty patrol-hidden" {{ stimulus_target('@uhifadhi/patrol-module/rows', 'empty') }}>No patrols of that type this month.</p>
-        {% endif %}
-    </div>
+{# Widget "feed" — the patrol feed (PL·07), a single full-width card.
 
-    <div class="c">
-        <span class="tab">Tracks<span class="src">· hover a row to highlight</span></span>
-        {{ ui.viewer(coveragePayload, 'Patrol tracks') }}
-        {{ ui.legend(types, typeColor) }}
-    </div>
+   THE BURIED SECOND MAP IS GONE (owner ruling 2026-09-08): the feed used to sit
+   beside a second Tracks plate that drew the identical payload the coverage map
+   (PL·05) already leads with. A map buried beside a feed is redundant with the
+   one that leads below the KPIs, so the feed now takes the full width on its own.
+   The row still carries its patrol id so a coverage map elsewhere on the page can
+   still spotlight the track a row names. #}
+{% import '@UhifadhiPatrol/dashboard/_ui.html.twig' as ui %}
+{# Same overflow rule as the log: the feed is the LATEST few, not all of them,
+   so the card stays a fixed size whatever the month's count. #}
+{% set patrolFeedLimit = 8 %}
+<div class="c" data-patrol-feed {{ stimulus_controller('@uhifadhi/patrol-module/rows') }}>
+    <span class="tab">Patrol feed<span class="src">· latest first · {{ min(dashboard.patrols|length, patrolFeedLimit) }} of {{ dashboard.totalCount }}</span></span>
+    {% for patrol in dashboard.patrols|slice(0, patrolFeedLimit) %}
+        {# Discarded patrols read quietly here: the chip carries the state and
+           nothing else does — the reason lives on the register row and the
+           detail page. #}
+        <div class="patrol-feed-row{{ patrol.discarded ? ' patrol-abandoned' }}" data-patrol="{{ patrol.uuid.toRfc4122 }}" data-patrol-type="{{ patrol.type }}" data-patrol-station="{{ patrol.station }}" data-patrol-zone="{{ patrolZones[patrol.uuid.toRfc4122]|default('') }}"
+             {{ stimulus_target('@uhifadhi/patrol-module/rows', 'row') }}
+             {{ stimulus_action('@uhifadhi/patrol-module/rows', 'hover', 'mouseenter') }}
+             {{ stimulus_action('@uhifadhi/patrol-module/rows', 'unhover', 'mouseleave') }}>
+            <span class="patrol-avatar">{{ ui.initials(patrol.lead) }}</span>
+            <span class="patrol-who">{{ patrol.ref }}<em>{{ patrol.station ?: '—' }} · {{ ui.lead_name(patrol.lead) }}</em></span>
+            {{ ui.type_chip(patrol.type, types, typeColor) }}
+            <span class="patrol-n">{{ ui.started(patrol) }} · {{ ui.distance(patrol) }}</span>
+            {% if patrol.observations|length %}<span class="chip warn">{{ patrol.observations|length }} obs</span>{% endif %}
+            {% if patrol.discarded %}
+                <span class="chip {{ patrol.held ? 'warn' : 'patrol-discard-pill' }}">{{ patrol.held ? 'held for review' : 'discarded' }}</span>
+            {% endif %}
+            <span class="patrol-spacer"></span>
+            <a class="open-btn" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">Open →</a>
+        </div>
+    {% else %}
+        <p class="patrol-empty">No patrols recorded yet.</p>
+    {% endfor %}
+    {% if dashboard.patrols|length %}
+        <p class="patrol-empty patrol-hidden" {{ stimulus_target('@uhifadhi/patrol-module/rows', 'empty') }}>No patrols of that type this month.</p>
+    {% endif %}
 </div>

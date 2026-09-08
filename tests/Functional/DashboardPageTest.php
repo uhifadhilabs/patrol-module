@@ -188,10 +188,11 @@ final class DashboardPageTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-patrol-calendar] .patrol-dc.patrol-today'));
         self::assertCount(3, $crawler->filter('[data-patrol-calendar] .patrol-daypill'));
 
-        // Coverage map: both viewers carry the Stimulus controller, and the
-        // payload holds the area boundary plus every track.
+        // Coverage map: the shipped dashboard now carries ONE map (the buried
+        // second map beside the feed was dropped — owner ruling), and its payload
+        // holds the area boundary plus every track.
         $maps = $crawler->filter('[data-controller="uhifadhi--patrol-module--coverage-map"]');
-        self::assertCount(2, $maps);
+        self::assertCount(1, $maps);
         $payload = json_decode(
             (string) $maps->first()->attr('data-uhifadhi--patrol-module--coverage-map-payload-value'),
             true,
@@ -216,7 +217,7 @@ final class DashboardPageTest extends WebTestCase
         // module builds zoom, DIM, the base-layer menu and fullscreen into the
         // frame, so neither repo keeps a copy of that markup. What this page
         // must ship is the frame the chrome mounts into.
-        self::assertCount(2, $crawler->filter('.patrol-viewer .patrol-canvas'));
+        self::assertCount(1, $crawler->filter('.patrol-viewer .patrol-canvas'));
         self::assertCount(0, $crawler->filter('.patrol-zoomui'));
 
         // ...but the chrome it mounts is STYLED by map-module's map.css, which the
