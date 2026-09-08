@@ -1,7 +1,14 @@
 {# Widget "log" — the patrol log table (PL·06). #}
 {% import '@UhifadhiPatrol/dashboard/_ui.html.twig' as ui %}
+{# OVERFLOW RULE (owner: an overview card never grows with data). The register is
+   the LATEST N, not all of them — the same latest-N idiom the design draws and the
+   incidents register uses (slice + "latest N of M"), so a month of 140 patrols
+   leaves this card the same height as a month of 8. The whole month is still on
+   the map (every track) and the calendar (a pill per day); this card is the recent
+   window onto it. #}
+{% set patrolLogLimit = 8 %}
 <div class="c" data-patrol-log {{ stimulus_controller('@uhifadhi/patrol-module/rows') }}>
-    <span class="tab">Patrol log<span class="src">· patrol · latest {{ dashboard.patrols|length }}</span></span>
+    <span class="tab">Patrol log<span class="src">· patrol · latest {{ min(dashboard.patrols|length, patrolLogLimit) }} of {{ dashboard.totalCount }}</span></span>
     {{ ui.filters(dashboard, types, typeColor) }}
     <table class="tbl">
         <thead>
@@ -25,7 +32,7 @@
             </tr>
         </thead>
         <tbody>
-        {% for patrol in dashboard.patrols %}
+        {% for patrol in dashboard.patrols|slice(0, patrolLogLimit) %}
             <tr class="{{ patrol.discarded ? 'patrol-abandoned' }}" data-patrol="{{ patrol.uuid.toRfc4122 }}" data-patrol-type="{{ patrol.type }}" data-patrol-station="{{ patrol.station }}"
                 {{ stimulus_target('@uhifadhi/patrol-module/rows', 'row') }}
                 {{ stimulus_action('@uhifadhi/patrol-module/rows', 'hover', 'mouseenter') }}

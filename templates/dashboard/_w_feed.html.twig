@@ -3,9 +3,13 @@
    what the design's "hover a row to highlight" caption promises. #}
 {% import '@UhifadhiPatrol/dashboard/_ui.html.twig' as ui %}
 <div class="grid g32 patrol-flush">
+    {# Same overflow rule as the log: the feed is the LATEST few, not all of them,
+       so the card stays a fixed size whatever the month's count. The plate beside
+       it still draws every track. #}
+    {% set patrolFeedLimit = 8 %}
     <div class="c" data-patrol-feed {{ stimulus_controller('@uhifadhi/patrol-module/rows') }}>
-        <span class="tab">Patrol feed<span class="src">· latest first</span></span>
-        {% for patrol in dashboard.patrols %}
+        <span class="tab">Patrol feed<span class="src">· latest first · {{ min(dashboard.patrols|length, patrolFeedLimit) }} of {{ dashboard.totalCount }}</span></span>
+        {% for patrol in dashboard.patrols|slice(0, patrolFeedLimit) %}
             {# Discarded patrols read quietly here and are drawn on no map: the
                plate beside this feed is the coverage picture, and a discarded
                track is absent from its payload. Hovering the row therefore

@@ -176,6 +176,46 @@ final class CalendarFragmentTest extends WebTestCase
         self::assertCount(1, $crawler->filter('.patrol-dc.patrol-out .patrol-daypill'));
     }
 
+    /**
+     * OVERFLOW RULE (owner: a day cell never grows with data). A day with more
+     * patrols than the cell caps folds the extras into a "+N more" chip — the
+     * Google-Calendar / FullCalendar pattern — so the box keeps its height. The
+     * chip's popover lists every patrol on the day, each a link to its detail.
+     */
+    public function testABusyDayFoldsExtraPatrolsIntoAMoreChip(): void
+    {
+        // Five patrols on one ordinary August day — past the cell's three-chip cap.
+        for ($i = 0; $i < 5; ++$i) {
+            $this->em->persist(new Patrol($this->area, 'walk')
+                ->setStation('North post')
+                ->setStartedAt(new \DateTimeImmutable(\sprintf('2019-08-15 %02d:00', 6 + $i))));
+        }
+        $this->em->flush();
+
+        $crawler = $this->client->request('GET', $this->url());
+
+        self::assertResponseIsSuccessful();
+
+        // Exactly one day overflows, and it FOLDS rather than growing: two pills
+        // are shown and the rest go into "+3 more" (five on the day, cap three).
+        $fold = $crawler->filter('.patrol-morechip');
+        self::assertCount(1, $fold);
+        self::assertSame('+3 more', trim($fold->text()));
+
+        // The popover lists every patrol on the day, each a link to its detail.
+        $hrefs = $crawler->filter('.patrol-morepop .patrol-morepop-row')
+            ->each(static fn ($node): string => (string) $node->attr('href'));
+        self::assertCount(5, $hrefs);
+        foreach ($hrefs as $href) {
+            self::assertStringContainsString('/modules/patrols/', $href);
+        }
+        self::assertStringContainsString('5 patrols', (string) $crawler->filter('.patrol-morepop-hd')->text());
+
+        // The busy day still shows only two pills in the cell itself; the other
+        // days keep their single pill — four in setUp minus none, plus two here.
+        self::assertCount(4 + 2, $crawler->filter('.patrol-daypill'));
+    }
+
     public function testEveryCalendarItemOpensThatPatrol(): void
     {
         $crawler = $this->client->request('GET', $this->url());

@@ -253,6 +253,39 @@ final class DashboardPageTest extends WebTestCase
     }
 
     /**
+     * OVERFLOW RULE (owner: an overview card never grows with data). The log and
+     * the feed show the LATEST few of the month, not all of them, so a month of
+     * many patrols leaves the two cards the same height as a quiet one. The whole
+     * month is still on the map and the calendar — this is the recent window.
+     */
+    public function testTheLogAndFeedAreCappedToTheLatestFewOfTheMonth(): void
+    {
+        // Push this month well past the cards' cap of eight (3 already exist).
+        $monthStart = new \DateTimeImmutable('first day of this month')->setTime(8, 0);
+        for ($i = 0; $i < 10; ++$i) {
+            $this->em->persist(new Patrol($this->area, 'walk')
+                ->setStation('North post')
+                ->setStartedAt($monthStart->modify(\sprintf('+%d minutes', $i))));
+        }
+        $this->em->flush();
+
+        $crawler = $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols');
+
+        self::assertResponseIsSuccessful();
+
+        // Thirteen patrols this month, but each card renders only the latest eight
+        // and says so ("latest 8 of 13").
+        self::assertCount(8, $crawler->filter('[data-patrol-log] tbody tr[data-patrol]'));
+        self::assertSelectorTextContains('[data-patrol-log] .tab .src', 'latest 8 of 13');
+        self::assertCount(8, $crawler->filter('[data-patrol-feed] .patrol-feed-row'));
+        self::assertSelectorTextContains('[data-patrol-feed] .tab .src', '8 of 13');
+
+        // The KPI still counts the whole month — the cap is on the card, not the
+        // month.
+        self::assertSelectorTextContains('[data-kpi="month"] .kpi b', '13');
+    }
+
+    /**
      * PL·03 with nothing to measure: an area whose month holds only hand-logged
      * patrols has no geometry to buffer, so the plate shows the design's empty
      * state — an em dash and the same caption — never a false 0 %.

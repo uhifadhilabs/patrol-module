@@ -241,8 +241,13 @@ button.patrol-menu-item {
 .patrol-calnav { display: flex; gap: 8px; align-items: center; margin-top: 2px; }
 .patrol-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; }
 .patrol-dh { font: 600 9.5px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: rgb(var(--c-fog)); padding: 2px 4px; }
+/* FIXED HEIGHT (owner overflow rule): a day cell never grows with the number of
+   patrols. It holds the day number and up to three chips (the third is the
+   "+N more" fold on a busy day); anything more lives in the fold's popover, not
+   in a taller cell. Only the day cells are sized — the weekday header row keeps
+   its own height. */
 .patrol-dc {
-    border: 1px solid var(--c-ln); border-radius: 9px; min-height: 78px; padding: 22px 6px 6px;
+    border: 1px solid var(--c-ln); border-radius: 9px; height: 106px; padding: 22px 6px 6px;
     position: relative; display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
     background: color-mix(in srgb, rgb(var(--c-fog)) 3%, transparent);
 }
@@ -533,6 +538,56 @@ button.patrol-menu-item {
 @media (hover: none) {
     .patrol-pop { display: none; }
 }
+
+/* ---- calendar day overflow: the "+N more" fold (owner overflow rule) ------ */
+/* Past the cell's cap the extra patrols fold into this chip so the cell keeps
+   its height. The chip is a native <summary> (click and keyboard, no JS, and it
+   survives a month swap), styled like the filter row's dashed ghost chip so it
+   reads as one of the calendar's own controls. */
+.patrol-daymore { position: relative; }
+.patrol-morechip {
+    display: inline-flex; align-items: center; list-style: none; cursor: pointer;
+    font: 600 9.5px var(--font-mono); letter-spacing: .04em; color: rgb(var(--c-fog));
+    border: 1px dashed var(--c-ln2); border-radius: 999px; padding: 2px 8px;
+}
+.patrol-morechip::-webkit-details-marker { display: none; }
+.patrol-morechip::marker { content: ''; }
+.patrol-morechip:hover { color: rgb(var(--c-tx)); border-color: rgb(var(--c-fog)); }
+.patrol-daymore[open] > .patrol-morechip {
+    color: rgb(var(--c-acc)); border-color: color-mix(in srgb, rgb(var(--c-acc)) 55%, transparent);
+}
+/* The open cell rises above its neighbours so the panel is never covered. */
+.patrol-dc:has(.patrol-daymore[open]) { z-index: 43; }
+
+/* The panel: absolutely positioned so opening it OVERLAYS the grid rather than
+   growing the cell — the whole point of the fold. Same card chrome and edge
+   manners as the per-pill hover card. */
+.patrol-morepop {
+    position: absolute; z-index: 43; top: calc(100% + 6px); left: 0;
+    display: flex; flex-direction: column; gap: 2px;
+    width: max-content; min-width: 184px; max-width: 248px; max-height: 260px; overflow-y: auto;
+    padding: 9px 10px; border: 1px solid var(--c-ln2); border-radius: 9px;
+    background: rgb(var(--c-cv)); box-shadow: var(--shadow); text-align: left; white-space: normal;
+}
+.patrol-morepop-hd {
+    font: 600 9px var(--font-mono); letter-spacing: .12em; text-transform: uppercase;
+    color: rgb(var(--c-dim)); padding: 1px 2px 6px; margin-bottom: 3px; border-bottom: 1px solid var(--c-ln);
+}
+.patrol-morepop-row {
+    display: flex; align-items: center; gap: 8px; padding: 4px 2px; border-radius: 7px;
+    text-decoration: none; white-space: nowrap;
+}
+.patrol-morepop-row:hover { background: color-mix(in srgb, rgb(var(--c-acc)) 6%, transparent); }
+.patrol-morepop-meta {
+    font: 500 10px var(--font-mono); color: rgb(var(--c-dim));
+    overflow: hidden; text-overflow: ellipsis;
+}
+.patrol-morepop-row.patrol-abandoned .chip.patrol-tchip { opacity: .55; border-style: dashed; }
+/* The last column and the last two rows open the panel the other way, so a fold
+   at the edge of the grid never spills off the card (mirrors the pill popover). */
+.patrol-cal > .patrol-dc:nth-child(7n) .patrol-morepop,
+.patrol-cal > .patrol-dc:nth-child(7n-1) .patrol-morepop { left: auto; right: 0; }
+.patrol-cal > .patrol-dc:nth-child(n+36) .patrol-morepop { top: auto; bottom: calc(100% + 6px); }
 
 /* ---- observation cycling (appended block — detail-surfaces work) --------- */
 /* Prev/next arrows in the observation page header, so the patrol's

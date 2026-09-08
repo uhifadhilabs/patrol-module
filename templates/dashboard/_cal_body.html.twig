@@ -33,9 +33,19 @@
             <div class="patrol-dh">{{ day }}</div>
         {% endfor %}
         {% for cell in cells %}
+            {# OVERFLOW RULE (owner: a day cell never grows with data). A day with
+               three or fewer patrols draws them all; a busier day draws the first
+               two and folds the rest into a "+N more" chip (the Google-Calendar /
+               FullCalendar pattern), so the cell — and the whole calendar box —
+               stays a fixed height whatever the month's count. The chip opens a
+               popover listing every patrol on the day, each a link to its detail. #}
+            {% set dayLimit = 3 %}
+            {% set dayTotal = cell.patrols|length %}
+            {% set dayOverflow = dayTotal > dayLimit %}
+            {% set dayShown = dayOverflow ? cell.patrols|slice(0, dayLimit - 1) : cell.patrols %}
             <div class="patrol-dc{{ cell.outside ? ' patrol-out' }}{{ cell.today ? ' patrol-today' }}">
                 <span class="patrol-dn">{{ cell.date|date('j') }}</span>
-                {% for patrol in cell.patrols %}
+                {% for patrol in dayShown %}
                     {# The pill IS the link: clicking anywhere on it — chip or the
                        popover it opens — goes to that patrol's detail page, the
                        same destination the log's "Open →" leads to. #}
@@ -75,6 +85,24 @@
                         </span>
                     </a>
                 {% endfor %}
+                {# THE OVERFLOW CHIP. A native <details>, so it opens on click and
+                   from the keyboard with no JavaScript, and survives a month swap.
+                   The panel is absolutely positioned (patrol.css), so opening it
+                   overlays the grid rather than growing the cell. #}
+                {% if dayOverflow %}
+                    <details class="patrol-daymore">
+                        <summary class="patrol-morechip">+{{ dayTotal - (dayLimit - 1) }} more</summary>
+                        <span class="patrol-morepop" role="group" aria-label="All patrols on {{ cell.date|date('D j M')|lower }}">
+                            <span class="patrol-morepop-hd">{{ cell.date|date('D j M')|lower }} · {{ dayTotal }} patrols</span>
+                            {% for patrol in cell.patrols %}
+                                <a class="patrol-morepop-row{{ patrol.discarded ? ' patrol-abandoned' }}" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">
+                                    <span class="chip patrol-tchip" style="--patrol-track: {{ ui.color(typeColor, patrol.type) }}">{{ patrol.ref }}</span>
+                                    <span class="patrol-morepop-meta">{{ types[patrol.type].label|default(patrol.type)|lower }}{% if patrol.station %} · {{ patrol.station }}{% endif %}{% if patrol.startedAt %} · <time datetime="{{ patrol.startedAt|date('c') }}" data-localtime-format="time">{{ patrol.startedAt|date('H:i') }}</time>{% endif %}</span>
+                                </a>
+                            {% endfor %}
+                        </span>
+                    </details>
+                {% endif %}
                 {# DEFERRED(planned): the design shows "planned" pills on future
                    days; the bundle has no planned-patrol concept. #}
             </div>
