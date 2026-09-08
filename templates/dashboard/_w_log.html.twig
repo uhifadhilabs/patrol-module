@@ -9,7 +9,7 @@
 {% set patrolLogLimit = 8 %}
 <div class="c" data-patrol-log {{ stimulus_controller('@uhifadhi/patrol-module/rows') }}>
     <span class="tab">Patrol log<span class="src">· patrol · latest {{ min(dashboard.patrols|length, patrolLogLimit) }} of {{ dashboard.totalCount }}</span></span>
-    {{ ui.filters(dashboard, types, typeColor, now) }}
+    {{ ui.filters(dashboard, types, typeColor, now, area, month|default(now)) }}
     <table class="tbl">
         <thead>
             <tr>
@@ -33,7 +33,7 @@
         </thead>
         <tbody>
         {% for patrol in dashboard.patrols|slice(0, patrolLogLimit) %}
-            <tr class="{{ patrol.discarded ? 'patrol-abandoned' }}" data-patrol="{{ patrol.uuid.toRfc4122 }}" data-patrol-type="{{ patrol.type }}" data-patrol-station="{{ patrol.station }}"
+            <tr class="{{ patrol.discarded ? 'patrol-abandoned' }}" data-patrol="{{ patrol.uuid.toRfc4122 }}" data-patrol-type="{{ patrol.type }}" data-patrol-station="{{ patrol.station }}" data-patrol-zone="{{ patrolZones[patrol.uuid.toRfc4122]|default('') }}"
                 {{ stimulus_target('@uhifadhi/patrol-module/rows', 'row') }}
                 {{ stimulus_action('@uhifadhi/patrol-module/rows', 'hover', 'mouseenter') }}
                 {{ stimulus_action('@uhifadhi/patrol-module/rows', 'unhover', 'mouseleave') }}>

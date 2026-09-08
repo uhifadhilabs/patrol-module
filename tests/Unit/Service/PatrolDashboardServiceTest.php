@@ -58,19 +58,104 @@ final class PatrolDashboardServiceTest extends TestCase
             $this->patrol('walk', '2026-03-20T06:00:00Z', 10.0, 'North post', observations: 2),
             $this->patrol('walk', '2026-03-05T06:00:00Z', 4.5),
             $this->patrol('boat', '2026-03-19T08:00:00Z', 20.5),
-            // Previous month — excluded from month KPIs, still in the log.
+            // Previous month — the map, log and chips all read ONE month, so this
+            // one is out of every figure (it still shows on the calendar, dimmed,
+            // and in the five-week chart, which reach past the month by design).
             $this->patrol('walk', '2026-02-27T06:00:00Z', 7.0),
         ], self::TYPES, $this->now);
 
         self::assertSame(3, $dashboard->monthCount);
         self::assertEqualsWithDelta(35.0, $dashboard->monthDistanceKm, 0.001);
         self::assertSame(['walk' => 2, 'boat' => 1], $dashboard->monthTypeCounts);
-        // Type counts over ALL listed patrols drive the filter chips.
-        self::assertSame(['walk' => 3, 'boat' => 1], $dashboard->typeCounts);
-        self::assertSame(4, $dashboard->totalCount);
-        // Last patrol: the latest start.
+        // The map + log read the month, so the log rows are the month's only.
+        self::assertCount(3, $dashboard->patrols);
+        // Type counts and the total drive the filter chips, and they too are the
+        // month's — the previous month's walk is not among them.
+        self::assertSame(['walk' => 2, 'boat' => 1], $dashboard->typeCounts);
+        self::assertSame(3, $dashboard->totalCount);
+        // Last patrol: the latest start in the month.
         self::assertNotNull($dashboard->lastPatrol);
         self::assertSame('North post', $dashboard->lastPatrol->getStation());
+    }
+
+    /**
+     * THE MONTH FILTER re-scopes the whole screen: handed a month, the map, log
+     * and chips read THAT month, not the one containing "now". This is the fix for
+     * the dead month indicator — a selected month drives everything.
+     */
+    public function testAChosenMonthReScopesTheMapLogAndChips(): void
+    {
+        $patrols = [
+            $this->patrol('walk', '2026-03-20T06:00:00Z', 10.0, 'North post'),
+            $this->patrol('boat', '2026-03-19T08:00:00Z', 20.5, 'Jetty'),
+            $this->patrol('walk', '2026-02-27T06:00:00Z', 7.0, 'North post'),
+            $this->patrol('walk', '2026-02-10T06:00:00Z', 3.0, 'North post'),
+        ];
+
+        // Ask for FEBRUARY explicitly, though "now" is in March.
+        $february = new \DateTimeImmutable('2026-02-01T00:00:00Z');
+        $dashboard = new PatrolDashboardService()->build($patrols, self::TYPES, $this->now, null, $february);
+
+        self::assertSame(2, $dashboard->monthCount);
+        self::assertCount(2, $dashboard->patrols, 'The log reads the chosen month, not the current one.');
+        self::assertSame(['walk' => 2, 'boat' => 0], $dashboard->typeCounts);
+        self::assertSame(2, $dashboard->totalCount);
+        // The calendar is the chosen month too: February 2026 begins on a Sunday,
+        // so a Monday-start grid opens on Jan 26.
+        self::assertSame('2026-01-26', $dashboard->calendar[0]['date']->format('Y-m-d'));
+    }
+
+    /**
+     * THE ZONE FILTER's menu is the distinct zones the month's patrols set out in,
+     * sorted — computed from the spatial join the caller hands in (patrol id →
+     * zone name), never a stored field. A patrol absent from the map (no track, so
+     * no zone) contributes nothing.
+     */
+    public function testZonesListTheDistinctZonesTheMonthsPatrolsSetOutIn(): void
+    {
+        $north = $this->patrol('walk', '2026-03-20T06:00:00Z', 10.0, 'North post');
+        $ridge = $this->patrol('boat', '2026-03-19T08:00:00Z', 20.5, 'Ridge camp');
+        $northAgain = $this->patrol('walk', '2026-03-18T06:00:00Z', 4.0, 'North post');
+        $unzoned = $this->patrol('walk', '2026-03-17T06:00:00Z', 2.0, 'Lake post');
+
+        $patrolZones = [
+            $north->getUuid()->toRfc4122() => 'Highland',
+            $ridge->getUuid()->toRfc4122() => 'Crater floor',
+            $northAgain->getUuid()->toRfc4122() => 'Highland',
+            // $unzoned is absent — its start fell in no zone.
+        ];
+
+        $dashboard = new PatrolDashboardService()->build(
+            [$north, $ridge, $northAgain, $unzoned],
+            self::TYPES,
+            $this->now,
+            null,
+            null,
+            $patrolZones,
+        );
+
+        // Distinct and sorted, one entry per zone however many patrols fell in it.
+        self::assertSame(['Crater floor', 'Highland'], $dashboard->zones);
+    }
+
+    /**
+     * The LOAD window is wider than the month: it must cover the calendar grid's
+     * dimmed neighbours and the five-week chart's reach before the month, so a
+     * single query feeds all three.
+     */
+    public function testLoadRangeSpansTheMonthItsGridAndTheFiveWeekChart(): void
+    {
+        // March 2026, viewed from within it.
+        [$from, $until] = PatrolDashboardService::loadRange(
+            new \DateTimeImmutable('2026-03-01T00:00:00Z'),
+            $this->now,
+        );
+
+        // The grid opens on Feb 23 (Monday before Mar 1, a Sunday); the five weeks
+        // to Mar 21 open on Feb 16. The wider of the two wins.
+        self::assertSame('2026-02-16 00:00:00', $from->format('Y-m-d H:i:s'));
+        // The grid ends 42 days after Feb 23 — Apr 6 — past the month's own close.
+        self::assertSame('2026-04-06 00:00:00', $until->format('Y-m-d H:i:s'));
     }
 
     /**

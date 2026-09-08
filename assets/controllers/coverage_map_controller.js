@@ -16,14 +16,14 @@ import LeafletPlate, { endpoints, parseGeometry } from '../leaflet_plate.js';
  *
  * One filter drives the map AND the log (the design's caption). The chips live
  * in a different widget, so they travel as document events:
- *   patrol:filter    {type, station}  — 'all' or a patrol type key / station name
+ *   patrol:filter    {type, station, zone}  — 'all' or a patrol type key / station / zone name
  *   patrol:highlight {uuid}           — a log row under the cursor, null on leave
  */
 export default class extends LeafletPlate {
     connect() {
         this.tracks = new Map();
         this.stations = new Map();
-        this.filter = { type: 'all', station: 'all' };
+        this.filter = { type: 'all', station: 'all', zone: 'all' };
 
         this.onFilter = (event) => this.applyFilter(event.detail ?? {});
         this.onHighlight = (event) => this.highlight(event.detail?.uuid ?? null);
@@ -99,9 +99,9 @@ export default class extends LeafletPlate {
         this.fitTo(bounds);
     }
 
-    /** Show only the tracks the chips select — 'all'/'all' shows every one. */
-    applyFilter({ type = 'all', station = 'all' }) {
-        this.filter = { type, station };
+    /** Show only the tracks the chips select — all/all/all shows every one. */
+    applyFilter({ type = 'all', station = 'all', zone = 'all' }) {
+        this.filter = { type, station, zone };
 
         const standing = new Set();
         for (const entry of this.tracks.values()) {
@@ -124,10 +124,11 @@ export default class extends LeafletPlate {
     }
 
     matches(patrol) {
-        const { type, station } = this.filter;
+        const { type, station, zone } = this.filter;
 
         return (type === 'all' || patrol.type === type)
-            && (station === 'all' || patrol.station === station);
+            && (station === 'all' || patrol.station === station)
+            && (zone === 'all' || (patrol.zone ?? '') === zone);
     }
 
     /** Hovering a log row spotlights its track; everything else falls back. */

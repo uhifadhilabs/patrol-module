@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Controller;
 
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
@@ -77,14 +78,27 @@ final class PatrolController
     #[Route('/areas/{uuid}/modules/patrols', name: 'patrol_dashboard', requirements: ['uuid' => Requirement::UUID], methods: ['GET'])]
     public function dashboard(
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
+        Request $request,
     ): Response {
         // "now" is injected into the pure dashboard service (never read from a
         // clock inside it) and handed to the template too — the last-patrol KPI
         // and the calendar title are stated relative to the SAME instant.
         $now = new \DateTimeImmutable();
 
+        // ONE FILTER DRIVES EVERYTHING: the MONTH the map, log and charts read is
+        // the ?month=YYYY-MM the month dropdown drives, defaulting to the month
+        // containing "now". Untrusted like every query field — a month that does
+        // not parse degrades to the current month rather than throwing.
+        [$monthStart, $nextMonth] = self::windowFor($request, $now);
+
+        // The rows to LOAD are wider than the month: the calendar draws its dimmed
+        // neighbours and the five-week chart runs back before the month — one
+        // window covers all three, and the service buckets each widget within it.
+        [$loadFrom, $loadUntil] = PatrolDashboardService::loadRange($monthStart, $now);
+        $patrols = $this->patrols->findByAreaStartedBetweenLatestFirst($area, $loadFrom, $loadUntil);
+
         $dashboard = $this->dashboard->build(
-            $this->patrols->findByAreaLatestFirst($area),
+            $patrols,
             $this->types,
             $now,
             // PL·03 is the one month figure the loaded rows cannot answer: it is
@@ -93,8 +107,13 @@ final class PatrolController
             $this->patrols->coverageFractionWithin(
                 $area,
                 PatrolDashboardService::COVERAGE_BUFFER_M,
-                ...PatrolDashboardService::monthRange($now),
+                $monthStart,
+                $nextMonth,
             ),
+            $monthStart,
+            // The ZONE each patrol set out in — a live PostGIS spatial join
+            // against the host's zone polygons, over exactly the month's rows.
+            $patrolZones = $this->patrols->zonesForPatrols($area, $monthStart, $nextMonth),
         );
 
         return new Response($this->twig->render('@UhifadhiPatrol/dashboard/show.html.twig', [
@@ -102,6 +121,12 @@ final class PatrolController
             'types' => $this->types,
             'typeColor' => PatrolDashboardService::typeColors($this->types),
             'now' => $now,
+            // The month on screen — the filter's choice, so the bar can name it
+            // and mark the chosen option, and the page can read one month.
+            'month' => $monthStart,
+            // patrol id → zone name, so the log rows can carry data-patrol-zone
+            // and the client-side ZONE filter drives the map + log together.
+            'patrolZones' => $patrolZones,
             'recordScreens' => $this->mayRecord(),
             'manageScreens' => $this->mayManage(),
             'retentionDays' => $this->retentionDays,
@@ -111,9 +136,37 @@ final class PatrolController
             // shipped composition until they change it in the widget library.
             'widgets' => $this->widgets->resolve(PatrolWidgets::declaration(), $this->widgetUser(), $area->getUuid()),
             'dashboard' => $dashboard,
-            // What the coverage map draws — boundary + every recorded track.
-            'coveragePayload' => $this->dashboard->coveragePayload($area->getGeom(), $dashboard, $this->types),
+            // What the coverage map draws — boundary + every recorded track this
+            // month, each tagged with the zone it set out in.
+            'coveragePayload' => $this->dashboard->coveragePayload($area->getGeom(), $dashboard, $this->types, $patrolZones),
         ]));
+    }
+
+    /**
+     * THE MONTH THE DASHBOARD OPENS ON — the `month=YYYY-MM` the month dropdown
+     * drives, or the month containing "now" when it is absent or unreadable.
+     *
+     * Untrusted like every other query field: a hand-edited month that does not
+     * parse degrades to the current month rather than throwing. Mirrors the
+     * incidents dashboard's own window resolution, so the two modules read a
+     * chosen month the same way.
+     *
+     * @return array{0: \DateTimeImmutable, 1: \DateTimeImmutable} [monthStart, nextMonth]
+     */
+    public static function windowFor(Request $request, \DateTimeImmutable $now): array
+    {
+        // getString() is deliberate: a query bag holding an ARRAY for "month" is
+        // a bad request, and this coerces it to '' rather than letting an array
+        // reach the parse.
+        $month = trim($request->query->getString('month'));
+        if ('' !== $month) {
+            $parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', $month.'-01');
+            if (false !== $parsed) {
+                return PatrolDashboardService::monthRange($parsed);
+            }
+        }
+
+        return PatrolDashboardService::monthRange($now);
     }
 
     /**

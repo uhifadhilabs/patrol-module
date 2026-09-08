@@ -49,20 +49,29 @@
     {%- if user -%}{{ user.firstName|first }}{{ user.lastName|first }}{%- else -%}··{%- endif -%}
 {% endmacro %}
 
-{# One filter row drives the map AND the log (the design's own caption). The
-   chips publish a `patrol:filter` document event; every coverage map and every
-   patrol list on the page answers it, and every other chip row re-marks itself,
-   so the row above the map and the row above the log always agree.
+{# One filter row drives the map, the log AND the charts (the design's own
+   caption). It carries FOUR filters, and they split into two kinds on purpose:
 
-   The counts stay server-rendered: filtering is a way of LOOKING at the month,
-   not a different month.
-   The type pills and the station menu both filter, client-side; each type pill
-   wears the colour of the tracks it filters, straight from typeColors().
-   TODO(patrol_period): the "this month ▾" chip still only labels the period —
-   changing it means fetching a different month, not hiding rows.
-   DEFERRED(zones): the design's "zone ▾" chip needs a zone concept the bundle
-   does not have — omitted rather than rendered dead. #}
-{% macro filters(dashboard, types, typeColor, now) %}
+    - TYPE, STATION and ZONE filter CLIENT-SIDE: each publishes a `patrol:filter`
+      document event, and every coverage map and patrol list on the page answers
+      it live, with no reload — patrol's deliberate real-time filtering. Every
+      chip row on the page re-marks itself from the same event, so the row above
+      the map and the row above the log always agree.
+
+          patrol:filter {type, station, zone}
+
+    - MONTH filters SERVER-SIDE: it is a different QUESTION, not a different way of
+      looking at one answer, so each option is a real link that re-queries the
+      whole dashboard for that month (?month=YYYY-MM). This is the incidents
+      "one filter drives everything" idiom — the map, the log and the charts are
+      all scoped to the chosen month, and the type/station/zone chips then filter
+      within it.
+
+   The type pills stay quick toggles (the design draws them so); station, zone and
+   month are dropdowns in the incidents bar's shared chrome (.i-dd*), one open at a
+   time, closed on an outside click or Escape by the filters controller. #}
+{% macro filters(dashboard, types, typeColor, now, area, month) %}
+    {% set month = month|default(now) %}
     <div class="patrol-chiprow" {{ stimulus_controller('@uhifadhi/patrol-module/filters') }}>
         {# TYPE TOGGLES — quick chips, not a dropdown: the design draws them so, and
            the type is the one filter you flick between without opening anything. #}
@@ -81,11 +90,10 @@
         <span class="sep"></span>
 
         {# STATION — a DROPDOWN in the incidents bar's chrome (.i-dd*, ported into
-           patrol.css). ONE FILTER DRIVES MAP AND LOG: each option publishes the
-           patrol:filter document event, so the coverage map and every patrol list
-           re-render together with no reload — patrol's deliberate real-time filter,
-           now wearing the shared dropdown. Open/close (one at a time, Escape,
-           outside-click) is the same controller behaviour incidents uses. #}
+           patrol.css). Each option publishes the patrol:filter document event, so
+           the coverage map and every patrol list re-render together with no
+           reload. Open/close (one at a time, Escape, outside-click) is the same
+           controller behaviour incidents uses. #}
         <span class="i-dd" data-patrol-dd {{ stimulus_target('@uhifadhi/patrol-module/filters', 'stationMenu') }}>
             <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
                     {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
@@ -109,15 +117,60 @@
             </div>
         </span>
 
-        {# MONTH — the period the dashboard covers, stated plainly. Patrol's map and
-           log are all-time by design (the latest patrols and every recorded track);
-           only the counts, the charts and the calendar are bucketed to this month,
-           so there is no month QUERY to drive the map+log the way incidents has one
-           — a period switch is TODO(patrol_period). Rendered as a solid indicator
-           chip, never a dashed dropdown that opens onto nothing.
-           ZONE is omitted, not drawn dead: the bundle has no zone concept to filter
-           by (DEFERRED(zones)), so a zone dropdown would filter nothing. #}
-        <span class="mchip patrol-monthchip">{{ now|date('F Y')|lower }}</span>
+        {# ZONE — the design's zone dropdown, now real: a patrol carries no zone
+           field, so each patrol's zone is computed by a live PostGIS spatial join
+           (PatrolRepository::zonesForPatrols — the zone its track set out in) and
+           the menu lists the zones this month's patrols fall in. Filters
+           client-side exactly like the station menu, publishing patrol:filter. #}
+        <span class="i-dd" data-patrol-dd {{ stimulus_target('@uhifadhi/patrol-module/filters', 'zoneMenu') }}>
+            <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
+                    {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
+                <span class="i-ddval" {{ stimulus_target('@uhifadhi/patrol-module/filters', 'zoneLabel') }}>zone</span><span class="i-ddcaret">&#9662;</span>
+            </button>
+            <div class="i-ddmenu" data-patrol-dd-menu role="listbox" aria-label="Filter by zone">
+                <span class="i-ddhead">zone</span>
+                {% if dashboard.zones|length %}
+                    <button type="button" class="i-ddopt on" role="option" data-patrol-zone="all"
+                            {{ stimulus_target('@uhifadhi/patrol-module/filters', 'zone') }}
+                            {{ stimulus_action('@uhifadhi/patrol-module/filters', 'chooseZone') }}><span class="i-ddopt-l">all zones</span></button>
+                    <span class="i-ddsep"></span>
+                {% endif %}
+                {% for zone in dashboard.zones %}
+                    <button type="button" class="i-ddopt" role="option" data-patrol-zone="{{ zone }}"
+                            {{ stimulus_target('@uhifadhi/patrol-module/filters', 'zone') }}
+                            {{ stimulus_action('@uhifadhi/patrol-module/filters', 'chooseZone') }}><span class="i-ddopt-l">{{ zone }}</span></button>
+                {% else %}
+                    <span class="i-ddopt is-empty" role="option"><span class="i-ddopt-l">no zones yet</span></span>
+                {% endfor %}
+            </div>
+        </span>
+
+        {# MONTH — a real dropdown now, not a dead indicator: this month and the
+           five before it, each a link that re-queries the whole dashboard for that
+           month (?month=YYYY-MM), so the map, log and charts move together. The
+           days are anchored to the first of the month before subtracting, so an
+           overflowing day-of-month never skips a month. A host that never mounted
+           the dashboard route (no `area`) falls back to the plain label. #}
+        {% if area is defined and area %}
+            <span class="i-dd patrol-dd-chosen" data-patrol-dd>
+                <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
+                        {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
+                    <span class="i-ddval">{{ month|date('F Y')|lower }}</span><span class="i-ddcaret">&#9662;</span>
+                </button>
+                <div class="i-ddmenu" data-patrol-dd-menu role="listbox" aria-label="Choose month">
+                    <span class="i-ddhead">month</span>
+                    {% set anchor = now|date_modify('first day of this month') %}
+                    {% for i in 0..5 %}
+                        {% set m = anchor|date_modify('-' ~ i ~ ' months') %}
+                        {% set mKey = m|date('Y-m') %}
+                        <a class="i-ddopt{{ month|date('Y-m') == mKey ? ' on' }}" role="option"
+                           href="{{ path('patrol_dashboard', {uuid: area.uuid, month: mKey}) }}"><span class="i-ddopt-l">{{ m|date('F Y')|lower }}</span></a>
+                    {% endfor %}
+                </div>
+            </span>
+        {% else %}
+            <span class="mchip patrol-monthchip">{{ month|date('F Y')|lower }}</span>
+        {% endif %}
     </div>
 {% endmacro %}
 

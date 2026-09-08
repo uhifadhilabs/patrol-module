@@ -24,10 +24,10 @@ use Uhifadhi\Patrol\Model\PatrolDashboard;
  *
  * A discarded patrol reaches this service and leaves it in exactly one place:
  * `PatrolDashboard::$patrols`, the list the log table and the feed render. It is
- * absent from EVERY figure — the month count, the month distance, the month and
- * all-time type counts, the station ranking, the five-week series, the total,
- * the last-patrol line — and from the coverage map's payload, because a track
- * drawn on the coverage map is a claim about ground covered.
+ * absent from EVERY figure — the month count, the month distance, the type
+ * counts, the station ranking, the five-week series, the total, the last-patrol
+ * line — and from the coverage map's payload, because a track drawn on the
+ * coverage map is a claim about ground covered.
  *
  * The split is deliberate, and the two halves say different things. A discard
  * means "this effort did not happen as recorded", so counting it would report
@@ -121,12 +121,21 @@ final class PatrolDashboardService
      * hand-logged therefore gets no marker — an invented position would be worse
      * than none.
      *
-     * @param string|null                         $boundary the area's geom as GeoJSON text, null where the area has none
-     * @param array<string, array{label: string}> $types    the deployment's patrol.types map
+     * The zone each track is drawn as belonging to (item: zone spatial-join) is
+     * NOT stored on the patrol — a patrol carries a free-text station and no zone
+     * (docs/design-decisions.md §1). It is computed live by a PostGIS spatial
+     * join in the controller ({@see \Uhifadhi\Patrol\Repository\PatrolRepository::zonesForPatrols()})
+     * and handed in as an id→name map, so the ZONE filter drives the map exactly
+     * the way the station filter does — client-side, over data the payload carries.
+     * A track whose start falls in no zone carries the empty string.
      *
-     * @return array{boundary: string|null, patrols: list<array{uuid: string, ref: string, type: string, station: string, color: string, track: string}>, stations: list<array{name: string, lon: float, lat: float}>}
+     * @param string|null                         $boundary    the area's geom as GeoJSON text, null where the area has none
+     * @param array<string, array{label: string}> $types       the deployment's patrol.types map
+     * @param array<string, string>               $patrolZones patrol uuid → zone name, the live spatial join; absent uuids are unzoned
+     *
+     * @return array{boundary: string|null, patrols: list<array{uuid: string, ref: string, type: string, station: string, zone: string, color: string, track: string}>, stations: list<array{name: string, lon: float, lat: float}>}
      */
-    public function coveragePayload(?string $boundary, PatrolDashboard $dashboard, array $types): array
+    public function coveragePayload(?string $boundary, PatrolDashboard $dashboard, array $types, array $patrolZones = []): array
     {
         $colors = self::typeColors($types);
 
@@ -134,6 +143,7 @@ final class PatrolDashboardService
         /** @var array<string, array{name: string, lon: float, lat: float}> $stations */
         $stations = [];
         foreach ($dashboard->patrols as $patrol) {
+            $uuid = $patrol->getUuid()->toRfc4122();
             $track = $patrol->getTrack();
             // Only a COMPLETE patrol is drawn here. This payload is what the
             // coverage map (PL·05) and the tracks plate (PL·08) render, and a
@@ -148,10 +158,11 @@ final class PatrolDashboardService
             }
             $station = $patrol->getStation() ?? '';
             $tracks[] = [
-                'uuid' => $patrol->getUuid()->toRfc4122(),
+                'uuid' => $uuid,
                 'ref' => $patrol->getRef(),
                 'type' => $patrol->getType(),
                 'station' => $station,
+                'zone' => $patrolZones[$uuid] ?? '',
                 'color' => $colors[$patrol->getType()] ?? self::TRACK_COLORS[0],
                 'track' => $track,
             ];
@@ -193,13 +204,60 @@ final class PatrolDashboardService
     }
 
     /**
-     * @param list<Patrol>                        $patrols          latest first
-     * @param array<string, array{label: string}> $types            the deployment's patrol.types map
-     * @param float|null                          $coverageFraction PL·03, queried by the caller (see {@see self::monthRange()}); null where it is unknown
+     * The half-open window the dashboard must LOAD to draw one month — wider than
+     * the month itself, because two of the month's own widgets reach past its
+     * edges: the calendar grid draws the neighbouring months' leading and
+     * trailing days ({@see self::calendarRange()}), and the five-week chart runs
+     * back four weeks before the month's reference week ({@see self::weeklySeries()}).
+     * The controller queries exactly this window and hands the rows to
+     * {@see self::build()}, which buckets each widget to its own sub-window — so
+     * the map and log show the month, the calendar shows its dimmed neighbours,
+     * and the chart still fills.
+     *
+     * @return array{0: \DateTimeImmutable, 1: \DateTimeImmutable} [from, untilExclusive]
      */
-    public function build(array $patrols, array $types, \DateTimeImmutable $now, ?float $coverageFraction = null): PatrolDashboard
+    public static function loadRange(\DateTimeImmutable $month, \DateTimeImmutable $now): array
     {
-        [$monthStart, $nextMonth] = self::monthRange($now);
+        [$monthStart, $nextMonth] = self::monthRange($month);
+        [$gridStart, $gridUntil] = self::calendarRange($month);
+        $anchor = self::weeklyAnchor($month, $now);
+        $weekStart = $anchor->modify('monday this week')->setTime(0, 0)->modify(\sprintf('-%d weeks', self::WEEKS - 1));
+        $weekUntil = $anchor->modify('monday this week')->setTime(0, 0)->modify('+1 week');
+
+        $from = min($monthStart, $gridStart, $weekStart);
+        $until = max($nextMonth, $gridUntil, $weekUntil);
+
+        return [$from, $until];
+    }
+
+    /**
+     * The instant the five-week chart ends on for the month on screen: "now" when
+     * the month contains it (the live current month), else the month's last day —
+     * a past month reads the five weeks up to its own close, not up to today.
+     */
+    private static function weeklyAnchor(\DateTimeImmutable $month, \DateTimeImmutable $now): \DateTimeImmutable
+    {
+        [$monthStart, $nextMonth] = self::monthRange($month);
+        if ($now >= $monthStart && $now < $nextMonth) {
+            return $now;
+        }
+
+        return $nextMonth->modify('-1 day');
+    }
+
+    /**
+     * @param list<Patrol>                        $patrols          latest first, the LOAD window ({@see self::loadRange()})
+     * @param array<string, array{label: string}> $types            the deployment's patrol.types map
+     * @param float|null                          $coverageFraction PL·03, queried by the caller for the month on screen (see {@see self::monthRange()}); null where it is unknown
+     * @param \DateTimeImmutable|null             $month            the month on screen — the MONTH filter's choice; null means the month containing $now
+     * @param array<string, string>               $patrolZones      patrol uuid → zone name (the live spatial join); drives the ZONE filter's menu
+     */
+    public function build(array $patrols, array $types, \DateTimeImmutable $now, ?float $coverageFraction = null, ?\DateTimeImmutable $month = null, array $patrolZones = []): PatrolDashboard
+    {
+        // The map, the log and the charts all read ONE month — the MONTH filter's
+        // choice, defaulting to the month containing "now". The window every "this
+        // month" figure is scoped to.
+        [$monthStart, $nextMonth] = self::monthRange($month ?? $now);
 
         $monthCount = 0;
         $monthDistanceKm = 0.0;
@@ -209,6 +267,7 @@ final class PatrolDashboardService
         $typeCounts = array_fill_keys(array_keys($types), 0);
         /** @var array<string, int> $stationCounts */
         $stationCounts = [];
+        $totalCount = 0;
         $lastPatrol = null;
 
         // TWO SETS, and the difference between them is the whole status model.
@@ -223,32 +282,47 @@ final class PatrolDashboardService
             static fn (Patrol $patrol): bool => $patrol->getStatus()->isPresentable(),
         ));
 
+        // THE MONTH'S presented patrols — the map, the log and the feed read the
+        // month on screen, not all of history (the old all-time list left the
+        // MONTH filter a dead indicator). The calendar and the five-week chart
+        // still read the wider PRESENTED/COUNTED sets below, because they draw
+        // past the month's edges by design.
+        $presentedMonth = array_values(array_filter(
+            $presented,
+            static function (Patrol $patrol) use ($monthStart, $nextMonth): bool {
+                $started = $patrol->getStartedAt();
+
+                return null !== $started && $started >= $monthStart && $started < $nextMonth;
+            },
+        ));
+
         // The COUNTED set is stricter again: nothing below this line may see a
         // discarded patrol or a half-arrived one. The filter happens ONCE rather
-        // than as a condition repeated in six tallies where one could be missed.
+        // than as a condition repeated in the tallies where one could be missed.
         $counted = array_values(array_filter(
             $presented,
             static fn (Patrol $patrol): bool => $patrol->getStatus()->countsTowardsStatistics(),
         ));
 
         foreach ($counted as $patrol) {
-            $typeCounts[$patrol->getType()] = ($typeCounts[$patrol->getType()] ?? 0) + 1;
-
             $started = $patrol->getStartedAt();
-            if (null === $started) {
+            if (null === $started || $started < $monthStart || $started >= $nextMonth) {
                 continue;
             }
+            // Every figure below is the MONTH's: the filter chips, the last-patrol
+            // line and the totals all describe the month the rest of the screen
+            // shows, so they can never disagree with the map beside them.
+            ++$totalCount;
+            $typeCounts[$patrol->getType()] = ($typeCounts[$patrol->getType()] ?? 0) + 1;
             if (null === $lastPatrol || $started > $lastPatrol->getStartedAt()) {
                 $lastPatrol = $patrol;
             }
-            if ($started >= $monthStart && $started < $nextMonth) {
-                ++$monthCount;
-                $monthDistanceKm += $patrol->getDistanceKm() ?? 0.0;
-                $monthTypeCounts[$patrol->getType()] = ($monthTypeCounts[$patrol->getType()] ?? 0) + 1;
-                $station = $patrol->getStation();
-                if (null !== $station && '' !== $station) {
-                    $stationCounts[$station] = ($stationCounts[$station] ?? 0) + 1;
-                }
+            ++$monthCount;
+            $monthDistanceKm += $patrol->getDistanceKm() ?? 0.0;
+            $monthTypeCounts[$patrol->getType()] = ($monthTypeCounts[$patrol->getType()] ?? 0) + 1;
+            $station = $patrol->getStation();
+            if (null !== $station && '' !== $station) {
+                $stationCounts[$station] = ($stationCounts[$station] ?? 0) + 1;
             }
         }
 
@@ -259,21 +333,52 @@ final class PatrolDashboardService
         }
 
         return new PatrolDashboard(
-            patrols: $presented,
+            patrols: $presentedMonth,
             monthCount: $monthCount,
             monthDistanceKm: $monthDistanceKm,
             monthTypeCounts: $monthTypeCounts,
             coverageFraction: $coverageFraction,
             typeCounts: $typeCounts,
-            totalCount: \count($counted),
+            totalCount: $totalCount,
             lastPatrol: $lastPatrol,
-            weeklySeries: $this->weeklySeries($counted, $types, $now),
+            // The five weeks up to the month's reference week — anchored to "now"
+            // for the live month, to the month's close for a past one.
+            weeklySeries: $this->weeklySeries($counted, $types, self::weeklyAnchor($month ?? $now, $now)),
             stationSeries: $stationSeries,
             stations: array_column($stationSeries, 'station'),
-            // The dashboard opens on the CURRENT month; ‹ › then fetches any
-            // other month through the same method (PatrolCalendarController).
-            calendar: $this->calendarFor($presented, $now, $now),
+            // The zones the month's patrols set out in, sorted — the ZONE filter's
+            // menu. Computed by a live PostGIS spatial join, never a stored field.
+            zones: self::zonesPresent($presentedMonth, $patrolZones),
+            // The calendar shows the month on screen; ‹ › then fetches any other
+            // month through the same method (PatrolCalendarController).
+            calendar: $this->calendarFor($presented, $month ?? $now, $now),
         );
+    }
+
+    /**
+     * The distinct zones the month's patrols set out in, sorted for the filter
+     * menu — the spatial join's names, deduplicated. A month whose patrols all
+     * fell outside every zone (or were hand-logged, so had no track to place)
+     * yields an empty list, and the menu says "no zones yet".
+     *
+     * @param list<Patrol>          $patrols     the month's presented patrols
+     * @param array<string, string> $patrolZones patrol uuid → zone name
+     *
+     * @return list<string>
+     */
+    private static function zonesPresent(array $patrols, array $patrolZones): array
+    {
+        $zones = [];
+        foreach ($patrols as $patrol) {
+            $zone = $patrolZones[$patrol->getUuid()->toRfc4122()] ?? '';
+            if ('' !== $zone) {
+                $zones[$zone] = true;
+            }
+        }
+        $names = array_keys($zones);
+        sort($names);
+
+        return $names;
     }
 
     /**
@@ -282,10 +387,12 @@ final class PatrolDashboardService
      *
      * @return list<array{label: string, counts: array<string, int>}>
      */
-    private function weeklySeries(array $patrols, array $types, \DateTimeImmutable $now): array
+    private function weeklySeries(array $patrols, array $types, \DateTimeImmutable $anchor): array
     {
-        // Five Monday-start weeks, oldest first, the current week last.
-        $thisWeekStart = $now->modify('monday this week')->setTime(0, 0);
+        // Five Monday-start weeks, oldest first, the anchor's week last (the
+        // current week for the live month, the month's closing week for a past
+        // one — see self::weeklyAnchor()).
+        $thisWeekStart = $anchor->modify('monday this week')->setTime(0, 0);
         $weeks = [];
         for ($i = self::WEEKS - 1; $i >= 0; --$i) {
             $weeks[] = $thisWeekStart->modify(\sprintf('-%d weeks', $i));

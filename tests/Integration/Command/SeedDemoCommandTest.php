@@ -92,7 +92,9 @@ final class SeedDemoCommandTest extends IntegrationTestCase
         $patrols = $this->storedPatrols($area);
         self::assertCount(6, $patrols);
 
-        $earliest = new \DateTimeImmutable('-36 days');
+        // The demo now spreads over the last ~6 weeks so the five-week chart fills;
+        // nothing older than that, nothing in the future.
+        $earliest = new \DateTimeImmutable('-43 days');
         $now = new \DateTimeImmutable();
         foreach ($patrols as $patrol) {
             $started = $patrol->getStartedAt();
@@ -110,28 +112,70 @@ final class SeedDemoCommandTest extends IntegrationTestCase
     }
 
     /**
-     * The demo has to fill THIS calendar month, because the dashboard opens on it
-     * (PatrolDashboardService::monthRange). A rolling window left "this month"
-     * showing a handful of patrols against a design that shows a full month — so
-     * every seeded patrol now starts on or after the first of the current month
-     * and no later than now.
+     * TWO WIDGETS, ONE DISTRIBUTION. The five-week "patrols per week" chart runs
+     * back four weeks before this one, so the demo spreads over ~6 weeks — but it
+     * is WEIGHTED towards the current month, because the map, log, register and
+     * calendar are all scoped to the month on screen and must stay rich. So the
+     * seed lands most patrols in the current month AND some before it: the chart
+     * fills and the month is not sparse.
      */
-    public function testEveryPatrolStartsWithinTheCurrentCalendarMonth(): void
+    public function testPatrolsSpreadOverSixWeeksButStayRichThisMonth(): void
     {
         $area = $this->makeArea();
 
-        $this->seed(['--area' => (string) $area->getUuidString(), '--patrols' => 20]);
+        $this->seed(['--area' => (string) $area->getUuidString(), '--patrols' => 30]);
 
         $now = new \DateTimeImmutable();
         $monthStart = $now->modify('first day of this month')->setTime(0, 0);
+        $earliest = new \DateTimeImmutable('-43 days');
         $patrols = $this->storedPatrols($area);
-        self::assertCount(20, $patrols);
+        self::assertCount(30, $patrols);
+
+        $thisMonth = 0;
+        $beforeMonth = 0;
         foreach ($patrols as $patrol) {
             $started = $patrol->getStartedAt();
             self::assertNotNull($started);
-            self::assertGreaterThanOrEqual($monthStart, $started, 'a patrol was seeded before this month');
+            // Within the ~6-week window, never in the future.
+            self::assertGreaterThan($earliest, $started, 'a patrol was seeded older than the six-week window');
             self::assertLessThanOrEqual($now, $started, 'a patrol was seeded in the future');
+            if ($started >= $monthStart) {
+                ++$thisMonth;
+            } else {
+                ++$beforeMonth;
+            }
         }
+
+        // Enough in the current month that its month-scoped widgets stay rich…
+        self::assertGreaterThanOrEqual(10, $thisMonth, 'the current month is too sparse');
+        // …and enough before it that the earlier chart weeks are not empty.
+        self::assertGreaterThanOrEqual(3, $beforeMonth, 'nothing fills the earlier weeks of the chart');
+    }
+
+    /**
+     * THE "PATROLS BY STATION" CHART must read as a ranking, not five identical
+     * bars — the bug where every station showed the same count. The demo now
+     * weights the posts, so their monthly counts genuinely differ.
+     */
+    public function testPatrolsAreDistributedUnevenlyAcrossStations(): void
+    {
+        $area = $this->makeArea();
+
+        $this->seed(['--area' => (string) $area->getUuidString(), '--patrols' => 60]);
+
+        /** @var list<array{station: string, patrols: int}> $perStation */
+        $perStation = $this->em->getConnection()->fetchAllAssociative(
+            'SELECT station, count(*) AS patrols FROM patrol_patrol GROUP BY station ORDER BY patrols DESC',
+        );
+        self::assertGreaterThanOrEqual(3, \count($perStation), 'the demo works several posts');
+
+        $counts = array_map(static fn (array $row): int => (int) $row['patrols'], $perStation);
+        if ([] === $counts) {
+            self::fail('the demo seeded no patrols with a station');
+        }
+        // Not all the same — a real ranking has a busiest post and a quietest one.
+        self::assertGreaterThan(min($counts), max($counts), 'every station drew the same count — the bars would be identical');
+        self::assertGreaterThan(1, \count(array_unique($counts)), 'the per-station counts do not vary');
     }
 
     /**

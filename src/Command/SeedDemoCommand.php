@@ -144,6 +144,28 @@ final class SeedDemoCommand extends Command
     /** @var list<string> */
     private const array STATIONS = ['North Gate', 'River Post', 'South Gate', 'Ridge Camp', 'Lake Post'];
 
+    /**
+     * How busy each post is, relative to the others — the reason the "patrols by
+     * station" chart reads as a real ranking with bars of different lengths, not
+     * five identical ones. A busy gate runs several times the patrols a quiet
+     * outpost does; the weights are by station INDEX, and any station the deployment
+     * has beyond this list falls back to the lightest weight.
+     *
+     * @var list<int>
+     */
+    private const array STATION_WEIGHTS = [9, 6, 4, 2, 1];
+
+    /**
+     * The share of patrols that land in the CURRENT calendar month, as a percent.
+     * The rest spread back over the weeks before it, so the five-week chart fills
+     * across ~6 weeks — but the map, log, register and calendar (all scoped to the
+     * month on screen) stay rich because most of the history is in the month.
+     */
+    private const int THIS_MONTH_PERCENT = 62;
+
+    /** How far back the pre-month spread reaches — ~6 weeks, so all five chart weeks fill. */
+    private const int SPREAD_DAYS = 40;
+
     /** @var list<string> */
     private const array RANGERS = [
         'Neema Kileo', 'Baraka Mushi', 'Asha Ndosi', 'Juma Wema',
@@ -295,11 +317,11 @@ final class SeedDemoCommand extends Command
             for ($i = 0; $i < $count; ++$i) {
                 // Every fourth patrol is hand-entered: real rosters are never all GPS.
                 if (3 === $i % 4) {
-                    $this->sketchedPatrol($area, $randomizer, $now, $sketched);
+                    $this->sketchedPatrol($area, $randomizer, $now);
                     ++$sketched;
                     continue;
                 }
-                $observations += $this->recordedPatrol($area, $randomizer, $now, $recorded);
+                $observations += $this->recordedPatrol($area, $randomizer, $now);
                 ++$recorded;
             }
             $this->em->flush();
@@ -338,11 +360,11 @@ final class SeedDemoCommand extends Command
         AreaOfInterest $area,
         Randomizer $randomizer,
         \DateTimeImmutable $now,
-        int $index,
     ): int {
-        // Round robin over the stations: every post gets its own patrols, so the
-        // map shows effort across the area rather than one busy corner.
-        $station = $this->stations[$index % \count($this->stations)];
+        // A WEIGHTED post, not a round robin: real areas have busy gates and quiet
+        // outposts, so the "patrols by station" chart must read as a ranking with
+        // bars of different lengths rather than five identical ones.
+        $station = $this->stations[$this->pickStationIndex($randomizer)];
         $type = $this->pick($randomizer, $this->typeKeys());
         $profile = $this->profileFor($type);
 
@@ -403,12 +425,11 @@ final class SeedDemoCommand extends Command
         AreaOfInterest $area,
         Randomizer $randomizer,
         \DateTimeImmutable $now,
-        int $index,
     ): void {
         $startedAt = $this->startOfDuty($randomizer, $now);
         $patrol = new Patrol($area, $this->pick($randomizer, $this->typeKeys()))
             ->setSource(PatrolSourceEnum::Manual)
-            ->setStation($this->stations[$index % \count($this->stations)]['name'])
+            ->setStation($this->stations[$this->pickStationIndex($randomizer)]['name'])
             ->setTeam($this->team($randomizer))
             ->setNote('Written up from the duty log — route not recorded.')
             ->setStartedAt($startedAt)
@@ -764,23 +785,63 @@ final class SeedDemoCommand extends Command
     }
 
     /**
-     * Duty starts spread across the CURRENT calendar month, at field hours.
+     * Duty starts spread over the last ~6 weeks, at field hours — but WEIGHTED
+     * towards the current month, so two different widgets both read right.
      *
-     * The dashboard opens on this month (PatrolDashboardService::monthRange), so
-     * that is where the demo has to live: a rolling "last N days" window leaves
-     * "this month" almost empty for the first weeks of a month, which is exactly
-     * the sparse dashboard this seeder exists to prevent. Days run from the 1st up
-     * to today; a slot that lands after "now" is pulled back within today.
+     * The five-week "patrols per week" chart runs back four weeks before the
+     * current week, so a demo penned entirely into the current month leaves its
+     * earliest bars empty for the first weeks of a month — the sparse chart the
+     * distribution fix exists to cure. So most of a share
+     * ({@see self::THIS_MONTH_PERCENT}) still lands in the current month, keeping
+     * the map, log, register and calendar (all scoped to the month on screen)
+     * rich, while the rest spread back across the weeks before it so every chart
+     * week fills. A slot that lands after "now" is pulled back within today.
      */
     private function startOfDuty(Randomizer $randomizer, \DateTimeImmutable $now): \DateTimeImmutable
     {
-        $monthStart = $now->modify('first day of this month')->setTime(0, 0);
-        $day = $randomizer->getInt(1, (int) $now->format('j'));
-        $start = $monthStart->modify(\sprintf('+%d days', $day - 1))
-            ->setTime($randomizer->getInt(5, 14), 5 * $randomizer->getInt(0, 11));
+        $dayOfMonth = (int) $now->format('j');
+
+        if ($randomizer->getInt(1, 100) <= self::THIS_MONTH_PERCENT) {
+            // Inside the current month: the 1st up to today.
+            $monthStart = $now->modify('first day of this month')->setTime(0, 0);
+            $start = $monthStart->modify(\sprintf('+%d days', $randomizer->getInt(1, $dayOfMonth) - 1));
+        } else {
+            // Before the month began, back to ~6 weeks ago — filling the earlier
+            // chart weeks. The floor is the day the current month started, so this
+            // branch never lands inside it (that is the branch above's job).
+            $daysBack = $randomizer->getInt($dayOfMonth, self::SPREAD_DAYS);
+            $start = $now->modify(\sprintf('-%d days', $daysBack))->setTime(0, 0);
+        }
+
+        $start = $start->setTime($randomizer->getInt(5, 14), 5 * $randomizer->getInt(0, 11));
 
         // Never in the future — today's slot may land after "now".
         return $start > $now ? $now->modify('-1 hour') : $start;
+    }
+
+    /**
+     * A station index drawn from {@see self::STATION_WEIGHTS} — busier posts come
+     * up more often, so the demo's per-station counts vary the way a real roster's
+     * do. Deterministic through the seeded randomizer, like the rest of the run.
+     */
+    private function pickStationIndex(Randomizer $randomizer): int
+    {
+        $count = \count($this->stations);
+        $cumulative = [];
+        $total = 0;
+        for ($i = 0; $i < $count; ++$i) {
+            $total += self::STATION_WEIGHTS[$i] ?? 1;
+            $cumulative[$i] = $total;
+        }
+
+        $roll = $randomizer->getInt(1, max(1, $total));
+        foreach ($cumulative as $index => $ceiling) {
+            if ($roll <= $ceiling) {
+                return $index;
+            }
+        }
+
+        return $count - 1;
     }
 
     /**

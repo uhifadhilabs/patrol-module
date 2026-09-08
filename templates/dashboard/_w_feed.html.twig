@@ -14,7 +14,7 @@
                plate beside this feed is the coverage picture, and a discarded
                track is absent from its payload. Hovering the row therefore
                highlights nothing, which is the honest result. #}
-            <div class="patrol-feed-row{{ patrol.discarded ? ' patrol-abandoned' }}" data-patrol="{{ patrol.uuid.toRfc4122 }}" data-patrol-type="{{ patrol.type }}" data-patrol-station="{{ patrol.station }}"
+            <div class="patrol-feed-row{{ patrol.discarded ? ' patrol-abandoned' }}" data-patrol="{{ patrol.uuid.toRfc4122 }}" data-patrol-type="{{ patrol.type }}" data-patrol-station="{{ patrol.station }}" data-patrol-zone="{{ patrolZones[patrol.uuid.toRfc4122]|default('') }}"
                  {{ stimulus_target('@uhifadhi/patrol-module/rows', 'row') }}
                  {{ stimulus_action('@uhifadhi/patrol-module/rows', 'hover', 'mouseenter') }}
                  {{ stimulus_action('@uhifadhi/patrol-module/rows', 'unhover', 'mouseleave') }}>

@@ -26,10 +26,10 @@ import { Controller } from '@hotwired/stimulus';
  * the way incidents has one; a real period switch is a separate change.
  */
 export default class extends Controller {
-    static targets = ['chip', 'station', 'stationLabel', 'stationMenu'];
+    static targets = ['chip', 'station', 'stationLabel', 'stationMenu', 'zone', 'zoneLabel', 'zoneMenu'];
 
     connect() {
-        this.state = { type: 'all', station: 'all' };
+        this.state = { type: 'all', station: 'all', zone: 'all' };
         this.onFilter = (event) => this.mark(event.detail ?? {});
         document.addEventListener('patrol:filter', this.onFilter);
 
@@ -90,13 +90,22 @@ export default class extends Controller {
         this.closeAll();
     }
 
+    chooseZone(event) {
+        this.publish({ zone: event.currentTarget.dataset.patrolZone ?? 'all' });
+        this.closeAll();
+    }
+
     publish(change) {
         const detail = { ...this.state, ...change };
         document.dispatchEvent(new CustomEvent('patrol:filter', { detail }));
     }
 
     mark(detail) {
-        this.state = { type: detail.type ?? 'all', station: detail.station ?? 'all' };
+        this.state = {
+            type: detail.type ?? 'all',
+            station: detail.station ?? 'all',
+            zone: detail.zone ?? 'all',
+        };
 
         this.chipTargets.forEach((chip) => {
             const on = (chip.dataset.patrolType ?? 'all') === this.state.type;
@@ -106,6 +115,9 @@ export default class extends Controller {
         this.stationTargets.forEach((item) => {
             item.classList.toggle('on', (item.dataset.patrolStation ?? 'all') === this.state.station);
         });
+        this.zoneTargets.forEach((item) => {
+            item.classList.toggle('on', (item.dataset.patrolZone ?? 'all') === this.state.zone);
+        });
         // The trigger names the chosen station (its caret sits beside it in its own
         // element); the whole dropdown reads as active when one is chosen.
         if (this.hasStationLabelTarget) {
@@ -113,6 +125,13 @@ export default class extends Controller {
         }
         if (this.hasStationMenuTarget) {
             this.stationMenuTarget.classList.toggle('patrol-dd-chosen', this.state.station !== 'all');
+        }
+        // The zone menu reads active the same way, and names the chosen zone.
+        if (this.hasZoneLabelTarget) {
+            this.zoneLabelTarget.textContent = this.state.zone === 'all' ? 'zone' : this.state.zone;
+        }
+        if (this.hasZoneMenuTarget) {
+            this.zoneMenuTarget.classList.toggle('patrol-dd-chosen', this.state.zone !== 'all');
         }
     }
 }

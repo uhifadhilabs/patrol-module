@@ -100,6 +100,125 @@ final class PatrolRepository extends ServiceEntityRepository
     }
 
     /**
+     * The area's patrols that STARTED inside a half-open window, LATEST first —
+     * what the dashboard's map, log and feed read now that they are scoped to the
+     * month on screen (the MONTH filter), rather than to the whole all-time
+     * history {@see self::findByAreaLatestFirst()} returned.
+     *
+     * The sibling {@see self::findByAreaStartedBetween()} orders EARLIEST first
+     * for the calendar, which lays days out left to right; this one orders latest
+     * first for the log, which shows the most recent patrols at the top and slices
+     * the head. A patrol with no start date has no month to sit in and is left out
+     * by the comparison itself — which is right for the map and log, where only a
+     * finished patrol (always dated) can be drawn.
+     *
+     * @return list<Patrol>
+     */
+    public function findByAreaStartedBetweenLatestFirst(AreaOfInterest $area, \DateTimeImmutable $from, \DateTimeImmutable $until): array
+    {
+        /** @var list<Patrol> $patrols */
+        $patrols = $this->createQueryBuilder('p')
+            ->andWhere('p.area = :area')
+            ->andWhere('p.startedAt >= :from')
+            ->andWhere('p.startedAt < :until')
+            ->setParameter('area', $area)
+            ->setParameter('from', $from)
+            ->setParameter('until', $until)
+            ->orderBy('p.startedAt', 'DESC')
+            ->addOrderBy('p.id', 'DESC')
+            ->getQuery()
+            ->getResult();
+
+        return $patrols;
+    }
+
+    /**
+     * THE ZONE EACH PATROL SET OUT IN — the spatial join that gives the dashboard
+     * its ZONE filter without a stored zone field on the patrol.
+     *
+     * A patrol carries a free-text station and NO zone (docs/design-decisions.md
+     * §1); the host owns the zone polygons ({@see Zone}). So "which zone is this
+     * patrol in" is a spatial question, answered here against the geometry rather
+     * than guessed from the station name — the same reasoning
+     * {@see self::zoneAbsenceForArea()} states for measuring absence from tracks
+     * and not from station names.
+     *
+     * ONE ZONE PER PATROL: its START POINT's zone, by ST_Covers — where the patrol
+     * set out, the same evidence the coverage map places a station marker at
+     * (PatrolDashboardService::coveragePayload). A track that wanders across a
+     * boundary is filed under where it began, so a patrol appears under exactly
+     * one zone in the filter and the by-zone grouping this unblocks stays a
+     * partition. A hand-logged patrol has no track and no start point, so it is
+     * absent from the map — unzoned, which the filter menu reads as "no zone".
+     * On a shared edge ST_Covers is true for both zones; the join takes the lowest
+     * zone id, so the assignment is deterministic rather than order-dependent.
+     *
+     * Scoped to the same half-open window the map and log read, so the join is
+     * over exactly the patrols on screen and no more.
+     *
+     * KEYED BY UUID, not the sequential id — the module addresses a patrol by its
+     * uuid everywhere it is public (a log row, a coverage track), so the map the
+     * templates and the coverage payload look a patrol's zone up in is keyed the
+     * same way (project convention: public addressing is by UUID).
+     *
+     * @return array<string, string> patrol uuid → zone name; a patrol whose start falls in no zone is absent
+     */
+    public function zonesForPatrols(AreaOfInterest $area, \DateTimeImmutable $from, \DateTimeImmutable $until): array
+    {
+        $entityManager = $this->getEntityManager();
+        $patrol = $this->getClassMetadata();
+        $zoneMeta = $entityManager->getClassMetadata(Zone::class);
+
+        // DISTINCT ON (patrol) keeps one row per patrol — the lowest-id zone it
+        // covers — so a start point sitting exactly on a shared edge (ST_Covers
+        // true for both) resolves the same way every time.
+        $sql = \sprintf(
+            <<<'SQL'
+                SELECT DISTINCT ON (p.%1$s) p.%2$s AS patrol_uuid, z.%3$s AS zone_name
+                FROM %4$s p
+                INNER JOIN %5$s z ON z.%6$s = :area AND ST_Covers(z.%7$s, ST_StartPoint(p.%8$s))
+                WHERE p.%9$s = :area
+                  AND p.%8$s IS NOT NULL
+                  AND p.%10$s >= :from
+                  AND p.%10$s < :until
+                ORDER BY p.%1$s, z.%11$s
+                SQL,
+            $patrol->getSingleIdentifierColumnName(),
+            $patrol->getColumnName('uuid'),
+            $zoneMeta->getColumnName('name'),
+            $patrol->getTableName(),
+            $zoneMeta->getTableName(),
+            $zoneMeta->getSingleAssociationJoinColumnName('area'),
+            $zoneMeta->getColumnName('geom'),
+            $patrol->getColumnName('track'),
+            $patrol->getSingleAssociationJoinColumnName('area'),
+            $patrol->getColumnName('startedAt'),
+            $zoneMeta->getSingleIdentifierColumnName(),
+        );
+
+        /** @var list<array{patrol_uuid: string, zone_name: string}> $rows */
+        $rows = $entityManager->getConnection()->fetchAllAssociative($sql, [
+            'area' => $area->getId(),
+            'from' => $from,
+            'until' => $until,
+        ], [
+            'area' => Types::INTEGER,
+            'from' => Types::DATETIME_IMMUTABLE,
+            'until' => Types::DATETIME_IMMUTABLE,
+        ]);
+
+        $zones = [];
+        foreach ($rows as $row) {
+            // The uuid column comes back in Postgres's canonical hyphenated form,
+            // which is exactly Uuid::toRfc4122() — the key the templates and the
+            // coverage payload look a patrol up by.
+            $zones[(string) $row['patrol_uuid']] = $row['zone_name'];
+        }
+
+        return $zones;
+    }
+
+    /**
      * WHO IS OUT RIGHT NOW — the area's patrols that have opened and not closed,
      * longest out first.
      *

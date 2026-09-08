@@ -286,45 +286,110 @@ final class DashboardPageTest extends WebTestCase
     }
 
     /**
-     * The station filter is a DROPDOWN in the incidents bar's chrome (.i-dd*),
-     * not the old dashed ghost chip. Type stays a row of quick toggle chips; the
-     * dashed "month" and the missing zone are gone. One filter still drives map
-     * and log together — the station options publish the client-side patrol:filter.
+     * The filter bar carries THREE dropdowns in the incidents bar's chrome
+     * (.i-dd*) beside the type toggles: station, zone and month. Station and zone
+     * filter client-side (they publish patrol:filter); month is a real link that
+     * re-queries the whole dashboard. The old dead "month" indicator and the
+     * missing zone are both gone.
      */
-    public function testTheStationFilterIsADropdownInTheIncidentBarChrome(): void
+    public function testTheFilterBarCarriesStationZoneAndMonthDropdowns(): void
     {
         $crawler = $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols');
 
         self::assertResponseIsSuccessful();
 
-        // A single station dropdown in the shared chrome, inside the map row.
+        // Three dropdowns in the shared chrome, inside the map row.
         $dd = $crawler->filter('[data-w="map"] .patrol-chiprow .i-dd');
-        self::assertCount(1, $dd);
+        self::assertCount(3, $dd);
 
-        // Its trigger opens the panel through the filters controller.
-        $trigger = $dd->filter('.i-ddt[data-patrol-dd-trigger]');
-        self::assertCount(1, $trigger);
-        self::assertStringContainsString(
-            'uhifadhi--patrol-module--filters#toggle',
-            (string) $trigger->attr('data-action'),
-        );
-
-        // Every station, plus "all", is a real option carrying the type the
+        // Every station, plus "all", is a real option carrying the value the
         // client-side filter reads (data-patrol-station) — one filter, map + log.
-        $stations = $dd->filter('.i-ddmenu .i-ddopt[data-patrol-station]')
+        $stations = $crawler->filter('[data-w="map"] .patrol-chiprow .i-ddmenu .i-ddopt[data-patrol-station]')
             ->each(static fn ($n): string => (string) $n->attr('data-patrol-station'));
         self::assertContains('all', $stations);
         self::assertContains('North post', $stations);
         self::assertContains('South landing', $stations);
         self::assertCount(3, $stations);
 
-        // The bug is gone: no dashed ghost chips in the filter row, and the month
-        // reads as a solid indicator chip rather than a dead dropdown.
+        // The ZONE dropdown exists and its options publish the client-side filter
+        // (chooseZone). This fixture draws no zone polygons, so the menu is the
+        // honest empty state rather than a dead control.
+        $zoneMenu = $crawler->filter('[data-w="map"] .patrol-chiprow .i-ddmenu[aria-label="Filter by zone"]');
+        self::assertCount(1, $zoneMenu);
+
+        // The MONTH dropdown is real now: this month and the five before it, each
+        // a link that re-queries the dashboard (?month=YYYY-MM), the current month
+        // marked as chosen. No dead indicator chip when the route is mounted.
+        $monthOptions = $crawler->filter('[data-w="map"] .patrol-chiprow .i-ddmenu[aria-label="Choose month"] a.i-ddopt');
+        self::assertCount(6, $monthOptions);
+        self::assertStringContainsString('month=', (string) $monthOptions->first()->attr('href'));
+        self::assertCount(
+            1,
+            $crawler->filter('[data-w="map"] .patrol-chiprow .i-ddmenu[aria-label="Choose month"] a.i-ddopt.on'),
+        );
+        // No dashed ghost chip, and no plain indicator chip (the fallback is only
+        // for a host with no dashboard route).
         self::assertCount(0, $crawler->filter('[data-w="map"] .patrol-chiprow .patrol-ghost'));
-        self::assertCount(1, $crawler->filter('[data-w="map"] .patrol-chiprow .patrol-monthchip'));
+        self::assertCount(0, $crawler->filter('[data-w="map"] .patrol-chiprow .patrol-monthchip'));
 
         // Type stays a row of quick toggle chips (all + the two configured types).
         self::assertCount(3, $crawler->filter('[data-w="map"] .patrol-chiprow button[data-patrol-type]'));
+    }
+
+    /**
+     * THE MONTH DROPDOWN RE-SCOPES THE MAP AND LOG — the fix for the dead month
+     * indicator. A patrol filed last month is absent from the default (this
+     * month) view and present when last month is chosen through ?month=, and the
+     * this-month patrol swaps out the other way. One filter drives the whole
+     * screen, exactly as incidents does.
+     */
+    public function testTheMonthDropdownReScopesTheMapAndLog(): void
+    {
+        $area = new AreaOfInterest()->setSource('test fixture')->setName('two-month reserve')->setGeom(
+            '{"type":"MultiPolygon","coordinates":[[[[12.2,-5.8],[12.5,-5.8],[12.5,-5.5],[12.2,-5.5],[12.2,-5.8]]]]}',
+        );
+        $this->em->persist($area);
+
+        $this->em->persist(new Patrol($area, 'walk')
+            ->setStation('This Month Post')
+            ->setStartedAt(new \DateTimeImmutable('first day of this month 08:00'))
+            ->setEndedAt(new \DateTimeImmutable('first day of this month 10:00'))
+            ->setDistanceKm(5.0));
+        $this->em->persist(new Patrol($area, 'walk')
+            ->setStation('Last Month Post')
+            ->setStartedAt(new \DateTimeImmutable('first day of last month 08:00'))
+            ->setEndedAt(new \DateTimeImmutable('first day of last month 10:00'))
+            ->setDistanceKm(6.0));
+        $this->em->flush();
+        // The new area must be running the module, exactly as an install would.
+        $this->everyAreaRunsPatrols($this->em);
+
+        $base = '/areas/'.$area->getUuidString().'/modules/patrols';
+
+        // Default view — the current month only.
+        $this->client->request('GET', $base);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-patrol-log] tbody', 'This Month Post');
+        self::assertSelectorTextNotContains('[data-patrol-log] tbody', 'Last Month Post');
+
+        // Choose last month — the log and the map swap to it.
+        $lastMonth = new \DateTimeImmutable('first day of last month')->format('Y-m');
+        $this->client->request('GET', $base.'?month='.$lastMonth);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-patrol-log] tbody', 'Last Month Post');
+        self::assertSelectorTextNotContains('[data-patrol-log] tbody', 'This Month Post');
+    }
+
+    /**
+     * A month that does not parse is untrusted input, not an error: the dashboard
+     * degrades to the current month rather than throwing a 400.
+     */
+    public function testAnUnreadableMonthDegradesToTheCurrentMonth(): void
+    {
+        $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols?month=not-a-month');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-w="map"] .patrol-chiprow .i-ddmenu[aria-label="Choose month"] a.i-ddopt.on', strtolower(new \DateTimeImmutable()->format('F Y')));
     }
 
     /**

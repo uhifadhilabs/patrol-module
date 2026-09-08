@@ -3,7 +3,7 @@
 {% import '@UhifadhiPatrol/dashboard/_ui.html.twig' as ui %}
 <div class="c">
     <span class="tab">Coverage<span class="src">· one filter drives map AND log</span></span>
-    {{ ui.filters(dashboard, types, typeColor, now) }}
+    {{ ui.filters(dashboard, types, typeColor, now, area, month|default(now)) }}
     {{ ui.viewer(coveragePayload, 'Patrol tracks') }}
     {{ ui.legend(types, typeColor) }}
 </div>

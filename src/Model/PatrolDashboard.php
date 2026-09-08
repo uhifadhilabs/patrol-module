@@ -23,16 +23,17 @@ use Uhifadhi\Patrol\Entity\Patrol;
 final readonly class PatrolDashboard
 {
     /**
-     * @param list<Patrol>                                                                             $patrols          latest first — the log/feed rows
+     * @param list<Patrol>                                                                             $patrols          latest first — the log/feed rows, scoped to the month on screen (the map + log + charts all read one month, driven by the MONTH filter)
      * @param int                                                                                      $monthCount       patrols started this month
      * @param float                                                                                    $monthDistanceKm  distance sum this month
      * @param array<string, int>                                                                       $monthTypeCounts  this month, keyed by type
      * @param float|null                                                                               $coverageFraction PL·03 — the share of the area within {@see \Uhifadhi\Patrol\Service\PatrolDashboardService::COVERAGE_BUFFER_M} of a track recorded this month, as a fraction of 1; null where there is nothing to measure (no recorded track this month, or an area with no boundary) — the KPI then shows the design's em dash rather than a false 0 %
-     * @param array<string, int>                                                                       $typeCounts       all listed patrols, every configured type present (filter chips)
+     * @param array<string, int>                                                                       $typeCounts       the month's listed patrols, every configured type present (filter chips)
      * @param list<array{label: string, counts: array<string, int>}>                                   $weeklySeries     five weeks, oldest first
      * @param list<array{station: string, count: int}>                                                 $stationSeries    this month, ranked
      * @param list<string>                                                                             $stations         distinct stations, ranked (filter menu)
-     * @param list<array{date: \DateTimeImmutable, patrols: list<Patrol>, today: bool, outside: bool}> $calendar         42 Monday-start cells for the current month
+     * @param list<string>                                                                             $zones            distinct zones the month's patrols set out in, sorted (filter menu) — computed by a PostGIS spatial join against the host's zone polygons, never a stored field
+     * @param list<array{date: \DateTimeImmutable, patrols: list<Patrol>, today: bool, outside: bool}> $calendar         42 Monday-start cells for the month on screen
      */
     public function __construct(
         public array $patrols,
@@ -46,6 +47,7 @@ final readonly class PatrolDashboard
         public array $weeklySeries,
         public array $stationSeries,
         public array $stations,
+        public array $zones,
         public array $calendar,
     ) {
     }

@@ -92,6 +92,10 @@ final class PatrolWidgetsController
         // Same instant for the last-patrol KPI and the calendar title, exactly
         // as the dashboard does it.
         $now = new \DateTimeImmutable();
+        // The library previews the REAL widgets on the CURRENT month, exactly as
+        // the dashboard opens on it — one month, driven the same way.
+        [$monthStart, $nextMonth] = PatrolDashboardService::monthRange($now);
+        $patrolZones = $this->patrols->zonesForPatrols($area, $monthStart, $nextMonth);
 
         $dashboard = $this->dashboard->build(
             $this->patrols->findByAreaLatestFirst($area),
@@ -102,8 +106,11 @@ final class PatrolWidgetsController
             $this->patrols->coverageFractionWithin(
                 $area,
                 PatrolDashboardService::COVERAGE_BUFFER_M,
-                ...PatrolDashboardService::monthRange($now),
+                $monthStart,
+                $nextMonth,
             ),
+            $monthStart,
+            $patrolZones,
         );
 
         return new Response($this->twig->render('@UhifadhiPatrol/widgets/show.html.twig', [
@@ -124,8 +131,10 @@ final class PatrolWidgetsController
                 'types' => $this->types,
                 'typeColor' => PatrolDashboardService::typeColors($this->types),
                 'now' => $now,
+                'month' => $monthStart,
+                'patrolZones' => $patrolZones,
                 'dashboard' => $dashboard,
-                'coveragePayload' => $this->dashboard->coveragePayload($area->getGeom(), $dashboard, $this->types),
+                'coveragePayload' => $this->dashboard->coveragePayload($area->getGeom(), $dashboard, $this->types, $patrolZones),
                 'retentionDays' => $this->retentionDays,
             ],
             'urls' => $this->widgetUrls->forArea($area),

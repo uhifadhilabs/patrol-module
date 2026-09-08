@@ -5,7 +5,7 @@ import { Controller } from '@hotwired/stimulus';
  * the patrol log (PL·06) and the patrol feed (PL·07), which is why the design
  * captions the map beside the feed "hover a row to highlight".
  *
- * Listens for   patrol:filter    {type, station}  — hides the rows that do not match
+ * Listens for   patrol:filter    {type, station, zone}  — hides the rows that do not match
  * Publishes     patrol:highlight {uuid}  — the row under the cursor, null on leave
  *
  * Rows carry their own identity (data-patrol / data-patrol-type), so this
@@ -26,11 +26,12 @@ export default class extends Controller {
         document.dispatchEvent(new CustomEvent('patrol:highlight', { detail: { uuid: null } }));
     }
 
-    filter({ type = 'all', station = 'all' }) {
+    filter({ type = 'all', station = 'all', zone = 'all' }) {
         let shown = 0;
         this.rowTargets.forEach((row) => {
             const match = (type === 'all' || row.dataset.patrolType === type)
-                && (station === 'all' || row.dataset.patrolStation === station);
+                && (station === 'all' || row.dataset.patrolStation === station)
+                && (zone === 'all' || (row.dataset.patrolZone ?? '') === zone);
             row.classList.toggle('patrol-hidden', !match);
             shown += match ? 1 : 0;
         });
