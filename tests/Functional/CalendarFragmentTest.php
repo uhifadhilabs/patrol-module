@@ -17,6 +17,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Response;
 use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
@@ -143,9 +144,27 @@ final class CalendarFragmentTest extends WebTestCase
             .(null === $month ? '' : '?month='.$month);
     }
 
+    /**
+     * The widget's OWN fetch of the month fragment. The X-Requested-With header
+     * is what the calendar Stimulus controller sends, and what tells the endpoint
+     * to return the BARE grid to swap in — a direct browser visit (no header)
+     * gets the whole framed page instead, which {@see testADirectVisitRendersTheFramedCalendarPage}
+     * covers.
+     */
+    private function getFragment(?string $month = self::MONTH, ?AreaOfInterest $area = null): Crawler
+    {
+        return $this->client->request(
+            'GET',
+            $this->url($month, $area),
+            [],
+            [],
+            ['HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest'],
+        );
+    }
+
     public function testTheFragmentIsOneMonthOfRealDayCells(): void
     {
-        $crawler = $this->client->request('GET', $this->url());
+        $crawler = $this->getFragment();
 
         self::assertResponseIsSuccessful();
 
@@ -177,6 +196,39 @@ final class CalendarFragmentTest extends WebTestCase
     }
 
     /**
+     * A DIRECT VISIT gets the whole framed page, not the bare fragment. Someone
+     * who follows a link, opens a bookmark or hard-refreshes
+     * /modules/patrols/calendar must land inside the app frame — the shell, the
+     * page head and the module's stylesheets — with the month grid inside it,
+     * never the raw unstyled markup the fragment is on its own.
+     */
+    public function testADirectVisitRendersTheFramedCalendarPage(): void
+    {
+        // No X-Requested-With: a plain navigation, exactly what a browser sends.
+        $crawler = $this->client->request('GET', $this->url());
+
+        self::assertResponseIsSuccessful();
+
+        // The app frame is there: the shell composes the page head into h1.pg.
+        self::assertSelectorExists('h1.pg');
+        self::assertSelectorTextContains('h1.pg', 'demo reserve — Patrols');
+
+        // The module's stylesheet is linked, so the grid has CSS to style it —
+        // the whole point, since the fragment on its own carried none.
+        self::assertStringContainsString(
+            'uhifadhipatrol/patrol',
+            (string) $this->client->getResponse()->getContent(),
+        );
+
+        // And the styled month grid is inside the frame, wired for ‹ › exactly
+        // like the dashboard widget.
+        self::assertCount(1, $crawler->filter('[data-patrol-calendar]'));
+        self::assertCount(42, $crawler->filter('.patrol-dc'));
+        self::assertSame('2019-08', $crawler->filter('.patrol-calmonth')->attr('data-patrol-cal-month'));
+        self::assertCount(4, $crawler->filter('.patrol-daypill'));
+    }
+
+    /**
      * OVERFLOW RULE (owner: a day cell never grows with data). A day with more
      * patrols than the cell caps folds the extras into a "+N more" chip — the
      * Google-Calendar / FullCalendar pattern — so the box keeps its height. The
@@ -192,7 +244,7 @@ final class CalendarFragmentTest extends WebTestCase
         }
         $this->em->flush();
 
-        $crawler = $this->client->request('GET', $this->url());
+        $crawler = $this->getFragment();
 
         self::assertResponseIsSuccessful();
 
@@ -218,7 +270,7 @@ final class CalendarFragmentTest extends WebTestCase
 
     public function testEveryCalendarItemOpensThatPatrol(): void
     {
-        $crawler = $this->client->request('GET', $this->url());
+        $crawler = $this->getFragment();
 
         $expected = '/areas/'.$this->area->getUuidString()
             .'/modules/patrols/'.$this->firstDay->getUuid()->toRfc4122();
@@ -230,7 +282,7 @@ final class CalendarFragmentTest extends WebTestCase
 
     public function testEachItemCarriesItsHoverCard(): void
     {
-        $crawler = $this->client->request('GET', $this->url());
+        $crawler = $this->getFragment();
 
         self::assertCount(4, $crawler->filter('.patrol-daypill .patrol-pop'));
 
@@ -262,7 +314,7 @@ final class CalendarFragmentTest extends WebTestCase
 
     public function testTheNavStepsToTheNeighbouringMonths(): void
     {
-        $crawler = $this->client->request('GET', $this->url());
+        $crawler = $this->getFragment();
 
         $months = $crawler->filter('.patrol-calnav button')->each(
             static fn ($node): string => (string) $node->attr('data-patrol-cal-goto'),
@@ -273,7 +325,7 @@ final class CalendarFragmentTest extends WebTestCase
 
     public function testAMonthWithNoPatrolsIsStillAFullGrid(): void
     {
-        $crawler = $this->client->request('GET', $this->url('2031-11'));
+        $crawler = $this->getFragment('2031-11');
 
         self::assertResponseIsSuccessful();
         self::assertCount(42, $crawler->filter('.patrol-dc'));
@@ -284,14 +336,14 @@ final class CalendarFragmentTest extends WebTestCase
     public function testTheWalkIsUnboundedInBothDirections(): void
     {
         foreach (['1998-01', '2099-12'] as $month) {
-            $this->client->request('GET', $this->url($month));
+            $this->getFragment($month);
             self::assertResponseIsSuccessful();
         }
     }
 
     public function testWithoutAMonthTheFragmentIsTheCurrentOne(): void
     {
-        $crawler = $this->client->request('GET', $this->url(null));
+        $crawler = $this->getFragment(null);
 
         self::assertResponseIsSuccessful();
         self::assertSame(
@@ -373,7 +425,7 @@ final class CalendarFragmentTest extends WebTestCase
 
     public function testAnotherAreaSeesOnlyItsOwnPatrols(): void
     {
-        $crawler = $this->client->request('GET', $this->url(area: $this->otherArea));
+        $crawler = $this->getFragment(area: $this->otherArea);
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('.patrol-daypill'));

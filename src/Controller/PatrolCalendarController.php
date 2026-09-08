@@ -92,17 +92,31 @@ final class PatrolCalendarController
         // leading/trailing days, which carry pills too.
         [$from, $until] = PatrolDashboardService::calendarRange($month);
 
-        return new Response($this->twig->render('@UhifadhiPatrol/dashboard/_cal_body.html.twig', [
+        $context = [
             'area' => $area,
             'types' => $this->types,
             'typeColor' => PatrolDashboardService::typeColors($this->types),
             'month' => $month,
+            'now' => $now,
             'cells' => $this->dashboard->calendarFor(
                 $this->patrols->findByAreaStartedBetween($area, $from, $until),
                 $month,
                 $now,
             ),
-        ]));
+        ];
+
+        // ONE ADDRESS, TWO SHAPES. The widget's ‹ › controls fetch this over XHR
+        // and inject the BARE month grid into the card's body, so an XHR request
+        // gets the fragment and nothing around it. A person who navigates to the
+        // URL directly (a link, a bookmark, a hard-refresh) must not be handed
+        // that fragment naked — no shell, no stylesheets — so they get the whole
+        // framed calendar page instead. The grid inside is the same partial either
+        // way, so the two can never drift.
+        if ($request->isXmlHttpRequest()) {
+            return new Response($this->twig->render('@UhifadhiPatrol/dashboard/_cal_body.html.twig', $context));
+        }
+
+        return new Response($this->twig->render('@UhifadhiPatrol/calendar/show.html.twig', $context));
     }
 
     /**

@@ -46,7 +46,11 @@ export default class extends Controller {
             url.searchParams.set('month', month);
 
             const response = await fetch(url, {
-                headers: { Accept: 'text/html' },
+                // X-Requested-With marks this as the widget's own fetch, so the
+                // endpoint returns the BARE month grid to swap in — a direct
+                // browser visit to the same URL (no such header) gets the whole
+                // framed calendar page instead.
+                headers: { Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest' },
                 credentials: 'same-origin',
                 signal: controller.signal,
             });
