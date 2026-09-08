@@ -275,26 +275,39 @@ button.patrol-menu-item {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 0 26px;
-    padding: 13px 16px;
+    gap: 0;
+    padding: 2px 4px;
     margin-bottom: 18px;
     border: 1px solid var(--c-ln);
     border-radius: 12px;
     background: rgb(var(--c-raised));
 }
-.factband .f { display: flex; flex-direction: column; gap: 3px; }
+/* Each fact carries its own padding and a hairline divider from the previous —
+   the canonical band's rhythm (uhifadhi.css .factband), not a flat gap. */
+.factband .f { display: flex; flex-direction: column; gap: 2px; padding: 9px 16px; position: relative; }
+.factband .f + .f::before {
+    content: ''; position: absolute; left: 0; top: 11px; bottom: 11px; width: 1px; background: var(--c-ln);
+}
 .factband .k {
     font-family: var(--font-mono);
     font-size: 8.5px;
     font-weight: 600;
-    letter-spacing: .13em;
+    letter-spacing: .15em;
     text-transform: uppercase;
     color: rgb(var(--c-dim));
 }
-.factband .v { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.factband .v em { font-style: normal; font-size: 10px; font-weight: 500; color: rgb(var(--c-fog)); margin-left: 3px; }
+.factband .v { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.factband .v em { font-style: normal; font-size: 10.5px; font-weight: 500; color: rgb(var(--c-fog)); margin-left: 3px; }
 .factband .sp { flex: 1; }
-.factband .more { font-size: 11px; color: rgb(var(--c-acc)); text-decoration: none; white-space: nowrap; }
+.factband .more {
+    font-family: var(--font-mono); font-size: 9.5px; font-weight: 600;
+    letter-spacing: .1em; text-transform: uppercase; color: rgb(var(--c-fog));
+    text-decoration: none; white-space: nowrap; padding: 9px 15px;
+}
+.factband .more:hover { color: rgb(var(--c-acc)); }
+/* Narrow: the band wraps, and a divider between two facts that are now on
+   different lines would be a stray tick — drop it, as the canonical band does. */
+@media (max-width: 900px) { .factband .f + .f::before { display: none; } }
 
 /* ---- detail screens: plate + sidebar ----------------------------------- */
 /* The settled layout for both detail screens: a plate card (flex 2) beside a
@@ -311,6 +324,12 @@ button.patrol-menu-item {
    sidebar: the observation plate min(46vh,440px), the track plate min(58vh,560px). */
 .patrol-plate .patrol-plate-viewer { flex: none; height: min(46vh, 440px); }
 .patrol-plate .patrol-plate-viewer-tall { height: min(58vh, 560px); }
+/* A plate the map FILLS pulls up tight under the floating tab, exactly as the
+   design's .c.plate-fill does (padding:14px 14px 16px) — the host card's 24px top
+   is there to clear the tab on a text card, and reads as a gap over a viewer.
+   Scoped to plates that actually hold a viewer, so the observation/photos plates
+   keep the host card's default padding, as the design leaves them. */
+.patrol-plate:has(.patrol-plate-viewer) { padding: 14px 14px 16px; }
 .patrol-ol-id { left: 10px; top: 10px; }
 
 /* ---- observation rows (PL·04 on the patrol detail) ---------------------- */
@@ -625,63 +644,68 @@ button.patrol-menu-item {
 
 /* The spine. One rule down the left, with a node per entry — the shape says
    "these happened in order, under the thing above them". */
-.patrol-amd { position: relative; margin-top: 10px; padding-left: 20px; }
+.patrol-amd { position: relative; margin-top: 6px; padding-left: 26px; }
 .patrol-amd::before {
-    content: ''; position: absolute; left: 5px; top: 6px; bottom: 6px; width: 1px;
+    content: ''; position: absolute; left: 6px; top: 6px; bottom: 6px; width: 1px;
     background: var(--c-ln2);
 }
-.patrol-amd-item { position: relative; padding: 0 0 16px; }
+.patrol-amd-item { position: relative; padding: 0 0 18px; }
 .patrol-amd-item:last-child { padding-bottom: 2px; }
+/* The node is accent-ringed: a correction is a signed, deliberate act, and the
+   design draws each entry's node in the accent, not a hairline grey. */
 .patrol-amd-item::before {
-    content: ''; position: absolute; left: -19px; top: 5px; width: 9px; height: 9px;
-    border-radius: 50%; background: rgb(var(--c-bg)); border: 1.5px solid var(--c-ln2);
+    content: ''; position: absolute; left: -23px; top: 5px; width: 9px; height: 9px;
+    border-radius: 50%; background: rgb(var(--c-cv)); border: 2px solid rgb(var(--c-acc));
 }
 /* The record as it was taken: a FILLED node, because it is the one entry that
    is not a correction — it is the thing being corrected. */
 .patrol-amd-orig::before { background: rgb(var(--c-fog)); border-color: rgb(var(--c-fog)); }
 /* An attachment is the one kind that brings new evidence rather than new words. */
 .patrol-amd-att::before { border-color: rgb(var(--c-warn)); }
-.patrol-amd-att .patrol-amd-what { color: rgb(var(--c-warn)); border-color: color-mix(in srgb, rgb(var(--c-warn)) 40%, transparent); }
+.patrol-amd-att .patrol-amd-what { color: rgb(var(--c-warn)); border-color: color-mix(in srgb, rgb(var(--c-warn)) 45%, transparent); }
 
 .patrol-amd-t {
-    display: block; font: 500 10.5px var(--font-mono); color: rgb(var(--c-dim));
+    display: block; margin-bottom: 3px; font: 600 9.5px var(--font-mono);
+    letter-spacing: .08em; text-transform: uppercase; color: rgb(var(--c-dim));
 }
-.patrol-amd-t .who { color: rgb(var(--c-tx)); }
-.patrol-amd-b { display: block; font-size: 13px; line-height: 1.6; margin-top: 3px; color: rgb(var(--c-tx)); }
+/* A name inside the sentence is inline (the host ships a bare .who{display:flex}
+   for its people rows, which would otherwise break this line in two). */
+.patrol-amd-t .who { display: inline; color: rgb(var(--c-fog)); }
+.patrol-amd-b { display: block; font-size: 12.5px; line-height: 1.6; color: rgb(var(--c-tx)); }
 /* The provenance of the ENTRY, kept apart from the entry so the trail can be
    read without it. */
 .patrol-amd-b em {
-    display: block; font: 400 10.5px var(--font-mono); font-style: normal;
-    color: rgb(var(--c-dim)); margin-top: 5px;
+    display: block; font: 500 9.5px var(--font-mono); font-style: normal;
+    color: rgb(var(--c-dim)); margin-top: 3px;
 }
-/* What was corrected, in one word. */
+/* What was corrected, in one word: a tracked accent pill, as the design draws it. */
 .patrol-amd-what {
-    display: inline-block; margin-right: 7px; padding: 1px 7px; border-radius: 999px;
-    border: 1px solid var(--c-ln2); font: 600 10px var(--font-mono);
+    display: inline-block; margin-right: 7px; padding: 2px 7px 1px; border-radius: 999px;
+    border: 1px solid color-mix(in srgb, rgb(var(--c-acc)) 40%, transparent);
+    font: 700 8.5px var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
     color: rgb(var(--c-acc)); vertical-align: 1px;
 }
 /* THE SUPERSEDED VALUE, QUOTED, NEVER STRUCK. A left rule and a label, at full
    text strength: a strikethrough would read as "removed", and nothing here is.
    There is deliberately no text-decoration in this block. */
 .patrol-amd-was {
-    display: block; margin: 7px 0 0; padding: 6px 0 6px 11px;
-    border-left: 2px solid var(--c-ln2); font-size: 12.5px; line-height: 1.55;
+    display: block; margin: 6px 0 0; padding: 7px 11px;
+    border-left: 2px solid var(--c-ln2); font-size: 12px; line-height: 1.55;
     color: rgb(var(--c-fog));
 }
 .patrol-amd-was b {
-    display: block; font: 600 9.5px var(--font-mono); text-transform: uppercase;
-    letter-spacing: .04em; color: rgb(var(--c-dim)); margin-bottom: 3px;
+    display: block; font: 600 8.5px var(--font-mono); text-transform: uppercase;
+    letter-spacing: .12em; color: rgb(var(--c-dim)); margin-bottom: 2px;
 }
 
-/* PL·07 — said out loud, not drawn as an empty box. */
+/* PL·07 — said out loud as a plain sentence, not drawn as a box: the design's
+   empty state is icon + text with no border or fill. */
 .patrol-amd-empty {
-    display: flex; gap: 10px; align-items: flex-start; margin-top: 10px;
-    padding: 12px 13px; border-radius: 9px; border: 1px dashed var(--c-ln2);
-    background: color-mix(in srgb, rgb(var(--c-fog)) 5%, transparent);
-    font-size: 12.5px; line-height: 1.55; color: rgb(var(--c-fog));
+    display: flex; gap: 12px; align-items: flex-start; padding: 14px 2px 2px;
+    font-size: 12.5px; line-height: 1.6; color: rgb(var(--c-fog));
 }
-.patrol-amd-empty svg { flex: none; margin-top: 1px; color: rgb(var(--c-dim)); }
-.patrol-amd-empty b { color: rgb(var(--c-tx)); }
+.patrol-amd-empty svg { flex: none; margin-top: 2px; color: rgb(var(--c-fog)); }
+.patrol-amd-empty b { display: block; color: rgb(var(--c-tx)); margin-bottom: 2px; }
 
 .patrol-amd-intro { margin: 2px 2px 4px; }
 .patrol-amd-count { margin-top: 10px; }
@@ -690,13 +714,14 @@ button.patrol-menu-item {
 
 /* PL·08 — the form, inline, at the end of the trail. */
 .patrol-amd-form {
-    margin-top: 14px; padding: 13px; border-radius: 10px;
-    border: 1px solid var(--c-ln2);
-    background: color-mix(in srgb, rgb(var(--c-fog)) 4%, transparent);
+    margin-top: 14px; padding: 14px 15px 15px; border-radius: 12px;
+    border: 1px solid color-mix(in srgb, rgb(var(--c-acc)) 38%, transparent);
+    background: color-mix(in srgb, rgb(var(--c-acc)) 4%, transparent);
 }
 .patrol-amd-form > .hd {
-    font: 600 11px var(--font-mono); text-transform: uppercase; letter-spacing: .04em;
-    color: rgb(var(--c-tx)); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+    font: 700 9.5px var(--font-mono); letter-spacing: .12em; text-transform: uppercase;
+    color: rgb(var(--c-acc));
 }
 .patrol-amd-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 /* The chips ARE radios: one is always chosen, they are keyboard reachable, and
@@ -713,11 +738,12 @@ button.patrol-menu-item {
 .patrol-amd-chip:has(input:focus-visible) { outline: 2px solid rgb(var(--c-acc)); outline-offset: 2px; }
 .patrol-amd-signed { font-size: 12.5px; color: rgb(var(--c-fog)); }
 /* What the form promises NOT to do, said where the promise is being made. */
+/* The promise restated where the finger is — a dashed top rule, not a filled
+   box: the design sets it apart with a hairline, not a second panel. */
 .patrol-amd-keep {
-    display: flex; gap: 8px; align-items: flex-start; margin-top: 12px;
-    padding: 9px 11px; border-radius: 8px;
-    background: color-mix(in srgb, rgb(var(--c-acc)) 8%, transparent);
-    font-size: 12px; line-height: 1.5; color: rgb(var(--c-fog));
+    display: flex; gap: 7px; align-items: center; margin-top: 14px; padding-top: 12px;
+    border-top: 1px dashed color-mix(in srgb, rgb(var(--c-fog)) 20%, transparent);
+    font-size: 11.5px; line-height: 1.5; color: rgb(var(--c-fog));
 }
 
 /* ---- the area overview, where this module is a GUEST ------------------- */
