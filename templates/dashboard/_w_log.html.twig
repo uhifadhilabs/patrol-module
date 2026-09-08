@@ -9,7 +9,7 @@
 {% set patrolLogLimit = 8 %}
 <div class="c" data-patrol-log {{ stimulus_controller('@uhifadhi/patrol-module/rows') }}>
     <span class="tab">Patrol log<span class="src">· patrol · latest {{ min(dashboard.patrols|length, patrolLogLimit) }} of {{ dashboard.totalCount }}</span></span>
-    {{ ui.filters(dashboard, types, typeColor) }}
+    {{ ui.filters(dashboard, types, typeColor, now) }}
     <table class="tbl">
         <thead>
             <tr>

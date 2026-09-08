@@ -61,29 +61,53 @@
 }
 /* The host has .mchip.on and .mchip.add but no dashed "not chosen yet" state. */
 .patrol-ghost { border-style: dashed; color: rgb(var(--c-fog)); cursor: pointer; }
-.patrol-menu { position: relative; display: inline-flex; }
-.patrol-menu > summary { list-style: none; }
-.patrol-menu > summary::-webkit-details-marker { display: none; }
-.patrol-menu-list {
-    position: absolute; top: 32px; left: 0; z-index: 20; min-width: 180px;
-    display: flex; flex-direction: column; gap: 2px; padding: 8px;
-    background: rgb(var(--c-cv)); border: 1px solid var(--c-ln2);
-    border-radius: 10px; box-shadow: var(--shadow);
+/* ---- filter dropdowns: the incidents bar's chrome, ported (self-sufficient) --
+   The station filter is a dropdown in the SAME chrome the incidents bar uses — a
+   .mchip trigger (.i-ddt) opening a floating .i-ddmenu, hidden until its .i-dd
+   carries .open (the filters controller toggles it, one at a time, and closes it
+   on Escape or an outside click). Ported here onto patrol's token bridge — the
+   same self-sufficiency as .factband — so the patrol bar carries its own filter
+   chrome without depending on incidents.css.
+
+   The OPTIONS drive patrol's real-time filter (they publish the patrol:filter
+   document event), which is the module's deliberate design: one filter, the map
+   and the log together, with no reload. The chrome is the incidents bar's; the
+   mechanism behind it is patrol's own. */
+.i-dd { position: relative; display: inline-flex; }
+.i-ddt { cursor: pointer; background: none; }
+.i-ddt .i-ddcaret { font-size: 9px; line-height: 1; opacity: .7; transition: transform .12s; }
+.i-dd.open .i-ddt .i-ddcaret { transform: rotate(180deg); }
+/* The chosen-station trigger reads in the accent, the way a live filter should. */
+.i-dd.patrol-dd-chosen .i-ddt { color: rgb(var(--c-acc)); border-color: rgb(var(--c-acc)); }
+.i-ddmenu {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 50; display: none;
+    flex-direction: column; min-width: 196px; padding: 5px; gap: 1px;
+    background: rgb(var(--c-cv)); border: 1px solid var(--c-ln2); border-radius: 11px; box-shadow: var(--shadow);
 }
-.patrol-menu-item {
-    font-size: 11.5px; color: rgb(var(--c-tx)); padding: 5px 8px; border-radius: 7px;
-    white-space: nowrap; cursor: pointer;
+.i-dd.open .i-ddmenu { display: flex; }
+.i-ddhead {
+    font-family: var(--font-mono); font-size: 8.5px; letter-spacing: .14em;
+    text-transform: uppercase; color: rgb(var(--c-dim)); padding: 6px 9px 4px;
 }
-/* The station items are real <button>s (they change what is on screen); the
-   host's menu-item look is a span, so they restate the reset only. */
-button.patrol-menu-item {
-    font-family: inherit; text-align: left; border: 0; background: none; width: 100%;
+.i-ddopt {
+    display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; cursor: pointer;
+    border: 0; background: none; color: rgb(var(--c-tx)); font-family: inherit; font-size: 12px;
+    padding: 7px 9px; border-radius: 7px; text-decoration: none;
 }
-.patrol-menu-item.on { background: rgb(var(--c-raised)); color: rgb(var(--c-acc)); }
-.patrol-menu.patrol-menu-chosen > summary { border-style: solid; color: rgb(var(--c-tx)); }
-.patrol-menu-item:hover { background: rgb(var(--c-raised)); }
-.patrol-menu-empty { color: rgb(var(--c-dim)); cursor: default; }
-.patrol-menu-empty:hover { background: none; }
+.i-ddopt:hover { background: rgb(var(--c-raised)); text-decoration: none; }
+.i-ddopt.on { background: color-mix(in srgb, rgb(var(--c-acc)) 12%, transparent); }
+.i-ddopt-l { flex: 1; white-space: nowrap; }
+.i-ddopt-n { font-family: var(--font-mono); font-size: 10.5px; color: rgb(var(--c-dim)); font-variant-numeric: tabular-nums; }
+.i-ddopt.on .i-ddopt-n { color: rgb(var(--c-acc)); }
+.i-ddsep { height: 1px; background: var(--c-ln); margin: 4px 2px; }
+/* An option that only names an empty state ("no stations yet") — not selectable. */
+.i-ddopt.is-empty { color: rgb(var(--c-dim)); cursor: default; }
+.i-ddopt.is-empty:hover { background: none; }
+/* The thin divider between the type toggles and the dropdowns. */
+.patrol-chiprow .sep { width: 1px; height: 18px; background: var(--c-ln2); margin: 0 3px; }
+/* The month indicator: the period the dashboard covers, a solid chip — never a
+   dashed dropdown onto nothing (a real period switch is TODO(patrol_period)). */
+.patrol-monthchip { cursor: default; }
 
 /* ---- per-type chips, legends, notes ------------------------------------ */
 /* --patrol-track is set inline per element: the type vocabulary is deployment

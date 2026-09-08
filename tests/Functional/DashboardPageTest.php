@@ -286,6 +286,48 @@ final class DashboardPageTest extends WebTestCase
     }
 
     /**
+     * The station filter is a DROPDOWN in the incidents bar's chrome (.i-dd*),
+     * not the old dashed ghost chip. Type stays a row of quick toggle chips; the
+     * dashed "month" and the missing zone are gone. One filter still drives map
+     * and log together — the station options publish the client-side patrol:filter.
+     */
+    public function testTheStationFilterIsADropdownInTheIncidentBarChrome(): void
+    {
+        $crawler = $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols');
+
+        self::assertResponseIsSuccessful();
+
+        // A single station dropdown in the shared chrome, inside the map row.
+        $dd = $crawler->filter('[data-w="map"] .patrol-chiprow .i-dd');
+        self::assertCount(1, $dd);
+
+        // Its trigger opens the panel through the filters controller.
+        $trigger = $dd->filter('.i-ddt[data-patrol-dd-trigger]');
+        self::assertCount(1, $trigger);
+        self::assertStringContainsString(
+            'uhifadhi--patrol-module--filters#toggle',
+            (string) $trigger->attr('data-action'),
+        );
+
+        // Every station, plus "all", is a real option carrying the type the
+        // client-side filter reads (data-patrol-station) — one filter, map + log.
+        $stations = $dd->filter('.i-ddmenu .i-ddopt[data-patrol-station]')
+            ->each(static fn ($n): string => (string) $n->attr('data-patrol-station'));
+        self::assertContains('all', $stations);
+        self::assertContains('North post', $stations);
+        self::assertContains('South landing', $stations);
+        self::assertCount(3, $stations);
+
+        // The bug is gone: no dashed ghost chips in the filter row, and the month
+        // reads as a solid indicator chip rather than a dead dropdown.
+        self::assertCount(0, $crawler->filter('[data-w="map"] .patrol-chiprow .patrol-ghost'));
+        self::assertCount(1, $crawler->filter('[data-w="map"] .patrol-chiprow .patrol-monthchip'));
+
+        // Type stays a row of quick toggle chips (all + the two configured types).
+        self::assertCount(3, $crawler->filter('[data-w="map"] .patrol-chiprow button[data-patrol-type]'));
+    }
+
+    /**
      * PL·03 with nothing to measure: an area whose month holds only hand-logged
      * patrols has no geometry to buffer, so the plate shows the design's empty
      * state — an em dash and the same caption — never a false 0 %.

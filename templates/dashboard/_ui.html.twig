@@ -62,8 +62,10 @@
    changing it means fetching a different month, not hiding rows.
    DEFERRED(zones): the design's "zone ▾" chip needs a zone concept the bundle
    does not have — omitted rather than rendered dead. #}
-{% macro filters(dashboard, types, typeColor) %}
+{% macro filters(dashboard, types, typeColor, now) %}
     <div class="patrol-chiprow" {{ stimulus_controller('@uhifadhi/patrol-module/filters') }}>
+        {# TYPE TOGGLES — quick chips, not a dropdown: the design draws them so, and
+           the type is the one filter you flick between without opening anything. #}
         <button type="button" class="mchip on" data-patrol-type="all" aria-pressed="true"
                 {{ stimulus_target('@uhifadhi/patrol-module/filters', 'chip') }}
                 {{ stimulus_action('@uhifadhi/patrol-module/filters', 'choose') }}>all · {{ dashboard.totalCount }}</button>
@@ -75,24 +77,47 @@
                     {{ stimulus_target('@uhifadhi/patrol-module/filters', 'chip') }}
                     {{ stimulus_action('@uhifadhi/patrol-module/filters', 'choose') }}><i></i>{{ type.label|lower }} · {{ dashboard.typeCounts[key]|default(0) }}</button>
         {% endfor %}
-        <details class="patrol-menu" {{ stimulus_target('@uhifadhi/patrol-module/filters', 'stationMenu') }}>
-            <summary class="mchip patrol-ghost"><span {{ stimulus_target('@uhifadhi/patrol-module/filters', 'stationLabel') }}>station ▾</span></summary>
-            <div class="patrol-menu-list">
+
+        <span class="sep"></span>
+
+        {# STATION — a DROPDOWN in the incidents bar's chrome (.i-dd*, ported into
+           patrol.css). ONE FILTER DRIVES MAP AND LOG: each option publishes the
+           patrol:filter document event, so the coverage map and every patrol list
+           re-render together with no reload — patrol's deliberate real-time filter,
+           now wearing the shared dropdown. Open/close (one at a time, Escape,
+           outside-click) is the same controller behaviour incidents uses. #}
+        <span class="i-dd" data-patrol-dd {{ stimulus_target('@uhifadhi/patrol-module/filters', 'stationMenu') }}>
+            <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
+                    {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
+                <span class="i-ddval" {{ stimulus_target('@uhifadhi/patrol-module/filters', 'stationLabel') }}>station</span><span class="i-ddcaret">&#9662;</span>
+            </button>
+            <div class="i-ddmenu" data-patrol-dd-menu role="listbox" aria-label="Filter by station">
+                <span class="i-ddhead">station</span>
                 {% if dashboard.stations|length %}
-                    <button type="button" class="patrol-menu-item on" data-patrol-station="all"
+                    <button type="button" class="i-ddopt on" role="option" data-patrol-station="all"
                             {{ stimulus_target('@uhifadhi/patrol-module/filters', 'station') }}
-                            {{ stimulus_action('@uhifadhi/patrol-module/filters', 'chooseStation') }}>all stations</button>
+                            {{ stimulus_action('@uhifadhi/patrol-module/filters', 'chooseStation') }}><span class="i-ddopt-l">all stations</span></button>
+                    <span class="i-ddsep"></span>
                 {% endif %}
                 {% for station in dashboard.stations %}
-                    <button type="button" class="patrol-menu-item" data-patrol-station="{{ station }}"
+                    <button type="button" class="i-ddopt" role="option" data-patrol-station="{{ station }}"
                             {{ stimulus_target('@uhifadhi/patrol-module/filters', 'station') }}
-                            {{ stimulus_action('@uhifadhi/patrol-module/filters', 'chooseStation') }}>{{ station }}</button>
+                            {{ stimulus_action('@uhifadhi/patrol-module/filters', 'chooseStation') }}><span class="i-ddopt-l">{{ station }}</span></button>
                 {% else %}
-                    <span class="patrol-menu-item patrol-menu-empty">no stations yet</span>
+                    <span class="i-ddopt is-empty" role="option"><span class="i-ddopt-l">no stations yet</span></span>
                 {% endfor %}
             </div>
-        </details>
-        <span class="mchip patrol-ghost">this month ▾</span>
+        </span>
+
+        {# MONTH — the period the dashboard covers, stated plainly. Patrol's map and
+           log are all-time by design (the latest patrols and every recorded track);
+           only the counts, the charts and the calendar are bucketed to this month,
+           so there is no month QUERY to drive the map+log the way incidents has one
+           — a period switch is TODO(patrol_period). Rendered as a solid indicator
+           chip, never a dashed dropdown that opens onto nothing.
+           ZONE is omitted, not drawn dead: the bundle has no zone concept to filter
+           by (DEFERRED(zones)), so a zone dropdown would filter nothing. #}
+        <span class="mchip patrol-monthchip">{{ now|date('F Y')|lower }}</span>
     </div>
 {% endmacro %}
 
