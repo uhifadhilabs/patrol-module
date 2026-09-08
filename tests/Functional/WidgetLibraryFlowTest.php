@@ -132,7 +132,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSame(
             $this->libraryUrl(),
-            $crawler->filter('a:contains("Customize widgets")')->attr('href'),
+            $crawler->filter('a:contains("Widget library")')->attr('href'),
         );
     }
 

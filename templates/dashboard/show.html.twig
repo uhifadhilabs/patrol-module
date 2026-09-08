@@ -1,7 +1,7 @@
 {# The patrols module as a widget dashboard (settled design: the patrols screen,
    direction G "combined"). The dashboard itself stays CLEAN — no edit controls;
    all editing (add/remove, width, drag order) happens in the widget library
-   reached via "Customize widgets".
+   reached via "Widget library".
 
    The widgets themselves live in _w_<id>.html.twig and are rendered by BOTH this
    screen and the library, so a preview can never drift from the real thing.
@@ -29,7 +29,7 @@
     {# The library edits ONE PERSON's layout, so the link exists only where the
        route does (a host running SecurityBundle — see the bundle class). #}
     {% if widgetScreens %}
-        <a class="tgl patrol-act" href="{{ path('patrol_widgets', {uuid: area.uuid}) }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Customize widgets</a>
+        <a class="tgl w-act" href="{{ path('patrol_widgets', {uuid: area.uuid}) }}">{{ ux_icon('lucide:layout-grid') }} Widget library</a>
     {% endif %}
     {# The two recording screens exist only where the host runs SecurityBundle
        (they enforce patrols.record — see UhifadhiPatrolBundle), so the
