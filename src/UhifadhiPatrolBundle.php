@@ -303,6 +303,9 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service('router'),
                     service(PatrolRepository::class),
                     service('patrol.dashboard'),
+                    // The day's live reading for the direction widgets the library
+                    // previews (out now, gaps, the observation queue).
+                    service('patrol.overview'),
                     // uhifadhi/widget-module, BY ITS PUBLISHED SERVICE IDS: the
                     // module ships a catalogue (PatrolWidgets), never a copy of
                     // the algebra that resolves it — and that bundle's endpoint

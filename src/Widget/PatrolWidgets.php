@@ -16,36 +16,38 @@ namespace Uhifadhi\Patrol\Widget;
 use Uhifadhi\Widget\Model\Widget;
 use Uhifadhi\Widget\Model\WidgetCatalog;
 use Uhifadhi\Widget\Model\WidgetGroup;
+use Uhifadhi\Widget\Model\WidgetPreset;
 use Uhifadhi\Widget\Registry\WidgetSurfaceInterface;
 
 /**
  * THE CATALOGUE of the per-area PATROLS surface — a transcription of the
  * design's own surface declaration (patrols.widgets.js), which is the spec.
  *
- * THE FIVE DIRECTIONS ARE HEADED SECTIONS, NOT PAGES — the same grammar
- * incidents uses. Patrols was first drawn as ONE composed screen; that
- * composition is still exactly what the module ships, named below
- * ({@see DEFAULT_LABEL}) so the host's {@see WidgetCatalog::builtins()} leads
- * the preset strip with it rather than with a generic "Default layout".
+ * THE FIVE DIRECTIONS ARE PRESETS, NOT PAGES — the same grammar incidents uses.
+ * Patrols was first drawn as ONE composed screen; that composition is still
+ * exactly what the module ships, named below ({@see DEFAULT_LABEL}) so the
+ * host's {@see WidgetCatalog::builtins()} leads the preset strip with it rather
+ * than with a generic "Default layout". What arrived with the five directions is
+ * the rest of the surface: five directions the same material genuinely supports —
+ * live coverage, the log, a shift handover, coverage & effort, the month ahead —
+ * each a HEADED SECTION of this catalogue AND a PRESET that composes it, so a
+ * person adopts a direction, copies it, and mixes a widget from another one into
+ * their copy. The gallery that compares them lives at presets/patrols/.
  *
- * THE DIRECTIONS DO NOT SHIP AS PRESETS YET, and that is deliberate rather
- * than an oversight: every one of the five composes at least one of the nine
- * widgets the design added for them (out right now, coverage + log, the
- * handover note, the observation queue, zone gaps, effort by ranger, export,
- * planned vs actual, patrols next week), and those widgets need features the
- * module has not built — live positions, zone coverage analysis, planned
- * patrols. A preset that names an unshipped widget refuses to boot
- * ({@see WidgetCatalog}), which is the framework agreeing. Each direction
- * lands as a preset in the change that lands its widgets; the gallery at
- * presets/patrols/ is the spec they land against.
+ * THE NINE WIDGETS ADDED FOR THOSE DIRECTIONS ARE ADDITIVE. Not one of the seven
+ * the module already drew was redrawn or re-numbered; the shipped composition is
+ * the screen patrols settled on. Where a direction needs data the model cannot
+ * yet produce — a planning entity for "planned vs actual" and "patrols next
+ * week" — the widget ships as an honest empty state rather than an invented
+ * number, and the preset still composes it (see the module's dashboard partials).
  *
  * It rides uhifadhi/widget-module rather than a copy of it: the dashboard, the
- * library and the save endpoints all read this one object, so a widget can
- * never exist on one screen and not the other.
+ * library and the save endpoints all read this one object, so a widget can never
+ * exist on one screen and not the other.
  *
  * AREA-SCOPED: the same person may lay one area's patrols out one way and
- * another area's another, so every widget-framework call passes the area's
- * UUID and the stored preference rows are keyed by (surface, user, area).
+ * another area's another, so every widget-framework call passes the area's UUID
+ * and the stored preference rows are keyed by (surface, user, area).
  *
  * A CATALOGUE IS A STATEMENT OF WHAT A SURFACE SHIPS, so this class has no
  * dependencies and nothing may vary it at runtime. It is nonetheless a
@@ -74,14 +76,26 @@ final class PatrolWidgets implements WidgetSurfaceInterface
     /** The catalogue, reachable without an instance — see the class docblock. */
     public static function declaration(): WidgetCatalog
     {
+        $groups = [];
+        $presets = [];
+        foreach (self::directions() as $letter => [$label, $tradeOff, $layout]) {
+            $groups[] = new WidgetGroup($letter, $label, $tradeOff);
+            // The preset id IS the direction's letter, exactly as the design
+            // declares it, and the trade-off line is written ONCE — so a headed
+            // section and the preset that adopts it can never disagree about what
+            // the same design costs.
+            $presets[] = new WidgetPreset($letter, $label, $tradeOff, $layout);
+        }
+
         return new WidgetCatalog(
             self::SURFACE,
-            self::directions(),
+            $groups,
             self::widgets(),
-            // No direction ships as a preset until its widgets do — see the
-            // class docblock. The strip then carries exactly one built-in: the
-            // shipped composition, under the design's own name for it.
-            [],
+            $presets,
+            // A person who has never chosen opens on the shipped composition, not
+            // on the first direction: the module's own screen is direction-neutral
+            // on purpose, and picking one of the five for somebody would be making
+            // the choice the gallery exists to let them make.
             WidgetCatalog::DEFAULT_PRESET_ID,
             self::DEFAULT_LABEL,
             self::DEFAULT_DESCRIPTION,
@@ -89,12 +103,15 @@ final class PatrolWidgets implements WidgetSurfaceInterface
     }
 
     /**
-     * The surface's widgets: the seven the module has always drawn, in exactly
-     * the order it has always drawn them — catalogue order IS the shipped
-     * composition (the design: "ORDER IS THE SHIPPED DASHBOARD"). `cols` is the
-     * width the catalogue draws each at, the spans are the widths the
-     * width-chips offer (widest first, as the host's Widget enforces), and the
-     * two charts are half-width plates that are never offered the full row.
+     * The surface's widgets, in the order the shipped composition lays them out.
+     * The seven with `on: true` are the original patrols screen, unchanged and in
+     * exactly the order the module has always drawn them — catalogue order IS the
+     * shipped composition. The nine added for the directions follow; a widget's
+     * SECTION in the library comes from its `group`, never from its place here.
+     *
+     * `cols` is the width the catalogue draws it at, the spans are the widths the
+     * width-chips offer (widest first, as the host's Widget enforces), and `on`
+     * is whether the SHIPPED composition includes it.
      *
      * @return list<Widget>
      */
@@ -104,29 +121,66 @@ final class PatrolWidgets implements WidgetSurfaceInterface
             new Widget('kpis', 'KPI strip', 'b', 12, [12, 9, 6, 3], on: true, note: 'Patrols, distance, coverage and the last patrol — this month.'),
             new Widget('map', 'Coverage map', 'a', 12, [12, 9, 6, 3], on: true, note: 'The area with every track on it; the filter here drives the log too.'),
             new Widget('log', 'Patrol log', 'b', 12, [12, 9, 6, 3], on: true, note: 'Every patrol as a row: date, type, station, distance, observations.'),
-            new Widget('feed', 'Feed + mini-map', 'c', 12, [12, 9, 6, 3], on: true, note: 'The latest observations beside a mini-map of where they were filed.'),
+            // The buried second map is gone (owner ruling: maps lead below the
+            // KPIs, never beside a feed): the feed is a single full-width card now.
+            new Widget('feed', 'Patrol feed', 'c', 12, [12, 9, 6, 3], on: true, note: 'Every patrol newest first, with its type, distance and observation count.'),
             new Widget('chweek', 'Patrols per week', 'd', 6, [9, 6, 3], on: true, note: 'Patrols per week, by type.'),
-            new Widget('chstation', 'By station', 'd', 6, [9, 6, 3], on: true, note: 'Patrols by the station that logged them.'),
+            // Offers the full row as well as the half: "The patrol log" direction
+            // draws it full-width under the log, and "Coverage & effort" at six.
+            new Widget('chstation', 'By station', 'd', 6, [12, 9, 6, 3], on: true, note: 'Patrols by the station that logged them.'),
             new Widget('cal', 'Patrol calendar', 'e', 12, [12, 9, 6, 3], on: true, note: 'The month as a calendar, one mark per patrol.'),
+            // ---- the nine widgets the five directions needed, all off by default ----
+            new Widget('maplog', 'Coverage + log', 'a', 12, [12, 9], on: false, note: 'The coverage map at full height with the matching patrols docked beside it — one filter, one viewport, one list.'),
+            new Widget('now', 'Out right now', 'a', 12, [12, 9, 6], on: false, note: 'The patrols that have started and not yet closed, with their last position ping and how long they have been out.'),
+            new Widget('obsq', 'Observations awaiting action', 'c', 12, [12, 9, 6], on: false, note: 'Observations logged on patrol that nobody has filed as an incident yet, oldest first. The seam between the two modules, made visible.'),
+            new Widget('handover', 'Shift handover note', 'c', 12, [12, 9, 6], on: false, note: 'The last shift in one card: what closed, what is still open, and the three things the next shift is being handed.'),
+            new Widget('gaps', 'Where nobody has been', 'd', 6, [12, 9, 6], on: false, note: 'Every zone by how long since a patrol last entered it, worst first. The one widget that shows absence rather than activity.'),
+            new Widget('effort', 'Effort by ranger', 'd', 6, [12, 9, 6], on: false, note: 'Patrol-hours per ranger this month — who carried the month, not who logged the most rows.'),
+            new Widget('export', 'Export & reporting', 'd', 12, [12, 9, 6], on: false, note: 'The three things this module hands to somebody else: the log as CSV, the tracks as GPX, the month as a coverage report.'),
+            new Widget('plan', 'Planned vs actual', 'e', 12, [12, 9, 6], on: false, note: 'What was planned for each week against what was walked, and the gap between them.'),
+            new Widget('roster', 'Patrols next week', 'e', 12, [12, 9, 6], on: false, note: 'The patrols planned for next week — which station, which lead, and which of those are confirmed rather than still pencilled.'),
         ];
     }
 
     /**
-     * THE FIVE DIRECTIONS as the library's headed sections: the letter the
-     * library files each widget under, what it is called, and the gallery's own
-     * trade-off line, verbatim — written once here so the product can never say
-     * something about a direction that the design did not.
+     * THE FIVE DIRECTIONS: the letter the library files each under, what it is
+     * called, what the gallery says it COSTS, and the layout that IS that design —
+     * listed is on, at the width listed, in that order; absent is off.
      *
-     * @return list<WidgetGroup>
+     * The trade-off line is the gallery's own sentence, verbatim. It is written
+     * once here and read twice — by the headed section and by the preset — so the
+     * product can never say something about a direction that the design did not.
+     *
+     * @return array<string, array{string, string, array<string, int>}>
      */
     private static function directions(): array
     {
         return [
-            new WidgetGroup('a', 'Live coverage', 'The map is the dashboard: every track this month at full height, the log docked beside it and whoever is still out on top. Best for the officer who has to see where cover is right now; says almost nothing about effort, planning, or the month as a whole.'),
-            new WidgetGroup('b', 'The patrol log', 'The book. Every patrol as a row — date, type, station, lead, distance, observations — under the month\'s headline numbers. Fastest for whoever keeps the record and the only direction that never hides a field; you have to picture the geography yourself.'),
-            new WidgetGroup('c', 'Shift handover', 'What came in, what is still out, and what the next shift inherits. Reads like a duty log and is the direction to hand a station over on; anything older than the last two shifts sinks out of sight.'),
-            new WidgetGroup('d', 'Coverage & effort', 'Where nobody has been, who did the walking, and the month as two charts with the export beside them. The direction that answers "is this area actually being covered" and the one a monthly report is written from; it never shows you an individual patrol.'),
-            new WidgetGroup('e', 'The month ahead', 'The calendar leads, with planned against actual under it and next week\'s planned patrols below that. The only direction that looks forward rather than back — and the weakest for anything that has already happened.'),
+            'a' => [
+                'Live coverage',
+                'The map is the dashboard: every track this month at full height, the log docked beside it and whoever is still out on top. Best for the officer who has to see where cover is right now; says almost nothing about effort, planning, or the month as a whole.',
+                ['kpis' => 12, 'now' => 12, 'maplog' => 12],
+            ],
+            'b' => [
+                'The patrol log',
+                'The book. Every patrol as a row — date, type, station, lead, distance, observations — under the month\'s headline numbers. Fastest for whoever keeps the record and the only direction that never hides a field; you have to picture the geography yourself.',
+                ['kpis' => 12, 'log' => 12, 'chstation' => 12],
+            ],
+            'c' => [
+                'Shift handover',
+                'What came in, what is still out, and what the next shift inherits. Reads like a duty log and is the direction to hand a station over on; anything older than the last two shifts sinks out of sight.',
+                ['handover' => 12, 'now' => 12, 'obsq' => 12, 'feed' => 12],
+            ],
+            'd' => [
+                'Coverage & effort',
+                'Where nobody has been, who did the walking, and the month as two charts with the export beside them. The direction that answers "is this area actually being covered" and the one a monthly report is written from; it never shows you an individual patrol.',
+                ['kpis' => 12, 'gaps' => 6, 'effort' => 6, 'chweek' => 6, 'chstation' => 6, 'export' => 12],
+            ],
+            'e' => [
+                'The month ahead',
+                'The calendar leads, with planned against actual under it and next week\'s planned patrols below that. The only direction that looks forward rather than back — and the weakest for anything that has already happened.',
+                ['cal' => 12, 'plan' => 12, 'roster' => 12],
+            ],
         ];
     }
 }

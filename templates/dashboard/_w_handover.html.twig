@@ -1,0 +1,53 @@
+{# Widget "handover" — Shift handover note (PL·15), off by default; the "Shift
+   handover" direction turns it on.
+
+   WHAT THIS MODULE CAN HONESTLY SAY, and no more. The design draws a signed
+   shift log — a shift window, a duty officer, "patrols closed this shift", "N
+   filed as incidents". This module records none of those: it has no shift entity,
+   no duty-officer field, and the filed-as-incident link lives in the incidents
+   module. A formal shift record is the future Operations module's object.
+
+   So this card is the LIVE hand-off rather than a shift's closing note: the three
+   things the next shift is being handed, each COMPOSED from a widget that does
+   hold real data — who is still out (Out right now), the oldest unactioned
+   observation (Observations awaiting action) and the worst coverage gap (Where
+   nobody has been). Nothing here is invented; the header says which it is. #}
+{% set worstGap = gaps.zones|first %}
+{% set oldestObs = observations.rows|first %}
+<div class="c">
+    <span class="tab">Shift handover note<span class="src">· the live hand-off</span></span>
+    <div class="use patrol-ao-lead">The three things the next shift is being handed, composed live from what is still open, the oldest unactioned observation and the worst zone gap. A signed shift window and duty-officer log are the future Operations module’s — until then this is the live hand-off, not a closed-shift record.</div>
+
+    <div class="rln"><span class="fog">Still out</span><span class="mono patrol-ao-mono">{% if out|length %}{{ out|length }} · {{ out|map(r => r.patrol.ref)|join(', ') }}{% else %}nobody is out{% endif %}</span></div>
+    <div class="rln"><span class="fog">Observations awaiting action</span><span class="mono patrol-ao-mono">{{ observations.rows|length }} in the queue · {{ observations.monthCount }} logged this month</span></div>
+    <div class="rln"><span class="fog">Worst zone gap</span><span class="mono patrol-ao-mono">{% if worstGap %}{{ worstGap.zone }} · {% if worstGap.daysSince is null %}no track has entered it{% else %}{{ worstGap.daysSince }} d since a patrol entered{% endif %}{% else %}no zones drawn to measure against{% endif %}</span></div>
+
+    <div class="use" style="margin-top:12px"><b>Three things the next shift is being handed.</b></div>
+
+    {% set anyItem = handsets.worst or oldestObs or (worstGap and worstGap.daysSince is not null) %}
+    {% set n = 0 %}
+    {% if handsets.worst %}
+        {% set n = n + 1 %}
+        <div class="patrol-obs-r patrol-obs-empty">
+            <span class="patrol-obs-n">{{ n }}</span>
+            <span class="patrol-obs-bd">{{ handsets.worst.patrol.ref }} out of {{ handsets.worst.patrol.station ?: 'an unrecorded station' }} {% if handsets.worst.pingLabel %}has not pinged for {{ handsets.worst.pingLabel }}{% else %}has not pinged at all{% endif %} — radio check before this is escalated.<em>from Out right now · the longest-silent handset</em></span>
+        </div>
+    {% endif %}
+    {% if oldestObs %}
+        {% set n = n + 1 %}
+        <div class="patrol-obs-r patrol-obs-empty">
+            <span class="patrol-obs-n">{{ n }}</span>
+            <span class="patrol-obs-bd">{{ oldestObs.observation.ref }} — {{ oldestObs.category }}{% if oldestObs.observation.note %}, {{ oldestObs.observation.note }}{% endif %} — is {{ oldestObs.ageLabel ?: 'of unknown age' }} old and still in the queue.<em>from Observations awaiting action · oldest item</em></span>
+        </div>
+    {% endif %}
+    {% if worstGap and worstGap.daysSince is not null and worstGap.daysSince >= 1 %}
+        {% set n = n + 1 %}
+        <div class="patrol-obs-r patrol-obs-empty">
+            <span class="patrol-obs-n">{{ n }}</span>
+            <span class="patrol-obs-bd">{{ worstGap.zone }} has had no patrol for {{ worstGap.daysSince }} days. Whoever plans the next patrols needs to see the coverage gap first.<em>from Where nobody has been · worst zone this month</em></span>
+        </div>
+    {% endif %}
+    {% if not anyItem %}
+        <p class="patrol-empty">Nothing outstanding to hand over — nobody is out, the observation queue is clear and every zone has been entered recently.</p>
+    {% endif %}
+</div>

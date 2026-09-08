@@ -881,3 +881,36 @@
 .w-grid > .w-span-4 .patrol-who,
 .w-grid > .w-span-3 .patrol-who,
 .ao-colstack .patrol-who { flex: 1 1 150px; }
+
+/* ---- Coverage + log split (PL·12, widget "maplog") ---------------------- */
+/* The coverage map at full height with the month's patrols docked beside it.
+   The map keeps the viewer's own fixed height; the list scrolls beside it so
+   the card never grows with the month's count (the overview overflow rule). */
+.patrol-maplog-split { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; align-items: stretch; }
+.patrol-maplog-map { min-width: 0; }
+.patrol-maplog-list { min-width: 0; display: flex; flex-direction: column; gap: 2px; max-height: min(56vh, 540px); overflow-y: auto; }
+.patrol-listhd { display: block; font: 600 11px var(--font-mono); color: rgb(var(--c-fog)); padding: 2px 0 6px; }
+.patrol-listhd em { font-style: normal; color: rgb(var(--c-dim)); }
+.patrol-hit { display: block; padding: 8px 2px; border-bottom: 1px dashed var(--c-ln); text-decoration: none; }
+.patrol-hit:last-of-type { border-bottom: 0; }
+.patrol-hit-r1 { display: flex; align-items: center; gap: 8px; }
+.patrol-hit-r1 .patrol-ref { color: rgb(var(--c-tx)); }
+.patrol-hit-go { margin-left: auto; font: 600 10px var(--font-mono); color: rgb(var(--c-acc)); }
+.patrol-hit-r2 { display: block; font: 500 9.5px var(--font-mono); color: rgb(var(--c-dim)); margin-top: 3px; }
+.patrol-hit.patrol-abandoned .patrol-ref,
+.patrol-hit.patrol-abandoned .patrol-hit-r2 { color: rgb(var(--c-dim)); text-decoration: line-through; }
+/* Docked side-by-side needs room; a narrow span stacks the list under the map. */
+.w-grid > .w-span-6 .patrol-maplog-split,
+.w-grid > .w-span-4 .patrol-maplog-split,
+.w-grid > .w-span-3 .patrol-maplog-split { grid-template-columns: 1fr; }
+.w-grid > .w-span-6 .patrol-maplog-list,
+.w-grid > .w-span-4 .patrol-maplog-list,
+.w-grid > .w-span-3 .patrol-maplog-list { max-height: none; }
+
+/* ---- Export & reporting (PL·18, widget "export") ------------------------ */
+.patrol-exp { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px dashed var(--c-ln); }
+.patrol-exp:last-of-type { border-bottom: 0; }
+.patrol-exp-t { flex: 1; font-size: 12.5px; font-weight: 600; color: rgb(var(--c-tx)); }
+.patrol-exp-t em { display: block; font: 500 9.5px var(--font-mono); color: rgb(var(--c-dim)); font-style: normal; margin-top: 2px; }
+.patrol-exp-soon { flex: none; }
+.patrol-stamp { margin-top: 10px; font: 500 9.5px var(--font-mono); color: rgb(var(--c-dim)); line-height: 1.5; }

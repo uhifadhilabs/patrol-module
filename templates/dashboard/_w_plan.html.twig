@@ -1,0 +1,15 @@
+{# Widget "plan" — Planned vs actual (PL·19), off by default; the "The month
+   ahead" direction turns it on.
+
+   HELD — the model records no plan. "Planned vs actual" compares what was meant
+   to happen each week against what was walked, and this module holds only the
+   walked side (the "Patrols per week" chart). There is no planning entity: a
+   patrol is created when it starts or is imported, never scheduled ahead. A plan
+   is a roster, which the future Operations module owns; when it ships, this
+   widget reads it and the dashed "planned" bars appear beside the solid "walked"
+   ones. Until then the card says what it cannot yet compare, rather than drawing
+   a plan nobody entered. #}
+<div class="c">
+    <span class="tab">Planned vs actual<span class="src">· {{ (month|default(now))|date('F Y')|lower }} · by week</span></span>
+    <p class="patrol-empty">This module records what was walked, not what was planned — so there is nothing yet to compare against. Planning a patrol ahead is the future <b>Operations</b> module’s; when it ships, each week’s plan appears here beside what was actually walked. The walked side is already on the <b>Patrols per week</b> chart.</p>
+</div>

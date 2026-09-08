@@ -19,6 +19,7 @@ use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Team\Entity\User;
 
 /**
  * The dashboard's data contract — everything the widget screen binds, computed
@@ -496,5 +497,41 @@ final class PatrolDashboardServiceTest extends TestCase
         ));
         self::assertCount(1, $twentieth);
         self::assertCount(1, $twentieth[0]['patrols']);
+    }
+
+    /**
+     * EFFORT BY RANGER — patrol-hours this month per committed lead, ranked, most
+     * first. Hours are the span between a patrol's start and its close; a patrol
+     * with no lead credits nobody and one still open (no close) has no measured
+     * duration — neither is 0 h, both are simply absent.
+     */
+    public function testEffortSeriesRanksPatrolHoursByLead(): void
+    {
+        $laizer = new User()->setPassword('x')->setEmail('sl@example.test')->setFirstName('Suzan')->setLastName('Laizer');
+        $mollel = new User()->setPassword('x')->setEmail('jm@example.test')->setFirstName('John')->setLastName('Mollel');
+
+        // Laizer: 3 h + 2 h = 5 h across two patrols; Mollel: 4 h across one.
+        $a = $this->patrol('walk', '2026-03-10T06:00:00Z', 12.0)->setLead($laizer);
+        $a->setEndedAt(new \DateTimeImmutable('2026-03-10T09:00:00Z'));
+        $b = $this->patrol('walk', '2026-03-12T06:00:00Z', 8.0)->setLead($laizer);
+        $b->setEndedAt(new \DateTimeImmutable('2026-03-12T08:00:00Z'));
+        $c = $this->patrol('boat', '2026-03-11T06:00:00Z', 20.0)->setLead($mollel);
+        $c->setEndedAt(new \DateTimeImmutable('2026-03-11T10:00:00Z'));
+        // No lead — credits nobody. Still open — no measured duration.
+        $d = $this->patrol('walk', '2026-03-13T06:00:00Z', 5.0);
+        $e = $this->patrol('walk', '2026-03-14T06:00:00Z', 5.0)->setLead($mollel);
+        $e->setEndedAt(null);
+        // Previous month — out of the month's effort.
+        $f = $this->patrol('walk', '2026-02-20T06:00:00Z', 5.0)->setLead($laizer);
+        $f->setEndedAt(new \DateTimeImmutable('2026-02-20T15:00:00Z'));
+
+        $dashboard = new PatrolDashboardService()->build([$a, $b, $c, $d, $e, $f], self::TYPES, $this->now);
+
+        self::assertCount(2, $dashboard->effortSeries);
+        // Ranked most-first: Laizer 5 h before Mollel 4 h.
+        self::assertSame($laizer, $dashboard->effortSeries[0]['lead']);
+        self::assertEqualsWithDelta(5.0, $dashboard->effortSeries[0]['hours'], 0.001);
+        self::assertSame($mollel, $dashboard->effortSeries[1]['lead']);
+        self::assertEqualsWithDelta(4.0, $dashboard->effortSeries[1]['hours'], 0.001);
     }
 }

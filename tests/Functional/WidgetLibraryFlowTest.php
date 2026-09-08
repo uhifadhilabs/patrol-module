@@ -115,8 +115,12 @@ final class WidgetLibraryFlowTest extends WebTestCase
 
         // EVERY widget rendered once as the real thing: the same partials the
         // dashboard renders, on the same live data — one inert template clone
-        // per catalogue widget.
-        self::assertCount(\count(self::WIDGET_IDS), $crawler->filter('template['.WidgetDom::TEMPLATE.']'));
+        // per catalogue widget. The library previews the WHOLE catalogue (all
+        // sixteen), not just the seven the shipped composition turns on.
+        self::assertCount(
+            \count(PatrolWidgets::declaration()->ids()),
+            $crawler->filter('template['.WidgetDom::TEMPLATE.']'),
+        );
         self::assertStringContainsString('North post', $html);
     }
 
@@ -221,6 +225,34 @@ final class WidgetLibraryFlowTest extends WebTestCase
             self::WIDGET_IDS,
             $crawler->filter('.patrol-wgrid > [data-w]')->each(static fn (Crawler $w) => (string) $w->attr('data-w')),
         );
+    }
+
+    /**
+     * ADOPTING A DIRECTION: one of the five presets applied in a click becomes
+     * the active layout, and the dashboard draws exactly the widgets that
+     * direction composes, in its order. "Live coverage" (a) is out-now, the
+     * coverage+log split and the KPI strip — nothing else.
+     */
+    public function testAdoptingADirectionRendersItsWidgetsOnTheDashboard(): void
+    {
+        $this->client->loginUser($this->ranger);
+
+        $this->client->request('POST', $this->libraryUrl().'/preset/a', [
+            '_token' => $this->csrfToken(),
+        ]);
+        self::assertResponseRedirects($this->libraryUrl());
+
+        $crawler = $this->client->request('GET', $this->dashboardUrl());
+        self::assertSame(
+            ['kpis', 'now', 'maplog'],
+            $crawler->filter('.patrol-wgrid > [data-w]')->each(static fn (Crawler $w) => (string) $w->attr('data-w')),
+        );
+        // The direction's own widgets rendered on real rows — "Out right now"
+        // and the docked coverage+log list, neither of which the shipped
+        // composition turns on.
+        self::assertCount(1, $crawler->filter('[data-w="now"]'));
+        self::assertCount(1, $crawler->filter('[data-w="maplog"] .patrol-maplog-split'));
+        self::assertCount(0, $crawler->filter('[data-w="log"]'));
     }
 
     /** A design this surface does not ship is refused, not silently ignored. */

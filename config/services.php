@@ -172,6 +172,10 @@ return static function (ContainerConfigurator $container): void {
             service('twig'),
             service(PatrolRepository::class),
             service('patrol.dashboard'),
+            // The day's live reading (out now, zone gaps, the observation queue)
+            // for the direction widgets — measured in the ONE place the overview
+            // measures it, so the dashboard and /areas/{uuid} never disagree.
+            service('patrol.overview'),
             // uhifadhi/widget-module, BY ITS PUBLISHED SERVICE ID: the module
             // ships a catalogue, never a copy of the algebra that resolves it.
             // The id is that bundle's public surface (its service reference),

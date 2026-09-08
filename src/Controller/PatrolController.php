@@ -27,6 +27,7 @@ use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\PatrolOverviewService;
 use Uhifadhi\Patrol\Widget\PatrolWidgets;
 use Uhifadhi\Widget\Service\WidgetService;
 
@@ -64,6 +65,12 @@ final class PatrolController
         private readonly Environment $twig,
         private readonly PatrolRepository $patrols,
         private readonly PatrolDashboardService $dashboard,
+        // The one place the day's live reading is measured — "out right now",
+        // the zone gaps and the observation queue. The dashboard's direction
+        // widgets (Out right now, Where nobody has been, Observations awaiting
+        // action, the handover note) read exactly what the area overview reads,
+        // so the two surfaces can never disagree about the same morning.
+        private readonly PatrolOverviewService $overview,
         private readonly WidgetService $widgets,
         private readonly array $types,
         private readonly bool $recordScreens = false,
@@ -139,7 +146,12 @@ final class PatrolController
             // What the coverage map draws — boundary + every recorded track this
             // month, each tagged with the zone it set out in.
             'coveragePayload' => $this->dashboard->coveragePayload($area->getGeom(), $dashboard, $this->types, $patrolZones),
-        ]));
+            // The live reading the off-by-default direction widgets need, from
+            // the ONE service that measures it (see the overview service): who is
+            // still out, which handsets are silent, the zone gaps, and the recent
+            // observation queue. A dashboard that shows none of these still pays
+            // for them, which is cheap; a preset that shows them must have them.
+        ] + $this->overview->dashboardReading($area, $now)));
     }
 
     /**

@@ -267,6 +267,12 @@ final class PatrolDashboardService
         $typeCounts = array_fill_keys(array_keys($types), 0);
         /** @var array<string, int> $stationCounts */
         $stationCounts = [];
+        // Patrol-hours per lead this month — the "Effort by ranger" widget. Keyed
+        // by the lead entity so two patrols by the same person add up, and holding
+        // the entity so the template formats the name the one way it formats every
+        // name (the lead_name macro), never a second spelling computed here.
+        /** @var array<int, array{lead: \Uhifadhi\ModuleContracts\Entity\UserInterface, hours: float}> $effort */
+        $effort = [];
         $totalCount = 0;
         $lastPatrol = null;
 
@@ -324,6 +330,19 @@ final class PatrolDashboardService
             if (null !== $station && '' !== $station) {
                 $stationCounts[$station] = ($stationCounts[$station] ?? 0) + 1;
             }
+
+            // Hours on the track, credited to the committed lead. A patrol with no
+            // lead has no ranger to credit, and one still open (no end) has no
+            // measured duration — neither is 0 h, both are simply absent from the
+            // effort chart. The design's "a shared patrol counts once for each
+            // lead" awaits a multi-lead field; the record commits to one lead.
+            $lead = $patrol->getLead();
+            $ended = $patrol->getEndedAt();
+            if (null !== $lead && null !== $ended) {
+                $key = spl_object_id($lead);
+                $effort[$key] ??= ['lead' => $lead, 'hours' => 0.0];
+                $effort[$key]['hours'] += max(0.0, ($ended->getTimestamp() - $started->getTimestamp()) / 3600);
+            }
         }
 
         arsort($stationCounts);
@@ -331,6 +350,10 @@ final class PatrolDashboardService
         foreach ($stationCounts as $station => $count) {
             $stationSeries[] = ['station' => $station, 'count' => $count];
         }
+
+        // Ranked by hours, most first — the design's descending bars.
+        $effortSeries = array_values($effort);
+        usort($effortSeries, static fn (array $a, array $b): int => $b['hours'] <=> $a['hours']);
 
         return new PatrolDashboard(
             patrols: $presentedMonth,
@@ -345,6 +368,7 @@ final class PatrolDashboardService
             // for the live month, to the month's close for a past one.
             weeklySeries: $this->weeklySeries($counted, $types, self::weeklyAnchor($month ?? $now, $now)),
             stationSeries: $stationSeries,
+            effortSeries: $effortSeries,
             stations: array_column($stationSeries, 'station'),
             // The zones the month's patrols set out in, sorted — the ZONE filter's
             // menu. Computed by a live PostGIS spatial join, never a stored field.

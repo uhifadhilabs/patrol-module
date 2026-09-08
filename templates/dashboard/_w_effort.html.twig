@@ -1,0 +1,38 @@
+{# Widget "effort" — Effort by ranger (PL·17), off by default; the "Coverage &
+   effort" direction turns it on.
+
+   HOURS, NOT ROWS. Counting patrols rewards whoever logs the most short ones;
+   counting hours on the track is the honest measure. The hours are computed once
+   in PatrolDashboardService (dashboard.effortSeries): time between a patrol's
+   start and its close, credited to the committed lead. A patrol with no lead has
+   no ranger to credit, and one still open has no measured duration — neither is
+   0 h, both are simply absent. Same horizontal-bar idiom as "By station". #}
+{% import '@UhifadhiPatrol/dashboard/_ui.html.twig' as ui %}
+<div class="c">
+    <span class="tab">Effort by ranger<span class="src">· patrol-hours · this month</span></span>
+    {% set rows = dashboard.effortSeries|slice(0, 6) %}
+    {% if rows|length %}
+        {# The plot runs x=118..433; the axis maximum rounds up to a multiple of three. #}
+        {% set effortMax = max(rows|map(row => row.hours)) %}
+        {% set effortAxis = effortMax > 0 ? ((effortMax + 2) // 3) * 3 : 3 %}
+        <svg class="ch" viewBox="0 0 470 176" xmlns="http://www.w3.org/2000/svg">
+            {% for i in 0..3 %}
+                <line class="grid" x1="{{ 118 + i * 105 }}" y1="8" x2="{{ 118 + i * 105 }}" y2="166"/>
+                <text x="{{ 118 + i * 105 }}" y="175" text-anchor="middle">{{ (effortAxis * i / 3)|round }}</text>
+            {% endfor %}
+            {% for row in rows %}
+                {% set w = (row.hours / effortAxis * 315)|round(1) %}
+                {% set name = ui.lead_name(row.lead)|trim %}
+                <text x="112" y="{{ 25 + 31 * loop.index0 }}" text-anchor="end">{{ name }}</text>
+                <rect x="118" y="{{ 12 + 31 * loop.index0 }}" width="{{ w }}" height="19" rx="3" fill="rgb(var(--c-acc))" opacity="{{ (0.95 - 0.12 * loop.index0)|round(2) }}"><title>{{ name }}: {{ row.hours|round }} h</title></rect>
+                <text class="anno" x="{{ (124 + w)|round(1) }}" y="{{ 25 + 31 * loop.index0 }}">{{ row.hours|round }} h</text>
+            {% endfor %}
+        </svg>
+        <div class="rln patrol-ao-foot">
+            <span class="fog">How the hours are counted</span>
+            <span class="mono patrol-ao-mono">time on the track, start to close · credited to the lead</span>
+        </div>
+    {% else %}
+        <p class="patrol-empty">No patrol-hours to attribute this month — a patrol credits a ranger only once it is closed and carries a committed lead.</p>
+    {% endif %}
+</div>

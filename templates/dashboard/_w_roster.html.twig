@@ -1,0 +1,15 @@
+{# Widget "roster" — Patrols next week (PL·20), off by default; the "The month
+   ahead" direction turns it on.
+
+   HELD — the model records no planned patrols. This widget names one row per
+   patrol the module has been TOLD to expect next week — station, lead, confirmed
+   or pencilled. The module has no such object: a patrol exists once it starts or
+   is imported, never before. Planned patrols are the future Operations module's
+   roster; when it ships, this widget reads it (the id stays `roster` so stored
+   layouts survive the rename). Until then it says so rather than inventing a week
+   of patrols nobody scheduled — deliberately NOT a duty roster, which is a wider
+   object again (shift, leave, standby) and also Operations'. #}
+<div class="c">
+    <span class="tab">Patrols next week<span class="src">· planned patrols</span></span>
+    <p class="patrol-empty">This module records no planned patrols yet — a patrol exists once it starts or a track is imported, never scheduled ahead. Planning next week’s patrols, and the wider duty roster, belong to the future <b>Operations</b> module; when it ships, next week’s planned patrols appear here with their station, lead and whether each is confirmed or still pencilled.</p>
+</div>

@@ -336,6 +336,31 @@ final readonly class PatrolOverviewService
     }
 
     /**
+     * THE LIVE READING THE PATROLS DASHBOARD BINDS — the same four facts the area
+     * overview draws, measured here once so a preset's "Out right now", "Where
+     * nobody has been" and "Observations awaiting action" widgets can never
+     * disagree with the overview's own plates about the same morning.
+     *
+     * Returned as a context bag the dashboard and the widget library both merge
+     * into their template variables: the direction widgets are off by default, so
+     * a plain dashboard shows none of them, but the library previews every widget
+     * and a preset may turn any of them on — so the reading must always be there.
+     *
+     * @return array{out: list<array<string, mixed>>, handsets: array{reporting: int, total: int, worst: array<string, mixed>|null}, gaps: array{zones: list<array<string, mixed>>, areaCoverageFraction: float|null, bufferKm: float}, observations: array{rows: list<array<string, mixed>>, monthCount: int}}
+     */
+    public function dashboardReading(AreaOfInterest $area, \DateTimeImmutable $now): array
+    {
+        $out = $this->out($area, $now);
+
+        return [
+            'out' => $out,
+            'handsets' => $this->handsets($out),
+            'gaps' => $this->gaps($area, $now),
+            'observations' => $this->observations($area, $now),
+        ];
+    }
+
+    /**
      * HOW LONG, THE WAY THE DESIGN SAYS IT: "12 min", "6 h 20", "9 d".
      *
      * One function rather than a Twig filter beside it, because the same age is

@@ -1,0 +1,52 @@
+{# Widget "obsq" — Observations awaiting action (PL·14), off by default; the
+   "Shift handover" direction turns it on.
+
+   THE DESIGN ASKS FOR A NUMBER THIS MODULE DOES NOT HOLD. Its card is headed "18
+   unfiled" and offers "File as incident →" on every row. This module cannot know
+   which observations have been filed as incidents: the incidents module records
+   the observation's uuid on ITS side (Incident::sourceRecordUuid) and nothing
+   here mirrors it. So there is no unfiled count and no unfiled filter — the same
+   honest reading the overview's PL·A4 gives. The row opens the OBSERVATION rather
+   than filing it, because "file as incident" would have to name another module's
+   route, and this module names no other module. #}
+{% set q = observations %}
+<div class="c">
+    <span class="tab">Observations awaiting action<span class="src">· oldest first · the latest {{ q.rows|length }}</span></span>
+    <div class="use patrol-ao-lead">An observation is <b>not</b> an incident. Most stay notes; these are the ones somebody has to decide about. Whether one has already been <b>filed as an incident is not recorded on this side</b> — the incidents module holds that link — so this card counts no queue and marks nothing as unfiled.</div>
+
+    {% if q.rows|length %}
+        <table class="tbl">
+            <tr>
+                <th>obs</th>
+                <th>patrol</th>
+                <th>what was seen</th>
+                <th>zone</th>
+                <th class="num">age</th>
+                <th></th>
+            </tr>
+            {% for row in q.rows %}
+                <tr>
+                    <td><span class="mono patrol-ref">{{ row.observation.ref }}</span></td>
+                    <td><a href="{{ row.patrolUrl }}">{{ row.observation.patrol.ref }}</a></td>
+                    <td>{{ row.category }}{% if row.observation.note %} — {{ row.observation.note }}{% endif %}</td>
+                    <td class="fog">{{ row.zone ?: '—' }}</td>
+                    <td class="num">
+                        {% if row.ageLabel is null %}
+                            <span class="chip idle">not timed</span>
+                        {% else %}
+                            <span class="chip {{ row.ageSeconds >= 432000 ? 'fail' : (row.ageSeconds >= 172800 ? 'warn' : 'idle') }}">{{ row.ageLabel }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="patrol-right"><a class="open-btn" href="{{ row.url }}">Open →</a></td>
+                </tr>
+            {% endfor %}
+        </table>
+
+        <div class="rln patrol-ao-foot">
+            <span class="fog">Logged this month</span>
+            <span class="mono patrol-ao-mono">{{ q.monthCount }} · each keeps its patrol id</span>
+        </div>
+    {% else %}
+        <p class="patrol-empty">No observations have been logged in this area yet.</p>
+    {% endif %}
+</div>

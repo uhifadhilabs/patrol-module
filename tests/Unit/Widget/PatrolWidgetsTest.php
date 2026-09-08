@@ -46,33 +46,28 @@ final class PatrolWidgetsTest extends TestCase
     }
 
     /**
-     * The seven widgets the module has always drawn, in exactly the order it has
-     * always drawn them — catalogue order IS the shipped composition. The nine
-     * the design added for the directions arrive with the features they need
-     * (live positions, zone gaps, planned patrols); until then the surface ships
-     * what it can honestly render.
+     * The sixteen widgets, in the design's declaration order: the seven the
+     * module has always drawn (catalogue order IS the shipped composition),
+     * then the nine added for the directions.
      */
-    public function testItShipsTheSevenWidgetsInTheShippedOrder(): void
+    public function testItShipsTheSixteenWidgetsInDeclarationOrder(): void
     {
         self::assertSame(
-            ['kpis', 'map', 'log', 'feed', 'chweek', 'chstation', 'cal'],
+            ['kpis', 'map', 'log', 'feed', 'chweek', 'chstation', 'cal', 'maplog', 'now', 'obsq', 'handover', 'gaps', 'effort', 'export', 'plan', 'roster'],
             PatrolWidgets::declaration()->ids(),
         );
     }
 
-    /** Each of the seven is filed under the direction the design files it under. */
+    /** Each widget is filed under the direction the design files it under. */
     public function testEveryWidgetIsFiledWhereTheDesignFilesIt(): void
     {
         $catalog = PatrolWidgets::declaration();
 
         $expected = [
-            'kpis' => 'b',
-            'map' => 'a',
-            'log' => 'b',
-            'feed' => 'c',
-            'chweek' => 'd',
-            'chstation' => 'd',
-            'cal' => 'e',
+            'kpis' => 'b', 'map' => 'a', 'log' => 'b', 'feed' => 'c',
+            'chweek' => 'd', 'chstation' => 'd', 'cal' => 'e',
+            'maplog' => 'a', 'now' => 'a', 'obsq' => 'c', 'handover' => 'c',
+            'gaps' => 'd', 'effort' => 'd', 'export' => 'd', 'plan' => 'e', 'roster' => 'e',
         ];
         foreach ($expected as $id => $group) {
             self::assertSame($group, $catalog->get($id)->group, \sprintf('Widget "%s" is filed under the wrong direction.', $id));
@@ -80,25 +75,30 @@ final class PatrolWidgetsTest extends TestCase
     }
 
     /**
-     * The two charts are half-width plates: they sit at six columns and are
-     * never offered the full row — exactly the design's spans declaration.
+     * The spans each widget offers, verbatim from the design. "By station" gains
+     * the full row (the log direction draws it full-width); the per-week chart
+     * stays a half-width plate.
      */
-    public function testOnlyTheTallWidgetsOfferFullWidth(): void
+    public function testEveryWidgetOffersTheDesignsSpans(): void
     {
         $catalog = PatrolWidgets::declaration();
 
-        foreach (['kpis', 'map', 'log', 'feed', 'cal'] as $tall) {
-            self::assertSame([12, 9, 6, 3], $catalog->spans($tall), \sprintf('"%s" is drawn tall and offers every span.', $tall));
-            self::assertSame(12, $catalog->get($tall)->cols);
-        }
-        foreach (['chweek', 'chstation'] as $chart) {
-            self::assertSame([9, 6, 3], $catalog->spans($chart), \sprintf('"%s" is a half-width plate.', $chart));
-            self::assertSame(6, $catalog->get($chart)->cols);
+        $spans = [
+            'kpis' => [12, 9, 6, 3], 'map' => [12, 9, 6, 3], 'log' => [12, 9, 6, 3],
+            'feed' => [12, 9, 6, 3], 'cal' => [12, 9, 6, 3], 'chstation' => [12, 9, 6, 3],
+            'chweek' => [9, 6, 3],
+            'maplog' => [12, 9],
+            'now' => [12, 9, 6], 'obsq' => [12, 9, 6], 'handover' => [12, 9, 6],
+            'gaps' => [12, 9, 6], 'effort' => [12, 9, 6], 'export' => [12, 9, 6],
+            'plan' => [12, 9, 6], 'roster' => [12, 9, 6],
+        ];
+        foreach ($spans as $id => $expected) {
+            self::assertSame($expected, $catalog->spans($id), \sprintf('"%s" offers the wrong spans.', $id));
         }
     }
 
-    /** The shipped composition is all seven — nothing the module draws is off by default. */
-    public function testTheShippedCompositionIsAllSevenWidgets(): void
+    /** The shipped composition is the original seven — nothing added is on by default. */
+    public function testTheShippedCompositionIsTheOriginalSevenWidgets(): void
     {
         self::assertSame(
             ['kpis' => 12, 'map' => 12, 'log' => 12, 'feed' => 12, 'chweek' => 6, 'chstation' => 6, 'cal' => 12],
@@ -109,6 +109,7 @@ final class PatrolWidgetsTest extends TestCase
     /**
      * THE SHIPPED COMPOSITION LEADS THE STRIP AS A NAMED DESIGN — "The patrols
      * dashboard", the design's own name for it, never a generic "Default layout".
+     * It is the sixth built-in, alongside the five directions.
      */
     public function testTheShippedCompositionIsItsOwnNamedDesign(): void
     {
@@ -120,18 +121,53 @@ final class PatrolWidgetsTest extends TestCase
         self::assertNotNull($shipped);
         self::assertSame(PatrolWidgets::DEFAULT_LABEL, $shipped->label);
         self::assertSame('The patrols dashboard', PatrolWidgets::DEFAULT_LABEL);
+
+        // Six built-ins: the shipped composition leads, then the five directions.
+        self::assertSame(
+            ['default', 'a', 'b', 'c', 'd', 'e'],
+            array_map(static fn ($p) => $p->id, $catalog->builtins()),
+        );
     }
 
     /**
-     * NO DIRECTION SHIPS AS A PRESET YET. Every one of the five composes at
-     * least one widget the module has not built (out right now, coverage + log,
-     * the handover note, the observation queue, zone gaps, effort, export,
-     * planned vs actual, next week) — and a preset naming an unshipped widget
-     * must not boot. They arrive with those widgets; nothing here is a cut.
+     * THE FIVE DIRECTIONS SHIP AS PRESETS, each composing the exact widgets the
+     * gallery draws, at the widths it draws them — verbatim from the design.
      */
-    public function testNoDirectionShipsUntilItsWidgetsDo(): void
+    public function testTheFiveDirectionsShipAsPresetsWithTheDesignsLayouts(): void
     {
-        self::assertSame([], PatrolWidgets::declaration()->presets());
+        $catalog = PatrolWidgets::declaration();
+
+        $expected = [
+            'a' => ['kpis' => 12, 'now' => 12, 'maplog' => 12],
+            'b' => ['kpis' => 12, 'log' => 12, 'chstation' => 12],
+            'c' => ['handover' => 12, 'now' => 12, 'obsq' => 12, 'feed' => 12],
+            'd' => ['kpis' => 12, 'gaps' => 6, 'effort' => 6, 'chweek' => 6, 'chstation' => 6, 'export' => 12],
+            'e' => ['cal' => 12, 'plan' => 12, 'roster' => 12],
+        ];
+
+        self::assertSame(['a', 'b', 'c', 'd', 'e'], array_map(static fn ($p) => $p->id, $catalog->presets()));
+        foreach ($expected as $id => $layout) {
+            $preset = $catalog->preset($id);
+            self::assertNotNull($preset, \sprintf('Direction "%s" does not ship as a preset.', $id));
+            self::assertSame($layout, $preset->layout, \sprintf('Preset "%s" composes the wrong widgets.', $id));
+        }
+    }
+
+    /**
+     * A preset and its headed section carry the SAME trade-off line — written
+     * once in directions() and read twice — so the product can never say
+     * something about a direction the design did not.
+     */
+    public function testAPresetAndItsSectionShareOneTradeOffLine(): void
+    {
+        $catalog = PatrolWidgets::declaration();
+
+        foreach ($catalog->groups() as $group) {
+            $preset = $catalog->preset($group->id);
+            self::assertNotNull($preset);
+            self::assertSame($group->label, $preset->label);
+            self::assertSame($group->description, $preset->description);
+        }
     }
 
     /** Every widget carries the one line the add-widget picker prints — the design's own. */

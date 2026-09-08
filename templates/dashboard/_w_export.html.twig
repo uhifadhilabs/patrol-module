@@ -1,0 +1,31 @@
+{# Widget "export" — Export & reporting (PL·18), off by default; the "Coverage &
+   effort" direction turns it on.
+
+   THE FILE AND THE SCREEN ALWAYS AGREE. The card states the row count of the
+   month on screen BEFORE anything is asked for, from the SAME figures the KPI
+   strip shows (dashboard.monthCount / monthDistanceKm) — so nobody discovers at
+   the printer that they exported a different month than the one they were reading.
+
+   HELD: the three delivery actions are not wired yet. This module ships a
+   per-patrol GPX export (the detail screen), but the BULK log-as-CSV, the
+   tracks-as-GPX and the queued monthly PDF report each need a route this module
+   has not built. The card describes exactly what each will contain, on real
+   counts, and marks the actions as pending rather than drawing a dead button. #}
+<div class="c">
+    <span class="tab">Export &amp; reporting<span class="src">· carries the current filter</span></span>
+    <div class="use patrol-ao-lead">Filter in force: <b>all types · every station · {{ (month|default(now))|date('F Y')|lower }}</b> — <b>{{ dashboard.monthCount|number_format }} {{ dashboard.monthCount == 1 ? 'patrol' : 'patrols' }}</b>.</div>
+
+    <div class="patrol-exp">
+        <span class="patrol-exp-t">Patrol log · CSV<em>{{ dashboard.monthCount|number_format }} rows · the log’s own columns, in the log’s own order</em></span>
+        <span class="chip idle patrol-exp-soon">not wired yet</span>
+    </div>
+    <div class="patrol-exp">
+        <span class="patrol-exp-t">Tracks · GPX<em>{{ dashboard.monthDistanceKm|number_format }} km · one &lt;trk&gt; per patrol, ids preserved</em></span>
+        <span class="chip idle patrol-exp-soon">not wired yet</span>
+    </div>
+    <div class="patrol-exp">
+        <span class="patrol-exp-t">Monthly coverage report · PDF<em>the map, the two charts and the coverage table · queued, arrives by email</em></span>
+        <span class="chip idle patrol-exp-soon">not wired yet</span>
+    </div>
+    <div class="patrol-stamp">Bulk export and the monthly report are not built yet — a single patrol’s track can be exported as GPX from its own page.</div>
+</div>
