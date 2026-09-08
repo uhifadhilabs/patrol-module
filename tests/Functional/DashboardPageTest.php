@@ -25,7 +25,8 @@ use Uhifadhi\Team\Entity\User;
 
 /**
  * The patrols widget dashboard: the KPI strip, the coverage map payload, the
- * filter chips, the patrol log, the feed, both charts and the month calendar —
+ * filter chips, the patrol log, both charts and the month calendar (the feed is
+ * off the shipped composition — owner ruling 2026-09-08) —
  * all rendered from real rows, with the deployment's own type vocabulary
  * (TestKernel configures the synthetic "walk"/"boat" types).
  */
@@ -161,8 +162,8 @@ final class DashboardPageTest extends WebTestCase
         self::assertCount(3, $crawler->filter('[data-patrol-log] tbody tr[data-patrol]'));
         // Plus one row the rows controller reveals when a filter hides them all.
         self::assertCount(1, $crawler->filter('[data-patrol-log] tbody tr.patrol-hidden'));
-        // Scoped to the log: the feed row (PL·07) carries the same identity, so
-        // the coverage map can spotlight a track from either list.
+        // Scoped to the log: the register row carries the patrol's identity, so
+        // the coverage map can spotlight its track from the list.
         $row = $crawler->filter('[data-patrol-log] [data-patrol="'.$this->walkWithObservations->getUuid()->toRfc4122().'"]');
         self::assertCount(1, $row);
         self::assertStringContainsString($this->walkWithObservations->getRef(), $row->text());
@@ -173,9 +174,10 @@ final class DashboardPageTest extends WebTestCase
         self::assertStringContainsString('2 obs', $row->text());
         self::assertStringContainsString('Open', $row->text());
 
-        // Feed: the same patrols as rows with initials, station · lead and type.
-        self::assertCount(3, $crawler->filter('[data-patrol-feed] .patrol-feed-row'));
-        self::assertSelectorTextContains('[data-patrol-feed] .patrol-avatar', 'AA');
+        // Feed: OFF the shipped composition now (owner ruling 2026-09-08) — it drew
+        // the same latest-N patrols the log register already lists. The default
+        // dashboard renders no feed at all; the register carries the recent window.
+        self::assertCount(0, $crawler->filter('[data-patrol-feed]'));
 
         // Charts: five week groups (two bars each, one per type) and one bar per
         // station, ranked.
@@ -236,9 +238,11 @@ final class DashboardPageTest extends WebTestCase
         self::assertCount(3, $chips); // all + the two configured types
         self::assertSame('all', $chips->first()->attr('data-patrol-type'));
 
-        // The feed rows (PL·07) carry the same identity as the log rows: the
-        // design's "hover a row to highlight" works from either list.
-        self::assertCount(3, $crawler->filter('[data-patrol-feed] [data-patrol][data-patrol-type]'));
+        // The log rows carry the identity the map spotlight reads — every row a
+        // patrol uuid AND its type — so hovering a row highlights its track. (This
+        // used to be asserted on the feed too; the feed is off the default now, so
+        // the register is the one list on the shipped screen that carries it.)
+        self::assertCount(3, $crawler->filter('[data-patrol-log] tbody tr[data-patrol][data-patrol-type]'));
 
         // Station markers: the design labels each station on the map. A station
         // has no coordinates of its own, so only stations whose patrols recorded
@@ -254,12 +258,14 @@ final class DashboardPageTest extends WebTestCase
     }
 
     /**
-     * OVERFLOW RULE (owner: an overview card never grows with data). The log and
-     * the feed show the LATEST few of the month, not all of them, so a month of
-     * many patrols leaves the two cards the same height as a quiet one. The whole
-     * month is still on the map and the calendar — this is the recent window.
+     * OVERFLOW RULE (owner: an overview card never grows with data). The log shows
+     * the LATEST few of the month, not all of them, so a month of many patrols
+     * leaves the card the same height as a quiet one. The whole month is still on
+     * the map and the calendar — this is the recent window. (The feed obeyed the
+     * same rule and was asserted here too; it is off the shipped composition now,
+     * so the register is the capped list on the default screen).
      */
-    public function testTheLogAndFeedAreCappedToTheLatestFewOfTheMonth(): void
+    public function testTheLogIsCappedToTheLatestFewOfTheMonth(): void
     {
         // Push this month well past the cards' cap of eight (3 already exist).
         $monthStart = new \DateTimeImmutable('first day of this month')->setTime(8, 0);
@@ -274,12 +280,13 @@ final class DashboardPageTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
 
-        // Thirteen patrols this month, but each card renders only the latest eight
-        // and says so ("latest 8 of 13").
+        // Thirteen patrols this month, but the register renders only the latest
+        // eight and says so ("latest 8 of 13").
         self::assertCount(8, $crawler->filter('[data-patrol-log] tbody tr[data-patrol]'));
         self::assertSelectorTextContains('[data-patrol-log] .tab .src', 'latest 8 of 13');
-        self::assertCount(8, $crawler->filter('[data-patrol-feed] .patrol-feed-row'));
-        self::assertSelectorTextContains('[data-patrol-feed] .tab .src', '8 of 13');
+        // The feed obeyed the same cap; it is off the default composition now, so
+        // it renders nowhere on this screen.
+        self::assertCount(0, $crawler->filter('[data-patrol-feed]'));
 
         // The KPI still counts the whole month — the cap is on the card, not the
         // month.

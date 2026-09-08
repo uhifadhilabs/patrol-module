@@ -97,13 +97,37 @@ final class PatrolWidgetsTest extends TestCase
         }
     }
 
-    /** The shipped composition is the original seven — nothing added is on by default. */
-    public function testTheShippedCompositionIsTheOriginalSevenWidgets(): void
+    /** The shipped composition is the original six — the feed came off it (owner
+     * ruling 2026-09-08) and nothing added is on by default. */
+    public function testTheShippedCompositionIsTheOriginalSixWidgets(): void
     {
         self::assertSame(
-            ['kpis' => 12, 'map' => 12, 'log' => 12, 'feed' => 12, 'chweek' => 6, 'chstation' => 6, 'cal' => 12],
+            ['kpis' => 12, 'map' => 12, 'log' => 12, 'chweek' => 6, 'chstation' => 6, 'cal' => 12],
             PatrolWidgets::declaration()->defaultLayout(),
         );
+    }
+
+    /**
+     * THE FEED IS OFF THE DEFAULT BUT NOT GONE. On the combined screen it drew the
+     * same latest-N patrols the log register already lists, so the owner took it
+     * off the shipped composition (2026-09-08). It stays in the catalogue and it
+     * still LEADS direction C "Shift handover" — off by default, one click away.
+     */
+    public function testTheFeedIsOffTheDefaultButStillInTheCatalogueAndDirectionC(): void
+    {
+        $catalog = PatrolWidgets::declaration();
+
+        // Available: still a catalogue widget, just switched off.
+        self::assertTrue($catalog->has('feed'));
+        self::assertFalse($catalog->get('feed')->on);
+
+        // Off the shipped composition: absent from the default layout.
+        self::assertArrayNotHasKey('feed', $catalog->defaultLayout());
+
+        // Still the point of direction C — the reverse-chron handover feed.
+        $directionC = $catalog->preset('c');
+        self::assertNotNull($directionC);
+        self::assertArrayHasKey('feed', $directionC->layout);
     }
 
     /**
