@@ -106,6 +106,31 @@ final class SeedDemoCommandTest extends IntegrationTestCase
         self::assertStringContainsString('6', $tester->getDisplay());
     }
 
+    /**
+     * The demo has to fill THIS calendar month, because the dashboard opens on it
+     * (PatrolDashboardService::monthRange). A rolling window left "this month"
+     * showing a handful of patrols against a design that shows a full month — so
+     * every seeded patrol now starts on or after the first of the current month
+     * and no later than now.
+     */
+    public function testEveryPatrolStartsWithinTheCurrentCalendarMonth(): void
+    {
+        $area = $this->makeArea();
+
+        $this->seed(['--area' => (string) $area->getUuidString(), '--patrols' => 20]);
+
+        $now = new \DateTimeImmutable();
+        $monthStart = $now->modify('first day of this month')->setTime(0, 0);
+        $patrols = $this->storedPatrols($area);
+        self::assertCount(20, $patrols);
+        foreach ($patrols as $patrol) {
+            $started = $patrol->getStartedAt();
+            self::assertNotNull($started);
+            self::assertGreaterThanOrEqual($monthStart, $started, 'a patrol was seeded before this month');
+            self::assertLessThanOrEqual($now, $started, 'a patrol was seeded in the future');
+        }
+    }
+
     public function testRecordedTracksAreValidLineStringsPostgisAccepts(): void
     {
         $area = $this->makeArea();
@@ -312,7 +337,11 @@ final class SeedDemoCommandTest extends IntegrationTestCase
             self::assertGreaterThan(10.0, $speedKmh, 'faster than anyone walks');
         }
 
-        self::assertSame(['walk' => true, 'boat' => true], $seen, 'both configured types appear in the demo');
+        // Both configured types appear — the order they are first drawn in is an
+        // implementation detail of the seeded RNG, not something to assert.
+        self::assertArrayHasKey('walk', $seen);
+        self::assertArrayHasKey('boat', $seen);
+        self::assertCount(2, $seen, 'both configured types appear in the demo');
     }
 
     public function testTracksReachAcrossTheAreaNotOneCorner(): void

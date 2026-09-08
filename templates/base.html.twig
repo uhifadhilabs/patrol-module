@@ -43,6 +43,15 @@
        never a CDN, and the same Leaflet the area map runs on, so a patrol map
        and an area map cannot disagree about how a layer draws. #}
     <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Map\\UhifadhiMapBundle::LEAFLET_CSS')) }}">
+    {# THE MAP CHROME STYLESHEET — map-module's ONE map.css, the single definition
+       of the zoom pills, the base-layer menu, the live scale bar, the scroll-bargain
+       hint and the fullscreen control that map-chrome's chrome.js builds into every
+       plate (.map-chrome*, .leaflet-control-*). The controllers build that chrome as
+       DOM (see leaflet_plate.js → mountMapChrome); without this sheet the controls
+       are there but unstyled and invisible — the design's zoom / Satellite·Map /
+       fullscreen, top-right, would never appear. Loaded BEFORE patrol.css so the
+       module's own plate rules still win where they must. #}
+    <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Map\\UhifadhiMapBundle::STYLESHEET')) }}">
     {# The dashboard grid's own vocabulary, from the bundle that owns it. #}
     <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Widget\\UhifadhiWidgetBundle::STYLESHEET')) }}">
     {# The FILE PREVIEW's vocabulary, from the bundle that owns it. A patrol

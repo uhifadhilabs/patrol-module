@@ -219,6 +219,16 @@ final class DashboardPageTest extends WebTestCase
         self::assertCount(2, $crawler->filter('.patrol-viewer .patrol-canvas'));
         self::assertCount(0, $crawler->filter('.patrol-zoomui'));
 
+        // ...but the chrome it mounts is STYLED by map-module's map.css, which the
+        // base template must link — without it the zoom pills, the Satellite/Map
+        // toggle and fullscreen are built as DOM but invisible. Found in a browser:
+        // a map with a legend and tiles but no controls.
+        self::assertStringContainsString(
+            'uhifadhimap/map',
+            (string) $this->client->getResponse()->getContent(),
+            'the patrol base must link map-module map.css so the map chrome is visible',
+        );
+
         // The filter chips are real buttons carrying the type they select, so
         // one filter can drive the map AND the log.
         $chips = $crawler->filter('[data-w="map"] .patrol-chiprow button[data-patrol-type]');

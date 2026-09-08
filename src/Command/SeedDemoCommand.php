@@ -66,7 +66,6 @@ use Uhifadhi\Patrol\Service\GeoService;
 final class SeedDemoCommand extends Command
 {
     private const int DEFAULT_PATROLS = 12;
-    private const int SPREAD_DAYS = 35;
     private const int MIN_TRACK_POINTS = 30;
     private const int MAX_TRACK_POINTS = 120;
 
@@ -269,13 +268,13 @@ final class SeedDemoCommand extends Command
         $this->em->flush();
 
         $io->success(\sprintf(
-            'Seeded %d patrols (%d recorded, %d hand-entered) with %d observations for "%s", spread over the last %d days.',
+            'Seeded %d patrols (%d recorded, %d hand-entered) with %d observations for "%s", within %s.',
             $count,
             $recorded,
             $sketched,
             $observations,
             $area->getName() ?? $areaUuid,
-            self::SPREAD_DAYS,
+            $now->format('F Y'),
         ));
 
         $io->table(
@@ -716,15 +715,24 @@ final class SeedDemoCommand extends Command
         return $km;
     }
 
-    /** Duty starts spread over the last SPREAD_DAYS days, at field hours. */
+    /**
+     * Duty starts spread across the CURRENT calendar month, at field hours.
+     *
+     * The dashboard opens on this month (PatrolDashboardService::monthRange), so
+     * that is where the demo has to live: a rolling "last N days" window leaves
+     * "this month" almost empty for the first weeks of a month, which is exactly
+     * the sparse dashboard this seeder exists to prevent. Days run from the 1st up
+     * to today; a slot that lands after "now" is pulled back within today.
+     */
     private function startOfDuty(Randomizer $randomizer, \DateTimeImmutable $now): \DateTimeImmutable
     {
-        $daysAgo = $randomizer->getInt(0, self::SPREAD_DAYS - 1);
-        $start = $now->modify(\sprintf('-%d days', $daysAgo))
+        $monthStart = $now->modify('first day of this month')->setTime(0, 0);
+        $day = $randomizer->getInt(1, (int) $now->format('j'));
+        $start = $monthStart->modify(\sprintf('+%d days', $day - 1))
             ->setTime($randomizer->getInt(5, 14), 5 * $randomizer->getInt(0, 11));
 
         // Never in the future — today's slot may land after "now".
-        return $start > $now ? $now->modify('-1 day')->setTime(6, 30) : $start;
+        return $start > $now ? $now->modify('-1 hour') : $start;
     }
 
     private function team(Randomizer $randomizer): string
