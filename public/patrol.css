@@ -1,10 +1,13 @@
 /* Patrol screen styles — the widget-dashboard additions on top of the host's
-   design system. Everything the host already ships (.page, .c/.tab, .kpi,
-   .chip, .mchip, .tbl, .ch chart classes, .crumb/.pghead/.backbtn/.open-btn,
-   .map-frame/.map-btn) is REUSED, never redefined here; only what the host has
-   no equivalent for lives below, and every class is patrol-prefixed so it can
-   never collide with a host class (the host owns .page, .thumb, .map-legend,
-   .who — none of them is touched).
+   design system. What the refactored skeleton host actually ships (.page, .c/.tab,
+   .kpi, .chip, .tbl, .crumb/.pghead/.open-btn, .map-frame/.map-btn, plus the token
+   channels --c-*, --shadow and --font-mono) is REUSED, never redefined here. The
+   design vocabulary the skeleton's shell.css does NOT carry — .mchip, the .ch chart
+   text/lines and .backbtn — is restated once, byte-faithful, in the marked "HOST
+   VOCABULARY the refactored skeleton no longer ships" block below (same reason as
+   the .i-dd* chrome: a patrol page must not depend on the host loading it). Every
+   other class is patrol-prefixed so it can never collide with a host class (the host
+   owns .page, .thumb, .map-legend, .who — none of them is touched).
 
    Colours come from the host tokens (rgb(var(--c-*))) so the module flips with
    the theme; the imagery viewer keeps fixed dark chrome because it sits on
@@ -41,6 +44,58 @@
 .patrol-act { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; }
 .patrol-act svg { width: 16px; height: 16px; }
 
+/* ---- HOST VOCABULARY the refactored skeleton no longer ships ----------- --
+   The header comment above assumed the host stylesheet carried .mchip, the .ch
+   chart classes and .backbtn (they live in the design app's global uhifadhi.css).
+   The refactored skeleton's shell.css ships the token channels (--c-*), --shadow,
+   --font-mono, .c/.tab — but NOT this design vocabulary, so on a patrol page every
+   .mchip fell back to a bare <button> (black text on #efefef, a dashed-black ghost
+   border), the chart <text> painted black-on-dark, and "< All modules" rendered as
+   an unstyled link. Ported here BYTE-FAITHFUL from the design's uhifadhi.css onto
+   patrol's host-token convention (rgb(var(--c-*))) — the same self-sufficiency as
+   the .i-dd* dropdown chrome below and incident-module's copy: a patrol page never
+   depends on the host stylesheet carrying a two-plus-surface vocabulary. These are
+   the ONLY host classes restated; everything else is still reused, never redefined.
+
+   .mchip is the shared filter/pill chip: the type toggles (all/foot/vehicle/drone),
+   the .i-ddt dropdown triggers (station/zone), the month chip and the calendar
+   prev/next ghosts are all <button class="mchip …">, so the base rule below is what
+   makes every one of them a chip instead of a default button. */
+.mchip {
+    display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono);
+    font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: rgb(var(--c-fog));
+    border: 1px solid var(--c-ln2); border-radius: 99px; padding: 7px 14px 6px; text-decoration: none; line-height: 1;
+    background: none; white-space: nowrap;
+}
+.mchip:hover { color: rgb(var(--c-tx)); border-color: rgb(var(--c-fog)); text-decoration: none; }
+.mchip.on { color: rgb(var(--c-accT)); background: rgb(var(--c-acc)); border-color: rgb(var(--c-acc)); }
+.mchip.on:hover { color: rgb(var(--c-accT)); }
+.mchip.ghost { border-style: dashed; color: rgb(var(--c-fog)); cursor: pointer; }
+.mchip.add { border-style: dashed; border-color: rgb(var(--c-acc)); color: rgb(var(--c-acc)); cursor: pointer; }
+
+/* The two dashboard charts ("Patrols per week", "Patrols by station"). Bars carry
+   an inline fill (the per-type track colour / the accent), so only the SVG text and
+   the grid/axis lines need the shared palette: annotations read in ink (--c-tx),
+   the "patrols" caption + axis numerals + station labels in fog (--c-fog). */
+.ch { width: 100%; height: auto; display: block; }
+.ch text { font-family: var(--font-mono); font-size: 7.5px; fill: rgb(var(--c-fog)); }
+.ch text.ttl { font-size: 8px; fill: rgb(var(--c-tx)); font-weight: 600; }
+.ch text.anno { fill: rgb(var(--c-tx)); font-size: 7.5px; }
+.ch text.annoS { fill: rgb(var(--c-fog)); font-size: 6.9px; }
+.ch line.grid { stroke: color-mix(in srgb, rgb(var(--c-fog)) 22%, transparent); stroke-width: .6; }
+.ch line.ax { stroke: color-mix(in srgb, rgb(var(--c-fog)) 55%, transparent); stroke-width: .8; }
+
+/* "< All modules" — the pill back out of the module to the area's module grid.
+   Design's --card hover tint has no host token; the panel colour (--c-p1) is the
+   closest "lift". */
+.backbtn {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: rgb(var(--c-fog));
+    text-decoration: none; padding: 6px 14px 6px 10px; border: 1px solid var(--c-ln2); border-radius: 99px;
+    margin-bottom: 16px; transition: color .15s, border-color .15s, background .15s;
+}
+.backbtn:hover { color: rgb(var(--c-tx)); border-color: rgb(var(--c-fog)); background: rgb(var(--c-p1)); }
+.backbtn svg { display: block; }
+
 /* ---- filter chip row + station menu ----------------------------------- */
 .patrol-chiprow { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 12px; align-items: center; }
 /* The type chips are real <button>s (they change what is on screen, and they
@@ -59,7 +114,8 @@
     border-color: var(--patrol-track);
     background: color-mix(in srgb, var(--patrol-track) 12%, transparent);
 }
-/* The host has .mchip.on and .mchip.add but no dashed "not chosen yet" state. */
+/* Patrol's own "not chosen yet" ghost chip (the calendar prev/next carry it as
+   .mchip.patrol-ghost); mirrors the .mchip.ghost dashed treatment shipped above. */
 .patrol-ghost { border-style: dashed; color: rgb(var(--c-fog)); cursor: pointer; }
 /* ---- filter dropdowns: the incidents bar's chrome, ported (self-sufficient) --
    The station filter is a dropdown in the SAME chrome the incidents bar uses — a
