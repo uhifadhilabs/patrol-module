@@ -517,6 +517,11 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service('doctrine.orm.entity_manager'),
                     service(PatrolRepository::class),
                     service('patrol.geo'),
+                    // The demo attaches real (invented) photographs to observations,
+                    // stored through the platform's evidence storage exactly as the
+                    // field API does — so they appear on the /files hub via
+                    // PatrolFileSource. Same service the purge command takes above.
+                    service('storage.evidence_storage'),
                     param('patrol.types'),
                     param('patrol.observation_categories'),
                 ])

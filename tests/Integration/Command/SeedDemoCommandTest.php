@@ -13,13 +13,16 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Tests\Integration\Command;
 
+use League\Flysystem\FilesystemOperator;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Storage\PatrolFileSource;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
@@ -128,6 +131,42 @@ final class SeedDemoCommandTest extends IntegrationTestCase
             self::assertNotNull($started);
             self::assertGreaterThanOrEqual($monthStart, $started, 'a patrol was seeded before this month');
             self::assertLessThanOrEqual($now, $started, 'a patrol was seeded in the future');
+        }
+    }
+
+    /**
+     * Files are always linked to records — for patrols that is an observation's
+     * photographs. The demo attaches them through the platform's evidence storage
+     * under patrol's own key prefix, so PatrolFileSource claims each one (it shows
+     * on /files as patrol-linked evidence) and the bytes really land on disk.
+     */
+    public function testObservationsCarryStoredPhotographsTheFilesHubCanClaim(): void
+    {
+        $area = $this->makeArea();
+
+        $this->seed(['--area' => (string) $area->getUuidString(), '--patrols' => 12]);
+
+        /** @var list<ObservationPhoto> $photos */
+        $photos = $this->em->getRepository(ObservationPhoto::class)->findAll();
+        self::assertNotEmpty($photos, 'the demo attaches photographs to observations');
+
+        $storage = static::getContainer()->get('storage.evidence');
+        self::assertInstanceOf(FilesystemOperator::class, $storage);
+
+        foreach ($photos as $photo) {
+            $key = $photo->getStoragePath();
+            // Patrol's own prefix — the same claim the files hub and the evidence
+            // voter make, so /files lists it under Patrols with an OBS/P owner.
+            self::assertTrue(PatrolFileSource::claims($key), \sprintf('%s is a patrol evidence key', $key));
+            self::assertTrue($storage->fileExists($key), 'the photograph bytes really landed');
+            self::assertNotNull($photo->getMimeType());
+            self::assertStringStartsWith('image/', (string) $photo->getMimeType());
+            self::assertGreaterThan(0, (int) $photo->getByteSize());
+            // A field photograph, not a web amendment attachment — so PL·05 and the
+            // completeness count include it.
+            self::assertFalse($photo->isAmendmentAttachment());
+            self::assertTrue($photo->hasPosition(), 'a demo photo records where the shutter fired');
+            self::assertSame($area->getId(), $photo->getObservation()->getPatrol()->getArea()->getId());
         }
     }
 

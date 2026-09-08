@@ -25,10 +25,13 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Area\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\GeoService;
+use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
+use Uhifadhi\Storage\Service\EvidenceStorage;
 
 /**
  * Fills one area with invented-but-plausible patrol history, so a fresh install
@@ -167,6 +170,22 @@ final class SeedDemoCommand extends Command
         'Met the neighbouring team at the boundary.',
     ];
 
+    private const int PHOTO_WIDTH = 480;
+    private const int PHOTO_HEIGHT = 360;
+
+    /**
+     * Earthy fills for the invented photographs — enough variety that a /files
+     * grid or an observation's photo strip does not read as one repeated tile.
+     * Fixed rather than drawn from the seeded RNG, so generating them shifts
+     * nothing in the patrol sequence.
+     *
+     * @var list<array{0: int, 1: int, 2: int}>
+     */
+    private const array PHOTO_FILLS = [
+        [78, 92, 63], [122, 108, 74], [64, 84, 96], [96, 76, 60],
+        [70, 96, 82], [110, 96, 88], [88, 100, 70], [60, 72, 84],
+    ];
+
     /**
      * The area's rings (outer and holes alike), as sampled for this run. A step
      * is inside when it crosses an odd number of them — so containment costs no
@@ -183,6 +202,19 @@ final class SeedDemoCommand extends Command
     private array $stations = [['name' => self::STATIONS[0], 'lon' => self::FALLBACK_LON, 'lat' => self::FALLBACK_LAT]];
 
     /**
+     * Temp files holding the invented photographs, drawn once per run and fed to
+     * EvidenceStorage::store() for each attachment. Empty where GD is missing —
+     * the demo then seeds patrols and observations without photos rather than
+     * failing on a machine with no image extension.
+     *
+     * @var list<string>
+     */
+    private array $photoVariants = [];
+
+    /** How many observation photographs this run stored. */
+    private int $photosCreated = 0;
+
+    /**
      * @param array<string, array{label: string}> $types      the deployment's patrol.types
      * @param array<string, array{label: string}> $categories the deployment's patrol.observation_categories
      */
@@ -190,6 +222,7 @@ final class SeedDemoCommand extends Command
         private readonly EntityManagerInterface $em,
         private readonly PatrolRepository $patrols,
         private readonly GeoService $geo,
+        private readonly EvidenceStorage $evidence,
         private readonly array $types,
         private readonly array $categories,
     ) {
@@ -252,27 +285,36 @@ final class SeedDemoCommand extends Command
         $randomizer = new Randomizer(new Mt19937(self::RANDOM_SEED));
         $now = new \DateTimeImmutable();
 
+        $this->photosCreated = 0;
+        $this->photoVariants = $this->makePhotoVariants($io);
+
         $recorded = 0;
         $sketched = 0;
         $observations = 0;
-        for ($i = 0; $i < $count; ++$i) {
-            // Every fourth patrol is hand-entered: real rosters are never all GPS.
-            if (3 === $i % 4) {
-                $this->sketchedPatrol($area, $randomizer, $now, $sketched);
-                ++$sketched;
-                continue;
+        try {
+            for ($i = 0; $i < $count; ++$i) {
+                // Every fourth patrol is hand-entered: real rosters are never all GPS.
+                if (3 === $i % 4) {
+                    $this->sketchedPatrol($area, $randomizer, $now, $sketched);
+                    ++$sketched;
+                    continue;
+                }
+                $observations += $this->recordedPatrol($area, $randomizer, $now, $recorded);
+                ++$recorded;
             }
-            $observations += $this->recordedPatrol($area, $randomizer, $now, $recorded);
-            ++$recorded;
+            $this->em->flush();
+        } finally {
+            // The stored evidence keeps the bytes; the source temp files do not.
+            $this->cleanupPhotoVariants();
         }
-        $this->em->flush();
 
         $io->success(\sprintf(
-            'Seeded %d patrols (%d recorded, %d hand-entered) with %d observations for "%s", within %s.',
+            'Seeded %d patrols (%d recorded, %d hand-entered) with %d observations and %d photographs for "%s", within %s.',
             $count,
             $recorded,
             $sketched,
             $observations,
+            $this->photosCreated,
             $area->getName() ?? $areaUuid,
             $now->format('F Y'),
         ));
@@ -336,11 +378,17 @@ final class SeedDemoCommand extends Command
         $wanted = $randomizer->getInt(0, 4);
         for ($n = 0; $n < $wanted; ++$n) {
             $at = $randomizer->getInt(0, \count($points) - 1);
+            $loggedAt = $startedAt->modify(\sprintf('+%d seconds', (int) round($span * $at / max(1, \count($points) - 1))));
             $observation = new Observation($patrol, $this->pick($randomizer, $this->categoryKeys()))
                 ->setNote($this->pick($randomizer, self::OBSERVATION_NOTES))
                 ->setPosition((string) json_encode(['type' => 'Point', 'coordinates' => $points[$at]], \JSON_THROW_ON_ERROR))
-                ->setLoggedAt($startedAt->modify(\sprintf('+%d seconds', (int) round($span * $at / max(1, \count($points) - 1)))));
+                ->setLoggedAt($loggedAt);
             $this->em->persist($observation);
+
+            // Most field observations come back with a photograph or two — the
+            // evidence PL·05 and the /files hub draw. Stored through the platform's
+            // evidence storage, exactly as a synced handset photo is.
+            $this->photosCreated += $this->attachPhotos($observation, $randomizer, $loggedAt, $points[$at]);
         }
 
         return $wanted;
@@ -733,6 +781,105 @@ final class SeedDemoCommand extends Command
 
         // Never in the future — today's slot may land after "now".
         return $start > $now ? $now->modify('-1 hour') : $start;
+    }
+
+    /**
+     * Draw a handful of small JPEGs to temp files, once, so each attachment can
+     * be stored from a real image without regenerating one every time. Returns an
+     * empty list where GD is unavailable — the demo then runs without photos
+     * rather than failing on a machine with no image extension.
+     *
+     * @return list<string>
+     */
+    private function makePhotoVariants(SymfonyStyle $io): array
+    {
+        if (!\function_exists('imagecreatetruecolor') || !\function_exists('imagejpeg')) {
+            $io->note('GD is not available — seeding patrols without observation photographs.');
+
+            return [];
+        }
+
+        $paths = [];
+        foreach (self::PHOTO_FILLS as [$r, $g, $b]) {
+            $image = imagecreatetruecolor(self::PHOTO_WIDTH, self::PHOTO_HEIGHT);
+            $fill = imagecolorallocate($image, $r, $g, $b);
+            // A lighter horizon band, so a tile reads as a photograph, not a swatch.
+            $band = imagecolorallocate($image, min(255, $r + 26), min(255, $g + 26), min(255, $b + 26));
+            if (false !== $fill) {
+                imagefilledrectangle($image, 0, 0, self::PHOTO_WIDTH, self::PHOTO_HEIGHT, $fill);
+            }
+            if (false !== $band) {
+                imagefilledrectangle($image, 0, (int) (self::PHOTO_HEIGHT * 0.62), self::PHOTO_WIDTH, self::PHOTO_HEIGHT, $band);
+            }
+            $path = (string) tempnam(sys_get_temp_dir(), 'patrol_seed_photo_');
+            imagejpeg($image, $path, 82);
+            $paths[] = $path;
+        }
+
+        return $paths;
+    }
+
+    /**
+     * Attach 0–3 stored photographs to an observation, the way a synced patrol
+     * comes back with evidence. Each is written through EvidenceStorage under
+     * patrol's evidence prefix ({@see PhotoEvidenceKey}), so PatrolFileSource
+     * claims it and the /files hub lists it. Returns how many were stored.
+     *
+     * @param array{0: float, 1: float} $point where the note was logged; the shutter fired a few metres off it
+     */
+    private function attachPhotos(Observation $observation, Randomizer $randomizer, \DateTimeImmutable $loggedAt, array $point): int
+    {
+        if ([] === $this->photoVariants) {
+            return 0;
+        }
+
+        // Weighted toward one or two — some observations carry none, a few carry
+        // three, like a real evidence set.
+        $wanted = [0, 1, 1, 2, 2, 3][$randomizer->getInt(0, 5)];
+        $made = 0;
+        for ($n = 0; $n < $wanted; ++$n) {
+            $source = $this->photoVariants[$randomizer->getInt(0, \count($this->photoVariants) - 1)];
+            $clientUuid = Uuid::v7();
+            try {
+                $stored = $this->evidence->store(
+                    new \SplFileInfo($source),
+                    PhotoEvidenceKey::prefixFor($observation),
+                    $clientUuid->toRfc4122(),
+                );
+            } catch (\Throwable) {
+                // A demo photograph that will not store is not worth failing the
+                // whole seed over — skip it and carry on.
+                continue;
+            }
+
+            // The shutter's OWN place, a few metres off the note (its real meaning
+            // — see ObservationPhoto::$position), never 0,0.
+            $lon = $point[0] + $randomizer->getFloat(-0.0012, 0.0012);
+            $lat = $point[1] + $randomizer->getFloat(-0.0012, 0.0012);
+
+            $photo = new ObservationPhoto($observation, $clientUuid, $stored->key)
+                ->setMimeType($stored->mimeType)
+                ->setByteSize($stored->byteSize)
+                ->setThumbKey($stored->thumbKey)
+                ->setTakenAt($loggedAt->modify(\sprintf('+%d seconds', $randomizer->getInt(0, 180))))
+                ->setPosition((string) json_encode(['type' => 'Point', 'coordinates' => [round($lon, 6), round($lat, 6)]], \JSON_THROW_ON_ERROR))
+                ->setAccuracyM((float) $randomizer->getInt(3, 12));
+            $this->em->persist($photo);
+            ++$made;
+        }
+
+        return $made;
+    }
+
+    /** Remove the source temp files; the stored evidence keeps its own bytes. */
+    private function cleanupPhotoVariants(): void
+    {
+        foreach ($this->photoVariants as $path) {
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
+        $this->photoVariants = [];
     }
 
     private function team(Randomizer $randomizer): string
