@@ -12,7 +12,7 @@
     <span class="tab">Coverage + log<span class="src">· one filter, one viewport, one list</span></span>
     {% set patrolFilters %}{{ ui.filters(dashboard, types, typeColor, now, area, filter) }}{% endset %}
     <div class="patrol-maplog-split">
-        <div class="patrol-maplog-map">
+        <div class="patrol-maplog-map patrol-coverage-plate">
             {{ render_map(map, {'role': 'img', 'aria-label': 'Patrol tracks'}, patrolFilters) }}
         </div>
         <div class="patrol-maplog-list">

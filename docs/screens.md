@@ -3,6 +3,7 @@
 ## Contents
 
 - [The routes](#the-routes)
+- [The dashboard's filter](#the-dashboards-filter)
 - [Observation taxonomy admin](#observation-taxonomy-admin)
 
 ## The routes
@@ -20,6 +21,29 @@
 
 The dashboard and the widget library are compositions on the shell's widget
 framework — see [what-it-stands-on.md](what-it-stands-on.md).
+
+## The dashboard's filter
+
+`patrol_dashboard` reads four query parameters, and every widget on the screen
+reads the one answer they select:
+
+| Parameter | Value | Absent means |
+|---|---|---|
+| `type` | one configured patrol type key | every type |
+| `station` | one station's name | every station |
+| `zone` | one zone's name, as the spatial join reports it | every zone |
+| `month` | `YYYY-MM` | the month containing today |
+
+Every chip and dropdown option in the filter bar is a link carrying exactly
+these, so the map, the log and the charts can never be answering different
+questions, and the screen somebody is looking at is the screen they can send
+somebody else. The reasoning is [design-decisions.md
+§7](design-decisions.md#7--the-filter-is-a-query-not-a-conversation).
+
+Two things are deliberately NOT narrowed by it: the KPI strip's coverage figure
+and the coverage layer drawn under the tracks. Both are the whole month's, and
+both are the same measurement — the shape on the plate is the number in the
+strip.
 
 ## Observation taxonomy admin
 

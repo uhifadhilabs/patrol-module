@@ -41,7 +41,7 @@
     {%- if user -%}{{ user.firstName|first }}. {{ user.lastName }}{%- else -%}—{%- endif -%}
 {% endmacro %}
 
-{# THE DETAIL PLATE. The map is the atlas's — stated in PHP (Service/PatrolMap)
+{# THE DETAIL PLATE. The map is the atlas's — stated in PHP (Service/PatrolMapService)
    and rendered by render_map() — so the imagery, the boundary treatment, the
    control stack, the legend and fullscreen are the platform's and this module
    writes no map JavaScript.

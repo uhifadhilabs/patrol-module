@@ -123,12 +123,15 @@ already has — is in [docs/photo-storage.md](docs/photo-storage.md).
 ### Stimulus controllers
 
 Nothing to do. The package declares `symfony-ux`, so Flex reads
-`assets/package.json` and maintains the three controllers — `filters`, `rows`
-and `calendar` — in the application's `assets/controllers.json` for you, and
-removes them again on uninstall.
+`assets/package.json` and maintains the two controllers — `filters` and
+`calendar` — in the application's `assets/controllers.json` for you, and removes
+them again on uninstall.
 
-None of them draws a map. Every map on a patrol screen is the atlas's plate: the
-module states what is on it in PHP and the template calls `render_map()`.
+Neither draws a map, and neither filters anything: `filters` is a dropdown's
+manners (open one panel at a time, close on Escape or an outside click) and
+`calendar` is the month grid's navigation. Every map on a patrol screen is the
+atlas's plate — the module states what is on it in PHP and the template calls
+`render_map()` — and the filter itself is a query, so every chip is a link.
 
 ### Deployment vocabulary
 

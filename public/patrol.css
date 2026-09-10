@@ -209,6 +209,18 @@
 .patrol-daypill { text-decoration: none; }
 .patrol-daypill .chip { cursor: pointer; }
 
+/* ---- how tall a patrol map is ------------------------------------------ */
+/* THE PLATE CARRIES A REAL HEIGHT off this one property and refuses to stretch,
+   so a screen says how tall its map is HERE and nowhere else — never with a
+   min-height or a flex on the plate, which is how a map ends up as tall as the
+   longest column beside it.
+
+   The coverage map states the design's own number for that screen. The patrol
+   detail plate states nothing: the design's height for it is min(58vh, 560px),
+   which is already the plate's default, and restating a default is a number
+   that silently stops matching. */
+.patrol-coverage-plate { --map-plate-height: min(56vh, 540px); }
+
 /* ---- detail screens: plate + sidebar ----------------------------------- */
 /* The settled layout for both detail screens: a plate card (flex 2) beside a
    sidebar (flex 1.1) — history alone on the patrol, note THEN history on the
@@ -750,10 +762,10 @@
 .ao-colstack .patrol-who { flex: 1 1 150px; }
 
 /* ---- Coverage + log split (PL·12, widget "maplog") ---------------------- */
-/* The coverage map at full height with the month's patrols docked beside it.
-   The map keeps the viewer's own fixed height; the list scrolls beside it so
-   the card never grows with the month's count (the overview overflow rule). */
-.patrol-maplog-split { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; align-items: stretch; }
+/* The coverage map beside the month's patrols. The plate is the same height it
+   is on the coverage card, and the list scrolls to match it, so the card never
+   grows with the month's count (the overview overflow rule). */
+.patrol-maplog-split { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; align-items: start; }
 .patrol-maplog-map { min-width: 0; }
 .patrol-maplog-list { min-width: 0; display: flex; flex-direction: column; gap: 2px; max-height: min(56vh, 540px); overflow-y: auto; }
 .patrol-listhd { display: block; font: 600 11px var(--font-mono); color: rgb(var(--c-fog)); padding: 2px 0 6px; }

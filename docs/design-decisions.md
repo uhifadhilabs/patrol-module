@@ -12,6 +12,7 @@ oversight.
 - [4 · Sources are honest: sketch ≠ track](#4--sources-are-honest-sketch--track)
 - [5 · Live tracking is v2, and it is a third door](#5--live-tracking-is-v2-and-it-is-a-third-door)
 - [6 · The maps are the atlas's, and the module writes no map JavaScript](#6--the-maps-are-the-atlass-and-the-module-writes-no-map-javascript)
+- [7 · The filter is a query, not a conversation](#7--the-filter-is-a-query-not-a-conversation)
 
 ## 1 · Station is a string, not an entity
 
@@ -111,10 +112,22 @@ controller, no Leaflet and no chrome markup.
 ```
 
 The filter row goes in the plate's filter slot — one row above the map and
-inside the plate — so the chips come along into fullscreen. Type, station and
-zone drive the log and the lists from the chip row; the map's own type filtering
-is the legend, which carries one switchable row per patrol type in the
+inside the plate — so the chips come along into fullscreen. Every chip is a
+LINK: type, station, zone and month are query parameters, read once into a
+`Model/PatrolFilter`, so the map, the log and the charts are three readings of
+one answer (§7). The legend switches a whole patrol type on the map, in the
 deployment's colour for that type.
+
+What a mark MEANS is stated as data too. A track layer declares the property a
+hover reads (`ref · type`) and the property that identifies a feature, so a log
+row beside the map spotlights its own track by wearing
+`data-atlas-highlight="<layer>:<ref>"` — no module JavaScript for any of it.
+
+HOW TALL a plate is comes from one custom property, `--map-plate-height`, set on
+the card the plate sits in (`.patrol-coverage-plate` carries the coverage map's
+own number). A plate has a real height and refuses to stretch, so it is never as
+tall as the longest column beside it; the patrol detail plate states nothing,
+because the design's height for it is already the plate's default.
 
 WHICH IMAGERY a satellite layer draws is the deployment's configuration
 (`atlas.satellite.provider`: esri, google or its own source), read by the atlas
@@ -134,3 +147,37 @@ objects each other refuses. This module is a uhifadhi module: `AreaBundle` and
 `AtlasBundle` ship in the one core package it already requires, so drawing on
 the atlas costs nothing extra. No CDN, and never MapLibre (raster tiles +
 GeoJSON need no WebGL).
+
+## 7 · The filter is a query, not a conversation
+
+The patrols dashboard filters on four axes — type, station, zone and month — and
+all four are **query parameters**:
+
+```
+GET /areas/{uuid}/modules/patrols?type=&station=&zone=&month=YYYY-MM
+```
+
+`Model/PatrolFilter` reads them once from the request, and
+`Service/PatrolDashboardService` narrows on it once. Every figure on the screen
+is then a reading of one set: the map's tracks, the log's rows, the KPIs, the
+five-week and per-station charts, and the calendar.
+
+**Why not filter in the browser.** Narrowing client-side makes the map and the
+log agree with each other and with nothing else. The link cannot be shared or
+bookmarked, a reload loses the choice, the server-rendered counts describe a
+month nobody is looking at, the charts do not narrow at all, and the map cannot
+narrow by anything the payload does not already carry. One request removes the
+whole class of disagreement, and it is the idiom the incidents register uses.
+
+**Counts and menus differ on purpose.** The counts on the chips are the narrowed
+view's — click a chip and you get that many. The station and zone MENUS list the
+whole month, so a station you chose is never the only one still on offer; a
+filter must not be a door that locks behind you.
+
+**What is left in JavaScript** is a dropdown's manners — one panel open at a
+time, closed by Escape or an outside click — which a link cannot express.
+
+**Reopen if:** a surface needs live narrowing without a round trip (the v2 live
+tracking of §5 is the candidate), at which point the answer is a frame or a
+stream that re-renders the same server-computed view, never a second filter that
+only some widgets obey.

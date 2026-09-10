@@ -2,18 +2,20 @@
    on both the map and the log.
 
    THE MAP IS THE ATLAS'S. What is drawn on it is stated in PHP
-   (Service/PatrolMap) and rendered by render_map(): the imagery, the boundary
+   (Service/PatrolMapService) and rendered by render_map(): the imagery, the boundary
    treatment, the control stack, the legend and fullscreen are the platform's,
    and this module writes no map JavaScript.
 
    The filter row goes in the plate's own filter slot, one row above the map and
    inside the plate, so the chips come along into fullscreen instead of being
-   left behind on the page. Type, station and zone still drive the log and the
-   lists; the map's own type filtering is the legend, which carries one
-   switchable row per patrol type. #}
+   left behind on the page. Every chip is a link driving the one query the log
+   and the charts read too; the legend switches a whole patrol type on the map.
+
+   HOW TALL: .patrol-coverage-plate carries this screen's --map-plate-height.
+   The plate's layout is the atlas's; only the number is ours. #}
 {% import '@UhifadhiPatrol/dashboard/_ui.html.twig' as ui %}
 {% set patrolFilters %}{{ ui.filters(dashboard, types, typeColor, now, area, filter) }}{% endset %}
-<div class="c">
+<div class="c patrol-coverage-plate">
     <span class="tab">Coverage<span class="src">· one filter drives map AND log</span></span>
     {{ render_map(map, {'role': 'img', 'aria-label': 'Patrol tracks'}, patrolFilters) }}
     <p class="patrol-note">patrol tracks may cross the boundary · a station sits where its patrols set out</p>
