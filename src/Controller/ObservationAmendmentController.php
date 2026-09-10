@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Controller;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -31,15 +30,12 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Observation;
-use Uhifadhi\Patrol\Entity\ObservationAmendment;
-use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\ObservationAmendmentKindEnum;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
-use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
+use Uhifadhi\Patrol\Service\ObservationAmendmentService;
 use Uhifadhi\Storage\Exception\EvidenceRejectedException;
 use Uhifadhi\Storage\Exception\EvidenceStorageFailedException;
-use Uhifadhi\Storage\Service\EvidenceStorage;
 
 /**
  * APPENDING ONE CORRECTION to an observation — the settled design's PL·06–PL·09.
@@ -60,6 +56,10 @@ use Uhifadhi\Storage\Service\EvidenceStorage;
  * it in code (the #[IsGranted] attribute is honoured by a listener in
  * symfony/security-http, which this bundle does not require).
  *
+ * THE WRITE ITSELF IS NOT HERE. ObservationAmendmentService appends the
+ * correction and stores the photograph that may come with it; this reads the
+ * form, asks who is signing, and responds.
+ *
  * A plain class, not a Symfony AbstractController subclass — see PatrolController
  * and config/services.php for the reusable-bundle rule.
  */
@@ -68,16 +68,12 @@ use Uhifadhi\Storage\Service\EvidenceStorage;
 #[Route(defaults: [PatrolModuleProvider::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class ObservationAmendmentController
 {
-    /** What one correction may say, in characters. Long enough for a paragraph. */
-    private const int BODY_MAX = 4000;
-
     public function __construct(
-        private readonly EntityManagerInterface $entityManager,
         private readonly UrlGeneratorInterface $urls,
         private readonly AuthorizationCheckerInterface $authorizationChecker,
         private readonly TokenStorageInterface $tokenStorage,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
-        private readonly EvidenceStorage $evidence,
+        private readonly ObservationAmendmentService $amendments,
     ) {
     }
 
@@ -126,29 +122,27 @@ final class ObservationAmendmentController
                 Response::HTTP_UNPROCESSABLE_ENTITY,
             );
         }
-        if (mb_strlen($body) > self::BODY_MAX) {
+        if (mb_strlen($body) > ObservationAmendmentService::BODY_MAX) {
             return new Response(
-                \sprintf('An amendment may be up to %d characters.', self::BODY_MAX),
+                \sprintf('An amendment may be up to %d characters.', ObservationAmendmentService::BODY_MAX),
                 Response::HTTP_UNPROCESSABLE_ENTITY,
             );
         }
 
-        $author = $this->currentUser();
-
-        $amendment = new ObservationAmendment($observation, $kind, $body)
-            // The name is copied NOW and kept, so the trail can still be read
-            // back after the person has left the service.
-            ->withAuthor($author, $author->getFullName())
-            ->withSupersededValue($this->supersededValue($request));
-
-        $photo = $this->attachedPhoto($observation, $request);
-        if ($photo instanceof ObservationPhoto) {
-            $amendment->withPhoto($photo);
-            $this->entityManager->persist($photo);
+        try {
+            $this->amendments->append(
+                $observation,
+                $kind,
+                $body,
+                $this->currentUser(),
+                $this->supersededValue($request),
+                $this->attachedFile($request),
+            );
+        } catch (EvidenceRejectedException $rejected) {
+            throw new AccessDeniedException($rejected->getMessage(), $rejected);
+        } catch (EvidenceStorageFailedException $failed) {
+            throw new \RuntimeException('The photograph could not be stored.', previous: $failed);
         }
-
-        $this->entityManager->persist($amendment);
-        $this->entityManager->flush();
 
         return new RedirectResponse($this->urls->generate('patrol_observation_show', [
             'uuid' => $area->getUuid(),
@@ -176,44 +170,19 @@ final class ObservationAmendmentController
     {
         $raw = trim($request->request->getString('supersedes'));
 
-        return '' === $raw ? null : mb_substr($raw, 0, self::BODY_MAX);
+        return '' === $raw ? null : mb_substr($raw, 0, ObservationAmendmentService::BODY_MAX);
     }
 
     /**
-     * The optional photograph, stored through the same evidence path the field
-     * uploads use — one way in for every photograph this module holds, so the
-     * private storage, the detected type and the preview are identical whether a
-     * handset or a browser sent it.
-     *
-     * MARKED as an amendment attachment, which is what keeps it out of PL·05 and
-     * out of §9's completeness count.
+     * The optional photograph as it arrived — a file, nothing more. Where it is
+     * stored, under what key and how it is marked are the amendment write's
+     * business, not this screen's.
      */
-    private function attachedPhoto(Observation $observation, Request $request): ?ObservationPhoto
+    private function attachedFile(Request $request): ?UploadedFile
     {
         $file = $request->files->get('photo');
-        if (!$file instanceof UploadedFile) {
-            return null;
-        }
 
-        $clientUuid = \Symfony\Component\Uid\Uuid::v7();
-
-        try {
-            $stored = $this->evidence->store(
-                $file,
-                PhotoEvidenceKey::prefixFor($observation),
-                $clientUuid->toRfc4122(),
-            );
-        } catch (EvidenceRejectedException $rejected) {
-            throw new AccessDeniedException($rejected->getMessage(), $rejected);
-        } catch (EvidenceStorageFailedException $failed) {
-            throw new \RuntimeException('The photograph could not be stored.', previous: $failed);
-        }
-
-        return new ObservationPhoto($observation, $clientUuid, $stored->key)
-            ->setMimeType($stored->mimeType)
-            ->setByteSize($stored->byteSize)
-            ->setThumbKey($stored->thumbKey)
-            ->markAsAmendmentAttachment();
+        return $file instanceof UploadedFile ? $file : null;
     }
 
     /**

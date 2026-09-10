@@ -417,15 +417,11 @@ final class UhifadhiPatrolBundle extends AbstractBundle
             // better than a trail of unattributed corrections.
             $services->set('patrol.controller.observation_amend', ObservationAmendmentController::class)
                 ->args([
-                    service('doctrine.orm.entity_manager'),
                     service('router'),
                     service('security.authorization_checker'),
                     service('security.token_storage'),
                     service('security.csrf.token_manager'),
-                    // The same evidence path the field uploads use, so a
-                    // photograph attached on the web is stored, typed and
-                    // previewed exactly as one off a handset.
-                    service('storage.evidence_storage'),
+                    service('patrol.observation_amendments'),
                 ])
                 ->public();
             $services->alias(ObservationAmendmentController::class, 'patrol.controller.observation_amend')->public();

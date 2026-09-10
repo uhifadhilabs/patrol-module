@@ -30,6 +30,7 @@ use Uhifadhi\Patrol\Repository\TrackPointRepository;
 use Uhifadhi\Patrol\Service\GeoService;
 use Uhifadhi\Patrol\Service\GpxParser;
 use Uhifadhi\Patrol\Service\GpxWriter;
+use Uhifadhi\Patrol\Service\ObservationAmendmentService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolRecordingService;
 use Uhifadhi\Patrol\Service\PatrolWidgetUrls;
@@ -76,6 +77,22 @@ return static function (ContainerConfigurator $container): void {
     // itself, with THIS AREA named in every URL.
     $services->set('patrol.widget_urls', PatrolWidgetUrls::class)
         ->args([service('router')]);
+
+    /*
+     * APPENDING ONE CORRECTION to an observation. Unconditional for the reason
+     * 'patrol.taxonomy_admin' is: it is domain logic with no security of its
+     * own, and only the door that fronts it lives inside the SecurityBundle
+     * guard — an amendment is signed, and a host with no security has nobody to
+     * sign one.
+     */
+    $services->set('patrol.observation_amendments', ObservationAmendmentService::class)
+        ->args([
+            service('doctrine.orm.entity_manager'),
+            // The same evidence path the field uploads use, so a photograph
+            // attached on the web is stored, typed and previewed exactly as one
+            // off a handset.
+            service('storage.evidence_storage'),
+        ]);
 
     /*
      * The hand-written patrol's write path — the log screen's half of what
