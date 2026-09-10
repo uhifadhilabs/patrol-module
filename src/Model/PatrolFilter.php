@@ -22,14 +22,10 @@ use Uhifadhi\Patrol\Service\PatrolDashboardService;
  * month — read once from the request, so there is exactly one place a question
  * about which patrols are on screen can be answered.
  *
- * IT IS A QUERY, NOT A CONVERSATION. Type, station and zone used to narrow the
- * screen in the browser, through a `patrol:filter` document event that every
- * widget answered. That made the map and the log agree with each other and with
- * nothing else: a link could not be shared, a reload lost the choice, the
- * server-rendered counts described a month nobody was looking at, and the
- * charts never narrowed at all. All four axes are now query parameters, which
- * is what the incidents register already does, so one request draws the map, the
- * log and the charts.
+ * IT IS A QUERY, NOT A CONVERSATION. All four axes are query parameters, so the
+ * one request that draws the map draws the log and the charts with it. A choice
+ * narrowed in the browser instead would be a choice no link could carry, no
+ * reload could keep, and no server-rendered count or chart could see.
  *
  * EVERY FIELD IS UNTRUSTED, and every unreadable value degrades to "no filter"
  * rather than throwing: a hand-edited query string must answer with more

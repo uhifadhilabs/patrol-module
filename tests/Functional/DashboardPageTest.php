@@ -241,9 +241,8 @@ final class DashboardPageTest extends WebTestCase
 
         // The log rows name what the coverage plate spotlights when one is
         // hovered: the layer their own type is drawn in, and the reference that
-        // layer identifies a feature by. (This used to be asserted on the feed
-        // too; the feed is off the default now, so the register is the one list
-        // on the shipped screen that carries it.)
+        // layer identifies a feature by. Asserted on the log because it is the
+        // one list the shipped composition draws.
         self::assertCount(3, $crawler->filter('[data-patrol-log] tbody tr[data-atlas-highlight]'));
         self::assertSame(
             'patrol.tracks.walk:'.$this->walkWithObservations->getRef(),
@@ -303,10 +302,9 @@ final class DashboardPageTest extends WebTestCase
 
     /**
      * The filter bar carries THREE dropdowns in the incidents bar's chrome
-     * (.i-dd*) beside the type toggles: station, zone and month. Station and zone
-     * filter client-side (they publish patrol:filter); month is a real link that
-     * re-queries the whole dashboard. The old dead "month" indicator and the
-     * missing zone are both gone.
+     * (.i-dd*) beside the type toggles: station, zone and month. Every option in
+     * every one of them is a real link that re-queries the whole dashboard, so
+     * the map, the log and the charts move together.
      */
     public function testTheFilterBarCarriesStationZoneAndMonthDropdowns(): void
     {

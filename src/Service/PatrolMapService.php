@@ -37,10 +37,9 @@ use Uhifadhi\Bundle\AtlasBundle\Model\LegendItem;
  * sit, what fullscreen does or how a legend is laid out; it says what is on its
  * maps and the platform draws them the one way it draws every map.
  *
- * A TYPE IS A LAYER. The coverage map used to filter its tracks in the browser
- * from the chip row; the legend is where that lives now — one layer per patrol
- * type, in the deployment's own colour for that type, each with a legend row
- * that switches it. The chip row keeps driving the log and the lists.
+ * A TYPE IS A LAYER: one per patrol type, in the deployment's own colour for
+ * that type, each with a legend row that switches it. So a type can be taken off
+ * the plate alone, while the filter row above it narrows the whole screen.
  *
  * @see vendor/uhifadhi/uhifadhi/src/Uhifadhi/Bundle/AtlasBundle/docs/components.md
  */
