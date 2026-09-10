@@ -31,6 +31,7 @@ use Uhifadhi\Patrol\Service\GeoService;
 use Uhifadhi\Patrol\Service\GpxParser;
 use Uhifadhi\Patrol\Service\GpxWriter;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\PatrolRecordingService;
 use Uhifadhi\Patrol\Service\PatrolWidgetUrls;
 use Uhifadhi\Patrol\Service\TaxonomyAdminService;
 use Uhifadhi\Patrol\Service\TrackIngestService;
@@ -75,6 +76,16 @@ return static function (ContainerConfigurator $container): void {
     // itself, with THIS AREA named in every URL.
     $services->set('patrol.widget_urls', PatrolWidgetUrls::class)
         ->args([service('router')]);
+
+    /*
+     * The hand-written patrol's write path — the log screen's half of what
+     * 'patrol.track_ingest' is for the import screen. Registered beside it and
+     * unconditionally, for the reason 'patrol.taxonomy_admin' is: it is domain
+     * logic with no security of its own, and only the DOOR that fronts it lives
+     * inside the SecurityBundle guard.
+     */
+    $services->set('patrol.recording', PatrolRecordingService::class)
+        ->args([service('doctrine.orm.entity_manager')]);
 
     $services->set('patrol.track_ingest', TrackIngestService::class)
         ->args([

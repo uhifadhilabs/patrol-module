@@ -260,6 +260,7 @@ final class TestKernel extends Kernel
             \Uhifadhi\Patrol\Overview\PatrolOverviewCopy::class => 'patrol.overview.copy',
             // The widget framework, by the ids ShellBundle publishes,
             // plus the registry a surface has to be findable in.
+            \Uhifadhi\Patrol\Service\PatrolRecordingService::class => 'patrol.recording',
             \Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetService::class => 'shell.widget.service',
             \Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetEndpoint::class => 'shell.widget.endpoint',
             \Uhifadhi\Bundle\ShellBundle\Widget\Registry\WidgetSurfaceRegistry::class => 'shell.widget.surfaces',

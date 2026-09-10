@@ -28,12 +28,13 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Contracts\Entity\UserInterface;
-use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Exception\InvalidGpxException;
+use Uhifadhi\Patrol\Exception\InvalidPatrolTimesException;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\PatrolRecordingService;
 use Uhifadhi\Patrol\Service\TrackIngestService;
 
 /**
@@ -55,9 +56,12 @@ use Uhifadhi\Patrol\Service\TrackIngestService;
  * checker is never null and the routes simply do not exist otherwise — see
  * UhifadhiPatrolBundle::loadExtension().
  *
- * Neither screen parses or persists a track itself: TrackIngestService is THE
- * ingest path (one service, two doors — this form today, the tracker app's API
- * POST later), and the controller stays thin.
+ * NEITHER SCREEN WRITES A PATROL ITSELF. TrackIngestService is THE ingest path
+ * for a recorded one (one service, two doors — this form today, the tracker
+ * app's API POST later) and PatrolRecordingService is the write path for one
+ * written up by hand. Both are reachable without a browser, which is what lets
+ * demo content be seeded through the doors a person uses; the controller reads
+ * the form, asks who is looking, and responds.
  *
  * A plain class, not a Symfony AbstractController subclass — see PatrolController
  * and config/services.php for the reusable-bundle rule.
@@ -83,6 +87,7 @@ final class PatrolRecordController
         private readonly PatrolRepository $patrols,
         private readonly PatrolDashboardService $dashboard,
         private readonly TrackIngestService $ingest,
+        private readonly PatrolRecordingService $recording,
         private readonly AuthorizationCheckerInterface $authorizationChecker,
         private readonly array $types,
         private readonly float $gapThresholdMinutes,
@@ -221,33 +226,39 @@ final class PatrolRecordController
             $startedAt = self::parseMoment($form['startedAt']);
             $endedAt = self::parseMoment($form['endedAt']);
 
+            // What the FORM can answer for: a word the deployment does not use,
+            // and a field left blank. Whether the two times make a patrol is the
+            // record's own rule and is settled by the service.
             if (!isset($this->types[$form['type']])) {
                 $error = 'Choose a patrol type.';
             } elseif (null === $startedAt) {
                 $error = 'A patrol needs the time it started.';
-            } elseif (null !== $endedAt && $endedAt <= $startedAt) {
-                $error = 'A patrol cannot end before it started.';
             }
 
-            // No error means every rule above passed, the required start included.
+            // No error means the form's own rules passed, the required start included.
             if (null === $error) {
-                $patrol = new Patrol($area, $form['type'])
-                    ->setSource(PatrolSourceEnum::Manual)
-                    ->setStation($form['station'])
-                    ->setLead($this->lead($form['lead']))
-                    ->setTeam($form['team'])
-                    ->setNote($form['note'])
-                    ->setStartedAt($startedAt)
-                    ->setEndedAt($endedAt)
-                    ->setDistanceKm($form['distanceKm']);
-                $this->entityManager->persist($patrol);
-                $this->entityManager->flush();
-                $this->addFlash($request, 'success', \sprintf('Patrol %s logged.', $patrol->getRef()));
+                try {
+                    $patrol = $this->recording->record(
+                        $area,
+                        $form['type'],
+                        $startedAt,
+                        $endedAt,
+                        $form['station'],
+                        $this->lead($form['lead']),
+                        $form['team'],
+                        $form['note'],
+                        $form['distanceKm'],
+                    );
 
-                return new RedirectResponse($this->urlGenerator->generate('patrol_show', [
-                    'uuid' => $area->getUuidString(),
-                    'patrol' => $patrol->getUuid()->toRfc4122(),
-                ]));
+                    $this->addFlash($request, 'success', \sprintf('Patrol %s logged.', $patrol->getRef()));
+
+                    return new RedirectResponse($this->urlGenerator->generate('patrol_show', [
+                        'uuid' => $area->getUuidString(),
+                        'patrol' => $patrol->getUuid()->toRfc4122(),
+                    ]));
+                } catch (InvalidPatrolTimesException) {
+                    $error = 'A patrol cannot end before it started.';
+                }
             }
 
             $status = Response::HTTP_UNPROCESSABLE_ENTITY;

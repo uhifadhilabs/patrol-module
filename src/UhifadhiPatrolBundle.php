@@ -387,6 +387,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service(PatrolRepository::class),
                     service('patrol.dashboard'),
                     service('patrol.track_ingest'),
+                    service('patrol.recording'),
                     service('security.authorization_checker'),
                     param('patrol.types'),
                     param('patrol.gap_threshold_minutes'),
