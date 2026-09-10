@@ -173,7 +173,7 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
 
     public function testTheContextIsOneReadingOfTheMorning(): void
     {
-        $this->makePatrol('naabi', 'walk', '2026-03-21T06:00:00+00:00', status: PatrolStatusEnum::Recording);
+        $this->makePatrol('ridge', 'walk', '2026-03-21T06:00:00+00:00', status: PatrolStatusEnum::Recording);
 
         $context = $this->contributor()->context($this->area, $this->now());
 
@@ -225,17 +225,17 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
 
     public function testTheOutTileCountsWhoIsOutAndNamesTheHandsetToRaise(): void
     {
-        $pinging = $this->makePatrol('endulen', 'walk', '2026-03-21T05:20:00+00:00', status: PatrolStatusEnum::Recording);
-        $this->ping($pinging, [['2026-03-21T11:30:00+00:00', 35.05, -2.95]]);
-        $silent = $this->makePatrol('naabi', 'boat', '2026-03-21T10:37:00+00:00', status: PatrolStatusEnum::Recording);
-        $this->ping($silent, [['2026-03-21T09:32:00+00:00', 35.05, -2.95]]);
+        $pinging = $this->makePatrol('river', 'walk', '2026-03-21T05:20:00+00:00', status: PatrolStatusEnum::Recording);
+        $this->ping($pinging, [['2026-03-21T11:30:00+00:00', -29.95, -2.95]]);
+        $silent = $this->makePatrol('ridge', 'boat', '2026-03-21T10:37:00+00:00', status: PatrolStatusEnum::Recording);
+        $this->ping($silent, [['2026-03-21T09:32:00+00:00', -29.95, -2.95]]);
 
         $tile = $this->tiles()[0];
 
         self::assertSame('PL·N1', $tile->index);
         self::assertSame('2', $tile->value);
         self::assertSame('1 walking round · 1 boat', $tile->subline);
-        self::assertSame('Naabi no ping 2 h 10', $tile->alarm);
+        self::assertSame('Ridge Camp no ping 2 h 10', $tile->alarm);
         self::assertSame(NowTile::TONE_BAD, $tile->tone);
         // The one thing on this surface that a polling endpoint refreshes.
         self::assertTrue($tile->live);
@@ -243,8 +243,8 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
 
     public function testAQuietMorningWithEverybodyPingingRaisesNoAlarm(): void
     {
-        $patrol = $this->makePatrol('endulen', 'walk', '2026-03-21T05:20:00+00:00', status: PatrolStatusEnum::Recording);
-        $this->ping($patrol, [['2026-03-21T11:30:00+00:00', 35.05, -2.95]]);
+        $patrol = $this->makePatrol('river', 'walk', '2026-03-21T05:20:00+00:00', status: PatrolStatusEnum::Recording);
+        $this->ping($patrol, [['2026-03-21T11:30:00+00:00', -29.95, -2.95]]);
 
         $tile = $this->tiles()[0];
 
@@ -280,19 +280,19 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
 
     public function testAGoodDayLooksLikeOne(): void
     {
-        $patrol = $this->makePatrol('endulen', 'walk', '2026-03-21T05:20:00+00:00', status: PatrolStatusEnum::Recording);
-        $this->ping($patrol, [['2026-03-21T11:30:00+00:00', 35.05, -2.95]]);
+        $patrol = $this->makePatrol('river', 'walk', '2026-03-21T05:20:00+00:00', status: PatrolStatusEnum::Recording);
+        $this->ping($patrol, [['2026-03-21T11:30:00+00:00', -29.95, -2.95]]);
 
         self::assertSame([], $this->attention());
     }
 
     public function testASilentPatrolIsAlwaysUrgentAndCarriesWhatARadioOperatorWouldAskNext(): void
     {
-        $lead = $this->makeUser('Leah', 'Saitoti');
-        $patrol = $this->makePatrol('naabi', 'boat', '2026-03-21T10:37:00+00:00', status: PatrolStatusEnum::Recording);
+        $lead = $this->makeUser('Neema', 'Kileo');
+        $patrol = $this->makePatrol('ridge', 'boat', '2026-03-21T10:37:00+00:00', status: PatrolStatusEnum::Recording);
         $patrol->setLead($lead);
         $this->em->flush();
-        $this->ping($patrol, [['2026-03-21T09:32:00+00:00', 35.05, -2.95]]);
+        $this->ping($patrol, [['2026-03-21T09:32:00+00:00', -29.95, -2.95]]);
 
         $item = $this->attention()[0];
 
@@ -300,8 +300,8 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
         self::assertSame(AttentionSeverity::Now, $item->severity);
         self::assertSame('live position', $item->kind);
         self::assertSame(\sprintf('%s has not pinged for 2 h 10.', $patrol->getRef()), $item->headline);
-        self::assertSame('Boat patrol out of Naabi since 10:37, led by Leah Saitoti.', $item->detail);
-        self::assertSame(['Naabi', 'last ping 09:32'], $item->meta);
+        self::assertSame('Boat patrol out of Ridge Camp since 10:37, led by Neema Kileo.', $item->detail);
+        self::assertSame(['Ridge Camp', 'last ping 09:32'], $item->meta);
         self::assertSame('2 h 10', $item->ageLabel);
     }
 
@@ -311,9 +311,9 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
         $this->makeZone('South', -3.0, -2.95);
         // North entered 8 days ago, South 20.
         $this->makePatrol('a', 'walk', '2026-03-13T06:00:00+00:00', '2026-03-13T09:00:00+00:00')
-            ->setTrack('{"type":"LineString","coordinates":[[35.0,-2.92],[35.1,-2.92]]}');
+            ->setTrack('{"type":"LineString","coordinates":[[-30.0,-2.92],[-29.9,-2.92]]}');
         $this->makePatrol('b', 'walk', '2026-03-01T06:00:00+00:00', '2026-03-01T09:00:00+00:00')
-            ->setTrack('{"type":"LineString","coordinates":[[35.0,-2.98],[35.1,-2.98]]}');
+            ->setTrack('{"type":"LineString","coordinates":[[-30.0,-2.98],[-29.9,-2.98]]}');
         $this->em->flush();
 
         $items = $this->attention();
@@ -332,7 +332,7 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
     {
         $this->makeZone('North', -2.95, -2.9);
         $this->makePatrol('a', 'walk', '2026-03-19T06:00:00+00:00', '2026-03-19T09:00:00+00:00')
-            ->setTrack('{"type":"LineString","coordinates":[[35.0,-2.92],[35.1,-2.92]]}');
+            ->setTrack('{"type":"LineString","coordinates":[[-30.0,-2.92],[-29.9,-2.92]]}');
         $this->em->flush();
 
         // Two days is a zone being patrolled. A list that carried it would be a
@@ -383,10 +383,10 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
 
     public function testALivePatrolIsDrawnAsItsTrailAndTheRingAtItsHead(): void
     {
-        $patrol = $this->makePatrol('endulen', 'walk', '2026-03-21T05:20:00+00:00', status: PatrolStatusEnum::Recording);
+        $patrol = $this->makePatrol('river', 'walk', '2026-03-21T05:20:00+00:00', status: PatrolStatusEnum::Recording);
         $this->ping($patrol, [
-            ['2026-03-21T11:00:00+00:00', 35.01, -2.95],
-            ['2026-03-21T11:30:00+00:00', 35.05, -2.95],
+            ['2026-03-21T11:00:00+00:00', -29.99, -2.95],
+            ['2026-03-21T11:30:00+00:00', -29.95, -2.95],
         ]);
 
         $live = $this->layers()[0];
@@ -422,10 +422,10 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
 
     public function testTheMovesAreOpenedClosedAndLogged(): void
     {
-        $patrol = $this->makePatrol('endulen', 'walk', '2026-03-21T06:10:00+00:00', '2026-03-21T09:30:00+00:00');
+        $patrol = $this->makePatrol('river', 'walk', '2026-03-21T06:10:00+00:00', '2026-03-21T09:30:00+00:00');
         $patrol->setDistanceKm(41.8);
         $this->em->flush();
-        $this->makeObservation($patrol, '2026-03-21T09:14:00+00:00', note: 'Lion tracks at a boma');
+        $this->makeObservation($patrol, '2026-03-21T09:14:00+00:00', note: 'Lion tracks at a water point');
 
         $moves = array_map(static fn (PulseEvent $e): string => $e->move, $this->pulse());
 
@@ -434,7 +434,7 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
 
     public function testAClosedPatrolSaysWhatItCameBackWith(): void
     {
-        $patrol = $this->makePatrol('endulen', 'walk', '2026-03-21T06:10:00+00:00', '2026-03-21T09:30:00+00:00');
+        $patrol = $this->makePatrol('river', 'walk', '2026-03-21T06:10:00+00:00', '2026-03-21T09:30:00+00:00');
         $patrol->setDistanceKm(41.8);
         $this->em->flush();
         $this->makeObservation($patrol, '2026-03-21T09:14:00+00:00');
@@ -442,14 +442,14 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
         $closed = array_values(array_filter($this->pulse(), static fn (PulseEvent $e): bool => 'patrol closed' === $e->move))[0];
 
         self::assertSame($patrol->getRef(), $closed->recordRef);
-        self::assertSame('Closed at Endulen — 41.8 km, 1 observation', $closed->summary);
+        self::assertSame('Closed at River Post — 41.8 km, 1 observation', $closed->summary);
         self::assertSame('closed', $closed->state);
         self::assertSame('#3ED9A8', $closed->swatch);
     }
 
     public function testAPatrolThatRecordedNoDistanceSaysSoRatherThanZero(): void
     {
-        $this->makePatrol('endulen', 'walk', '2026-03-21T06:10:00+00:00', '2026-03-21T09:30:00+00:00');
+        $this->makePatrol('river', 'walk', '2026-03-21T06:10:00+00:00', '2026-03-21T09:30:00+00:00');
 
         $closed = array_values(array_filter($this->pulse(), static fn (PulseEvent $e): bool => 'patrol closed' === $e->move))[0];
 
@@ -458,7 +458,7 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
 
     public function testAPatrolSinceDiscardedStillOpenedAndDidNotClose(): void
     {
-        $this->makePatrol('endulen', 'walk', '2026-03-21T06:10:00+00:00', '2026-03-21T09:30:00+00:00', PatrolStatusEnum::Discarded);
+        $this->makePatrol('river', 'walk', '2026-03-21T06:10:00+00:00', '2026-03-21T09:30:00+00:00', PatrolStatusEnum::Discarded);
 
         $moves = $this->pulse();
 
@@ -471,7 +471,7 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
 
     public function testMovesOutsideTheWindowAreNotMoves(): void
     {
-        $this->makePatrol('endulen', 'walk', '2026-03-19T06:10:00+00:00', '2026-03-19T09:30:00+00:00');
+        $this->makePatrol('river', 'walk', '2026-03-19T06:10:00+00:00', '2026-03-19T09:30:00+00:00');
 
         self::assertSame([], $this->pulse());
     }

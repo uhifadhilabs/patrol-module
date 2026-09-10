@@ -58,8 +58,8 @@
    the two states the shell does not carry, which decorate the shared class
    rather than restating it.
 
-   .mchip.on:hover is deliberately absent as well: it decorated a filled `.on`
-   this module used to declare, and the shell's `.on` is an outline. */
+   .mchip.on gets nothing here either: the shell draws that state as an outline,
+   and a hover fill over an outline is not this module's to add. */
 .mchip.ghost { border-style: dashed; color: rgb(var(--c-fog)); cursor: pointer; }
 .mchip.add { border-style: dashed; border-color: rgb(var(--c-acc)); color: rgb(var(--c-acc)); cursor: pointer; }
 

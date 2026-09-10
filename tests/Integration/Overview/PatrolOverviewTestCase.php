@@ -41,6 +41,19 @@ abstract class PatrolOverviewTestCase extends IntegrationTestCase
 {
     protected const string NOW = '2026-03-21T11:42:00+00:00';
 
+    /**
+     * The posts a test's station key stands for, in the module's own demo
+     * vocabulary. A key with no post of its own becomes a station named after
+     * itself, which is all a test that only counts stations needs.
+     *
+     * @var array<string, string>
+     */
+    private const array STATIONS = [
+        'river' => 'River Post',
+        'ridge' => 'Ridge Camp',
+        'lake' => 'Lake Post',
+    ];
+
     protected AreaOfInterest $area;
 
     /** @var array<string, Patrol> */
@@ -51,7 +64,7 @@ abstract class PatrolOverviewTestCase extends IntegrationTestCase
         parent::setUp();
 
         $this->area = new AreaOfInterest()->setSource('test fixture')->setName('Example square');
-        $this->area->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.1,-3.0],[35.1,-2.9],[35.0,-2.9],[35.0,-3.0]]]]}');
+        $this->area->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.0],[-29.9,-3.0],[-29.9,-2.9],[-30.0,-2.9],[-30.0,-3.0]]]]}');
         $this->em->persist($this->area);
         $this->em->flush();
     }
@@ -79,7 +92,7 @@ abstract class PatrolOverviewTestCase extends IntegrationTestCase
             ->setName($name)
             ->setArea($this->area)
             ->setGeom(\sprintf(
-                '{"type":"MultiPolygon","coordinates":[[[[35.0,%1$s],[35.1,%1$s],[35.1,%2$s],[35.0,%2$s],[35.0,%1$s]]]]}',
+                '{"type":"MultiPolygon","coordinates":[[[[-30.0,%1$s],[-29.9,%1$s],[-29.9,%2$s],[-30.0,%2$s],[-30.0,%1$s]]]]}',
                 $southLat,
                 $northLat,
             ));
@@ -93,7 +106,7 @@ abstract class PatrolOverviewTestCase extends IntegrationTestCase
     {
         $patrol = new Patrol($this->area, $type)
             ->setStatus($status)
-            ->setStation(ucfirst($key))
+            ->setStation(self::STATIONS[$key] ?? ucfirst($key))
             ->setStartedAt(null === $startedAt ? null : new \DateTimeImmutable($startedAt))
             ->setEndedAt(null === $endedAt ? null : new \DateTimeImmutable($endedAt));
         $this->em->persist($patrol);

@@ -47,7 +47,7 @@ final class ObservationAmendmentTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
 
-    private const string ORIGINAL_NOTE = 'Fresh lion tracks 400 m from Endulen bomas, heading south-east. Two sets, likely adult + subadult.';
+    private const string ORIGINAL_NOTE = 'Fresh lion tracks 400 m from River Post, heading south-east. Two sets, likely adult + subadult.';
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;

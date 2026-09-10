@@ -66,23 +66,23 @@ final class PatrolOverviewTemplatesTest extends PatrolOverviewTestCase
         $this->makeZone('North', -2.95, -2.9);
         $this->makeZone('South', -3.0, -2.95);
 
-        $lead = $this->makeUser('Leah', 'Saitoti');
-        $pinging = $this->makePatrol('endulen', 'walk', '2026-03-21T05:20:00+00:00', status: PatrolStatusEnum::Recording);
+        $lead = $this->makeUser('Neema', 'Kileo');
+        $pinging = $this->makePatrol('river', 'walk', '2026-03-21T05:20:00+00:00', status: PatrolStatusEnum::Recording);
         $pinging->setLead($lead);
         $this->em->flush();
         $this->ping($pinging, [
-            ['2026-03-21T11:00:00+00:00', 35.01, -2.95],
-            ['2026-03-21T11:30:00+00:00', 35.05, -2.95],
+            ['2026-03-21T11:00:00+00:00', -29.99, -2.95],
+            ['2026-03-21T11:30:00+00:00', -29.95, -2.95],
         ]);
 
-        $silent = $this->makePatrol('naabi', 'boat', '2026-03-21T10:37:00+00:00', status: PatrolStatusEnum::Recording);
-        $this->ping($silent, [['2026-03-21T09:32:00+00:00', 35.05, -2.95]]);
+        $silent = $this->makePatrol('ridge', 'boat', '2026-03-21T10:37:00+00:00', status: PatrolStatusEnum::Recording);
+        $this->ping($silent, [['2026-03-21T09:32:00+00:00', -29.95, -2.95]]);
 
-        $closed = $this->makePatrol('lerai', 'walk', '2026-03-21T05:00:00+00:00', '2026-03-21T09:00:00+00:00');
-        $closed->setDistanceKm(41.8)->setTrack('{"type":"LineString","coordinates":[[35.0,-2.92],[35.1,-2.92]]}');
+        $closed = $this->makePatrol('lake', 'walk', '2026-03-21T05:00:00+00:00', '2026-03-21T09:00:00+00:00');
+        $closed->setDistanceKm(41.8)->setTrack('{"type":"LineString","coordinates":[[-30.0,-2.92],[-29.9,-2.92]]}');
         $this->em->flush();
 
-        $this->makeObservation($closed, '2026-03-16T11:42:00+00:00', '{"type":"Point","coordinates":[35.05,-2.92]}', 'Snare line, six snares, cut and collected');
+        $this->makeObservation($closed, '2026-03-16T11:42:00+00:00', '{"type":"Point","coordinates":[-29.95,-2.92]}', 'Snare line, six snares, cut and collected');
     }
 
     // ---- PL·A1 ------------------------------------------------------------
@@ -116,8 +116,8 @@ final class PatrolOverviewTemplatesTest extends PatrolOverviewTestCase
 
         $html = $this->render('pl_now');
 
-        self::assertStringContainsString('LS', $html);
-        self::assertStringContainsString('Endulen · L. Saitoti · out 6 h 22', $html);
+        self::assertStringContainsString('NK', $html);
+        self::assertStringContainsString('River Post · N. Kileo · out 6 h 22', $html);
         self::assertStringContainsString('<span class="chip ok">ping 12 min ago</span>', $html);
         self::assertStringContainsString('<span class="chip fail">no ping 2 h 10</span>', $html);
         self::assertStringContainsString('Open →', $html);
@@ -132,7 +132,7 @@ final class PatrolOverviewTemplatesTest extends PatrolOverviewTestCase
         self::assertStringContainsString('Handsets reporting', $html);
         // The "last seen" time is a machine <time> the shell's frame localises;
         // the readable UTC text stays as the no-JS fallback.
-        self::assertStringContainsString('1 of 2 · Naabi last seen <time datetime="2026-03-21T09:32:00+00:00" data-localtime-format="time">09:32</time>', $html);
+        self::assertStringContainsString('1 of 2 · Ridge Camp last seen <time datetime="2026-03-21T09:32:00+00:00" data-localtime-format="time">09:32</time>', $html);
     }
 
     public function testAnEmptyLiveCardSaysNobodyIsOut(): void
@@ -194,7 +194,7 @@ final class PatrolOverviewTemplatesTest extends PatrolOverviewTestCase
         self::assertLessThan(mb_strpos($html, 'North'), (int) mb_strpos($html, 'South'));
         self::assertStringContainsString('<span class="chip fail">never</span>', $html);
         self::assertStringContainsString('no track has entered it', $html);
-        self::assertStringContainsString($this->patrols['lerai']->getRef(), $html);
+        self::assertStringContainsString($this->patrols['lake']->getRef(), $html);
         self::assertStringContainsString('Area within 2 km of a track, this month', $html);
     }
 
@@ -230,7 +230,7 @@ final class PatrolOverviewTemplatesTest extends PatrolOverviewTestCase
         $html = $this->render('pl_obsq');
 
         self::assertStringContainsString('OBS-', $html);
-        self::assertStringContainsString($this->patrols['lerai']->getRef(), $html);
+        self::assertStringContainsString($this->patrols['lake']->getRef(), $html);
         self::assertStringContainsString('Maintenance need — Snare line, six snares, cut and collected', $html);
         self::assertStringContainsString('North', $html);
         self::assertStringContainsString('<span class="chip fail">5 d</span>', $html);

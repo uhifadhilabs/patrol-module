@@ -39,8 +39,8 @@ final class PatrolOverviewServiceTest extends PatrolOverviewTestCase
 
     public function testAPatrolPingingRecentlyIsNotCalledOut(): void
     {
-        $patrol = $this->makePatrol('endulen', 'walk', '2026-03-21T05:20:00+00:00', status: PatrolStatusEnum::Recording);
-        $this->ping($patrol, [['2026-03-21T11:30:00+00:00', 35.05, -2.95]]);
+        $patrol = $this->makePatrol('river', 'walk', '2026-03-21T05:20:00+00:00', status: PatrolStatusEnum::Recording);
+        $this->ping($patrol, [['2026-03-21T11:30:00+00:00', -29.95, -2.95]]);
 
         $row = $this->overview()->out($this->area, $this->now())[0];
 
@@ -51,8 +51,8 @@ final class PatrolOverviewServiceTest extends PatrolOverviewTestCase
 
     public function testAPatrolSilentForLongerThanTheThresholdIsCalledOut(): void
     {
-        $patrol = $this->makePatrol('naabi', 'boat', '2026-03-21T10:37:00+00:00', status: PatrolStatusEnum::Recording);
-        $this->ping($patrol, [['2026-03-21T09:32:00+00:00', 35.05, -2.95]]);
+        $patrol = $this->makePatrol('ridge', 'boat', '2026-03-21T10:37:00+00:00', status: PatrolStatusEnum::Recording);
+        $this->ping($patrol, [['2026-03-21T09:32:00+00:00', -29.95, -2.95]]);
 
         $row = $this->overview()->out($this->area, $this->now())[0];
 
@@ -62,7 +62,7 @@ final class PatrolOverviewServiceTest extends PatrolOverviewTestCase
 
     public function testAPatrolJustOpenedWithNoPingsYetIsNotInTrouble(): void
     {
-        $this->makePatrol('naabi', 'walk', '2026-03-21T11:38:00+00:00', status: PatrolStatusEnum::Recording);
+        $this->makePatrol('ridge', 'walk', '2026-03-21T11:38:00+00:00', status: PatrolStatusEnum::Recording);
 
         $row = $this->overview()->out($this->area, $this->now())[0];
 
@@ -75,7 +75,7 @@ final class PatrolOverviewServiceTest extends PatrolOverviewTestCase
 
     public function testAPatrolLongOutThatHasNeverPingedIsInTrouble(): void
     {
-        $this->makePatrol('naabi', 'walk', '2026-03-21T05:00:00+00:00', status: PatrolStatusEnum::Recording);
+        $this->makePatrol('ridge', 'walk', '2026-03-21T05:00:00+00:00', status: PatrolStatusEnum::Recording);
 
         $row = $this->overview()->out($this->area, $this->now())[0];
 
@@ -85,10 +85,10 @@ final class PatrolOverviewServiceTest extends PatrolOverviewTestCase
 
     public function testTheTrailAndItsHeadComeBackWithTheRow(): void
     {
-        $patrol = $this->makePatrol('endulen', 'walk', '2026-03-21T05:20:00+00:00', status: PatrolStatusEnum::Recording);
+        $patrol = $this->makePatrol('river', 'walk', '2026-03-21T05:20:00+00:00', status: PatrolStatusEnum::Recording);
         $this->ping($patrol, [
-            ['2026-03-21T11:00:00+00:00', 35.01, -2.95],
-            ['2026-03-21T11:30:00+00:00', 35.05, -2.95],
+            ['2026-03-21T11:00:00+00:00', -29.99, -2.95],
+            ['2026-03-21T11:30:00+00:00', -29.95, -2.95],
         ]);
 
         $row = $this->overview()->out($this->area, $this->now())[0];
@@ -156,7 +156,7 @@ final class PatrolOverviewServiceTest extends PatrolOverviewTestCase
 
     public function testTheDayNamesWhoIsStillOutAndTheMonthTheyBelongTo(): void
     {
-        $out = $this->makePatrol('naabi', 'walk', '2026-03-21T06:00:00+00:00', status: PatrolStatusEnum::Recording);
+        $out = $this->makePatrol('ridge', 'walk', '2026-03-21T06:00:00+00:00', status: PatrolStatusEnum::Recording);
         $this->makePatrol('a', 'walk', '2026-03-05T06:00:00+00:00', '2026-03-05T09:00:00+00:00')->setDistanceKm(10.0);
         $this->em->flush();
 
@@ -176,7 +176,7 @@ final class PatrolOverviewServiceTest extends PatrolOverviewTestCase
         $this->makeZone('North', -2.95, -2.9);
         $this->makeZone('South', -3.0, -2.95);
         $this->makePatrol('a', 'walk', '2026-03-19T06:00:00+00:00', '2026-03-19T09:00:00+00:00')
-            ->setTrack('{"type":"LineString","coordinates":[[35.0,-2.92],[35.1,-2.92]]}');
+            ->setTrack('{"type":"LineString","coordinates":[[-30.0,-2.92],[-29.9,-2.92]]}');
         $this->em->flush();
 
         $gaps = $this->overview()->gaps($this->area, $this->now());
@@ -194,7 +194,7 @@ final class PatrolOverviewServiceTest extends PatrolOverviewTestCase
         // Entered at 23:50 last night. This morning that is one day ago, not
         // "still today" for another eight hours.
         $this->makePatrol('a', 'walk', '2026-03-20T23:50:00+00:00', '2026-03-21T00:30:00+00:00')
-            ->setTrack('{"type":"LineString","coordinates":[[35.0,-2.92],[35.1,-2.92]]}');
+            ->setTrack('{"type":"LineString","coordinates":[[-30.0,-2.92],[-29.9,-2.92]]}');
         $this->em->flush();
 
         $gaps = $this->overview()->gaps($this->area, $this->now());
@@ -213,7 +213,7 @@ final class PatrolOverviewServiceTest extends PatrolOverviewTestCase
     {
         $this->makeZone('North', -2.95, -2.9);
         $patrol = $this->makePatrol('a', 'walk', '2026-03-19T06:00:00+00:00', '2026-03-19T09:00:00+00:00');
-        $older = $this->makeObservation($patrol, '2026-03-16T11:42:00+00:00', '{"type":"Point","coordinates":[35.05,-2.92]}');
+        $older = $this->makeObservation($patrol, '2026-03-16T11:42:00+00:00', '{"type":"Point","coordinates":[-29.95,-2.92]}');
         $newer = $this->makeObservation($patrol, '2026-03-21T05:42:00+00:00');
 
         $rows = $this->overview()->observations($this->area, $this->now())['rows'];
