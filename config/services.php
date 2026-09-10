@@ -232,7 +232,6 @@ return static function (ContainerConfigurator $container): void {
             // which is what a reusable bundle names another one by.
             service('shell.widget.service'),
             param('patrol.types'),
-            param('patrol.record_screens'),
             param('patrol.widget_screens'),
             param('patrol.manage_screens'),
             // Null where the installation runs no security: nobody is signed

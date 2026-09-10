@@ -19,9 +19,9 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Contracts\Entity\UserInterface;
-use Uhifadhi\Patrol\Controller\PatrolRecordController;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\ObservationRepository;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 
@@ -63,7 +63,7 @@ final class PatrolApiContext
             throw new PatrolApiException(401, 'unauthorized', 'Sign in again.');
         }
 
-        if (!$this->authorizationChecker->isGranted(PatrolRecordController::RECORD_PERMISSION)) {
+        if (!$this->authorizationChecker->isGranted(PatrolModuleProvider::RECORD_PERMISSION)) {
             throw PatrolApiException::forbidden();
         }
 

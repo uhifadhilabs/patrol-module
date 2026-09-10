@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Tests\Unit\Module;
 
 use PHPUnit\Framework\TestCase;
-use Uhifadhi\Patrol\Controller\PatrolRecordController;
 use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 
@@ -41,7 +40,7 @@ final class PatrolModuleProviderTest extends TestCase
         self::assertCount(2, $permissions);
 
         // The exact attribute the recording screens check.
-        self::assertSame(PatrolRecordController::RECORD_PERMISSION, $permissions[0]->value);
+        self::assertSame(PatrolModuleProvider::RECORD_PERMISSION, $permissions[0]->value);
         self::assertSame('patrols.record', $permissions[0]->value);
         self::assertSame('Patrols', $permissions[0]->umbrella);
         self::assertSame('Record', $permissions[0]->action);

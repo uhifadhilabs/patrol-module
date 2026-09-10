@@ -17,12 +17,12 @@ use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 use Uhifadhi\Bundle\TeamBundle\Entity\User;
-use Uhifadhi\Patrol\Controller\PatrolRecordController;
 use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
+use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 
 /**
  * Test stand-in for the HOST's permission voter: the bundle only DECLARES
- * "patrols.record" (PatrolRecordController::RECORD_PERMISSION) and
+ * "patrols.record" (PatrolModuleProvider::RECORD_PERMISSION) and
  * "patrols.manage" (PatrolTaxonomyController::MANAGE_PERMISSION); deciding who
  * holds them is the host's job.
  *
@@ -46,7 +46,7 @@ final class FixedRecordVoter extends Voter
     protected function supports(string $attribute, mixed $subject): bool
     {
         return \in_array($attribute, [
-            PatrolRecordController::RECORD_PERMISSION,
+            PatrolModuleProvider::RECORD_PERMISSION,
             PatrolTaxonomyController::MANAGE_PERMISSION,
         ], true);
     }
@@ -59,7 +59,7 @@ final class FixedRecordVoter extends Voter
         }
 
         return match ($attribute) {
-            PatrolRecordController::RECORD_PERMISSION => self::RECORDER_EMAIL === $user->getEmail(),
+            PatrolModuleProvider::RECORD_PERMISSION => self::RECORDER_EMAIL === $user->getEmail(),
             PatrolTaxonomyController::MANAGE_PERMISSION => self::MANAGER_EMAIL === $user->getEmail(),
             default => false,
         };

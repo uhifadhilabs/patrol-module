@@ -7,6 +7,7 @@ A [uhifadhi](https://github.com/uhifadhilabs) module bundle.
 ## Contents
 
 - [What it is](#what-it-is)
+- [Future](#future)
 - [Installation](#installation)
 - [Upgrading](#upgrading)
 - [Learn more](#learn-more)
@@ -18,14 +19,19 @@ A [uhifadhi](https://github.com/uhifadhilabs) module bundle.
   when, how far) with an optional geometry track. Types are deployment
   vocabulary (`patrol.types`), never hardcoded: one deployment walks and
   drives, another patrols by boat.
-- **GPX ingest** — upload a tracker's `.gpx` file; the bundle parses points,
-  time span, distance and GPS gaps (flagged and stored, never smoothed), then
-  a short form confirms type/station/lead.
+- **Where a patrol comes from** — the handset sync API, which posts a patrol and
+  its track from the field, and the devkit's demo seeder. The bundle parses
+  points, time span, distance and GPS gaps, which are flagged and stored, never
+  smoothed.
 - **Observations** — georeferenced field notes logged en route (category from
   `patrol.observation_categories`, note, photos), each with its own detail
   screen and an audit trail.
 - **Coverage** — every track drawn over the area boundary; the dashboard is a
   per-user widget composition (KPIs, map, log, feed, charts, calendar).
+
+## Future
+
+- Manual patrol entry and GPX import from the browser.
 
 ## Installation
 

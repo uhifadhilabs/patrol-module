@@ -14,8 +14,6 @@
 | Patrol detail | `patrol_show` |
 | Observation detail | `patrol_observation_show` |
 | Export a recorded track as GPX | `patrol_export_gpx` |
-| Import GPX | `patrol_import` |
-| Log patrol (manual) | `patrol_log` |
 | Observation taxonomy admin | `patrol_taxonomy` |
 
 The dashboard and the widget library are compositions on the shell's widget
