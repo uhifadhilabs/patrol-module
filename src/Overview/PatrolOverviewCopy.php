@@ -20,10 +20,10 @@ use Uhifadhi\Bundle\AreaBundle\Overview\OverviewCopyProviderInterface;
  *
  * The area overview's map plate has a line in the widget picker saying what a
  * person would be looking at, and the "Map as ground" direction has a thesis
- * saying what a full-height plate is worth adopting for. Both used to name this
+ * saying what a full-height plate is worth adopting for. Neither may name this
  * module's subject matter in the host's own copy — "today's tracks", "a stranded
- * patrol" — which is the host knowing what a patrol is, on the one page whose
- * argument is that it does not.
+ * patrol" — because that is the host knowing what a patrol is, on the one page
+ * whose argument is that it does not.
  *
  * So the phrases live here, beside the layers and the tiles they describe. The
  * host writes the sentence round them, and an area without this module simply

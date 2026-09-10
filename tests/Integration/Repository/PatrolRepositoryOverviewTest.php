@@ -32,7 +32,7 @@ use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
  * ST_Intersects against the host's zone polygons.
  *
  * The fixture area is the same ~0.1° square PatrolRepositoryCoverageTest uses
- * (lon 35.0–35.1, lat −3.0 to −2.9, ≈ 123 km²), split into a NORTH and a SOUTH
+ * (lon −30.0 to −29.9, lat −3.0 to −2.9, ≈ 123 km²), split into a NORTH and a SOUTH
  * half so a track can enter one and miss the other.
  */
 final class PatrolRepositoryOverviewTest extends IntegrationTestCase
@@ -61,7 +61,7 @@ final class PatrolRepositoryOverviewTest extends IntegrationTestCase
     private function makeArea(): AreaOfInterest
     {
         $area = new AreaOfInterest()->setSource('test fixture')->setName('Example square');
-        $area->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.1,-3.0],[35.1,-2.9],[35.0,-2.9],[35.0,-3.0]]]]}');
+        $area->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.0],[-29.9,-3.0],[-29.9,-2.9],[-30.0,-2.9],[-30.0,-3.0]]]]}');
         $this->em->persist($area);
         $this->em->flush();
 
@@ -74,7 +74,7 @@ final class PatrolRepositoryOverviewTest extends IntegrationTestCase
             ->setName($name)
             ->setArea($area)
             ->setGeom(\sprintf(
-                '{"type":"MultiPolygon","coordinates":[[[[35.0,%1$s],[35.1,%1$s],[35.1,%2$s],[35.0,%2$s],[35.0,%1$s]]]]}',
+                '{"type":"MultiPolygon","coordinates":[[[[-30.0,%1$s],[-29.9,%1$s],[-29.9,%2$s],[-30.0,%2$s],[-30.0,%1$s]]]]}',
                 $southLat,
                 $northLat,
             ));
@@ -154,7 +154,7 @@ final class PatrolRepositoryOverviewTest extends IntegrationTestCase
         $this->makeZone($area, 'North', -2.95, -2.9);
         $this->makeZone($area, 'South', -3.0, -2.95);
         // A track along the far north edge: it enters North and misses South.
-        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.92],[35.1,-2.92]]}');
+        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[-30.0,-2.92],[-29.9,-2.92]]}');
 
         $rows = $this->repository()->zoneAbsenceForArea($area, self::BUFFER_M, $this->monthStart, $this->nextMonth);
 
@@ -173,8 +173,8 @@ final class PatrolRepositoryOverviewTest extends IntegrationTestCase
     {
         $area = $this->makeArea();
         $this->makeZone($area, 'North', -2.95, -2.9);
-        $this->makePatrol($area, '2026-03-05T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.92],[35.1,-2.92]]}');
-        $latest = $this->makePatrol($area, '2026-03-18T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.93],[35.1,-2.93]]}');
+        $this->makePatrol($area, '2026-03-05T06:00:00Z', '{"type":"LineString","coordinates":[[-30.0,-2.92],[-29.9,-2.92]]}');
+        $latest = $this->makePatrol($area, '2026-03-18T06:00:00Z', '{"type":"LineString","coordinates":[[-30.0,-2.93],[-29.9,-2.93]]}');
 
         $rows = $this->repository()->zoneAbsenceForArea($area, self::BUFFER_M, $this->monthStart, $this->nextMonth);
 
@@ -186,7 +186,7 @@ final class PatrolRepositoryOverviewTest extends IntegrationTestCase
     {
         $area = $this->makeArea();
         $this->makeZone($area, 'North', -2.95, -2.9);
-        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.92],[35.1,-2.92]]}', PatrolStatusEnum::Discarded);
+        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[-30.0,-2.92],[-29.9,-2.92]]}', PatrolStatusEnum::Discarded);
 
         $rows = $this->repository()->zoneAbsenceForArea($area, self::BUFFER_M, $this->monthStart, $this->nextMonth);
 
@@ -203,7 +203,7 @@ final class PatrolRepositoryOverviewTest extends IntegrationTestCase
         $this->makeZone($area, 'South', -3.0, -2.95);
         // Straight across the middle of the NORTH half only (≈ 5.5 km tall), so
         // its 4 km band covers most of North and only clips into South.
-        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.925],[35.1,-2.925]]}');
+        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[-30.0,-2.925],[-29.9,-2.925]]}');
 
         $rows = $this->repository()->zoneAbsenceForArea($area, self::BUFFER_M, $this->monthStart, $this->nextMonth);
         $byZone = array_column($rows, null, 'zone');
@@ -220,7 +220,7 @@ final class PatrolRepositoryOverviewTest extends IntegrationTestCase
     public function testAnAreaWithNoZonesMeasuresNothing(): void
     {
         $area = $this->makeArea();
-        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}');
+        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[-30.0,-2.95],[-29.9,-2.95]]}');
 
         self::assertSame([], $this->repository()->zoneAbsenceForArea($area, self::BUFFER_M, $this->monthStart, $this->nextMonth));
     }
@@ -239,7 +239,7 @@ final class PatrolRepositoryOverviewTest extends IntegrationTestCase
     public function testTheCoverageBufferIsReturnedAsGeoJsonClippedToTheBoundary(): void
     {
         $area = $this->makeArea();
-        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[34.8,-2.95],[35.3,-2.95]]}');
+        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[-30.2,-2.95],[-29.7,-2.95]]}');
 
         $geoJson = $this->repository()->coverageBufferGeoJson($area, self::BUFFER_M, $this->monthStart, $this->nextMonth);
 
@@ -249,7 +249,7 @@ final class PatrolRepositoryOverviewTest extends IntegrationTestCase
         self::assertContains($decoded['type'] ?? null, ['Polygon', 'MultiPolygon']);
         // The track runs well past both edges; the buffer must be clipped to the
         // boundary rather than spilling outside the area it describes.
-        self::assertStringNotContainsString('34.8', json_encode($decoded['coordinates'] ?? [], \JSON_THROW_ON_ERROR));
+        self::assertStringNotContainsString('-30.2', json_encode($decoded['coordinates'] ?? [], \JSON_THROW_ON_ERROR));
     }
 
     public function testAMonthWithNoTracksBuffersNothingRatherThanEmptyGeometry(): void
@@ -313,7 +313,7 @@ final class PatrolRepositoryOverviewTest extends IntegrationTestCase
         for ($i = 0; $i <= 400; ++$i) {
             // A gentle wander, so the buffered outline carries real detail
             // rather than being one straight corridor.
-            $points[] = [34.95 + ($i * 0.00025), -2.95 + (sin($i / 9) * 0.0004)];
+            $points[] = [-30.05 + ($i * 0.00025), -2.95 + (sin($i / 9) * 0.0004)];
         }
 
         return json_encode(['type' => 'LineString', 'coordinates' => $points], \JSON_THROW_ON_ERROR);

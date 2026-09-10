@@ -41,7 +41,7 @@ final class FieldSyncDroneTest extends FieldSyncTestCase
 
         $this->postJson('/api/patrols/'.self::PATROL_UUID.'/track', [
             'batchUuid' => self::PATROL_UUID.':track:0',
-            'points' => [['lat' => -3.2014, 'lon' => 35.4623, 'recordedAt' => '2026-08-23T06:44:17Z']],
+            'points' => [['lat' => -3.2014, 'lon' => -29.5377, 'recordedAt' => '2026-08-23T06:44:17Z']],
         ]);
 
         self::assertResponseStatusCodeSame(422);
@@ -70,7 +70,7 @@ final class FieldSyncDroneTest extends FieldSyncTestCase
                 'clientUuid' => self::LAUNCH_POINT_UUID,
                 'label' => 'LP-1',
                 'name' => 'North Gate LP-1',
-                'position' => ['lat' => -3.1966, 'lon' => 35.4339, 'accuracyM' => 3.0, 'satellites' => 10],
+                'position' => ['lat' => -3.1966, 'lon' => -29.5661, 'accuracyM' => 3.0, 'satellites' => 10],
                 'establishedAt' => '2026-08-23T06:47:10Z',
                 'sectorType' => 'radius',
                 'sectorRadiusM' => 2000.0,
@@ -122,7 +122,7 @@ final class FieldSyncDroneTest extends FieldSyncTestCase
             'observations' => [[
                 'clientUuid' => $observationUuid,
                 'category' => 'maintenance',
-                'position' => ['lat' => -3.1970, 'lon' => 35.4350],
+                'position' => ['lat' => -3.1970, 'lon' => -29.5650],
                 'positionSource' => 'operator_marked',
                 'loggedAt' => '2026-08-23T06:58:00Z',
                 'launchPointUuid' => self::LAUNCH_POINT_UUID,
@@ -136,7 +136,7 @@ final class FieldSyncDroneTest extends FieldSyncTestCase
             'launchPoints' => [[
                 'clientUuid' => self::LAUNCH_POINT_UUID,
                 'label' => 'LP-1',
-                'position' => ['lat' => -3.1966, 'lon' => 35.4339],
+                'position' => ['lat' => -3.1966, 'lon' => -29.5661],
                 'establishedAt' => '2026-08-23T06:47:10Z',
                 'sectorRadiusM' => 2000.0,
             ]],
@@ -175,11 +175,11 @@ final class FieldSyncDroneTest extends FieldSyncTestCase
             'launchPoints' => [[
                 'clientUuid' => self::LAUNCH_POINT_UUID,
                 'label' => 'LP-2',
-                'position' => ['lat' => -3.1966, 'lon' => 35.4339],
+                'position' => ['lat' => -3.1966, 'lon' => -29.5661],
                 'sectorType' => 'polygon',
                 'sectorPolygon' => [
                     'type' => 'Polygon',
-                    'coordinates' => [[[35.41, -3.25], [35.52, -3.25], [35.52, -3.15], [35.41, -3.15], [35.41, -3.25]]],
+                    'coordinates' => [[[-29.59, -3.25], [-29.48, -3.25], [-29.48, -3.15], [-29.59, -3.15], [-29.59, -3.25]]],
                 ],
             ]],
             'flights' => [],
@@ -205,7 +205,7 @@ final class FieldSyncDroneTest extends FieldSyncTestCase
             'launchPoints' => [[
                 'clientUuid' => self::LAUNCH_POINT_UUID,
                 'label' => 'LP-1',
-                'position' => ['lat' => -3.1966, 'lon' => 35.4339],
+                'position' => ['lat' => -3.1966, 'lon' => -29.5661],
                 'sectorRadiusM' => 2000.0,
             ]],
             'flights' => [[
@@ -239,7 +239,7 @@ final class FieldSyncDroneTest extends FieldSyncTestCase
             'launchPoints' => [[
                 'clientUuid' => self::LAUNCH_POINT_UUID,
                 'label' => 'LP-1',
-                'position' => ['lat' => -3.1966, 'lon' => 35.4339],
+                'position' => ['lat' => -3.1966, 'lon' => -29.5661],
             ]],
         ]);
 

@@ -38,8 +38,8 @@ use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 final class PatrolCoverageServiceTest extends IntegrationTestCase
 {
     private const float BUFFER_M = 2000.0;
-    private const string TRACK = '{"type":"LineString","coordinates":[[35.02,-2.95],[35.06,-2.95]]}';
-    private const string ELSEWHERE = '{"type":"LineString","coordinates":[[35.02,-2.92],[35.06,-2.92]]}';
+    private const string TRACK = '{"type":"LineString","coordinates":[[-29.98,-2.95],[-29.94,-2.95]]}';
+    private const string ELSEWHERE = '{"type":"LineString","coordinates":[[-29.98,-2.92],[-29.94,-2.92]]}';
 
     private \DateTimeImmutable $monthStart;
     private \DateTimeImmutable $nextMonth;
@@ -144,7 +144,7 @@ final class PatrolCoverageServiceTest extends IntegrationTestCase
     private function makeArea(): AreaOfInterest
     {
         $area = new AreaOfInterest()->setSource('test fixture')->setName('Example square');
-        $area->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.1,-3.0],[35.1,-2.9],[35.0,-2.9],[35.0,-3.0]]]]}');
+        $area->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.0],[-29.9,-3.0],[-29.9,-2.9],[-30.0,-2.9],[-30.0,-3.0]]]]}');
         $this->em->persist($area);
         $this->em->flush();
 

@@ -126,14 +126,14 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
     {
         $world = $this->world();
 
-        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[35.4,-3.2],[35.6,-3.2]]}');
+        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[-29.6,-3.2],[-29.4,-3.2]]}');
         $this->em->flush();
         $withRealTrackOnly = $this->departmentCoverage($world['protection']);
         self::assertNotNull($withRealTrackOnly);
 
         // A second, perpendicular track by the same department — discarded. If it
         // counted, the union would be a cross and the share would grow.
-        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[35.5,-3.3],[35.5,-3.1]]}')
+        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[-29.5,-3.3],[-29.5,-3.1]]}')
             ->discard('Testing');
         $this->em->flush();
 
@@ -145,13 +145,13 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
     {
         $world = $this->world();
 
-        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[35.4,-3.2],[35.6,-3.2]]}');
+        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[-29.6,-3.2],[-29.4,-3.2]]}');
         $this->em->flush();
         $withCompleteTrackOnly = $this->departmentCoverage($world['protection']);
         self::assertNotNull($withCompleteTrackOnly);
 
         // Perpendicular again: were it counted, the union would be a cross.
-        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[35.5,-3.3],[35.5,-3.1]]}')
+        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[-29.5,-3.3],[-29.5,-3.1]]}')
             ->setStatus(PatrolStatusEnum::Recording);
         $this->em->flush();
 
@@ -227,9 +227,9 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         // The world's patrols carry distances but no routes. Give each department a recorded
         // track: Ecology one band across the area, Protection two — so the two figures cannot
         // come out equal by symmetry, and neither may come out as the area's.
-        $this->tracked($world['area'], $world['analyst'], '{"type":"LineString","coordinates":[[35.4,-3.25],[35.6,-3.25]]}');
-        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[35.4,-3.20],[35.6,-3.20]]}');
-        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[35.4,-3.15],[35.6,-3.15]]}');
+        $this->tracked($world['area'], $world['analyst'], '{"type":"LineString","coordinates":[[-29.6,-3.25],[-29.4,-3.25]]}');
+        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[-29.6,-3.20],[-29.4,-3.20]]}');
+        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[-29.6,-3.15],[-29.4,-3.15]]}');
         $this->em->flush();
 
         $ecology = self::kpi($this->provider()->kpisFor(self::ref($world['ecology']), self::now()), 'coverage');
@@ -275,9 +275,9 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         // A second area with its own Ecology patrol, so the per-area figures are emitted at all.
         $second = new AreaOfInterest()->setSource('test fixture')
             ->setName('Second reserve')
-            ->setGeom('{"type":"MultiPolygon","coordinates":[[[[34.4,-2.3],[34.6,-2.3],[34.6,-2.1],[34.4,-2.1],[34.4,-2.3]]]]}');
+            ->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.6,-2.3],[-30.4,-2.3],[-30.4,-2.1],[-30.6,-2.1],[-30.6,-2.3]]]]}');
         $this->em->persist($second);
-        $this->tracked($second, $world['analyst'], '{"type":"LineString","coordinates":[[34.4,-2.2],[34.6,-2.2]]}');
+        $this->tracked($second, $world['analyst'], '{"type":"LineString","coordinates":[[-30.6,-2.2],[-30.4,-2.2]]}');
         $this->em->flush();
 
         $kpis = $this->provider()->kpisFor(self::ref($world['ecology']), self::now());
@@ -344,7 +344,7 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
     {
         $area = new AreaOfInterest()->setSource('test fixture')
             ->setName('Example reserve')
-            ->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.4,-3.3],[35.6,-3.3],[35.6,-3.1],[35.4,-3.1],[35.4,-3.3]]]]}');
+            ->setGeom('{"type":"MultiPolygon","coordinates":[[[[-29.6,-3.3],[-29.4,-3.3],[-29.4,-3.1],[-29.6,-3.1],[-29.6,-3.3]]]]}');
         $this->em->persist($area);
 
         $ecology = $this->department('Ecology');

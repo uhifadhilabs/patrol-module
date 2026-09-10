@@ -62,9 +62,9 @@ final class FieldSyncDiscardTest extends FieldSyncTestCase
         $this->postJson("/api/patrols/{$patrolUuid}/track", [
             'batchUuid' => "{$patrolUuid}:track:0",
             'points' => [
-                ['lat' => -3.2014, 'lon' => 35.4623, 'recordedAt' => '2026-08-23T06:44:17Z', 'accuracyM' => 4.0],
-                ['lat' => -3.2015, 'lon' => 35.4624, 'recordedAt' => '2026-08-23T06:44:37Z', 'accuracyM' => 4.0],
-                ['lat' => -3.2016, 'lon' => 35.4625, 'recordedAt' => '2026-08-23T06:44:50Z', 'accuracyM' => 4.0],
+                ['lat' => -3.2014, 'lon' => -29.5377, 'recordedAt' => '2026-08-23T06:44:17Z', 'accuracyM' => 4.0],
+                ['lat' => -3.2015, 'lon' => -29.5376, 'recordedAt' => '2026-08-23T06:44:37Z', 'accuracyM' => 4.0],
+                ['lat' => -3.2016, 'lon' => -29.5375, 'recordedAt' => '2026-08-23T06:44:50Z', 'accuracyM' => 4.0],
             ],
         ]);
 

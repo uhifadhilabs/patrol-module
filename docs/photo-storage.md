@@ -32,7 +32,7 @@ storage:
         directory: '%kernel.project_dir%/var/patrol/photos'
 ```
 
-The old `patrol-<uuid>/<uuid>.jpg` paths are valid evidence keys exactly as they
+Those `patrol-<uuid>/<uuid>.jpg` paths are valid evidence keys exactly as they
 stand, and `PatrolEvidenceVoter` claims that legacy prefix alongside the new
 `patrol/` one, so nothing is rewritten and nothing goes dark. Give those
 photographs the preview they never had with:

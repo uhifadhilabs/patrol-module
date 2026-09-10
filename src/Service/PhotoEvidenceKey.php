@@ -39,11 +39,11 @@ final class PhotoEvidenceKey
     public const string PREFIX = 'patrol';
 
     /**
-     * What patrol wrote BEFORE it adopted storage-module: photos filed at
-     * `patrol-<uuid>/<clientUuid>.jpg` under the module's own `photo_dir`.
+     * The prefix of photographs filed under this module's own `photo_dir`,
+     * at `patrol-<uuid>/<clientUuid>.jpg`.
      *
-     * Those rows are not rewritten. The deployment points
-     * `storage.evidence.directory` at the old `var/patrol/photos`, which makes
+     * Those rows are never rewritten. The deployment points
+     * `storage.evidence.directory` at that same `var/patrol/photos`, which makes
      * every stored path a valid evidence key exactly as it stands, and this
      * prefix is claimed alongside the new one so the photographs already on disk
      * keep coming back out. A hyphen instead of a slash is the whole difference:

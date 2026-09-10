@@ -43,7 +43,7 @@ final class ObservationRepositoryOverviewTest extends IntegrationTestCase
     {
         parent::setUp();
 
-        $this->area = new AreaOfInterest()->setSource('test fixture')->setName('Example square')->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.1,-3.0],[35.1,-2.9],[35.0,-2.9],[35.0,-3.0]]]]}');
+        $this->area = new AreaOfInterest()->setSource('test fixture')->setName('Example square')->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.0],[-29.9,-3.0],[-29.9,-2.9],[-30.0,-2.9],[-30.0,-3.0]]]]}');
         $this->em->persist($this->area);
         $this->patrol = new Patrol($this->area, 'walk')
             ->setStartedAt(new \DateTimeImmutable('2026-03-20T06:00:00Z'));
@@ -77,7 +77,7 @@ final class ObservationRepositoryOverviewTest extends IntegrationTestCase
             ->setName($name)
             ->setArea($this->area)
             ->setGeom(\sprintf(
-                '{"type":"MultiPolygon","coordinates":[[[[35.0,%1$s],[35.1,%1$s],[35.1,%2$s],[35.0,%2$s],[35.0,%1$s]]]]}',
+                '{"type":"MultiPolygon","coordinates":[[[[-30.0,%1$s],[-29.9,%1$s],[-29.9,%2$s],[-30.0,%2$s],[-30.0,%1$s]]]]}',
                 $southLat,
                 $northLat,
             ));
@@ -102,7 +102,7 @@ final class ObservationRepositoryOverviewTest extends IntegrationTestCase
 
     public function testAnotherAreasObservationsAreNotThisAreas(): void
     {
-        $elsewhere = new AreaOfInterest()->setSource('test fixture')->setName('Elsewhere')->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.1,-3.0],[35.1,-2.9],[35.0,-2.9],[35.0,-3.0]]]]}');
+        $elsewhere = new AreaOfInterest()->setSource('test fixture')->setName('Elsewhere')->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.0],[-29.9,-3.0],[-29.9,-2.9],[-30.0,-2.9],[-30.0,-3.0]]]]}');
         $this->em->persist($elsewhere);
         $otherPatrol = new Patrol($elsewhere, 'walk')->setStartedAt(new \DateTimeImmutable('2026-03-20T06:00:00Z'));
         $this->em->persist($otherPatrol);
@@ -142,8 +142,8 @@ final class ObservationRepositoryOverviewTest extends IntegrationTestCase
     {
         $this->makeZone('North', -2.95, -2.9);
         $this->makeZone('South', -3.0, -2.95);
-        $north = $this->makeObservation('2026-03-21T08:00:00Z', '{"type":"Point","coordinates":[35.05,-2.92]}');
-        $south = $this->makeObservation('2026-03-21T09:00:00Z', '{"type":"Point","coordinates":[35.05,-2.98]}');
+        $north = $this->makeObservation('2026-03-21T08:00:00Z', '{"type":"Point","coordinates":[-29.95,-2.92]}');
+        $south = $this->makeObservation('2026-03-21T09:00:00Z', '{"type":"Point","coordinates":[-29.95,-2.98]}');
 
         $zones = $this->repository()->zoneNamesFor([$north, $south]);
 
@@ -162,7 +162,7 @@ final class ObservationRepositoryOverviewTest extends IntegrationTestCase
     public function testAPointOutsideEveryZoneIsGivenNoZone(): void
     {
         $this->makeZone('North', -2.95, -2.9);
-        $outside = $this->makeObservation('2026-03-21T08:00:00Z', '{"type":"Point","coordinates":[36.5,-2.92]}');
+        $outside = $this->makeObservation('2026-03-21T08:00:00Z', '{"type":"Point","coordinates":[-28.5,-2.92]}');
 
         self::assertSame([], $this->repository()->zoneNamesFor([$outside]));
     }

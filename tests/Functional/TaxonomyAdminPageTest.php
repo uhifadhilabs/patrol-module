@@ -308,7 +308,7 @@ final class TaxonomyAdminPageTest extends WebTestCase
     {
         $area = new AreaOfInterest();
         $area->setName($name)->setSource('test fixture')->setGeom(
-            '{"type":"MultiPolygon","coordinates":[[[[35.0,-3.6],[36.0,-3.6],[36.0,-2.8],[35.0,-2.8],[35.0,-3.6]]]]}',
+            '{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.6],[-29.0,-3.6],[-29.0,-2.8],[-30.0,-2.8],[-30.0,-3.6]]]]}',
         );
         $this->em->persist($area);
         $this->everyAreaRunsPatrols($this->em);

@@ -436,11 +436,11 @@ final class PatrolDashboardServiceTest extends TestCase
     {
         $service = new PatrolDashboardService();
         $walk = $this->patrol('walk', '2026-03-20T06:00:00Z', 10.0, 'North post');
-        $walk->setTrack('{"type":"LineString","coordinates":[[35.5,-3.2],[35.6,-3.3]]}');
+        $walk->setTrack('{"type":"LineString","coordinates":[[-29.5,-3.2],[-29.4,-3.3]]}');
         $boat = $this->patrol('boat', '2026-03-19T06:00:00Z', 4.0);
-        $boat->setTrack('{"type":"LineString","coordinates":[[35.1,-3.1],[35.2,-3.15]]}');
+        $boat->setTrack('{"type":"LineString","coordinates":[[-29.9,-3.1],[-29.8,-3.15]]}');
 
-        $boundary = '{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.9,-3.0],[35.9,-3.6],[35.0,-3.6],[35.0,-3.0]]]]}';
+        $boundary = '{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.0],[-29.1,-3.0],[-29.1,-3.6],[-30.0,-3.6],[-30.0,-3.0]]]]}';
         $payload = $service->coveragePayload(
             $boundary,
             $service->build([$walk, $boat], self::TYPES, $this->now),
@@ -465,7 +465,7 @@ final class PatrolDashboardServiceTest extends TestCase
         // it must not break the payload either.
         $sketch = $this->patrol('walk', '2026-03-20T06:00:00Z', 3.0);
         $recorded = $this->patrol('boat', '2026-03-19T06:00:00Z', 4.0);
-        $recorded->setTrack('{"type":"LineString","coordinates":[[35.1,-3.1],[35.2,-3.15]]}');
+        $recorded->setTrack('{"type":"LineString","coordinates":[[-29.9,-3.1],[-29.8,-3.15]]}');
 
         $payload = $service->coveragePayload(
             null,
@@ -483,7 +483,7 @@ final class PatrolDashboardServiceTest extends TestCase
     public function testCoveragePayloadOfAnAreaWithoutPatrolsStillCarriesTheBoundary(): void
     {
         $service = new PatrolDashboardService();
-        $boundary = '{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.9,-3.0],[35.9,-3.6],[35.0,-3.6],[35.0,-3.0]]]]}';
+        $boundary = '{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.0],[-29.1,-3.0],[-29.1,-3.6],[-30.0,-3.6],[-30.0,-3.0]]]]}';
 
         $payload = $service->coveragePayload($boundary, $service->build([], self::TYPES, $this->now), self::TYPES);
 
@@ -496,16 +496,16 @@ final class PatrolDashboardServiceTest extends TestCase
     {
         $service = new PatrolDashboardService();
         $north = $this->patrol('walk', '2026-03-20T06:00:00Z', 10.0, 'North post');
-        $north->setTrack('{"type":"LineString","coordinates":[[35.5,-3.2],[35.6,-3.3]]}');
+        $north->setTrack('{"type":"LineString","coordinates":[[-29.5,-3.2],[-29.4,-3.3]]}');
         // A second patrol from the same station: one marker, not two.
         $northAgain = $this->patrol('boat', '2026-03-18T06:00:00Z', 5.0, 'North post');
-        $northAgain->setTrack('{"type":"LineString","coordinates":[[35.55,-3.25],[35.7,-3.4]]}');
+        $northAgain->setTrack('{"type":"LineString","coordinates":[[-29.45,-3.25],[-29.3,-3.4]]}');
         $jetty = $this->patrol('boat', '2026-03-19T06:00:00Z', 4.0, 'Jetty');
-        $jetty->setTrack('{"type":"LineString","coordinates":[[35.1,-3.1],[35.2,-3.15]]}');
+        $jetty->setTrack('{"type":"LineString","coordinates":[[-29.9,-3.1],[-29.8,-3.15]]}');
         // No station, and a station whose patrol recorded no track: neither can
         // be placed on a map, so neither is invented.
         $anonymous = $this->patrol('walk', '2026-03-17T06:00:00Z', 2.0);
-        $anonymous->setTrack('{"type":"LineString","coordinates":[[35.9,-3.9],[35.95,-3.95]]}');
+        $anonymous->setTrack('{"type":"LineString","coordinates":[[-29.1,-3.9],[-29.05,-3.95]]}');
         $unplaceable = $this->patrol('walk', '2026-03-16T06:00:00Z', 2.0, 'Sketch camp');
 
         $payload = $service->coveragePayload(
@@ -515,8 +515,8 @@ final class PatrolDashboardServiceTest extends TestCase
         );
 
         self::assertSame([
-            ['name' => 'North post', 'lon' => 35.5, 'lat' => -3.2],
-            ['name' => 'Jetty', 'lon' => 35.1, 'lat' => -3.1],
+            ['name' => 'North post', 'lon' => -29.5, 'lat' => -3.2],
+            ['name' => 'Jetty', 'lon' => -29.9, 'lat' => -3.1],
         ], $payload['stations']);
         // Each track states its station too, so the station filter can drive the
         // map the same way the type chips do.
@@ -568,7 +568,7 @@ final class PatrolDashboardServiceTest extends TestCase
      */
     public function testADiscardedTrackIsNotOnTheCoverageMap(): void
     {
-        $line = '{"type":"LineString","coordinates":[[35.4,-3.2],[35.5,-3.1]]}';
+        $line = '{"type":"LineString","coordinates":[[-29.6,-3.2],[-29.5,-3.1]]}';
         $kept = $this->patrol('walk', '2026-03-20T06:00:00Z', 10.0, 'North post')->setTrack($line);
         $thrownAway = $this->patrol('boat', '2026-03-20T07:00:00Z', 10.0, 'South post')
             ->setTrack($line)

@@ -52,8 +52,8 @@ final class FieldSyncFlowTest extends FieldSyncTestCase
         $this->postJson("/api/patrols/{$patrolUuid}/track", [
             'batchUuid' => "{$patrolUuid}:track:0",
             'points' => [
-                ['lat' => -3.2014, 'lon' => 35.4623, 'recordedAt' => '2026-08-23T06:44:17Z', 'accuracyM' => 4.0, 'satellites' => 9, 'elevationM' => 1544.2, 'speedMs' => 1.3],
-                ['lat' => -3.2020, 'lon' => 35.4630, 'recordedAt' => '2026-08-23T06:45:17Z', 'accuracyM' => 5.0, 'satellites' => 8],
+                ['lat' => -3.2014, 'lon' => -29.5377, 'recordedAt' => '2026-08-23T06:44:17Z', 'accuracyM' => 4.0, 'satellites' => 9, 'elevationM' => 1544.2, 'speedMs' => 1.3],
+                ['lat' => -3.2020, 'lon' => -29.5370, 'recordedAt' => '2026-08-23T06:45:17Z', 'accuracyM' => 5.0, 'satellites' => 8],
             ],
         ]);
 
@@ -66,7 +66,7 @@ final class FieldSyncFlowTest extends FieldSyncTestCase
         $this->postJson("/api/patrols/{$patrolUuid}/track", [
             'batchUuid' => "{$patrolUuid}:track:1",
             'points' => [
-                ['lat' => -3.2031, 'lon' => 35.4644, 'recordedAt' => '2026-08-23T06:46:17Z', 'accuracyM' => 6.0],
+                ['lat' => -3.2031, 'lon' => -29.5356, 'recordedAt' => '2026-08-23T06:46:17Z', 'accuracyM' => 6.0],
             ],
         ]);
         self::assertResponseIsSuccessful();
@@ -78,7 +78,7 @@ final class FieldSyncFlowTest extends FieldSyncTestCase
                 'clientUuid' => $observationUuid,
                 'category' => 'maintenance',
                 'note' => 'Wire snare on the game trail 40 m east of the dip.',
-                'position' => ['lat' => -3.2014, 'lon' => 35.4623, 'accuracyM' => 4.0, 'satellites' => 9],
+                'position' => ['lat' => -3.2014, 'lon' => -29.5377, 'accuracyM' => 4.0, 'satellites' => 9],
                 'positionSource' => 'gps',
                 'loggedAt' => '2026-08-23T08:31:02Z',
                 'launchPointUuid' => null,
@@ -183,8 +183,8 @@ final class FieldSyncFlowTest extends FieldSyncTestCase
         $batch = [
             'batchUuid' => "{$patrolUuid}:track:0",
             'points' => [
-                ['lat' => -3.2014, 'lon' => 35.4623, 'recordedAt' => '2026-08-23T06:44:17Z'],
-                ['lat' => -3.2020, 'lon' => 35.4630, 'recordedAt' => '2026-08-23T06:45:17Z'],
+                ['lat' => -3.2014, 'lon' => -29.5377, 'recordedAt' => '2026-08-23T06:44:17Z'],
+                ['lat' => -3.2020, 'lon' => -29.5370, 'recordedAt' => '2026-08-23T06:45:17Z'],
             ],
         ];
 
@@ -209,11 +209,11 @@ final class FieldSyncFlowTest extends FieldSyncTestCase
         // Batch 1 lands before batch 0 — a dropped connection, retried later.
         $this->postJson("/api/patrols/{$patrolUuid}/track", [
             'batchUuid' => "{$patrolUuid}:track:1",
-            'points' => [['lat' => -3.2031, 'lon' => 35.4644, 'recordedAt' => '2026-08-23T06:46:17Z']],
+            'points' => [['lat' => -3.2031, 'lon' => -29.5356, 'recordedAt' => '2026-08-23T06:46:17Z']],
         ]);
         $this->postJson("/api/patrols/{$patrolUuid}/track", [
             'batchUuid' => "{$patrolUuid}:track:0",
-            'points' => [['lat' => -3.2014, 'lon' => 35.4623, 'recordedAt' => '2026-08-23T06:44:17Z']],
+            'points' => [['lat' => -3.2014, 'lon' => -29.5377, 'recordedAt' => '2026-08-23T06:44:17Z']],
         ]);
         self::assertResponseIsSuccessful();
 
@@ -222,7 +222,7 @@ final class FieldSyncFlowTest extends FieldSyncTestCase
 
         // Ordered by when the PHONE recorded them, not by when they arrived.
         self::assertSame(
-            [[35.4623, -3.2014], [35.4644, -3.2031]],
+            [[-29.5377, -3.2014], [-29.5356, -3.2031]],
             $track['coordinates'],
             'The route was stitched in upload order instead of recorded order.',
         );
@@ -328,7 +328,7 @@ final class FieldSyncFlowTest extends FieldSyncTestCase
             'observations' => [[
                 'clientUuid' => $observationUuid,
                 'category' => 'maintenance',
-                'position' => ['lat' => -3.1966, 'lon' => 35.4339],
+                'position' => ['lat' => -3.1966, 'lon' => -29.5661],
                 'positionSource' => 'operator_marked',
                 'loggedAt' => '2026-08-23T07:02:00Z',
                 'photoCount' => 0,
@@ -378,7 +378,7 @@ final class FieldSyncFlowTest extends FieldSyncTestCase
 
         $this->postJson("/api/patrols/{$patrolUuid}/track", [
             'batchUuid' => "{$patrolUuid}:track:7",
-            'points' => [['lat' => -3.2014, 'lon' => 35.4623, 'recordedAt' => '2026-08-23T06:44:17Z']],
+            'points' => [['lat' => -3.2014, 'lon' => -29.5377, 'recordedAt' => '2026-08-23T06:44:17Z']],
         ]);
 
         self::assertResponseStatusCodeSame(409);

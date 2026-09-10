@@ -130,9 +130,9 @@ final readonly class PatrolNowTiles implements NowTileProviderInterface
      * A ZERO DAY IS A DAY, AND IT RENDERS AS A ZERO. Where the area has a
      * register, a morning on which nothing has closed is something this module
      * MEASURED — 0 km walked, 0 patrols closed — and the design's strip carries
-     * the tile every day. It used to drop out of the row entirely, which read to
+     * the tile every day. A tile that vanished on a quiet morning would read to
      * an area manager as the module being broken rather than the morning being
-     * quiet, and which is the one thing an honest-absent rule must never buy.
+     * quiet, which is the one thing an honest-absent rule must never buy.
      *
      * WHAT IS STILL ABSENT RATHER THAN ZERO is an area that has never opened a
      * patrol at all: there is no day to measure, so there is no tile. That is

@@ -31,7 +31,7 @@ use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
  * never guessed from the station name.
  *
  * The fixture is the same ~0.1° square PatrolRepositoryCoverageTest uses (lon
- * 35.0–35.1, lat −3.0 to −2.9), split into a NORTH half (lat −2.95 to −2.9) and a
+ * −30.0 to −29.9, lat −3.0 to −2.9), split into a NORTH half (lat −2.95 to −2.9) and a
  * SOUTH half (lat −3.0 to −2.95), so a track can set out in one and not the other.
  */
 final class PatrolRepositoryZoneJoinTest extends IntegrationTestCase
@@ -58,7 +58,7 @@ final class PatrolRepositoryZoneJoinTest extends IntegrationTestCase
     private function makeArea(): AreaOfInterest
     {
         $area = new AreaOfInterest()->setSource('test fixture')->setName('Example square');
-        $area->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.1,-3.0],[35.1,-2.9],[35.0,-2.9],[35.0,-3.0]]]]}');
+        $area->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.0],[-29.9,-3.0],[-29.9,-2.9],[-30.0,-2.9],[-30.0,-3.0]]]]}');
         $this->em->persist($area);
         $this->em->flush();
 
@@ -71,7 +71,7 @@ final class PatrolRepositoryZoneJoinTest extends IntegrationTestCase
             ->setName($name)
             ->setArea($area)
             ->setGeom(\sprintf(
-                '{"type":"MultiPolygon","coordinates":[[[[35.0,%1$s],[35.1,%1$s],[35.1,%2$s],[35.0,%2$s],[35.0,%1$s]]]]}',
+                '{"type":"MultiPolygon","coordinates":[[[[-30.0,%1$s],[-29.9,%1$s],[-29.9,%2$s],[-30.0,%2$s],[-30.0,%1$s]]]]}',
                 $southLat,
                 $northLat,
             ));
@@ -106,9 +106,9 @@ final class PatrolRepositoryZoneJoinTest extends IntegrationTestCase
         $this->makeZone($area, 'South', -3.0, -2.95);
 
         // Sets out in the north half.
-        $north = $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[35.05,-2.92],[35.06,-2.93]]}');
+        $north = $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[-29.95,-2.92],[-29.94,-2.93]]}');
         // Sets out in the south half.
-        $south = $this->makePatrol($area, '2026-03-11T06:00:00Z', '{"type":"LineString","coordinates":[[35.05,-2.98],[35.06,-2.97]]}');
+        $south = $this->makePatrol($area, '2026-03-11T06:00:00Z', '{"type":"LineString","coordinates":[[-29.95,-2.98],[-29.94,-2.97]]}');
 
         $zones = $this->zones($area);
 
@@ -128,7 +128,7 @@ final class PatrolRepositoryZoneJoinTest extends IntegrationTestCase
         $this->makeZone($area, 'North', -2.95, -2.9);
         $this->makeZone($area, 'South', -3.0, -2.95);
 
-        $crossing = $this->makePatrol($area, '2026-03-12T06:00:00Z', '{"type":"LineString","coordinates":[[35.05,-2.91],[35.05,-2.99]]}');
+        $crossing = $this->makePatrol($area, '2026-03-12T06:00:00Z', '{"type":"LineString","coordinates":[[-29.95,-2.91],[-29.95,-2.99]]}');
 
         self::assertSame('North', $this->zones($area)[$crossing->getUuid()->toRfc4122()] ?? null);
     }
@@ -150,7 +150,7 @@ final class PatrolRepositoryZoneJoinTest extends IntegrationTestCase
         // clear of it, still inside the area but in no zone.
         $this->makeZone($area, 'Corner', -2.92, -2.9);
 
-        $outside = $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[35.05,-2.98],[35.06,-2.97]]}');
+        $outside = $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[-29.95,-2.98],[-29.94,-2.97]]}');
 
         self::assertArrayNotHasKey($outside->getUuid()->toRfc4122(), $this->zones($area));
     }
@@ -160,8 +160,8 @@ final class PatrolRepositoryZoneJoinTest extends IntegrationTestCase
         $area = $this->makeArea();
         $this->makeZone($area, 'North', -2.95, -2.9);
 
-        $lastMonth = $this->makePatrol($area, '2026-02-27T06:00:00Z', '{"type":"LineString","coordinates":[[35.05,-2.92],[35.06,-2.93]]}');
-        $thisMonth = $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[35.05,-2.92],[35.06,-2.93]]}');
+        $lastMonth = $this->makePatrol($area, '2026-02-27T06:00:00Z', '{"type":"LineString","coordinates":[[-29.95,-2.92],[-29.94,-2.93]]}');
+        $thisMonth = $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[-29.95,-2.92],[-29.94,-2.93]]}');
 
         $zones = $this->zones($area);
         self::assertArrayHasKey($thisMonth->getUuid()->toRfc4122(), $zones);
@@ -175,7 +175,7 @@ final class PatrolRepositoryZoneJoinTest extends IntegrationTestCase
         // The other area has the zone; ours does not.
         $this->makeZone($other, 'North', -2.95, -2.9);
 
-        $patrol = $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[35.05,-2.92],[35.06,-2.93]]}');
+        $patrol = $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[-29.95,-2.92],[-29.94,-2.93]]}');
 
         self::assertArrayNotHasKey($patrol->getUuid()->toRfc4122(), $this->zones($area));
     }

@@ -60,8 +60,8 @@ final class PatrolRepositoryDepartmentCoverageTest extends IntegrationTestCase
 
         // Two bands 0.06° (~6.7 km) apart: each 2 km buffer reaches 2 km either side, so the
         // bands are disjoint and the area's union is exactly the two of them.
-        $this->makeTrackedPatrol($area, $this->member('Grace', $ecology), '{"type":"LineString","coordinates":[[35.0,-2.98],[35.1,-2.98]]}');
-        $this->makeTrackedPatrol($area, $this->member('Juma', $protection), '{"type":"LineString","coordinates":[[35.0,-2.92],[35.1,-2.92]]}');
+        $this->makeTrackedPatrol($area, $this->member('Grace', $ecology), '{"type":"LineString","coordinates":[[-30.0,-2.98],[-29.9,-2.98]]}');
+        $this->makeTrackedPatrol($area, $this->member('Juma', $protection), '{"type":"LineString","coordinates":[[-30.0,-2.92],[-29.9,-2.92]]}');
 
         $ecologyShare = $this->departmentCoverage($area, $ecology);
         $protectionShare = $this->departmentCoverage($area, $protection);
@@ -94,7 +94,7 @@ final class PatrolRepositoryDepartmentCoverageTest extends IntegrationTestCase
         $ecology = $this->department('Ecology');
         $tourism = $this->department('Tourism');
 
-        $this->makeTrackedPatrol($area, $this->member('Grace', $ecology), '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}');
+        $this->makeTrackedPatrol($area, $this->member('Grace', $ecology), '{"type":"LineString","coordinates":[[-30.0,-2.95],[-29.9,-2.95]]}');
 
         // Unknown, never 0.0 — Tourism did not walk none of the park, it walked nothing that was
         // recorded, and the plate says so with a dash.
@@ -107,10 +107,10 @@ final class PatrolRepositoryDepartmentCoverageTest extends IntegrationTestCase
         $area = $this->makeArea();
         $ecology = $this->department('Ecology');
 
-        $this->makeTrackedPatrol($area, $this->member('Grace', $ecology), '{"type":"LineString","coordinates":[[35.0,-2.98],[35.1,-2.98]]}');
+        $this->makeTrackedPatrol($area, $this->member('Grace', $ecology), '{"type":"LineString","coordinates":[[-30.0,-2.98],[-29.9,-2.98]]}');
         // A patrol nobody led, and one led by somebody whose position sits under no department.
-        $this->makeTrackedPatrol($area, null, '{"type":"LineString","coordinates":[[35.0,-2.94],[35.1,-2.94]]}');
-        $this->makeTrackedPatrol($area, $this->member('Unfiled', null), '{"type":"LineString","coordinates":[[35.0,-2.92],[35.1,-2.92]]}');
+        $this->makeTrackedPatrol($area, null, '{"type":"LineString","coordinates":[[-30.0,-2.94],[-29.9,-2.94]]}');
+        $this->makeTrackedPatrol($area, $this->member('Unfiled', null), '{"type":"LineString","coordinates":[[-30.0,-2.92],[-29.9,-2.92]]}');
 
         $ecologyShare = $this->departmentCoverage($area, $ecology);
         $areaWide = $this->areaCoverage($area);
@@ -139,8 +139,8 @@ final class PatrolRepositoryDepartmentCoverageTest extends IntegrationTestCase
         $ecology = $this->department('Ecology');
         $grace = $this->member('Grace', $ecology);
 
-        $this->makeTrackedPatrol($area, $grace, '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}', '2026-02-27T06:00:00Z');
-        $this->makeTrackedPatrol($area, $grace, '{"type":"LineString","coordinates":[[35.0,-2.96],[35.1,-2.96]]}', '2026-04-02T06:00:00Z');
+        $this->makeTrackedPatrol($area, $grace, '{"type":"LineString","coordinates":[[-30.0,-2.95],[-29.9,-2.95]]}', '2026-02-27T06:00:00Z');
+        $this->makeTrackedPatrol($area, $grace, '{"type":"LineString","coordinates":[[-30.0,-2.96],[-29.9,-2.96]]}', '2026-04-02T06:00:00Z');
 
         self::assertNull($this->departmentCoverage($area, $ecology));
     }
@@ -151,7 +151,7 @@ final class PatrolRepositoryDepartmentCoverageTest extends IntegrationTestCase
         $other = $this->makeArea();
         $ecology = $this->department('Ecology');
 
-        $this->makeTrackedPatrol($other, $this->member('Grace', $ecology), '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}');
+        $this->makeTrackedPatrol($other, $this->member('Grace', $ecology), '{"type":"LineString","coordinates":[[-30.0,-2.95],[-29.9,-2.95]]}');
 
         self::assertNull($this->departmentCoverage($area, $ecology));
     }
@@ -173,7 +173,7 @@ final class PatrolRepositoryDepartmentCoverageTest extends IntegrationTestCase
         $department = $this->department('Ecology');
         $ranger = $this->member('Amina', $department);
         $area = $this->makeArea(withBoundary: false);
-        $this->makeTrackedPatrol($area, $ranger, '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}');
+        $this->makeTrackedPatrol($area, $ranger, '{"type":"LineString","coordinates":[[-30.0,-2.95],[-29.9,-2.95]]}');
 
         self::assertNull($this->departmentCoverage($area, $department));
     }
@@ -181,14 +181,14 @@ final class PatrolRepositoryDepartmentCoverageTest extends IntegrationTestCase
     public function testNoAreaMeasuresEveryAreaTheDepartmentWalkedAtOnce(): void
     {
         $thin = $this->makeArea();
-        $blanketed = $this->makeArea(lonWest: 36.0);
+        $blanketed = $this->makeArea(lonWest: -29.0);
         $ecology = $this->department('Ecology');
         $grace = $this->member('Grace', $ecology);
 
         // One band in the first square; a blanket of three overlapping bands in the second.
-        $this->makeTrackedPatrol($thin, $grace, '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}');
+        $this->makeTrackedPatrol($thin, $grace, '{"type":"LineString","coordinates":[[-30.0,-2.95],[-29.9,-2.95]]}');
         foreach (['-2.98', '-2.95', '-2.92'] as $index => $lat) {
-            $this->makeTrackedPatrol($blanketed, $grace, \sprintf('{"type":"LineString","coordinates":[[35.8,%1$s],[36.3,%1$s]]}', $lat), \sprintf('2026-03-1%dT06:00:00Z', $index));
+            $this->makeTrackedPatrol($blanketed, $grace, \sprintf('{"type":"LineString","coordinates":[[-29.2,%1$s],[-28.7,%1$s]]}', $lat), \sprintf('2026-03-1%dT06:00:00Z', $index));
         }
 
         $here = $this->departmentCoverage($thin, $ecology);
@@ -209,10 +209,10 @@ final class PatrolRepositoryDepartmentCoverageTest extends IntegrationTestCase
         $area = $this->makeArea();
         $ecology = $this->department('Ecology');
 
-        $this->makeTrackedPatrol($area, $this->member('Grace', $ecology), '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}');
+        $this->makeTrackedPatrol($area, $this->member('Grace', $ecology), '{"type":"LineString","coordinates":[[-30.0,-2.95],[-29.9,-2.95]]}');
         // An identical track by somebody with no department at all: invisible to every
         // department's figure, and part of the area's, exactly as before this method existed.
-        $this->makeTrackedPatrol($area, null, '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}');
+        $this->makeTrackedPatrol($area, null, '{"type":"LineString","coordinates":[[-30.0,-2.95],[-29.9,-2.95]]}');
 
         $areaWide = $this->areaCoverage($area);
 
@@ -244,7 +244,7 @@ final class PatrolRepositoryDepartmentCoverageTest extends IntegrationTestCase
     }
 
     /** A ~11.1 km square: 0.1° wide from $lonWest, lat −3.0 to −2.9. */
-    private function makeArea(bool $withBoundary = true, float $lonWest = 35.0): AreaOfInterest
+    private function makeArea(bool $withBoundary = true, float $lonWest = -30.0): AreaOfInterest
     {
         $area = new AreaOfInterest()->setSource('test fixture')->setName(\sprintf('Square at %.1f', $lonWest));
         if ($withBoundary) {

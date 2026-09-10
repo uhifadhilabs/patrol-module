@@ -2,7 +2,7 @@
    "detail"): the track plate beside the meta + history sidebar, with the
    observations logged en route across the bottom at plate width.
 
-   View-only by ruling — the design carries no edit controls here. Every
+   View-only — the design carries no edit controls here. Every
    binding comes from the Patrol/Observation entities and the deployment's
    patrol.types / patrol.observation_categories vocabulary, never from code. #}
 {% extends '@UhifadhiPatrol/base.html.twig' %}
@@ -70,8 +70,8 @@
             {% if patrol.held %}<span class="chip warn">held for review</span>{% endif %}
         </div>
         {# The ranger's own words. Required by the sync API, so there is always
-           one — but rendered defensively, because a record migrated in from
-           before this rule is not worth a broken page. #}
+           one — but rendered defensively, because a record that reached the
+           table another way is not worth a broken page. #}
         <p class="patrol-discard-why">{{ patrol.discardReason ?: 'No reason was recorded.' }}</p>
         <p class="patrol-discard-fate">
             {%- if patrol.held -%}

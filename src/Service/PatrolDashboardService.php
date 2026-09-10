@@ -311,8 +311,8 @@ final class PatrolDashboardService
         ));
 
         // THE MONTH'S presented patrols — the map, the log and the feed read the
-        // month on screen, not all of history (the old all-time list left the
-        // MONTH filter a dead indicator). The calendar and the five-week chart
+        // month on screen, not all of history, which would leave the MONTH
+        // filter a dead indicator. The calendar and the five-week chart
         // still read the wider PRESENTED/COUNTED sets below, because they draw
         // past the month's edges by design.
         $presentedMonth = array_values(array_filter(

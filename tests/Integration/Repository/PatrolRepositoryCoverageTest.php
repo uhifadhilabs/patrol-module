@@ -54,12 +54,12 @@ final class PatrolRepositoryCoverageTest extends IntegrationTestCase
         return $repository;
     }
 
-    /** A ~11.1 km square: lon 35.0–35.1, lat −3.0 to −2.9. */
+    /** A ~11.1 km square: lon −30.0 to −29.9, lat −3.0 to −2.9. */
     private function makeArea(bool $withBoundary = true): AreaOfInterest
     {
         $area = new AreaOfInterest()->setSource('test fixture')->setName('Example square');
         if ($withBoundary) {
-            $area->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.1,-3.0],[35.1,-2.9],[35.0,-2.9],[35.0,-3.0]]]]}');
+            $area->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.0],[-29.9,-3.0],[-29.9,-2.9],[-30.0,-2.9],[-30.0,-3.0]]]]}');
         }
         $this->em->persist($area);
         $this->em->flush();
@@ -88,7 +88,7 @@ final class PatrolRepositoryCoverageTest extends IntegrationTestCase
     {
         $area = $this->makeArea();
         // Straight across the middle, west edge to east edge.
-        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}');
+        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[-30.0,-2.95],[-29.9,-2.95]]}');
 
         $fraction = $this->coverage($area);
 
@@ -103,8 +103,8 @@ final class PatrolRepositoryCoverageTest extends IntegrationTestCase
         $area = $this->makeArea();
         // Two lines 0.005° (~550 m) apart: their 2 km buffers overlap heavily,
         // so the union must be far less than twice a single track's coverage.
-        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}');
-        $this->makePatrol($area, '2026-03-11T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.945],[35.1,-2.945]]}');
+        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[-30.0,-2.95],[-29.9,-2.95]]}');
+        $this->makePatrol($area, '2026-03-11T06:00:00Z', '{"type":"LineString","coordinates":[[-30.0,-2.945],[-29.9,-2.945]]}');
 
         $fraction = $this->coverage($area);
 
@@ -124,7 +124,7 @@ final class PatrolRepositoryCoverageTest extends IntegrationTestCase
             $this->makePatrol(
                 $area,
                 \sprintf('2026-03-1%dT06:00:00Z', $index),
-                \sprintf('{"type":"LineString","coordinates":[[34.8,%1$s],[35.3,%1$s]]}', $lat),
+                \sprintf('{"type":"LineString","coordinates":[[-30.2,%1$s],[-29.7,%1$s]]}', $lat),
             );
         }
 
@@ -151,8 +151,8 @@ final class PatrolRepositoryCoverageTest extends IntegrationTestCase
     public function testATrackFromAnotherMonthIsOutsideTheWindow(): void
     {
         $area = $this->makeArea();
-        $this->makePatrol($area, '2026-02-27T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}');
-        $this->makePatrol($area, '2026-04-02T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.96],[35.1,-2.96]]}');
+        $this->makePatrol($area, '2026-02-27T06:00:00Z', '{"type":"LineString","coordinates":[[-30.0,-2.95],[-29.9,-2.95]]}');
+        $this->makePatrol($area, '2026-04-02T06:00:00Z', '{"type":"LineString","coordinates":[[-30.0,-2.96],[-29.9,-2.96]]}');
 
         self::assertNull($this->coverage($area));
     }
@@ -161,7 +161,7 @@ final class PatrolRepositoryCoverageTest extends IntegrationTestCase
     {
         $area = $this->makeArea();
         $other = $this->makeArea();
-        $this->makePatrol($other, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}');
+        $this->makePatrol($other, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[-30.0,-2.95],[-29.9,-2.95]]}');
 
         self::assertNull($this->coverage($area));
     }
@@ -181,7 +181,7 @@ final class PatrolRepositoryCoverageTest extends IntegrationTestCase
     public function testAnAreaWithNoBoundaryMeasuresNullCoverage(): void
     {
         $area = $this->makeArea(withBoundary: false);
-        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}');
+        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[-30.0,-2.95],[-29.9,-2.95]]}');
 
         self::assertNull($this->coverage($area));
     }
@@ -194,7 +194,7 @@ final class PatrolRepositoryCoverageTest extends IntegrationTestCase
     public function testADiscardedTracksGroundIsNotCounted(): void
     {
         $area = $this->makeArea();
-        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}')
+        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[-30.0,-2.95],[-29.9,-2.95]]}')
             ->discard('Started by mistake');
         $this->em->flush();
 
@@ -207,8 +207,8 @@ final class PatrolRepositoryCoverageTest extends IntegrationTestCase
     public function testADiscardedTrackDoesNotSuppressARealOne(): void
     {
         $area = $this->makeArea();
-        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[35.0,-2.95],[35.1,-2.95]]}');
-        $this->makePatrol($area, '2026-03-11T06:00:00Z', '{"type":"LineString","coordinates":[[35.05,-3.0],[35.05,-2.9]]}')
+        $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[-30.0,-2.95],[-29.9,-2.95]]}');
+        $this->makePatrol($area, '2026-03-11T06:00:00Z', '{"type":"LineString","coordinates":[[-29.95,-3.0],[-29.95,-2.9]]}')
             ->discard('Testing');
         $this->em->flush();
 

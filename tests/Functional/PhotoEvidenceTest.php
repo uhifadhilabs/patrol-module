@@ -226,7 +226,7 @@ final class PhotoEvidenceTest extends FieldSyncTestCase
                 'clientUuid' => $observationUuid,
                 'category' => 'maintenance',
                 'note' => 'Fence line down.',
-                'position' => ['lat' => -3.2014, 'lon' => 35.4623, 'accuracyM' => 4.0, 'satellites' => 9],
+                'position' => ['lat' => -3.2014, 'lon' => -29.5377, 'accuracyM' => 4.0, 'satellites' => 9],
                 'positionSource' => 'gps',
                 'loggedAt' => '2026-08-23T08:31:02Z',
                 'photoCount' => 1,

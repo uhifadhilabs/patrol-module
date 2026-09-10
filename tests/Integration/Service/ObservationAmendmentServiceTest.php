@@ -127,7 +127,7 @@ final class ObservationAmendmentServiceTest extends IntegrationTestCase
     private function anObservation(): Observation
     {
         $area = new AreaOfInterest()->setSource('test fixture');
-        $area->setName('Example reserve')->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.1,-3.0],[35.1,-2.9],[35.0,-2.9],[35.0,-3.0]]]]}');
+        $area->setName('Example reserve')->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.0],[-29.9,-3.0],[-29.9,-2.9],[-30.0,-2.9],[-30.0,-3.0]]]]}');
         $this->em->persist($area);
 
         $patrol = new Patrol($area, 'walk')->setStartedAt(new \DateTimeImmutable('2026-03-01 06:00:00'));

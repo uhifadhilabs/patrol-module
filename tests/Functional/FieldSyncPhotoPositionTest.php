@@ -43,7 +43,7 @@ final class FieldSyncPhotoPositionTest extends FieldSyncTestCase
 
         $this->upload('0a000000-0000-4000-8000-000000000001', [
             'lat' => '-3.2014',
-            'lng' => '35.4623',
+            'lng' => '-29.5377',
             'accuracyM' => '6.0',
         ]);
 
@@ -53,7 +53,7 @@ final class FieldSyncPhotoPositionTest extends FieldSyncTestCase
         // Stored as GeoJSON with LON FIRST — RFC 7946's order and PostGIS's, and
         // the single most common way to store a map upside down.
         self::assertSame(
-            '{"type":"Point","coordinates":[35.4623,-3.2014]}',
+            '{"type":"Point","coordinates":[-29.5377,-3.2014]}',
             $photo->getPosition(),
         );
         self::assertSame(6.0, $photo->getAccuracyM());
@@ -110,7 +110,7 @@ final class FieldSyncPhotoPositionTest extends FieldSyncTestCase
     {
         $this->anObservation();
 
-        $this->upload('0a000000-0000-4000-8000-000000000005', ['lat' => '99.0', 'lng' => '35.4623']);
+        $this->upload('0a000000-0000-4000-8000-000000000005', ['lat' => '99.0', 'lng' => '-29.5377']);
 
         self::assertResponseStatusCodeSame(422);
     }
@@ -127,7 +127,7 @@ final class FieldSyncPhotoPositionTest extends FieldSyncTestCase
         $this->anObservation();
         $uuid = '0a000000-0000-4000-8000-000000000006';
 
-        $this->upload($uuid, ['lat' => '-3.2014', 'lng' => '35.4623', 'accuracyM' => '6.0']);
+        $this->upload($uuid, ['lat' => '-3.2014', 'lng' => '-29.5377', 'accuracyM' => '6.0']);
         self::assertResponseIsSuccessful();
 
         $this->upload($uuid, ['lat' => '-1.0', 'lng' => '30.0', 'accuracyM' => '99.0']);
@@ -135,7 +135,7 @@ final class FieldSyncPhotoPositionTest extends FieldSyncTestCase
         self::assertTrue($this->payload()['duplicate']);
 
         $photo = $this->reloadPhoto($uuid);
-        self::assertSame('{"type":"Point","coordinates":[35.4623,-3.2014]}', $photo->getPosition());
+        self::assertSame('{"type":"Point","coordinates":[-29.5377,-3.2014]}', $photo->getPosition());
         self::assertSame(6.0, $photo->getAccuracyM());
     }
 
@@ -150,7 +150,7 @@ final class FieldSyncPhotoPositionTest extends FieldSyncTestCase
         $this->anObservation();
         $this->upload('0a000000-0000-4000-8000-000000000007', [
             'lat' => '-3.2014',
-            'lng' => '35.4623',
+            'lng' => '-29.5377',
             'accuracyM' => '6.0',
         ]);
 
@@ -213,7 +213,7 @@ final class FieldSyncPhotoPositionTest extends FieldSyncTestCase
                 'note' => 'Culvert blocked.',
                 'loggedAt' => '2026-08-23T08:31:02Z',
                 'photoCount' => 1,
-                'position' => ['lat' => -3.2014, 'lon' => 35.4623, 'accuracyM' => 4.0],
+                'position' => ['lat' => -3.2014, 'lon' => -29.5377, 'accuracyM' => 4.0],
             ]],
         ]);
         self::assertResponseIsSuccessful();

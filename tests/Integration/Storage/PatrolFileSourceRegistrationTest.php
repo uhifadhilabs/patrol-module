@@ -210,7 +210,7 @@ final class PatrolFileSourceRegistrationTest extends IntegrationTestCase
     {
         $area = new AreaOfInterest()->setSource('test fixture');
         $area->setName('Ndovu Sector');
-        $area->setGeom('{"type":"MultiPolygon","coordinates":[[[[36.0,-3.0],[36.1,-3.0],[36.1,-2.9],[36.0,-2.9],[36.0,-3.0]]]]}');
+        $area->setGeom('{"type":"MultiPolygon","coordinates":[[[[-29.0,-3.0],[-28.9,-3.0],[-28.9,-2.9],[-29.0,-2.9],[-29.0,-3.0]]]]}');
         $this->em->persist($area);
 
         $patrol = new Patrol($area, 'walk');

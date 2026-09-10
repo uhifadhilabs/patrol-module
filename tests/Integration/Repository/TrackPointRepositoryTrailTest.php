@@ -48,7 +48,7 @@ final class TrackPointRepositoryTrailTest extends IntegrationTestCase
 
     private function makePatrol(): Patrol
     {
-        $area = new AreaOfInterest()->setSource('test fixture')->setName('Example square')->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.1,-3.0],[35.1,-2.9],[35.0,-2.9],[35.0,-3.0]]]]}');
+        $area = new AreaOfInterest()->setSource('test fixture')->setName('Example square')->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.0],[-29.9,-3.0],[-29.9,-2.9],[-30.0,-2.9],[-30.0,-3.0]]]]}');
         $this->em->persist($area);
         $patrol = new Patrol($area, 'walk')
             ->setStatus(PatrolStatusEnum::Recording)
@@ -79,9 +79,9 @@ final class TrackPointRepositoryTrailTest extends IntegrationTestCase
     {
         $patrol = $this->makePatrol();
         $this->ping($patrol, [
-            ['2026-03-22T06:10:00Z', 35.00, -2.95],
-            ['2026-03-22T07:40:00Z', 35.02, -2.95],
-            ['2026-03-22T06:55:00Z', 35.01, -2.95],
+            ['2026-03-22T06:10:00Z', -30.00, -2.95],
+            ['2026-03-22T07:40:00Z', -29.98, -2.95],
+            ['2026-03-22T06:55:00Z', -29.99, -2.95],
         ]);
 
         $trails = $this->repository()->trailsForPatrols([(int) $patrol->getId()]);
@@ -90,16 +90,16 @@ final class TrackPointRepositoryTrailTest extends IntegrationTestCase
         self::assertSame('2026-03-22 07:40', $trail['lastAt']->format('Y-m-d H:i'));
         /** @var array{coordinates: array{float, float}} $point */
         $point = json_decode($trail['lastPoint'], true, 512, \JSON_THROW_ON_ERROR);
-        self::assertEqualsWithDelta(35.02, $point['coordinates'][0], 0.0001);
+        self::assertEqualsWithDelta(-29.98, $point['coordinates'][0], 0.0001);
     }
 
     public function testTheTrailIsTheLineTheSPointsMakeInTimeOrder(): void
     {
         $patrol = $this->makePatrol();
         $this->ping($patrol, [
-            ['2026-03-22T07:40:00Z', 35.02, -2.95],
-            ['2026-03-22T06:10:00Z', 35.00, -2.95],
-            ['2026-03-22T06:55:00Z', 35.01, -2.95],
+            ['2026-03-22T07:40:00Z', -29.98, -2.95],
+            ['2026-03-22T06:10:00Z', -30.00, -2.95],
+            ['2026-03-22T06:55:00Z', -29.99, -2.95],
         ]);
 
         $trail = $this->repository()->trailsForPatrols([(int) $patrol->getId()])[(int) $patrol->getId()];
@@ -110,14 +110,14 @@ final class TrackPointRepositoryTrailTest extends IntegrationTestCase
         self::assertSame('LineString', $line['type']);
         self::assertCount(3, $line['coordinates']);
         // Ordered by when they were recorded, not by when they arrived.
-        self::assertEqualsWithDelta(35.00, $line['coordinates'][0][0], 0.0001);
-        self::assertEqualsWithDelta(35.02, $line['coordinates'][2][0], 0.0001);
+        self::assertEqualsWithDelta(-30.00, $line['coordinates'][0][0], 0.0001);
+        self::assertEqualsWithDelta(-29.98, $line['coordinates'][2][0], 0.0001);
     }
 
     public function testOnePingIsAPingAndNotALine(): void
     {
         $patrol = $this->makePatrol();
-        $this->ping($patrol, [['2026-03-22T06:10:00Z', 35.00, -2.95]]);
+        $this->ping($patrol, [['2026-03-22T06:10:00Z', -30.00, -2.95]]);
 
         $trail = $this->repository()->trailsForPatrols([(int) $patrol->getId()])[(int) $patrol->getId()];
 

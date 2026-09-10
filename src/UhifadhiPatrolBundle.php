@@ -599,10 +599,9 @@ final class UhifadhiPatrolBundle extends AbstractBundle
          * whole arrangement inverted: the always-installed side names the
          * promise, never the tool.
          *
-         * Registered unconditionally, and the `dev_tools` flag that used to
-         * gate this module's dev tooling is gone with it: the dependency graph
-         * is the firewall now, and a flag beside it would be a second one that
-         * can disagree.
+         * Registered unconditionally, and gated by no flag of its own: the
+         * dependency graph is the firewall, and a flag beside it would be a
+         * second one that can disagree with it.
          */
         /*
                  * A DEMO MONTH, OFFERED THE SAME WAY. An inert provider naming a slice

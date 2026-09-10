@@ -2,7 +2,7 @@
    "observation"): the location plate beside the meta + note + history sidebar,
    with the photos card across the bottom at plate width.
 
-   View-only by ruling — the design carries no edit or upload controls here. #}
+   View-only — the design carries no edit or upload controls here. #}
 {% extends '@UhifadhiPatrol/base.html.twig' %}
 
 {% import '@UhifadhiPatrol/_ui.html.twig' as ui %}
@@ -160,8 +160,8 @@
            the Files hub, which a host running this module need not install, and
            a link to a route that may not exist is worse than none.
 
-           No add control: detail pages are view-only by ruling, and photographs
-           arrive from the handset. #}
+           No add control: detail pages are view-only, and photographs arrive
+           from the handset. #}
         {% if photoCount %}
             <div class="patrol-phrow">
                 {% for photo in photos %}

@@ -54,16 +54,15 @@ the six overview contribution points this module fills. Every one of those tags
 is applied by hand in this bundle's extension, because a reusable bundle is not
 autoconfigured.
 
-Two things about the KPI contract are worth stating, because both used to be
-otherwise:
+Two things about the KPI contract are worth stating plainly:
 
 - **A department arrives as a `DepartmentRef`** — id, uuid and name — never as an
   entity. Departments belong to `TeamBundle` and nothing publishes a contract for
   one, so a signature typed against that class would bind every module that
   reports a figure to that bundle's entity.
 - **An area always has a boundary.** `area_of_interest.geom` is NOT NULL, so the
-  boundaryless area this module's coverage query still guards against is no
-  longer reachable.
+  boundaryless area this module's coverage query guards against is unreachable —
+  the guard costs nothing and keeps the query honest if that ever changes.
 
 **Why the concrete class, not the `AreaInterface` contract.** The core publishes
 `Uhifadhi\Contracts\Entity\AreaInterface` so a module can point at an area

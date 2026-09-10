@@ -102,9 +102,9 @@ final class PhotoSyncService
         }
 
         $photo = new ObservationPhoto($observation, $clientUuid, $stored->key)
-            // The DETECTED type, which is a deliberate change from the claimed
-            // one this module used to record: the column now holds the truth
-            // about the bytes rather than a header the handset wrote.
+            // The DETECTED type, never the one the handset claimed: the
+            // column holds the truth about the bytes rather than a header a
+            // client wrote.
             ->setMimeType($stored->mimeType)
             ->setByteSize($stored->byteSize)
             // Null where nothing on this machine could decode the source. Stored

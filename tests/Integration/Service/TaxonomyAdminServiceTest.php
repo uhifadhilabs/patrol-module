@@ -56,7 +56,7 @@ final class TaxonomyAdminServiceTest extends IntegrationTestCase
         // NOT NULL in AreaBundle: an area is always something an
         // installation got from somewhere.
         $area->setSource('test fixture');
-        $area->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.6],[36.0,-3.6],[36.0,-2.8],[35.0,-2.8],[35.0,-3.6]]]]}');
+        $area->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.6],[-29.0,-3.6],[-29.0,-2.8],[-30.0,-2.8],[-30.0,-3.6]]]]}');
         $this->em->persist($area);
         $this->em->flush();
 

@@ -104,10 +104,10 @@ final class PatrolWidgets implements WidgetSurfaceInterface
 
     /**
      * The surface's widgets, in the order the shipped composition lays them out.
-     * The six with `on: true` are the original patrols screen minus the feed
-     * (owner ruling 2026-09-08 took it off the default — see the feed widget
-     * below), in exactly the order the module has always drawn them — catalogue
-     * order IS the shipped composition. The nine added for the directions follow;
+     * The six with `on: true` are the patrols screen itself, the feed excepted
+     * (see the feed widget below for why it is off), in the order the module
+     * draws them — catalogue order IS the shipped composition. The nine the
+     * directions need follow;
      * a widget's SECTION in the library comes from its `group`, never from its
      * place here.
      *
@@ -123,12 +123,12 @@ final class PatrolWidgets implements WidgetSurfaceInterface
             new Widget('kpis', 'KPI strip', 'b', 12, [12, 9, 6, 3], on: true, note: 'Patrols, distance, coverage and the last patrol — this month.'),
             new Widget('map', 'Coverage map', 'a', 12, [12, 9, 6, 3], on: true, note: 'The area with every track on it; the filter here drives the log too.'),
             new Widget('log', 'Patrol log', 'b', 12, [12, 9, 6, 3], on: true, note: 'Every patrol as a row: date, type, station, distance, observations.'),
-            // The feed is OFF the shipped composition (owner ruling 2026-09-08): on
-            // the combined screen it drew the SAME latest-N patrols the log register
-            // already lists, just as a compact stream — pure duplication once the
-            // buried second map it used to partner was removed. It stays in the
-            // catalogue and LEADS direction C "Shift handover", where a reverse-chron
-            // feed is the point; the register carries the default screen alone.
+            // The feed is OFF the shipped composition: on the combined screen it
+            // draws the SAME latest-N patrols the log register already lists, just
+            // as a compact stream, which is duplication and nothing more. It stays
+            // in the catalogue and LEADS direction C "Shift handover", where a
+            // reverse-chron feed is the point; the register carries the default
+            // screen alone.
             new Widget('feed', 'Patrol feed', 'c', 12, [12, 9, 6, 3], on: false, note: 'Every patrol newest first, with its type, distance and observation count.'),
             new Widget('chweek', 'Patrols per week', 'd', 6, [9, 6, 3], on: true, note: 'Patrols per week, by type.'),
             // Offers the full row as well as the half: "The patrol log" direction

@@ -117,8 +117,8 @@ final class FieldSyncWireContractTest extends FieldSyncTestCase
         $this->postJson('/api/patrols/'.$uuid.'/track', [
             'batchUuid' => $uuid.':track:0',
             'points' => [
-                ['lat' => -3.2014, 'lon' => 35.4623, 'recordedAt' => '2026-08-23T06:44:17Z'],
-                ['lat' => -3.2020, 'lon' => 35.4630, 'recordedAt' => '2026-08-23T06:45:17Z'],
+                ['lat' => -3.2014, 'lon' => -29.5377, 'recordedAt' => '2026-08-23T06:44:17Z'],
+                ['lat' => -3.2020, 'lon' => -29.5370, 'recordedAt' => '2026-08-23T06:45:17Z'],
             ],
         ]);
 

@@ -65,9 +65,9 @@ detected type, byte size, takenAt), when to store, and — through
 
 Two consequences worth stating plainly:
 
-- **`mimeType` is the DETECTED type.** It used to be the type the *client
-  claimed* while the detected one was merely validated. The column now holds
-  what the bytes are.
+- **`mimeType` is the DETECTED type.** The column holds what the bytes are,
+  never what the *client claimed* — a type a handset writes into a header is a
+  claim, and evidence read out later must not rest on one.
 - **`thumbKey` is nullable and must stay so.** No GD build decodes HEIC and an
   ImageMagick without libheif cannot either, so an iPhone photograph is
   routinely stored with no preview. Recording that honestly beats failing the
@@ -75,7 +75,7 @@ Two consequences worth stating plainly:
   absurd trade — and the page falls back to the original.
 
 **Revisit when:** photographs need to be attached from the WEB as well as from
-the handset. The detail screens are view-only by ruling, so today every
+the handset. The detail screens are view-only, so today every
 photograph arrives through the sync endpoint.
 
 ## 4 · Sources are honest: sketch ≠ track
