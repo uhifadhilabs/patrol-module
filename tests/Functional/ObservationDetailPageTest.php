@@ -18,12 +18,12 @@ use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
-use Uhifadhi\Team\Entity\User;
 
 /**
  * The observation detail screen: the location plate (this observation's point

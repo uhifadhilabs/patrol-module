@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Tests\Integration;
 
+use Uhifadhi\Bundle\ShellBundle\Widget\Registry\WidgetSurfaceRegistry;
+use Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetEndpoint;
+use Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetService;
 use Uhifadhi\Patrol\Widget\PatrolWidgets;
-use Uhifadhi\Widget\Registry\WidgetSurfaceRegistry;
-use Uhifadhi\Widget\Service\WidgetEndpoint;
-use Uhifadhi\Widget\Service\WidgetService;
 
 /**
  * THE PATROLS DASHBOARD IS A DECLARED SURFACE OF THE REAL WIDGET FRAMEWORK.

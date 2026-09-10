@@ -21,15 +21,15 @@ use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Twig\Environment;
-use Uhifadhi\Area\Entity\AreaOfInterest;
-use Uhifadhi\ModuleContracts\Entity\UserInterface;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetService;
+use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
 use Uhifadhi\Patrol\Widget\PatrolWidgets;
-use Uhifadhi\Widget\Service\WidgetService;
 
 /**
  * The patrols widget dashboard for one area: KPIs, the coverage map, the patrol

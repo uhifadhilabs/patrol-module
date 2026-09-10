@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Service\Api;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Uhifadhi\ModuleContracts\Entity\UserInterface;
+use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Api\PatrolApiException;
 use Uhifadhi\Patrol\Api\Payload;
 use Uhifadhi\Patrol\Entity\Observation;

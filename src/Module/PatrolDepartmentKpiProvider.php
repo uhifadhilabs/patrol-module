@@ -14,11 +14,11 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Module;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Uhifadhi\Area\Entity\AreaOfInterest;
-use Uhifadhi\Area\Kpi\DepartmentKpi;
-use Uhifadhi\Area\Kpi\DepartmentKpiProviderInterface;
-use Uhifadhi\Area\Kpi\DepartmentRef;
-use Uhifadhi\ModuleContracts\Entity\UserInterface;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Kpi\DepartmentKpi;
+use Uhifadhi\Bundle\AreaBundle\Kpi\DepartmentKpiProviderInterface;
+use Uhifadhi\Bundle\AreaBundle\Kpi\DepartmentRef;
+use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 use Uhifadhi\Patrol\Repository\PatrolRepository;

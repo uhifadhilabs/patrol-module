@@ -15,12 +15,12 @@ namespace Uhifadhi\Patrol\Tests\Integration;
 
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\ORM\Tools\SchemaTool;
-use Uhifadhi\ModuleContracts\Entity\UserInterface;
+use Uhifadhi\Bundle\TeamBundle\Entity\User;
+use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\ObservationAmendment;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Entity\PatrolEvent;
-use Uhifadhi\Team\Entity\User;
 
 /**
  * EVERY PERSON ON A PATROL RECORD IS POINTED AT THROUGH THE CONTRACT.

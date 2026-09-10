@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Service;
 
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Uhifadhi\Area\Entity\AreaOfInterest;
-use Uhifadhi\Widget\Model\WidgetDom;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\ShellBundle\Widget\Model\WidgetDom;
 
 /**
  * THE WIDGET LIBRARY'S WIRE, as URLs — the map the host's shared preset

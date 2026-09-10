@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Tests\Unit\Widget;
 
 use PHPUnit\Framework\TestCase;
+use Uhifadhi\Bundle\ShellBundle\Widget\Model\WidgetCatalog;
 use Uhifadhi\Patrol\Widget\PatrolWidgets;
-use Uhifadhi\Widget\Model\WidgetCatalog;
 
 /**
  * THE CATALOGUE IS A TRANSCRIPTION of the design's surface declaration

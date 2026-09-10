@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Service;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Uhifadhi\Area\Entity\AreaOfInterest;
-use Uhifadhi\ModuleContracts\Entity\UserInterface;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Model\ParsedTrack;

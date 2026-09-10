@@ -15,6 +15,7 @@ namespace Uhifadhi\Patrol\Api;
 
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Uhifadhi\Bundle\TeamBundle\EventListener\ApiErrorListener;
 use Uhifadhi\Patrol\Entity\Patrol;
 
 /**
@@ -76,14 +77,31 @@ final class ContractResponse
         ]);
     }
 
-    /** A refusal, in the one error shape §10 describes. */
+    /**
+     * A refusal, in the one error shape §10 describes.
+     *
+     * IT IS MARKED AS ALREADY WRITTEN. The core gives every `/api` failure the
+     * same document — `{code, message, retryable, details}` — by replacing the
+     * body of any 4xx or 5xx under that path, which is what stops a firewall's
+     * 401 or a router's 404 from reaching a handset as an HTML page. This
+     * document is that shape already, and it carries the codes the contract
+     * names (`discard_reason_required`, not the status word `invalid_payload`),
+     * so it says so with the header the listener publishes for exactly this and
+     * the safety net leaves it alone.
+     *
+     * @see vendor/uhifadhi/uhifadhi/src/Uhifadhi/Bundle/TeamBundle/EventListener/ApiErrorListener.php
+     */
     public static function error(PatrolApiException $problem): JsonResponse
     {
-        return new JsonResponse([
+        $response = new JsonResponse([
             'code' => $problem->getProblemCode(),
             'message' => $problem->getMessage(),
             'retryable' => $problem->isRetryable(),
             'details' => (object) $problem->getDetails(),
         ], $problem->getStatusCode());
+
+        $response->headers->set(ApiErrorListener::HANDLED_HEADER, '1');
+
+        return $response;
     }
 }

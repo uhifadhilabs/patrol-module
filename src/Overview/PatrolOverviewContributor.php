@@ -13,14 +13,14 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Overview;
 
-use Uhifadhi\Area\Entity\AreaOfInterest;
-use Uhifadhi\Area\Overview\ContributesStylesheetInterface;
-use Uhifadhi\Area\Overview\OverviewContributorInterface;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Overview\ContributesStylesheetInterface;
+use Uhifadhi\Bundle\AreaBundle\Overview\OverviewContributorInterface;
+use Uhifadhi\Bundle\ShellBundle\Widget\Model\Widget;
+use Uhifadhi\Bundle\ShellBundle\Widget\Model\WidgetGroup;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
 use Uhifadhi\Patrol\UhifadhiPatrolBundle;
-use Uhifadhi\Widget\Model\Widget;
-use Uhifadhi\Widget\Model\WidgetGroup;
 
 /**
  * WHAT PATROLS PUTS ON THE AREA OVERVIEW — a transcription of the design's own

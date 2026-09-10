@@ -27,7 +27,7 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
-use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\TaxonomyKind;
 use Uhifadhi\Patrol\Entity\TaxonomySubcategory;
 use Uhifadhi\Patrol\Exception\TaxonomyConflictException;

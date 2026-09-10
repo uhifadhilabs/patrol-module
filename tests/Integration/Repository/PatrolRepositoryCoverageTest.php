@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Tests\Integration\Repository;
 
-use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Repository\PatrolRepository;

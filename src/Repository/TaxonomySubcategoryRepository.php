@@ -17,7 +17,7 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\TaxonomyKind;
 use Uhifadhi\Patrol\Entity\TaxonomySubcategory;
 

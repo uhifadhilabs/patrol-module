@@ -18,11 +18,11 @@ use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
-use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
-use Uhifadhi\Team\Entity\User;
 
 /**
  * The GPX import screen end to end. Creating patrols is the privilege, so access

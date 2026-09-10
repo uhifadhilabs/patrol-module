@@ -16,7 +16,7 @@ namespace Uhifadhi\Patrol\Tests\Unit\Service;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Service\PhotoEvidenceKey;

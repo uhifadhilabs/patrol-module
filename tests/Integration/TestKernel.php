@@ -26,19 +26,17 @@ use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 use Symfony\UX\Icons\UXIconsBundle;
 use Symfony\UX\StimulusBundle\StimulusBundle;
-use Uhifadhi\Area\UhifadhiAreaBundle;
+use Uhifadhi\Bundle\AreaBundle\AreaBundle;
+use Uhifadhi\Bundle\AtlasBundle\AtlasBundle;
+use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
+use Uhifadhi\Bundle\ShellBundle\ShellBundle;
+use Uhifadhi\Bundle\TeamBundle\Entity\User;
+use Uhifadhi\Bundle\TeamBundle\Security\ApiTokenAuthenticator;
+use Uhifadhi\Bundle\TeamBundle\TeamBundle;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
-use Uhifadhi\Patrol\Tests\Integration\Fixtures\HeaderUserAuthenticator;
 use Uhifadhi\Patrol\UhifadhiPatrolBundle;
-use Uhifadhi\Seam\UhifadhiSeamBundle;
-use Uhifadhi\Shell\UhifadhiShellBundle;
 use Uhifadhi\Storage\Controller\EvidenceController;
 use Uhifadhi\Storage\UhifadhiStorageBundle;
-use Uhifadhi\Team\Entity\User;
-use Uhifadhi\Team\UhifadhiTeamBundle;
-use Uhifadhi\Widget\UhifadhiWidgetBundle;
-
-use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 /**
  * The smallest INSTALLATION this bundle can live in, and every part of it is
@@ -82,19 +80,21 @@ final class TestKernel extends Kernel
         // An installation installs api-platform; this stands in for one so the
         // bundle's own sync endpoints can be exercised.
         yield new ApiPlatformBundle();
-        // The frame every patrol screen renders in.
-        yield new UhifadhiShellBundle();
-        // Hard-required: the dashboard is a widget surface, not a page with
-        // widgets on it.
-        yield new UhifadhiWidgetBundle();
-        // The place a patrol happens in, the zones the gap card reads, and the
-        // six seams this module contributes to an area's overview.
-        yield new UhifadhiAreaBundle();
         // The per-area catalogue this module registers itself in.
-        yield new UhifadhiSeamBundle();
+        yield new RegistryBundle();
+        // The frame every patrol screen renders in, and the widget framework
+        // the dashboard IS — one bundle, because the shell owns both.
+        yield new ShellBundle();
+        // Leaflet, the map chrome and the map stylesheet every patrol plate
+        // draws with.
+        yield new AtlasBundle();
         // For the account class every patrol, observation and stored layout is
-        // keyed by — and for the org chart the department figures walk.
-        yield new UhifadhiTeamBundle();
+        // keyed by, the org chart the department figures walk, and the token
+        // authenticator the /api firewall runs on.
+        yield new TeamBundle();
+        // The place a patrol happens in, the zones the gap card reads, and the
+        // six contributions this module makes to an area's overview.
+        yield new AreaBundle();
         // Where observation photos go. A hard dependency of this bundle, and
         // registered here in the order a host registers it: flysystem first,
         // because the storage bundle PREPENDS a flysystem storage.
@@ -134,12 +134,19 @@ final class TestKernel extends Kernel
             ],
         ]);
 
-        // A minimal but REAL security setup: loginUser() needs a stateful
-        // firewall, and permission checks must go through the real
-        // AuthorizationChecker rather than a stub that always says yes. The
-        // people are TEAM's own entity rather than InMemoryUser, because a
-        // patrol and a stored layout both carry a foreign key to a person and an
-        // in-memory one has no row to point at.
+        // The security block a skeleton installation writes, minus the screens
+        // this kernel does not mount. The hashers, the entity provider over the
+        // account TeamBundle owns and the checker that refuses a deactivated one
+        // are the core's own throwaway application's; permission checks go
+        // through the real AuthorizationChecker rather than a stub that always
+        // says yes, and the people are TeamBundle's entity rather than
+        // InMemoryUser because a patrol and a stored layout both carry a foreign
+        // key to a person and an in-memory one has no row to point at.
+        //
+        // No form_login and no team_login route: this kernel mounts none of
+        // TeamBundle's sign-in screens and signs people in through loginUser().
+        //
+        // @see vendor/uhifadhi/uhifadhi/tests/Application/Kernel.php
         $container->extension('security', [
             'password_hashers' => [
                 'Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface' => [
@@ -151,29 +158,31 @@ final class TestKernel extends Kernel
                 ],
             ],
             'providers' => [
-                'app_users' => ['entity' => ['class' => User::class, 'property' => 'email']],
+                'team_user_provider' => ['entity' => ['class' => User::class, 'property' => 'email']],
             ],
             'firewalls' => [
-                // Mirrors the host: /api is STATELESS and token-authenticated.
-                // The credential is a test header (see HeaderUserAuthenticator)
-                // because minting real tokens is the host's job — everything
-                // else on this path is the real thing.
+                // The machine door, wired exactly as an installation wires it:
+                // STATELESS, over TeamBundle's own bearer-token authenticator,
+                // which is also the entry point so a request with no token
+                // answers 401 rather than the access listener's 403.
                 'api' => [
                     'pattern' => '^/api',
                     'stateless' => true,
-                    'provider' => 'app_users',
-                    'custom_authenticators' => [HeaderUserAuthenticator::class],
-                    'entry_point' => HeaderUserAuthenticator::class,
+                    'provider' => 'team_user_provider',
+                    'user_checker' => 'team.user_checker',
+                    'custom_authenticators' => [ApiTokenAuthenticator::class],
+                    'entry_point' => ApiTokenAuthenticator::class,
                 ],
-                'main' => ['lazy' => true, 'provider' => 'app_users'],
+                'main' => [
+                    'lazy' => true,
+                    'provider' => 'team_user_provider',
+                    'user_checker' => 'team.user_checker',
+                ],
             ],
             'access_control' => [
                 ['path' => '^/api', 'roles' => 'ROLE_USER'],
             ],
         ]);
-
-        $container->services()->set(HeaderUserAuthenticator::class)
-            ->args([service('doctrine.orm.entity_manager')]);
 
         // The HOST's permission voter, played by a fixture: the bundle declares
         // "patrols.record" and grants it to nobody, so something has to decide
@@ -240,17 +249,25 @@ final class TestKernel extends Kernel
             \Uhifadhi\Patrol\Overview\PatrolOverviewCopy::class => 'patrol.overview.copy',
             // The widget framework, by the ids uhifadhi/widget-module publishes,
             // plus the registry a surface has to be findable in.
-            \Uhifadhi\Widget\Service\WidgetService::class => 'widget.service',
-            \Uhifadhi\Widget\Service\WidgetEndpoint::class => 'widget.endpoint',
-            \Uhifadhi\Widget\Registry\WidgetSurfaceRegistry::class => 'widget.surfaces',
+            \Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetService::class => 'shell.widget.service',
+            \Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetEndpoint::class => 'shell.widget.endpoint',
+            \Uhifadhi\Bundle\ShellBundle\Widget\Registry\WidgetSurfaceRegistry::class => 'shell.widget.surfaces',
             // The catalogue this module registers itself in, so a test can ask
             // whether Patrols is in it rather than trusting the tag.
-            \Uhifadhi\Seam\Service\ModuleCatalogue::class => 'seam.catalogue',
-            \Uhifadhi\Seam\Service\ModuleEntryRouteResolver::class => 'seam.entry_routes',
+            \Uhifadhi\Bundle\RegistryBundle\Service\ModuleCatalogue::class => 'registry.catalogue',
+            \Uhifadhi\Bundle\RegistryBundle\Service\ModuleEntryRouteResolver::class => 'registry.entry_routes',
             // Per-area install state — what the route gate reads. A page test
             // has to switch this module on for its area, because a parked one's
             // routes are 404 and a fixture area starts with no row at all.
-            \Uhifadhi\Seam\Service\AreaModuleService::class => 'seam.area_modules',
+            \Uhifadhi\Bundle\RegistryBundle\Service\AreaModuleService::class => 'registry.area_modules',
+            // The create-only reconciliation that puts this module in the
+            // catalogue. A warm-up runs it in an installation; a suite that
+            // drops and recreates the schema after boot calls it itself.
+            \Uhifadhi\Bundle\RegistryBundle\Service\RegistrySyncService::class => 'registry.sync',
+            // The credential a field client carries. The sync tests mint a real
+            // token through it, so the requests they make cross the same
+            // authenticator an installation's do.
+            \Uhifadhi\Bundle\TeamBundle\Service\ApiTokenManager::class => 'team.api_token.manager',
         ] as $class => $serviceId) {
             $container->services()->alias('test_public.'.$class, $serviceId)->public();
         }
@@ -324,12 +341,12 @@ final class TestKernel extends Kernel
         // THE SCREENS THIS MODULE'S CRUMB POINTS AT, mounted from the bundles
         // that own them rather than declared as bare paths here. The area
         // register and the area page are uhifadhi/area-module's; the front door
-        // is the shell's. `seam_area_modules` is deliberately absent — the
+        // is the shell's. `area_modules` is deliberately absent — the
         // per-area module grid is the seam's page and the seam does not ship one
         // yet, which is exactly the case patrol_url() answers null for and the
         // crumb prints as plain text.
-        $routes->import('@UhifadhiShellBundle/src/Controller/', 'attribute');
-        $routes->import('@UhifadhiAreaBundle/src/Controller/', 'attribute');
+        $routes->import('@ShellBundle/Controller/', 'attribute');
+        $routes->import('@AreaBundle/Controller/', 'attribute');
 
         // THE INCIDENTS MODULE'S FRONT DOOR, STUBBED — but only in the
         // `incident_seam` environment. The File-as-incident button exists only

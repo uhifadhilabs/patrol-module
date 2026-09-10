@@ -16,7 +16,7 @@ namespace Uhifadhi\Patrol\Entity;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\ModuleContracts\Entity\UserInterface;
+use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Enum\PatrolEventKindEnum;
 use Uhifadhi\Patrol\Repository\PatrolEventRepository;
 

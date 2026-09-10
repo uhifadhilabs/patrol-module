@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Tests\Integration\Service;
 
-use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\TaxonomyKind;
 use Uhifadhi\Patrol\Exception\TaxonomyConflictException;
 use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;

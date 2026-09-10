@@ -18,13 +18,13 @@ use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Entity\PatrolEvent;
 use Uhifadhi\Patrol\Enum\PatrolEventKindEnum;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
-use Uhifadhi\Team\Entity\User;
 
 /**
  * How a discarded patrol READS on the web — the settled discard design's web

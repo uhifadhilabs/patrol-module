@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Service;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\TaxonomyKind;
 use Uhifadhi\Patrol\Entity\TaxonomySubcategory;
 use Uhifadhi\Patrol\Exception\TaxonomyConflictException;

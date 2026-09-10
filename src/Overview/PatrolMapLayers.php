@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Overview;
 
-use Uhifadhi\Area\Entity\AreaOfInterest;
-use Uhifadhi\Area\Overview\MapLayer;
-use Uhifadhi\Area\Overview\MapLayerProviderInterface;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Overview\MapLayer;
+use Uhifadhi\Bundle\AreaBundle\Overview\MapLayerProviderInterface;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;

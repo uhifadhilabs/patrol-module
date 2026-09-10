@@ -34,7 +34,7 @@
    bundles/<BundleName>" — and under AssetMapper those assets are automatically
    content-versioned. So public/patrol.css is served as
    bundles/uhifadhipatrol/patrol.css with a digest, no assets:install. #}
-{% extends '@UhifadhiShell/page.html.twig' %}
+{% extends '@Shell/page.html.twig' %}
 
 {% block stylesheets %}
     {{ parent() }}
@@ -42,7 +42,7 @@
        pills. Both files come from uhifadhi/map-module, by its own constants —
        never a CDN, and the same Leaflet the area map runs on, so a patrol map
        and an area map cannot disagree about how a layer draws. #}
-    <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Map\\UhifadhiMapBundle::LEAFLET_CSS')) }}">
+    <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Bundle\\AtlasBundle\\AtlasBundle::LEAFLET_CSS')) }}">
     {# THE MAP CHROME STYLESHEET — map-module's ONE map.css, the single definition
        of the zoom pills, the base-layer menu, the live scale bar, the scroll-bargain
        hint and the fullscreen control that map-chrome's chrome.js builds into every
@@ -51,9 +51,9 @@
        are there but unstyled and invisible — the design's zoom / Satellite·Map /
        fullscreen, top-right, would never appear. Loaded BEFORE patrol.css so the
        module's own plate rules still win where they must. #}
-    <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Map\\UhifadhiMapBundle::STYLESHEET')) }}">
+    <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Bundle\\AtlasBundle\\AtlasBundle::STYLESHEET')) }}">
     {# The dashboard grid's own vocabulary, from the bundle that owns it. #}
-    <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Widget\\UhifadhiWidgetBundle::STYLESHEET')) }}">
+    <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Bundle\\ShellBundle\\ShellBundle::WIDGET_STYLESHEET')) }}">
     {# The FILE PREVIEW's vocabulary, from the bundle that owns it. A patrol
        photograph opens in the same overlay a file on the hub opens in, so this
        module draws none of it and states none of it — it loads the component's
@@ -77,7 +77,7 @@
    MapLibre is deliberately NOT used: raster tiles + GeoJSON need no WebGL, and
    WebGL failed silently (blank map) in constrained environments. #}
 {% block javascripts %}
-    <script src="{{ asset(constant('Uhifadhi\\Map\\UhifadhiMapBundle::LEAFLET_JS')) }}"></script>
+    <script src="{{ asset(constant('Uhifadhi\\Bundle\\AtlasBundle\\AtlasBundle::LEAFLET_JS')) }}"></script>
     {{ parent() }}
 {% endblock %}
 
@@ -89,7 +89,7 @@
 {% block shell_breadcrumbs %}
     {%- set areas = patrol_url('area_index') -%}
     {%- set here = patrol_url('area_show', {uuid: area.uuid}) -%}
-    {%- set modules = patrol_url('seam_area_modules', {uuid: area.uuid}) -%}
+    {%- set modules = patrol_url('area_modules', {uuid: area.uuid}) -%}
     {%- if areas %}<a href="{{ areas }}">areas</a>{% else %}areas{% endif %} /
     {%- if here %} <a href="{{ here }}">{{ area.name|lower }}</a>{% else %} {{ area.name|lower }}{% endif %} /
     {%- if modules %} <a href="{{ modules }}">modules</a>{% else %} modules{% endif %} /

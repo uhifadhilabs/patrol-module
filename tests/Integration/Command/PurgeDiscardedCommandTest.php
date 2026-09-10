@@ -17,7 +17,8 @@ use League\Flysystem\FilesystemOperator;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
@@ -28,7 +29,6 @@ use Uhifadhi\Patrol\Enum\PatrolEventKindEnum;
 use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 use Uhifadhi\Storage\Service\EvidenceKey;
-use Uhifadhi\Team\Entity\User;
 
 /**
  * patrol:purge-discarded — the retention sweep.

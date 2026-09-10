@@ -18,13 +18,14 @@ use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
-use Uhifadhi\Area\Kpi\DepartmentKpiProviderInterface;
-use Uhifadhi\Area\Overview\AttentionProviderInterface;
-use Uhifadhi\Area\Overview\MapLayerProviderInterface;
-use Uhifadhi\Area\Overview\NowTileProviderInterface;
-use Uhifadhi\Area\Overview\OverviewContributorInterface;
-use Uhifadhi\Area\Overview\OverviewCopyProviderInterface;
-use Uhifadhi\Area\Overview\PulseProviderInterface;
+use Uhifadhi\Bundle\AreaBundle\Kpi\DepartmentKpiProviderInterface;
+use Uhifadhi\Bundle\AreaBundle\Overview\AttentionProviderInterface;
+use Uhifadhi\Bundle\AreaBundle\Overview\MapLayerProviderInterface;
+use Uhifadhi\Bundle\AreaBundle\Overview\NowTileProviderInterface;
+use Uhifadhi\Bundle\AreaBundle\Overview\OverviewContributorInterface;
+use Uhifadhi\Bundle\AreaBundle\Overview\OverviewCopyProviderInterface;
+use Uhifadhi\Bundle\AreaBundle\Overview\PulseProviderInterface;
+use Uhifadhi\Bundle\ShellBundle\Widget\Registry\WidgetSurfaceInterface;
 use Uhifadhi\Patrol\Api\PatrolApiContext;
 use Uhifadhi\Patrol\Api\State\AppendEventsProcessor;
 use Uhifadhi\Patrol\Api\State\AppendFlightsProcessor;
@@ -73,7 +74,6 @@ use Uhifadhi\Patrol\Service\PatrolOverviewService;
 use Uhifadhi\Patrol\Storage\PatrolFileSource;
 use Uhifadhi\Patrol\Widget\PatrolWidgets;
 use Uhifadhi\Storage\Registry\FileSourceInterface;
-use Uhifadhi\Widget\Registry\WidgetSurfaceInterface;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
@@ -311,9 +311,9 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     // the algebra that resolves it — and that bundle's endpoint
                     // service answers every widget write, so this module
                     // validates no token and chooses no status code.
-                    service('widget.service'),
+                    service('shell.widget.service'),
                     service('patrol.widget_urls'),
-                    service('widget.endpoint'),
+                    service('shell.widget.endpoint'),
                     param('patrol.types'),
                     param('patrol.discard_retention_days'),
                 ])

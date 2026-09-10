@@ -6,7 +6,7 @@ requirement rather than something an installation is expected to have written.
 
 ## The page frame
 
-Every patrol screen extends `@UhifadhiShell/page.html.twig` and fills sockets:
+Every patrol screen extends `@Shell/page.html.twig` and fills sockets:
 the breadcrumb, the title, the subtitle, the actions and the body. It types no
 page furniture of its own — no `.page` wrapper, no crumb markup, no flash loop —
 so a saved patrol reads exactly like a saved anything else in the installation.
@@ -55,7 +55,7 @@ Two things about that seam are worth stating, because both used to be otherwise:
   longer reachable.
 
 **Why the concrete class, not the `AreaInterface` contract.** The platform
-publishes `Uhifadhi\ModuleContracts\Entity\AreaInterface` so a module can point at
+publishes `Uhifadhi\Contracts\Entity\AreaInterface` so a module can point at
 an area *without* requiring area-module — the way team-module's `Department` does,
 and the mechanism is documented in
 [module-contracts/docs/area-contract.md](https://github.com/uhifadhilabs/module-contracts/blob/main/docs/area-contract.md).

@@ -18,28 +18,32 @@ use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
-use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\TeamBundle\Entity\User;
+use Uhifadhi\Bundle\TeamBundle\Service\ApiTokenManager;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
-use Uhifadhi\Team\Entity\User;
 
 /**
  * Shared ground for the field-sync tests: a real database, a real area, a user
  * who may record and one who may not, and the small helpers that make a test
  * read like the mobile flow it is checking.
  *
- * Authentication is a test header, not a real bearer token, and deliberately:
- * the TOKEN is the host's concern (it owns api-platform's firewall), while what
- * this module must prove is that its endpoints demand `patrols.record` and
- * behave idempotently. The firewall these requests cross is nonetheless a real
- * STATELESS one — see HeaderUserAuthenticator.
+ * Authentication is the real thing: a bearer token minted through TeamBundle's
+ * own {@see ApiTokenManager} and presented as `Authorization: Bearer <token>`,
+ * across the STATELESS `^/api` firewall an installation configures. What this
+ * module must prove is that its endpoints demand `patrols.record` and behave
+ * idempotently, and it proves it at the door a handset actually meets.
  */
 abstract class FieldSyncTestCase extends WebTestCase
 {
     use EveryAreaRunsPatrols;
 
+    /** The one handset every request in these tests comes from. */
+    private const string DEVICE_ID = '0f9ca41e-1f2b-4c33-9b5e-8e0a5f7f2c11';
+
     protected KernelBrowser $client;
-    /** The account whose credential every subsequent request carries. */
-    private ?User $actingAs = null;
+    /** The bearer token every subsequent request carries, or none. */
+    private ?string $bearer = null;
     protected EntityManagerInterface $em;
     protected AreaOfInterest $area;
     protected User $recorder;
@@ -89,13 +93,15 @@ abstract class FieldSyncTestCase extends WebTestCase
     }
 
     /**
-     * Whose credential the next requests carry. The stand-in for the phone
-     * holding a bearer token — see HeaderUserAuthenticator for why the module's
-     * tests do not mint a real one.
+     * Whose credential the next requests carry — a token issued to that person
+     * for this device, exactly as the sign-in endpoint issues one.
      */
     protected function actingAs(User $user): void
     {
-        $this->actingAs = $user;
+        /** @var ApiTokenManager $tokens */
+        $tokens = static::getContainer()->get('test_public.'.ApiTokenManager::class);
+
+        [$this->bearer] = $tokens->issue($user, self::DEVICE_ID, 'test handset');
     }
 
     /**
@@ -108,12 +114,12 @@ abstract class FieldSyncTestCase extends WebTestCase
     {
         $headers = [
             'HTTP_ACCEPT' => 'application/json',
-            'HTTP_X_DORIA_DEVICE' => '0f9ca41e-1f2b-4c33-9b5e-8e0a5f7f2c11',
+            'HTTP_X_DORIA_DEVICE' => self::DEVICE_ID,
             'HTTP_X_DORIA_VERSION' => '0.1.0',
         ];
 
-        if (null !== $this->actingAs) {
-            $headers['HTTP_X_TEST_USER'] = (string) $this->actingAs->getEmail();
+        if (null !== $this->bearer) {
+            $headers['HTTP_AUTHORIZATION'] = 'Bearer '.$this->bearer;
         }
 
         return $headers;
@@ -172,7 +178,7 @@ abstract class FieldSyncTestCase extends WebTestCase
             'endedAt' => '2026-08-23T09:54:38Z',
             'droneId' => null,
             'mission' => null,
-            'deviceId' => '0f9ca41e-1f2b-4c33-9b5e-8e0a5f7f2c11',
+            'deviceId' => self::DEVICE_ID,
             'appVersion' => '0.1.0',
         ], $overrides));
 

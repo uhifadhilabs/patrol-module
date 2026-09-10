@@ -13,9 +13,12 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Tests\Integration\Module;
 
-use Uhifadhi\Area\Entity\AreaOfInterest;
-use Uhifadhi\Area\Kpi\DepartmentKpi;
-use Uhifadhi\Area\Kpi\DepartmentRef;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Kpi\DepartmentKpi;
+use Uhifadhi\Bundle\AreaBundle\Kpi\DepartmentRef;
+use Uhifadhi\Bundle\TeamBundle\Entity\Department;
+use Uhifadhi\Bundle\TeamBundle\Entity\Position;
+use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
@@ -23,9 +26,6 @@ use Uhifadhi\Patrol\Module\PatrolDepartmentKpiProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
-use Uhifadhi\Team\Entity\Department;
-use Uhifadhi\Team\Entity\Position;
-use Uhifadhi\Team\Entity\User;
 
 /**
  * THE test this whole feature turns on: TWO DEPARTMENTS SHARING THE PATROLS MODULE.

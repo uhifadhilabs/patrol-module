@@ -16,9 +16,9 @@ namespace Uhifadhi\Patrol\Tests\Integration\Fixtures;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
+use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Controller\PatrolRecordController;
 use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
-use Uhifadhi\Team\Entity\User;
 
 /**
  * Test stand-in for the HOST's permission voter: the bundle only DECLARES

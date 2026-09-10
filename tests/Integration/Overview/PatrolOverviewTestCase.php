@@ -13,15 +13,15 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Tests\Integration\Overview;
 
-use Uhifadhi\Area\Entity\AreaOfInterest;
-use Uhifadhi\Area\Entity\Zone;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\Zone;
+use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Entity\TrackBatch;
 use Uhifadhi\Patrol\Entity\TrackPoint;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
-use Uhifadhi\Team\Entity\User;
 
 /**
  * ONE MORNING, BUILT ONCE, read by every test of the module's five overview

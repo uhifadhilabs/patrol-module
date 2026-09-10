@@ -17,7 +17,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\ModuleContracts\Entity\UserInterface;
+use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Trait\TimestampableTrait;
 use Uhifadhi\Patrol\Enum\PositionSourceEnum;
 use Uhifadhi\Patrol\Repository\ObservationRepository;

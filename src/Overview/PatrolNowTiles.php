@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Overview;
 
-use Uhifadhi\Area\Entity\AreaOfInterest;
-use Uhifadhi\Area\Overview\NowTile;
-use Uhifadhi\Area\Overview\NowTileProviderInterface;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Overview\NowTile;
+use Uhifadhi\Bundle\AreaBundle\Overview\NowTileProviderInterface;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
 
 /**

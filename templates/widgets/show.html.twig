@@ -37,7 +37,7 @@
 {% block shell_page_actions %}
     {# Throwing the whole composition away asks first — through the host's
        reusable confirm-modal controller, never the browser's own dialog. #}
-    <button type="button" class="tgl patrol-act" {{ constant('Uhifadhi\\Widget\\Model\\WidgetDom::RESET') }}
+    <button type="button" class="tgl patrol-act" {{ constant('Uhifadhi\\Bundle\\ShellBundle\\Widget\\Model\\WidgetDom::RESET') }}
             {{ stimulus_controller('confirm-modal') }}
             data-action="click->confirm-modal#ask"
             data-confirm-modal-title-value="Reset your widget layout?"
@@ -48,7 +48,7 @@
 {% endblock %}
 
 {% block patrol_page %}
-{{ include('@UhifadhiWidget/widgets/_library.html.twig', {
+{{ include('@Shell/widget/_library.html.twig', {
     catalog: catalog,
     builtins: builtins,
     customPresets: customPresets,

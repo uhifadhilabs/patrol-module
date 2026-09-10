@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Overview;
 
-use Uhifadhi\Area\Entity\AreaOfInterest;
-use Uhifadhi\Area\Overview\PulseEvent;
-use Uhifadhi\Area\Overview\PulseProviderInterface;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Overview\PulseEvent;
+use Uhifadhi\Bundle\AreaBundle\Overview\PulseProviderInterface;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Repository\ObservationRepository;
 use Uhifadhi\Patrol\Repository\PatrolRepository;

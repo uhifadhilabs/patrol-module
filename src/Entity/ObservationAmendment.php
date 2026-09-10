@@ -15,7 +15,7 @@ namespace Uhifadhi\Patrol\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\ModuleContracts\Entity\UserInterface;
+use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Enum\ObservationAmendmentKindEnum;
 use Uhifadhi\Patrol\Repository\ObservationAmendmentRepository;
 

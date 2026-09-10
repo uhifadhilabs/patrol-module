@@ -33,7 +33,7 @@ there is no doctrine block and no asset wiring to write.
 Five columns name a person — who led the patrol, who put it on hold, who
 recorded the observation, who acted on the event, who signed the amendment —
 and none of them names an account class. They are mapped to
-`Uhifadhi\ModuleContracts\Entity\UserInterface`, and the installation resolves
+`Uhifadhi\Contracts\Entity\UserInterface`, and the installation resolves
 that interface to whatever it calls its people. Install
 `uhifadhi/team-module` and the answer arrives with it (0.3.2 and later states
 the resolution from its own bundle); otherwise write one line naming your own
@@ -43,7 +43,7 @@ class, under the `orm:` key already in `config/packages/doctrine.yaml`:
 doctrine:
     orm:
         resolve_target_entities:
-            Uhifadhi\ModuleContracts\Entity\UserInterface: App\Entity\Person
+            Uhifadhi\Contracts\Entity\UserInterface: App\Entity\Person
 ```
 
 Until something answers it, the bundle installs and the kernel boots, but

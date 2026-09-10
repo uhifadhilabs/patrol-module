@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\ModuleContracts\Entity\UserInterface;
+use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Controller\PatrolRecordController;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;

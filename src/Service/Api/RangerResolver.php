@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Service\Api;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Uhifadhi\ModuleContracts\Entity\UserInterface;
+use Uhifadhi\Contracts\Entity\UserInterface;
 
 /**
  * Turns the ranger ids a phone sends back into the people they name.

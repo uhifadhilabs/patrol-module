@@ -17,11 +17,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
-use Uhifadhi\Team\Entity\User;
 
 /**
  * The patrols widget dashboard: the KPI strip, the coverage map payload, the
@@ -222,14 +222,14 @@ final class DashboardPageTest extends WebTestCase
         self::assertCount(1, $crawler->filter('.patrol-viewer .patrol-canvas'));
         self::assertCount(0, $crawler->filter('.patrol-zoomui'));
 
-        // ...but the chrome it mounts is STYLED by map-module's map.css, which the
-        // base template must link — without it the zoom pills, the Satellite/Map
-        // toggle and fullscreen are built as DOM but invisible. Found in a browser:
-        // a map with a legend and tiles but no controls.
+        // ...but the chrome it mounts is STYLED by AtlasBundle's map.css, which
+        // the base template must link — without it the zoom pills, the
+        // Satellite/Map toggle and fullscreen are built as DOM but invisible.
+        // Found in a browser: a map with a legend and tiles but no controls.
         self::assertStringContainsString(
-            'uhifadhimap/map',
+            'atlas/map',
             (string) $this->client->getResponse()->getContent(),
-            'the patrol base must link map-module map.css so the map chrome is visible',
+            'the patrol base must link the atlas map.css so the map chrome is visible',
         );
 
         // The filter chips are real buttons carrying the type they select, so

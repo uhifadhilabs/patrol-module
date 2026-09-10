@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Module;
 
-use Uhifadhi\ModuleContracts\ModulePermission;
-use Uhifadhi\ModuleContracts\ModuleProviderInterface;
-use Uhifadhi\ModuleContracts\ModuleProviderTrait;
+use Uhifadhi\Contracts\ModulePermission;
+use Uhifadhi\Contracts\ModuleProviderInterface;
+use Uhifadhi\Contracts\ModuleProviderTrait;
 use Uhifadhi\Patrol\Controller\PatrolRecordController;
 use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
 
@@ -43,7 +43,7 @@ final class PatrolModuleProvider implements ModuleProviderInterface
      * Every controller here stamps `_uhifadhi_module: patrols` on its routes so
      * that where an area has parked this module, the seam closes its pages with
      * a 404 before a controller runs. The seam publishes the same string as
-     * `UhifadhiSeamBundle::MODULE_ROUTE_DEFAULT`, and importing it would be the
+     * `RegistryBundle::MODULE_ROUTE_DEFAULT`, and importing it would be the
      * tidier code and the wrong dependency: the seam is a **dev** requirement
      * here (see composer.json, and the `suggest` entry that says what an
      * installation loses without it), so a class-constant reference in a route

@@ -14,12 +14,12 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Tests\Unit\Service;
 
 use PHPUnit\Framework\TestCase;
-use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
-use Uhifadhi\Team\Entity\User;
 
 /**
  * The dashboard's data contract — everything the widget screen binds, computed

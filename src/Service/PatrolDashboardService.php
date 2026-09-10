@@ -271,7 +271,7 @@ final class PatrolDashboardService
         // by the lead entity so two patrols by the same person add up, and holding
         // the entity so the template formats the name the one way it formats every
         // name (the lead_name macro), never a second spelling computed here.
-        /** @var array<int, array{lead: \Uhifadhi\ModuleContracts\Entity\UserInterface, hours: float}> $effort */
+        /** @var array<int, array{lead: \Uhifadhi\Contracts\Entity\UserInterface, hours: float}> $effort */
         $effort = [];
         $totalCount = 0;
         $lastPatrol = null;

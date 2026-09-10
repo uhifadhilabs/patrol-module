@@ -18,12 +18,12 @@ use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
-use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\ShellBundle\Widget\Model\WidgetDom;
+use Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetEndpoint;
+use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Widget\PatrolWidgets;
-use Uhifadhi\Team\Entity\User;
-use Uhifadhi\Widget\Model\WidgetDom;
-use Uhifadhi\Widget\Service\WidgetEndpoint;
 
 /**
  * THE WIDGET LIBRARY, on the HOST's framework.

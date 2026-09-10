@@ -13,11 +13,11 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Widget;
 
-use Uhifadhi\Widget\Model\Widget;
-use Uhifadhi\Widget\Model\WidgetCatalog;
-use Uhifadhi\Widget\Model\WidgetGroup;
-use Uhifadhi\Widget\Model\WidgetPreset;
-use Uhifadhi\Widget\Registry\WidgetSurfaceInterface;
+use Uhifadhi\Bundle\ShellBundle\Widget\Model\Widget;
+use Uhifadhi\Bundle\ShellBundle\Widget\Model\WidgetCatalog;
+use Uhifadhi\Bundle\ShellBundle\Widget\Model\WidgetGroup;
+use Uhifadhi\Bundle\ShellBundle\Widget\Model\WidgetPreset;
+use Uhifadhi\Bundle\ShellBundle\Widget\Registry\WidgetSurfaceInterface;
 
 /**
  * THE CATALOGUE of the per-area PATROLS surface — a transcription of the

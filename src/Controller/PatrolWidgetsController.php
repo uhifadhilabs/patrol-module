@@ -23,7 +23,9 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Uid\Uuid;
 use Twig\Environment;
-use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetEndpoint;
+use Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetService;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
@@ -31,8 +33,6 @@ use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
 use Uhifadhi\Patrol\Service\PatrolWidgetUrls;
 use Uhifadhi\Patrol\Widget\PatrolWidgets;
-use Uhifadhi\Widget\Service\WidgetEndpoint;
-use Uhifadhi\Widget\Service\WidgetService;
 
 /**
  * THE WIDGET LIBRARY for the patrols surface — the one editing screen.

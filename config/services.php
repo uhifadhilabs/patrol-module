@@ -180,7 +180,7 @@ return static function (ContainerConfigurator $container): void {
             // ships a catalogue, never a copy of the algebra that resolves it.
             // The id is that bundle's public surface (its service reference),
             // which is what a reusable bundle names another one by.
-            service('widget.service'),
+            service('shell.widget.service'),
             param('patrol.types'),
             param('patrol.record_screens'),
             param('patrol.widget_screens'),

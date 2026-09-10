@@ -31,7 +31,7 @@ final readonly class PatrolDashboard
      * @param array<string, int>                                                                       $typeCounts       the month's listed patrols, every configured type present (filter chips)
      * @param list<array{label: string, counts: array<string, int>}>                                   $weeklySeries     five weeks, oldest first
      * @param list<array{station: string, count: int}>                                                 $stationSeries    this month, ranked
-     * @param list<array{lead: \Uhifadhi\ModuleContracts\Entity\UserInterface, hours: float}>          $effortSeries     patrol-hours this month per patrol lead, ranked — the "Effort by ranger" widget (PL·17); a patrol with no committed lead or no measured duration credits nobody and is absent
+     * @param list<array{lead: \Uhifadhi\Contracts\Entity\UserInterface, hours: float}>                $effortSeries     patrol-hours this month per patrol lead, ranked — the "Effort by ranger" widget (PL·17); a patrol with no committed lead or no measured duration credits nobody and is absent
      * @param list<string>                                                                             $stations         distinct stations, ranked (filter menu)
      * @param list<string>                                                                             $zones            distinct zones the month's patrols set out in, sorted (filter menu) — computed by a PostGIS spatial join against the host's zone polygons, never a stored field
      * @param list<array{date: \DateTimeImmutable, patrols: list<Patrol>, today: bool, outside: bool}> $calendar         42 Monday-start cells for the month on screen

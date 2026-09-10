@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Tests\Integration\Storage;
 
 use Symfony\Component\Uid\Uuid;
-use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;

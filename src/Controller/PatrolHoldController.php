@@ -27,8 +27,8 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
-use Uhifadhi\Area\Entity\AreaOfInterest;
-use Uhifadhi\ModuleContracts\Entity\UserInterface;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 

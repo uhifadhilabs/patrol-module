@@ -18,10 +18,10 @@ use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Routing\RouterInterface;
-use Uhifadhi\Area\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
+use Uhifadhi\Bundle\RegistryBundle\Service\AreaModuleService;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
-use Uhifadhi\Seam\Service\AreaModuleService;
-use Uhifadhi\Seam\UhifadhiSeamBundle;
 
 /**
  * PARKING PATROLS TAKES ITS PAGES WITH IT — the module's half of the seam's
@@ -106,7 +106,7 @@ final class ParkedModuleTest extends WebTestCase
         // seam is a dev dependency here and a route attribute referencing its
         // constant would make it a hard one. This is where the two spellings are
         // held to each other — the only place the seam is guaranteed present.
-        self::assertSame(UhifadhiSeamBundle::MODULE_ROUTE_DEFAULT, PatrolModuleProvider::SEAM_ROUTE_DEFAULT);
+        self::assertSame(RegistryBundle::MODULE_ROUTE_DEFAULT, PatrolModuleProvider::SEAM_ROUTE_DEFAULT);
 
         $router = static::getContainer()->get('router');
         \assert($router instanceof RouterInterface);
@@ -117,7 +117,7 @@ final class ParkedModuleTest extends WebTestCase
             if (!\is_string($controller) || !str_starts_with($controller, 'Uhifadhi\\Patrol\\Controller\\')) {
                 continue;
             }
-            if (PatrolModuleProvider::SLUG !== $route->getDefault(UhifadhiSeamBundle::MODULE_ROUTE_DEFAULT)) {
+            if (PatrolModuleProvider::SLUG !== $route->getDefault(RegistryBundle::MODULE_ROUTE_DEFAULT)) {
                 $undeclared[] = $name;
             }
         }

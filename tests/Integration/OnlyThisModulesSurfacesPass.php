@@ -15,8 +15,8 @@ namespace Uhifadhi\Patrol\Tests\Integration;
 
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Uhifadhi\Bundle\ShellBundle\Widget\Registry\WidgetSurfaceInterface;
 use Uhifadhi\Patrol\Widget\PatrolWidgets;
-use Uhifadhi\Widget\Registry\WidgetSurfaceInterface;
 
 /**
  * THE SUITE DECLARES THIS MODULE'S SURFACES AND NOBODY ELSE'S.
