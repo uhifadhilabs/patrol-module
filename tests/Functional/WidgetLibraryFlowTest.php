@@ -147,7 +147,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
             self::WIDGET_IDS,
             $crawler->filter('.patrol-wgrid > [data-w]')->each(static fn (Crawler $w) => (string) $w->attr('data-w')),
         );
-        self::assertStringContainsString('patrol-w6', (string) $crawler->filter('[data-w="chweek"]')->attr('class'));
+        self::assertStringContainsString('patrol-w-6', (string) $crawler->filter('[data-w="chweek"]')->attr('class'));
     }
 
     /**
@@ -198,8 +198,8 @@ final class WidgetLibraryFlowTest extends WebTestCase
         // Chosen order first, the hidden widget gone, the chosen spans applied.
         self::assertSame(['cal', 'kpis', 'chweek'], \array_slice($rendered, 0, 3));
         self::assertCount(0, $crawler->filter('[data-w="map"]'));
-        self::assertStringContainsString('patrol-w6', (string) $crawler->filter('[data-w="cal"]')->attr('class'));
-        self::assertStringContainsString('patrol-w3', (string) $crawler->filter('[data-w="chweek"]')->attr('class'));
+        self::assertStringContainsString('patrol-w-6', (string) $crawler->filter('[data-w="cal"]')->attr('class'));
+        self::assertStringContainsString('patrol-w-3', (string) $crawler->filter('[data-w="chweek"]')->attr('class'));
     }
 
     /** Reset puts the module's own composition back. */

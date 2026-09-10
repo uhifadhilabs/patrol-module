@@ -2,12 +2,10 @@
    design system. What the refactored skeleton host actually ships (.page, .c/.tab,
    .kpi, .chip, .tbl, .crumb/.pghead/.open-btn, .map-frame/.map-btn, plus the token
    channels --c-*, --shadow and --font-mono) is REUSED, never redefined here. The
-   design vocabulary the skeleton's shell.css does NOT carry — .mchip, the .ch chart
-   text/lines and .backbtn — is restated once, byte-faithful, in the marked "HOST
-   VOCABULARY the refactored skeleton no longer ships" block below (same reason as
-   the .i-dd* chrome: a patrol page must not depend on the host loading it). Every
-   other class is patrol-prefixed so it can never collide with a host class (the host
-   owns .page, .thumb, .map-legend, .who — none of them is touched).
+   design vocabulary shell.css does not carry — the .ch chart text/lines, .backbtn
+   and the .i-dd* dropdown chrome — is this module's own. Every other class is
+   patrol-prefixed so it can never collide with a shell class (the shell owns
+   .page, .thumb, .map-legend, .who — none of them is touched).
 
    Colours come from the host tokens (rgb(var(--c-*))) so the module flips with
    the theme; the imagery viewer keeps fixed dark chrome because it sits on
@@ -18,6 +16,13 @@
    Shipped with the bundle and linked only where the module renders (see
    templates/base.html.twig), so the host's stylesheet never mentions patrol. */
 
+/* The per-type track colour. Elements that have one carry it as an inline
+   custom property, because a deployment configures its own patrol types and a
+   colour that is configuration cannot be a static class. This is what paints
+   where nothing has set one — without it every rule spending the token inherits
+   instead. */
+:root { --patrol-track: rgb(var(--c-fog)); }
+
 /* ---- widget grid ------------------------------------------------------ */
 /* Twelve columns; each widget declares its span. The span class comes from the
    person's stored preference (the host widget framework resolving
@@ -25,10 +30,10 @@
    layout until they change it in the widget library. */
 .patrol-wgrid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; }
 .patrol-wgrid > [data-w] { grid-column: span 12; min-width: 0; position: relative; }
-.patrol-wgrid > [data-w].patrol-w12 { grid-column: span 12; }
-.patrol-wgrid > [data-w].patrol-w9 { grid-column: span 9; }
-.patrol-wgrid > [data-w].patrol-w6 { grid-column: span 6; }
-.patrol-wgrid > [data-w].patrol-w3 { grid-column: span 3; }
+.patrol-wgrid > [data-w].patrol-w-12 { grid-column: span 12; }
+.patrol-wgrid > [data-w].patrol-w-9 { grid-column: span 9; }
+.patrol-wgrid > [data-w].patrol-w-6 { grid-column: span 6; }
+.patrol-wgrid > [data-w].patrol-w-3 { grid-column: span 3; }
 .patrol-wgrid > [data-w] .patrol-winner { height: 100%; display: flex; flex-direction: column; min-height: 0; }
 .patrol-wgrid > [data-w] .patrol-winner > .c,
 .patrol-wgrid > [data-w] .patrol-winner > .grid { flex: 1; min-height: 0; margin-bottom: 0; }
@@ -44,32 +49,16 @@
 .patrol-act { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; }
 .patrol-act svg { width: 16px; height: 16px; }
 
-/* ---- HOST VOCABULARY the refactored skeleton no longer ships ----------- --
-   The header comment above assumed the host stylesheet carried .mchip, the .ch
-   chart classes and .backbtn (they live in the design app's global uhifadhi.css).
-   The refactored skeleton's shell.css ships the token channels (--c-*), --shadow,
-   --font-mono, .c/.tab — but NOT this design vocabulary, so on a patrol page every
-   .mchip fell back to a bare <button> (black text on #efefef, a dashed-black ghost
-   border), the chart <text> painted black-on-dark, and "< All modules" rendered as
-   an unstyled link. Ported here BYTE-FAITHFUL from the design's uhifadhi.css onto
-   patrol's host-token convention (rgb(var(--c-*))) — the same self-sufficiency as
-   the .i-dd* dropdown chrome below and incident-module's copy: a patrol page never
-   depends on the host stylesheet carrying a two-plus-surface vocabulary. These are
-   the ONLY host classes restated; everything else is still reused, never redefined.
+/* ---- VOCABULARY THIS MODULE ADDS TO THE SHELL'S ------------------------ --
+   .mchip is the SHELL's — the compact pill that carries an interactive control,
+   shipped in shell.css because more than one surface draws one. This module
+   draws the type toggles, the .i-ddt dropdown triggers, the month chip and the
+   calendar prev/next ghosts with it and defines none of it. What is below is
+   the two states the shell does not carry, which decorate the shared class
+   rather than restating it.
 
-   .mchip is the shared filter/pill chip: the type toggles (all/foot/vehicle/drone),
-   the .i-ddt dropdown triggers (station/zone), the month chip and the calendar
-   prev/next ghosts are all <button class="mchip …">, so the base rule below is what
-   makes every one of them a chip instead of a default button. */
-.mchip {
-    display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono);
-    font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: rgb(var(--c-fog));
-    border: 1px solid var(--c-ln2); border-radius: 99px; padding: 7px 14px 6px; text-decoration: none; line-height: 1;
-    background: none; white-space: nowrap;
-}
-.mchip:hover { color: rgb(var(--c-tx)); border-color: rgb(var(--c-fog)); text-decoration: none; }
-.mchip.on { color: rgb(var(--c-accT)); background: rgb(var(--c-acc)); border-color: rgb(var(--c-acc)); }
-.mchip.on:hover { color: rgb(var(--c-accT)); }
+   .mchip.on:hover is deliberately absent as well: it decorated a filled `.on`
+   this module used to declare, and the shell's `.on` is an outline. */
 .mchip.ghost { border-style: dashed; color: rgb(var(--c-fog)); cursor: pointer; }
 .mchip.add { border-style: dashed; border-color: rgb(var(--c-acc)); color: rgb(var(--c-acc)); cursor: pointer; }
 
@@ -122,7 +111,7 @@
    .mchip trigger (.i-ddt) opening a floating .i-ddmenu, hidden until its .i-dd
    carries .open (the filters controller toggles it, one at a time, and closes it
    on Escape or an outside click). Ported here onto patrol's token bridge — the
-   same self-sufficiency as .factband — so the patrol bar carries its own filter
+   same self-sufficiency as .patrol-factband — so the patrol bar carries its own filter
    chrome without depending on incidents.css.
 
    The OPTIONS drive patrol's real-time filter (they publish the patrol:filter
@@ -342,21 +331,22 @@
 .patrol-daypill .chip { cursor: pointer; }
 
 /* ---- the identity band (PL·02) ----------------------------------------- */
-/* THE PLATFORM'S SHARED .factband — the identity band every entity-detail
-   screen in the installation wears below the tabs (the area overview, a patrol,
-   an observation, a station). The settled patrol designs moved the detail
-   screens' facts out of a sidebar "meta" card and onto this band, so both
-   detail screens now carry it.
+/* THE IDENTITY BAND a patrol and an observation wear below the tabs. The
+   settled patrol designs moved the detail screens' facts out of a sidebar
+   "meta" card and onto this band, so both detail screens carry it.
 
-   Its CANONICAL copy currently lives in uhifadhi/area-module (area.css); it is
-   mirrored here — verbatim, from the host tokens, so it flips with the theme —
-   because a patrol screen does not load the area sheet, and area-module is the
-   accident of where the rule first landed, not its home. FOLLOW-UP: promote
-   .factband to uhifadhi/shell-module (shell.css, beside .pghead/.crumb) so the
-   platform frame owns it once and both consumers drop their copies. Until then
-   this is the same header-commented mirror the design workspace uses for any
-   platform-derived rule ported ahead of its final home. */
-.factband {
+   IT IS PREFIXED, and that is the whole of what is deliberate here. The same
+   band is drawn by the area overview from AreaBundle's own sheet, under the
+   bare name `.factband` — and a patrol screen does not link that sheet, so this
+   module cannot simply use it. Two sheets defining one bare name is the case
+   the conformance rule exists to stop: on the area overview, where this sheet
+   IS linked beside area's, the page would carry two definitions of one
+   component and render whichever loaded last.
+
+   FOLLOW-UP: the band belongs in the shell, beside .pghead and .crumb, where
+   every entity-detail screen in the installation can draw it once. When it
+   lands there both copies go, this one included. */
+.patrol-factband {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
@@ -368,12 +358,12 @@
     background: rgb(var(--c-raised));
 }
 /* Each fact carries its own padding and a hairline divider from the previous —
-   the canonical band's rhythm (uhifadhi.css .factband), not a flat gap. */
-.factband .f { display: flex; flex-direction: column; gap: 2px; padding: 9px 16px; position: relative; }
-.factband .f + .f::before {
+   the canonical band's rhythm (uhifadhi.css .patrol-factband), not a flat gap. */
+.patrol-factband .f { display: flex; flex-direction: column; gap: 2px; padding: 9px 16px; position: relative; }
+.patrol-factband .f + .f::before {
     content: ''; position: absolute; left: 0; top: 11px; bottom: 11px; width: 1px; background: var(--c-ln);
 }
-.factband .k {
+.patrol-factband .k {
     font-family: var(--font-mono);
     font-size: 8.5px;
     font-weight: 600;
@@ -381,18 +371,18 @@
     text-transform: uppercase;
     color: rgb(var(--c-dim));
 }
-.factband .v { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.factband .v em { font-style: normal; font-size: 10.5px; font-weight: 500; color: rgb(var(--c-fog)); margin-left: 3px; }
-.factband .sp { flex: 1; }
-.factband .more {
+.patrol-factband .v { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.patrol-factband .v em { font-style: normal; font-size: 10.5px; font-weight: 500; color: rgb(var(--c-fog)); margin-left: 3px; }
+.patrol-factband .sp { flex: 1; }
+.patrol-factband .more {
     font-family: var(--font-mono); font-size: 9.5px; font-weight: 600;
     letter-spacing: .1em; text-transform: uppercase; color: rgb(var(--c-fog));
     text-decoration: none; white-space: nowrap; padding: 9px 15px;
 }
-.factband .more:hover { color: rgb(var(--c-acc)); }
+.patrol-factband .more:hover { color: rgb(var(--c-acc)); }
 /* Narrow: the band wraps, and a divider between two facts that are now on
    different lines would be a stray tick — drop it, as the canonical band does. */
-@media (max-width: 900px) { .factband .f + .f::before { display: none; } }
+@media (max-width: 900px) { .patrol-factband .f + .f::before { display: none; } }
 
 /* ---- detail screens: plate + sidebar ----------------------------------- */
 /* The settled layout for both detail screens: a plate card (flex 2) beside a

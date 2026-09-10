@@ -41,9 +41,9 @@
        first), and a patrol with a single observation renders none. #}
     {% if prev and next %}
         <span class="patrol-obsnav" aria-label="Observations of patrol {{ patrol.ref }}">
-            <a class="tgl patrol-obsnav-a" href="{{ prev.url }}" rel="prev" title="Observation {{ prev.n }} — {{ prev.category }}" aria-label="Previous observation: {{ prev.n }} of {{ total }}, {{ prev.category }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></a>
+            <a class="tgl patrol-obsnav-a" href="{{ prev.url }}" rel="prev" title="Observation {{ prev.n }} — {{ prev.category }}" aria-label="Previous observation: {{ prev.n }} of {{ total }}, {{ prev.category }}">{{ ux_icon('shell:chevron-left') }}</a>
             <span class="patrol-obsnav-c">{{ n }} / {{ total }}</span>
-            <a class="tgl patrol-obsnav-a" href="{{ next.url }}" rel="next" title="Observation {{ next.n }} — {{ next.category }}" aria-label="Next observation: {{ next.n }} of {{ total }}, {{ next.category }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+            <a class="tgl patrol-obsnav-a" href="{{ next.url }}" rel="next" title="Observation {{ next.n }} — {{ next.category }}" aria-label="Next observation: {{ next.n }} of {{ total }}, {{ next.category }}">{{ ux_icon('patrol:chevron-right') }}</a>
         </span>
     {% endif %}
     {# The incidents seam: the URL exists only when the host installs an
@@ -58,7 +58,7 @@
 <a href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}" class="backbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Patrol {{ patrol.ref }}</a>
 
 {# THE IDENTITY BAND — the observation's own facts, in the platform's shared
-   .factband, below the tabs. This is the settled design's PL·02: the meta moved
+   .patrol-factband, below the tabs. This is the settled design's PL·02: the meta moved
    out of a sidebar card and onto the band every entity-detail screen wears, and
    it ends with the "The patrol →" more-link back up to the parent record.
 
@@ -67,7 +67,7 @@
    identity the bundle stores for neither observation nor patrol; Status
    ("linked to incident draft") lives in the incidents module, which need not be
    installed. An empty fact would be a claim about evidence that isn't true. #}
-<div class="factband">
+<div class="patrol-factband">
     <span class="f"><span class="k">Observation</span><span class="v">{{ n }} of {{ total }}<em>{{ patrol.ref }}</em></span></span>
     <span class="f"><span class="k">Category</span><span class="v">{{ categoryLabel|lower }}</span></span>
     {% if observation.loggedAt %}<span class="f"><span class="k">Logged</span><span class="v">{{ ui.stamp(observation.loggedAt) }}</span></span>{% endif %}
@@ -240,7 +240,7 @@
    form is what the Amend button opens, not a second card that is always there.
    ═════════════════════════════════════════════════════════════════════════ #}
 <div class="patrol-detail-row patrol-detail-row-bottom">
-    <div class="c patrol-amd-card" id="patrol-amd" data-patrol-amendments>
+    <div class="c" id="patrol-amd" data-patrol-amendments>
         <span class="tab">Amendments<span class="src">{% if amendments|length %}· {{ amendments|length }} {% endif %}· append-only</span></span>
 
         {% if amendments|length %}
@@ -335,7 +335,7 @@
                        ranger is looking at — the note, where it was, when it was —
                        not "field", "attribute" or "property". A radio group, so one
                        is always chosen and it submits without a line of JavaScript. #}
-                    <div class="frow">
+                    <div class="patrol-frow">
                         <label>correcting</label>
                         <div class="patrol-amd-chips">
                             {% for kind in amendmentKinds %}
@@ -347,7 +347,7 @@
                         </div>
                     </div>
 
-                    <div class="frow">
+                    <div class="patrol-frow">
                         <label for="patrol-amd-body">what is right</label>
                         <textarea class="fld" id="patrol-amd-body" name="body" rows="4" required
                                   placeholder="Say what is right, in your own words. The original stays as it is."></textarea>
@@ -357,25 +357,25 @@
                        rather than adding one: what they quote here is shown under
                        "as it was recorded". Typed rather than derived, because only
                        the amender knows which sentence they are correcting. #}
-                    <div class="frow">
+                    <div class="patrol-frow">
                         <label for="patrol-amd-was">as it was recorded</label>
                         <input class="fld" type="text" id="patrol-amd-was" name="supersedes"
                                placeholder="Optional — the words this corrects, quoted beside yours.">
                     </div>
 
-                    <div class="frow">
+                    <div class="patrol-frow">
                         <label for="patrol-amd-photo">photo</label>
                         <input class="fld" type="file" id="patrol-amd-photo" name="photo" accept="image/*">
                     </div>
 
-                    <div class="frow">
+                    <div class="patrol-frow">
                         <label>signed</label>
                         <div class="patrol-amd-signed">{{ ui.person_name(app.user) }} · <span class="mono"><time datetime="{{ 'now'|date('c') }}" data-localtime-format="date">{{ 'now'|date('D j M Y')|lower }}</time></span></div>
                     </div>
 
                     <div class="patrol-amd-keep"><span>The original note, its position, its time and its photographs are not touched. This is added underneath them and signed with your name.</span></div>
 
-                    <div class="save-row">
+                    <div class="patrol-save-row">
                         <a class="tgl" href="{{ path('patrol_observation_show', {uuid: area.uuid, patrol: patrol.uuid, observation: observation.uuid}) }}">Cancel</a>
                         <button class="cta" type="submit">Add amendment</button>
                     </div>

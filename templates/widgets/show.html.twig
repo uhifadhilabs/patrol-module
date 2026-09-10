@@ -43,8 +43,8 @@
             data-confirm-modal-title-value="Reset your widget layout?"
             data-confirm-modal-message-value="This area's patrols dashboard goes back to the composition the module ships with. Your own presets are kept, and your other areas are untouched."
             data-confirm-modal-confirm-label-value="Reset layout"
-            data-confirm-modal-danger-value="true">{{ ux_icon('lucide:rotate-ccw') }}Reset to defaults</button>
-    <a class="cta" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">{{ ux_icon('lucide:chevron-left') }}Back to dashboard</a>
+            data-confirm-modal-danger-value="true">{{ ux_icon('shell:rotate-ccw') }}Reset to defaults</button>
+    <a class="cta" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">{{ ux_icon('shell:chevron-left') }}Back to dashboard</a>
 {% endblock %}
 
 {% block patrol_page %}

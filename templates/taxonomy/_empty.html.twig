@@ -8,7 +8,7 @@
    ========================================================================== #}
 <div class="tx-empty">
   <div class="top">
-    <div class="ic">{{ ux_icon('lucide:layers', {width: 38, height: 38}) }}</div>
+    <div class="ic">{{ ux_icon('shell:layers', {width: 38, height: 38}) }}</div>
     <h3>{{ area.name }} has no observation kinds yet</h3>
     <p>A ranger patrolling this area has nothing to log against until it says what kinds of observation there are.
     <b>The words are this area&rsquo;s to choose</b> — the platform ships with none and will never suggest any. Write
@@ -18,7 +18,7 @@
     <form class="tx-form" method="post" action="{{ path('patrol_taxonomy_kind_create', {uuid: area.uuid}) }}" style="justify-content:center">
       <input type="hidden" name="_token" value="{{ csrfToken }}">
       <input class="tx-input" type="text" name="label" placeholder="e.g. Wildlife" required style="min-width:280px">
-      <button class="tx-cta" type="submit">{{ ux_icon('lucide:plus', {width: 15, height: 15}) }} Write the first observation kind</button>
+      <button class="tx-cta" type="submit">{{ ux_icon('shell:plus', {width: 15, height: 15}) }} Write the first observation kind</button>
     </form>
   </div>
 
@@ -73,7 +73,7 @@
       renaming is safe. Nothing is ever deleted: a row you stop using is <b>retired</b>, and the observations
       already filed under it keep it.</div></div>
   </div>
-  <div class="tx-docs">{{ ux_icon('lucide:book-open', {width: 14, height: 14}) }}<span>Not sure where to start?
+  <div class="tx-docs">{{ ux_icon('patrol:book-open', {width: 14, height: 14}) }}<span>Not sure where to start?
     <a href="#">How other areas structure a taxonomy</a> — in the documentation, deliberately not in the
     product.</span></div>
 </div>

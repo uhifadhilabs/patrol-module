@@ -134,6 +134,29 @@ final class UhifadhiPatrolBundle extends AbstractBundle
             ]);
         }
 
+        /*
+         * THE GLYPHS THIS MODULE DRAWS, SHIPPED WITH IT AND RESOLVED FROM DISK.
+         *
+         * An icon set maps a prefix to a single directory, and a prefix so
+         * mapped is answered ONLY from that directory — the lookup never falls
+         * back to an installation's icon_dir. So each package answers for its
+         * own alias and no other: the shell's marks stay reachable as `shell:`,
+         * and everything this module draws of its own is `patrol:`. A public
+         * library's prefix is never named from a bundle, `lucide:` included —
+         * that word belongs to the installation, which may answer it with its
+         * own artwork or, on a deployment with fetching disabled, not at all.
+         *
+         * @see https://symfony.com/bundles/ux-icons/current/index.html#full-configuration
+         * @see vendor/uhifadhi/uhifadhi/src/Uhifadhi/Bundle/ShellBundle/ShellBundle.php
+         */
+        if ($builder->hasExtension('ux_icons')) {
+            $container->extension('ux_icons', [
+                'icon_sets' => [
+                    'patrol' => ['path' => __DIR__.'/../assets/icons/patrol'],
+                ],
+            ]);
+        }
+
         // Zero-config persistence: the bundle maps its own entities, so hosts
         // never write a doctrine mappings block for patrol_* tables.
         if ($builder->hasExtension('doctrine')) {

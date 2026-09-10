@@ -13,7 +13,7 @@
     <span class="tab">Coverage + log<span class="src">· one filter, one viewport, one list</span></span>
     {{ ui.filters(dashboard, types, typeColor, now, area, month|default(now)) }}
     <div class="patrol-maplog-split">
-        <div class="patrol-maplog-map plate-fill">
+        <div class="patrol-maplog-map">
             {{ ui.viewer(coveragePayload, 'Patrol tracks') }}
         </div>
         <div class="patrol-maplog-list">

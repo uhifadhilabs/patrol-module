@@ -13,11 +13,11 @@
 {% set retiredKinds = kinds|length - activeKinds %}
 <div class="tx-mgr">
   <div class="tx-kinds">
-    <div class="tx-pane-hd"><b>Observation kinds</b><span class="tx-scope">{{ ux_icon('lucide:map-pin', {width: 11, height: 11}) }}{{ area.name }}</span><span class="cnt" style="margin-left:9px">{{ activeKinds }}{% if retiredKinds %} &middot; {{ retiredKinds }} retired{% endif %}</span></div>
+    <div class="tx-pane-hd"><b>Observation kinds</b><span class="tx-scope">{{ ux_icon('patrol:map-pin', {width: 11, height: 11}) }}{{ area.name }}</span><span class="cnt" style="margin-left:9px">{{ activeKinds }}{% if retiredKinds %} &middot; {{ retiredKinds }} retired{% endif %}</span></div>
 
     {% for kind in kinds %}
       <a class="tx-kind{{ kind is same as(selected) ? ' on' }}{{ not kind.active ? ' off' }}" href="{{ path('patrol_taxonomy', {uuid: area.uuid, kind: kind.uuid}) }}">
-        <span class="grip">{{ ux_icon('lucide:grip-vertical', {width: 11, height: 11}) }}</span>
+        <span class="grip">{{ ux_icon('shell:grip-vertical', {width: 11, height: 11}) }}</span>
         <span class="dot"></span>
         <span class="nm">{{ kind.label }}<em>{{ kind.code }}</em></span>
         <span class="n">{% if kind.activeSubcategoryCount %}{{ kind.activeSubcategoryCount }} subs{% else %}no subs{% endif %}</span>
@@ -29,7 +29,7 @@
     <form class="tx-form" method="post" action="{{ path('patrol_taxonomy_kind_create', {uuid: area.uuid}) }}" style="padding:11px 13px;gap:7px;border-top:1px dashed color-mix(in srgb,var(--fog) 28%,transparent)">
       <input type="hidden" name="_token" value="{{ csrfToken }}">
       <input class="tx-input" type="text" name="label" placeholder="New observation kind" required style="flex:1">
-      <button class="tx-cta" type="submit">{{ ux_icon('lucide:plus', {width: 13, height: 13}) }} Add</button>
+      <button class="tx-cta" type="submit">{{ ux_icon('shell:plus', {width: 13, height: 13}) }} Add</button>
     </form>
   </div>
 
@@ -46,7 +46,7 @@
         <form class="tx-form" method="post" action="{{ path('patrol_taxonomy_kind_rename', {uuid: area.uuid, kind: selected.uuid}) }}" style="margin-top:10px">
           <input type="hidden" name="_token" value="{{ csrfToken }}">
           <input class="tx-input" type="text" name="label" value="{{ selected.label }}" aria-label="Rename this kind" required>
-          <button class="tx-act" type="submit">{{ ux_icon('lucide:file-pen', {width: 12, height: 12}) }} Rename</button>
+          <button class="tx-act" type="submit">{{ ux_icon('patrol:file-pen', {width: 12, height: 12}) }} Rename</button>
         </form>
       </div>
       <div class="acts">
@@ -54,12 +54,12 @@
         {% if selected.active %}
           <form class="tx-actform" method="post" action="{{ path('patrol_taxonomy_kind_deactivate', {uuid: area.uuid, kind: selected.uuid}) }}">
             <input type="hidden" name="_token" value="{{ csrfToken }}">
-            <button class="tx-act warn" type="submit">{{ ux_icon('lucide:power', {width: 12, height: 12}) }} Deactivate</button>
+            <button class="tx-act warn" type="submit">{{ ux_icon('patrol:power', {width: 12, height: 12}) }} Deactivate</button>
           </form>
         {% else %}
           <form class="tx-actform" method="post" action="{{ path('patrol_taxonomy_kind_reactivate', {uuid: area.uuid, kind: selected.uuid}) }}">
             <input type="hidden" name="_token" value="{{ csrfToken }}">
-            <button class="tx-act" type="submit">{{ ux_icon('lucide:rotate-ccw', {width: 12, height: 12}) }} Reactivate</button>
+            <button class="tx-act" type="submit">{{ ux_icon('shell:rotate-ccw', {width: 12, height: 12}) }} Reactivate</button>
           </form>
         {% endif %}
       </div>
@@ -70,26 +70,26 @@
 
       {% for sub in selected.subcategories %}
         <div class="tx-sub{{ not sub.active ? ' off' }}">
-          <span class="grip">{{ ux_icon('lucide:grip-vertical', {width: 11, height: 11}) }}</span>
+          <span class="grip">{{ ux_icon('shell:grip-vertical', {width: 11, height: 11}) }}</span>
           <div class="bd">
             <div class="nm"><b>{{ sub.label }}</b><span class="tx-code locked">{{ sub.code }}</span>{% if not sub.active %} <span class="tx-retired">retired</span>{% endif %}</div>
             {# → POST …/subcategories/{uuid}/rename {label} — the wire-code never changes #}
             <form class="tx-form" method="post" action="{{ path('patrol_taxonomy_sub_rename', {uuid: area.uuid, sub: sub.uuid}) }}" style="margin-top:8px">
               <input type="hidden" name="_token" value="{{ csrfToken }}">
               <input class="tx-input" type="text" name="label" value="{{ sub.label }}" aria-label="Rename this sub-category" required style="flex:1">
-              <button class="tx-act" type="submit">{{ ux_icon('lucide:file-pen', {width: 12, height: 12}) }} Rename</button>
+              <button class="tx-act" type="submit">{{ ux_icon('patrol:file-pen', {width: 12, height: 12}) }} Rename</button>
             </form>
           </div>
           <div class="acts">
             {% if sub.active %}
               <form class="tx-actform" method="post" action="{{ path('patrol_taxonomy_sub_deactivate', {uuid: area.uuid, sub: sub.uuid}) }}">
                 <input type="hidden" name="_token" value="{{ csrfToken }}">
-                <button class="tx-act warn" type="submit">{{ ux_icon('lucide:power', {width: 12, height: 12}) }} Deactivate</button>
+                <button class="tx-act warn" type="submit">{{ ux_icon('patrol:power', {width: 12, height: 12}) }} Deactivate</button>
               </form>
             {% else %}
               <form class="tx-actform" method="post" action="{{ path('patrol_taxonomy_sub_reactivate', {uuid: area.uuid, sub: sub.uuid}) }}">
                 <input type="hidden" name="_token" value="{{ csrfToken }}">
-                <button class="tx-act" type="submit">{{ ux_icon('lucide:rotate-ccw', {width: 12, height: 12}) }} Reactivate</button>
+                <button class="tx-act" type="submit">{{ ux_icon('shell:rotate-ccw', {width: 12, height: 12}) }} Reactivate</button>
               </form>
             {% endif %}
           </div>
@@ -100,7 +100,7 @@
       <form class="tx-form" method="post" action="{{ path('patrol_taxonomy_sub_create', {uuid: area.uuid, kind: selected.uuid}) }}" style="padding:13px 18px">
         <input type="hidden" name="_token" value="{{ csrfToken }}">
         <input class="tx-input" type="text" name="label" placeholder="New sub-category under {{ selected.label }}" required style="flex:1">
-        <button class="tx-cta" type="submit">{{ ux_icon('lucide:plus', {width: 13, height: 13}) }} Add sub-category</button>
+        <button class="tx-cta" type="submit">{{ ux_icon('shell:plus', {width: 13, height: 13}) }} Add sub-category</button>
       </form>
     </div>
   </div>

@@ -97,7 +97,7 @@
         <span class="i-dd" data-patrol-dd {{ stimulus_target('@uhifadhi/patrol-module/filters', 'stationMenu') }}>
             <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
                     {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
-                <span class="i-ddval" {{ stimulus_target('@uhifadhi/patrol-module/filters', 'stationLabel') }}>station</span><span class="i-ddcaret">&#9662;</span>
+                <span {{ stimulus_target('@uhifadhi/patrol-module/filters', 'stationLabel') }}>station</span><span class="i-ddcaret">&#9662;</span>
             </button>
             <div class="i-ddmenu" data-patrol-dd-menu role="listbox" aria-label="Filter by station">
                 <span class="i-ddhead">station</span>
@@ -125,7 +125,7 @@
         <span class="i-dd" data-patrol-dd {{ stimulus_target('@uhifadhi/patrol-module/filters', 'zoneMenu') }}>
             <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
                     {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
-                <span class="i-ddval" {{ stimulus_target('@uhifadhi/patrol-module/filters', 'zoneLabel') }}>zone</span><span class="i-ddcaret">&#9662;</span>
+                <span {{ stimulus_target('@uhifadhi/patrol-module/filters', 'zoneLabel') }}>zone</span><span class="i-ddcaret">&#9662;</span>
             </button>
             <div class="i-ddmenu" data-patrol-dd-menu role="listbox" aria-label="Filter by zone">
                 <span class="i-ddhead">zone</span>
@@ -155,7 +155,7 @@
             <span class="i-dd patrol-dd-chosen" data-patrol-dd>
                 <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
                         {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
-                    <span class="i-ddval">{{ month|date('F Y')|lower }}</span><span class="i-ddcaret">&#9662;</span>
+                    <span>{{ month|date('F Y')|lower }}</span><span class="i-ddcaret">&#9662;</span>
                 </button>
                 <div class="i-ddmenu" data-patrol-dd-menu role="listbox" aria-label="Choose month">
                     <span class="i-ddhead">month</span>
