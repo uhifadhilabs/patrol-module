@@ -32,6 +32,7 @@ use Uhifadhi\Patrol\Service\GpxParser;
 use Uhifadhi\Patrol\Service\GpxWriter;
 use Uhifadhi\Patrol\Service\ObservationAmendmentService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\PatrolHoldService;
 use Uhifadhi\Patrol\Service\PatrolRecordingService;
 use Uhifadhi\Patrol\Service\PatrolWidgetUrls;
 use Uhifadhi\Patrol\Service\TaxonomyAdminService;
@@ -93,6 +94,15 @@ return static function (ContainerConfigurator $container): void {
             // off a handset.
             service('storage.evidence_storage'),
         ]);
+
+    /*
+     * HOLDING A DISCARDED PATROL back from the purge, and letting it go again.
+     * Unconditional beside the other two writes, and for the same reason: the
+     * rule about which patrols have a clock to stop is domain logic, and only
+     * the door that fronts it is guarded.
+     */
+    $services->set('patrol.hold', PatrolHoldService::class)
+        ->args([service('doctrine.orm.entity_manager')]);
 
     /*
      * The hand-written patrol's write path — the log screen's half of what

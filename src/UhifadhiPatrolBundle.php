@@ -401,11 +401,11 @@ final class UhifadhiPatrolBundle extends AbstractBundle
             // is no authorization checker to enforce "patrols.record".
             $services->set('patrol.controller.hold', PatrolHoldController::class)
                 ->args([
-                    service('doctrine.orm.entity_manager'),
                     service('router'),
                     service('security.authorization_checker'),
                     service('security.token_storage'),
                     service('security.csrf.token_manager'),
+                    service('patrol.hold'),
                 ])
                 ->public();
             $services->alias(PatrolHoldController::class, 'patrol.controller.hold')->public();

@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Controller;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -30,7 +29,9 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Exception\PatrolNotDiscardedException;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
+use Uhifadhi\Patrol\Service\PatrolHoldService;
 
 /**
  * Hold a discarded patrol for review, and let it go again.
@@ -59,6 +60,10 @@ use Uhifadhi\Patrol\Module\PatrolModuleProvider;
  * screens and for the same reason — see PatrolRecordController's docblock and
  * UhifadhiPatrolBundle::loadExtension().
  *
+ * THE WRITE ITSELF IS NOT HERE — PatrolHoldService holds and releases, and owns
+ * the rule about which patrols have a clock at all. This screen asks who is
+ * posting, checks the token, and responds.
+ *
  * A plain class, not a Symfony AbstractController subclass — see PatrolController
  * and config/services.php for the reusable-bundle rule.
  */
@@ -68,11 +73,11 @@ use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 final class PatrolHoldController
 {
     public function __construct(
-        private readonly EntityManagerInterface $entityManager,
         private readonly UrlGeneratorInterface $urls,
         private readonly AuthorizationCheckerInterface $authorizationChecker,
         private readonly TokenStorageInterface $tokenStorage,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly PatrolHoldService $holds,
     ) {
     }
 
@@ -102,20 +107,18 @@ final class PatrolHoldController
         $this->denyUnlessRecorder();
         $this->denyUnlessCsrfValid($patrol, $request);
 
-        // Only a discarded patrol has a clock to stop. Holding anything else
-        // would be a control with no effect, and a 404 says that plainly rather
-        // than storing a flag nothing reads.
-        if (!$patrol->isDiscarded()) {
-            throw new NotFoundHttpException('Only a discarded patrol can be held for review.');
+        // Only a discarded patrol has a clock to stop, and the write says so.
+        // Here that refusal becomes a 404, which states plainly that there is no
+        // such control on this patrol rather than storing a flag nothing reads.
+        try {
+            if ($request->request->getBoolean('hold')) {
+                $this->holds->hold($patrol, $this->currentUser());
+            } else {
+                $this->holds->release($patrol);
+            }
+        } catch (PatrolNotDiscardedException $notDiscarded) {
+            throw new NotFoundHttpException('Only a discarded patrol can be held for review.', $notDiscarded);
         }
-
-        if ($request->request->getBoolean('hold')) {
-            $patrol->hold($this->currentUser());
-        } else {
-            $patrol->release();
-        }
-
-        $this->entityManager->flush();
 
         return new RedirectResponse($this->urls->generate('patrol_show', [
             'uuid' => $area->getUuid(),
