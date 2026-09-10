@@ -22,6 +22,7 @@ use Uhifadhi\Bundle\AtlasBundle\Model\AtlasMap;
 use Uhifadhi\Bundle\AtlasBundle\Model\Boundary;
 use Uhifadhi\Bundle\AtlasBundle\Model\GeoJsonLayer;
 use Uhifadhi\Bundle\AtlasBundle\Model\LayerShape;
+use Uhifadhi\Bundle\AtlasBundle\Model\LayerStyle;
 use Uhifadhi\Bundle\AtlasBundle\Model\LegendItem;
 
 /**
@@ -60,6 +61,38 @@ final readonly class PatrolMapService
     public const string OBSERVATION_SWATCH = '#DBA33F';
     public const string STATION_SWATCH = '#B9C8BD';
 
+    /**
+     * The feature property a track's hover label is read from — "ref · type",
+     * composed once here so the words a reader sees on a line are the words of
+     * the legend row beside it.
+     *
+     * NOT `label`: that property is the atlas's PERMANENT halo, and a hundred
+     * routes each wearing one is a field of text with a map somewhere behind it.
+     * This is stated as the layer's `tooltip`, which the plate reads on hover
+     * and nowhere else.
+     */
+    public const string TOOLTIP_PROPERTY = 'tip';
+
+    /** The covered-ground layer's id, and what its legend row switches. */
+    public const string COVERAGE_LAYER = 'patrol.coverage';
+
+    /** What that row says; the distance is PL·03's own, in the KPI's words. */
+    public const string COVERAGE_LABEL = '2 km coverage buffer';
+
+    /** The quiet green the covered ground is drawn in — the atlas's own line colour. */
+    public const string COVERAGE_SWATCH = '#3ED9A8';
+
+    /**
+     * The pane the covered ground is drawn in. Leaflet's overlay pane is 400, so
+     * a lower number puts this beneath every route, endpoint and station on the
+     * plate — whatever order the layers were added in, and however many layers a
+     * deployment's types add above it. Which is what "the ground those routes
+     * covered" has to look like: under them, never over them.
+     *
+     * @see https://leafletjs.com/reference.html#map-pane
+     */
+    public const int COVERAGE_Z_INDEX = 390;
+
     /** The fallback for a patrol whose type the deployment has since dropped. */
     private const string DEFAULT_SWATCH = '#3ED9A8';
 
@@ -75,11 +108,13 @@ final readonly class PatrolMapService
      * @param array{boundary: string|null, patrols: list<array{uuid: string, ref: string, type: string, station: string, zone: string, color: string, track: string}>, stations: list<array{name: string, lon: float, lat: float}>} $payload
      * @param array<string, array{label: string}>                                                                                                                                                                                   $types
      * @param array<string, string>                                                                                                                                                                                                 $typeColor
+     * @param string|null                                                                                                                                                                                                           $coverage  the covered ground as GeoJSON text, from {@see \Uhifadhi\Patrol\Repository\PatrolRepository::coverageBufferGeoJson()}; null where the month recorded no track
      */
-    public function coverage(array $payload, array $types, array $typeColor): AtlasMap
+    public function coverage(array $payload, array $types, array $typeColor, ?string $coverage = null): AtlasMap
     {
         $map = $this->maps->createMap();
         $this->drawBoundary($map, $payload['boundary'], scrim: true);
+        $this->drawCoverage($map, $coverage);
 
         // Grouped before anything is drawn, so a type the deployment configured
         // but nobody patrolled still reaches the legend and still says zero.
@@ -94,6 +129,9 @@ final readonly class PatrolMapService
             $byType[$patrol['type']][] = self::feature($geometry, [
                 'ref' => $patrol['ref'],
                 'color' => $patrol['color'],
+                // What a hover says, composed here so the line and the legend
+                // row use the same word for the same type.
+                self::TOOLTIP_PROPERTY => \sprintf('%s · %s', $patrol['ref'], mb_strtolower($types[$patrol['type']]['label'] ?? $patrol['type'])),
             ]);
 
             foreach (self::endpoints($geometry) as $end) {
@@ -111,6 +149,10 @@ final readonly class PatrolMapService
                 visible: [] !== $features,
                 count: \count($features),
                 group: self::PATROLS_GROUP,
+                // A hover names the route; a row in the log beside the map
+                // spotlights it by the same reference the row prints.
+                tooltip: self::TOOLTIP_PROPERTY,
+                featureId: 'ref',
             ));
         }
 
@@ -282,6 +324,41 @@ final readonly class PatrolMapService
             $current ? '1' : '.55',
             self::OBSERVATION_SWATCH,
             $number,
+        ));
+    }
+
+    /**
+     * THE GROUND THE MONTH'S ROUTES COVERED — PL·03's number, drawn.
+     *
+     * The KPI states the share of the area within 2 km of a track; this is the
+     * very same set operation as a shape, so a reader can see WHERE that share
+     * is instead of only how large it was. The map-legend contract is why it is
+     * a real layer with a real row: a legend entry with nothing behind it is a
+     * legend nobody can rely on.
+     *
+     * It is the MONTH's coverage, never the filtered view's, exactly as the KPI
+     * beside it is — the shape on the plate and the number in the strip must be
+     * the same measurement or one of them is lying.
+     *
+     * A month that recorded no track still gets the layer and still gets the
+     * row, holding nothing: that is how "no coverage recorded" is said without
+     * it being mistaken for "not measured".
+     */
+    private function drawCoverage(AtlasMap $map, ?string $coverage): void
+    {
+        $geometry = self::decode($coverage);
+
+        $map->addLayer(new GeoJsonLayer(
+            id: self::COVERAGE_LAYER,
+            label: self::COVERAGE_LABEL,
+            features: self::collection(null === $geometry ? [] : [self::feature($geometry)]),
+            swatch: self::COVERAGE_SWATCH,
+            shape: LayerShape::Fill,
+            visible: null !== $geometry,
+            // A count would be the number of polygons the union happened to
+            // come out as, which says nothing about coverage.
+            group: self::PATROLS_GROUP,
+            style: new LayerStyle(weight: 0.0, fillOpacity: 0.16, zIndex: self::COVERAGE_Z_INDEX),
         ));
     }
 

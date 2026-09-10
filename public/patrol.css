@@ -170,11 +170,6 @@
 .patrol-right { text-align: right; }
 .patrol-empty { font-size: 12px; color: rgb(var(--c-fog)); line-height: 1.5; }
 
-/* ---- rows a filter can hide -------------------------------------------- */
-/* One class for a table row and a feed row alike: the rows controller toggles
-   it, and `hidden` alone would lose to the rows' own display rules. */
-.patrol-hidden { display: none !important; }
-
 /* ---- patrol feed rows (PL·07) ------------------------------------------ */
 /* Named patrol-* rather than reusing the host's .avatar/.who: the host's .who is
    its top-bar user chip (display:flex) and its .avatar is the 30px round chip —

@@ -19,6 +19,7 @@ use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Model\PatrolFilter;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 
 /**
@@ -95,7 +96,7 @@ final class PatrolDashboardServiceTest extends TestCase
 
         // Ask for FEBRUARY explicitly, though "now" is in March.
         $february = new \DateTimeImmutable('2026-02-01T00:00:00Z');
-        $dashboard = new PatrolDashboardService()->build($patrols, self::TYPES, $this->now, null, $february);
+        $dashboard = new PatrolDashboardService()->build($patrols, self::TYPES, $this->now, null, new PatrolFilter($february));
 
         self::assertSame(2, $dashboard->monthCount);
         self::assertCount(2, $dashboard->patrols, 'The log reads the chosen month, not the current one.');
@@ -104,6 +105,107 @@ final class PatrolDashboardServiceTest extends TestCase
         // The calendar is the chosen month too: February 2026 begins on a Sunday,
         // so a Monday-start grid opens on Jan 26.
         self::assertSame('2026-01-26', $dashboard->calendar[0]['date']->format('Y-m-d'));
+    }
+
+    /**
+     * ONE FILTER DRIVES EVERYTHING. Type, station and zone are query parameters
+     * now, so the narrowing happens HERE, once, and the map, the log, the KPIs
+     * and the charts are all readings of the same narrowed set — they cannot
+     * disagree the way three widgets answering a browser event could.
+     */
+    public function testTheFilterNarrowsEveryFigureOnTheScreenAtOnce(): void
+    {
+        $walkNorth = $this->patrol('walk', '2026-03-20T06:00:00Z', 10.0, 'North post');
+        $walkJetty = $this->patrol('walk', '2026-03-19T06:00:00Z', 4.0, 'Jetty');
+        $boatNorth = $this->patrol('boat', '2026-03-18T08:00:00Z', 20.5, 'North post');
+
+        $dashboard = new PatrolDashboardService()->build(
+            [$walkNorth, $walkJetty, $boatNorth],
+            self::TYPES,
+            $this->now,
+            null,
+            new PatrolFilter(new \DateTimeImmutable('2026-03-01T00:00:00Z'), type: 'walk'),
+        );
+
+        self::assertCount(2, $dashboard->patrols, 'The log reads the filtered set.');
+        self::assertSame(2, $dashboard->monthCount);
+        self::assertEqualsWithDelta(14.0, $dashboard->monthDistanceKm, 0.001);
+        self::assertSame(['walk' => 2, 'boat' => 0], $dashboard->typeCounts);
+        // The charts narrow too: no bar anywhere counts the boat patrol.
+        self::assertSame(0, array_sum(array_map(
+            static fn (array $week): int => $week['counts']['boat'] ?? 0,
+            $dashboard->weeklySeries,
+        )));
+        self::assertSame(
+            [['station' => 'North post', 'count' => 1], ['station' => 'Jetty', 'count' => 1]],
+            $dashboard->stationSeries,
+        );
+    }
+
+    /** Station and zone narrow the same way, and the calendar follows. */
+    public function testTheStationAndZoneAxesNarrowTheScreenToo(): void
+    {
+        $north = $this->patrol('walk', '2026-03-20T06:00:00Z', 10.0, 'North post');
+        $jetty = $this->patrol('boat', '2026-03-19T08:00:00Z', 20.5, 'Jetty');
+        $zones = [
+            $north->getUuid()->toRfc4122() => 'Highland',
+            $jetty->getUuid()->toRfc4122() => 'Basin floor',
+        ];
+        $march = new \DateTimeImmutable('2026-03-01T00:00:00Z');
+
+        $byStation = new PatrolDashboardService()->build(
+            [$north, $jetty],
+            self::TYPES,
+            $this->now,
+            null,
+            new PatrolFilter($march, station: 'North post'),
+            $zones,
+        );
+        self::assertCount(1, $byStation->patrols);
+        self::assertSame(1, $byStation->monthCount);
+
+        $byZone = new PatrolDashboardService()->build(
+            [$north, $jetty],
+            self::TYPES,
+            $this->now,
+            null,
+            new PatrolFilter($march, zone: 'Basin floor'),
+            $zones,
+        );
+        self::assertCount(1, $byZone->patrols);
+        self::assertSame($jetty->getRef(), $byZone->patrols[0]->getRef());
+        // The calendar draws the filtered set, so a filtered-out day is an empty day.
+        self::assertSame(1, array_sum(array_map(
+            static fn (array $cell): int => \count($cell['patrols']),
+            $byZone->calendar,
+        )));
+    }
+
+    /**
+     * THE MENUS STAY REACHABLE. The station you chose must not be the only one
+     * the station menu still offers, or the filter is a door that locks behind
+     * you. The menus are the month's, before the narrowing; the counts are after.
+     */
+    public function testTheFilterMenusListTheWholeMonthNotTheNarrowedView(): void
+    {
+        $north = $this->patrol('walk', '2026-03-20T06:00:00Z', 10.0, 'North post');
+        $jetty = $this->patrol('boat', '2026-03-19T08:00:00Z', 20.5, 'Jetty');
+        $zones = [
+            $north->getUuid()->toRfc4122() => 'Highland',
+            $jetty->getUuid()->toRfc4122() => 'Basin floor',
+        ];
+
+        $dashboard = new PatrolDashboardService()->build(
+            [$north, $jetty],
+            self::TYPES,
+            $this->now,
+            null,
+            new PatrolFilter(new \DateTimeImmutable('2026-03-01T00:00:00Z'), station: 'North post'),
+            $zones,
+        );
+
+        self::assertSame(['Jetty', 'North post'], $dashboard->stations);
+        self::assertSame(['Basin floor', 'Highland'], $dashboard->zones);
     }
 
     /**
@@ -223,7 +325,9 @@ final class PatrolDashboardServiceTest extends TestCase
         ], self::TYPES, $this->now);
 
         self::assertSame([['station' => 'North post', 'count' => 2], ['station' => 'Jetty', 'count' => 1]], $dashboard->stationSeries);
-        self::assertSame(['North post', 'Jetty'], $dashboard->stations);
+        // The CHART is ranked; the MENU is sorted, because a list somebody has to
+        // find a name in is read alphabetically, not by how busy the month was.
+        self::assertSame(['Jetty', 'North post'], $dashboard->stations);
     }
 
     public function testCalendarPlacesPatrolsOnTheirDays(): void

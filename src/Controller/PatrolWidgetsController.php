@@ -27,8 +27,10 @@ use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetEndpoint;
 use Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetService;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
+use Uhifadhi\Patrol\Model\PatrolFilter;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Service\PatrolCoverageService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
@@ -72,6 +74,7 @@ final class PatrolWidgetsController
         private readonly PatrolRepository $patrols,
         private readonly PatrolDashboardService $dashboard,
         private readonly PatrolMapService $plates,
+        private readonly PatrolCoverageService $coverage,
         // The library previews EVERY widget, including the direction widgets that
         // read the day's live state (out now, gaps, the observation queue), so it
         // needs the same reading the dashboard does — from the same service.
@@ -103,6 +106,10 @@ final class PatrolWidgetsController
         // the dashboard opens on it — one month, driven the same way.
         [$monthStart, $nextMonth] = PatrolDashboardService::monthRange($now);
         $patrolZones = $this->patrols->zonesForPatrols($area, $monthStart, $nextMonth);
+        // The library previews the widgets as they arrive: the current month,
+        // narrowed by nothing. A preview is not somebody's filtered view of a
+        // month, it is what the widget looks like.
+        $filter = new PatrolFilter($monthStart);
 
         $dashboard = $this->dashboard->build(
             $this->patrols->findByAreaLatestFirst($area),
@@ -116,7 +123,7 @@ final class PatrolWidgetsController
                 $monthStart,
                 $nextMonth,
             ),
-            $monthStart,
+            $filter,
             $patrolZones,
         );
 
@@ -139,12 +146,15 @@ final class PatrolWidgetsController
                 'typeColor' => PatrolDashboardService::typeColors($this->types),
                 'now' => $now,
                 'month' => $monthStart,
+                'filter' => $filter,
                 'patrolZones' => $patrolZones,
                 'dashboard' => $dashboard,
                 'map' => $this->plates->coverage(
                     $this->dashboard->coveragePayload($area->getGeom(), $dashboard, $this->types, $patrolZones),
                     $this->types,
                     PatrolDashboardService::typeColors($this->types),
+                    // The real coverage layer, so the previewed plate is the plate.
+                    $this->coverage->bufferFor($area, $monthStart, $nextMonth, $now),
                 ),
                 'retentionDays' => $this->retentionDays,
                 // The live reading the direction widgets bind, exactly as the

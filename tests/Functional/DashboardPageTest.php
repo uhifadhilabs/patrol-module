@@ -161,10 +161,10 @@ final class DashboardPageTest extends WebTestCase
         // Patrol log: one row per patrol, with the ref, the explicit lowercase
         // start ("sat 22 aug · 06:10"), the observation chip and Open →.
         self::assertCount(3, $crawler->filter('[data-patrol-log] tbody tr[data-patrol]'));
-        // Plus one row the rows controller reveals when a filter hides them all.
-        self::assertCount(1, $crawler->filter('[data-patrol-log] tbody tr.patrol-hidden'));
-        // Scoped to the log: the register row carries the patrol's identity, so
-        // the coverage map can spotlight its track from the list.
+        // A narrowed view that matches nothing renders no rows at all now, so
+        // there is no hidden stand-in row to reveal.
+        // Scoped to the log: the register row names the layer and the feature
+        // the coverage plate spotlights when the row is hovered.
         $row = $crawler->filter('[data-patrol-log] [data-patrol="'.$this->walkWithObservations->getUuid()->toRfc4122().'"]');
         self::assertCount(1, $row);
         self::assertStringContainsString($this->walkWithObservations->getRef(), $row->text());
@@ -233,17 +233,22 @@ final class DashboardPageTest extends WebTestCase
             'the patrol base must link the atlas map.css so the map chrome is visible',
         );
 
-        // The filter chips are real buttons carrying the type they select, so
-        // one filter can drive the map AND the log.
-        $chips = $crawler->filter('[data-w="map"] .patrol-chiprow button[data-patrol-type]');
+        // The filter chips are real LINKS carrying the query they select, so one
+        // request drives the map, the log AND the charts.
+        $chips = $crawler->filter('[data-w="map"] .patrol-chiprow a.mchip');
         self::assertCount(3, $chips); // all + the two configured types
-        self::assertSame('all', $chips->first()->attr('data-patrol-type'));
+        self::assertStringNotContainsString('type=', (string) $chips->first()->attr('href'));
 
-        // The log rows carry the identity the map spotlight reads — every row a
-        // patrol uuid AND its type — so hovering a row highlights its track. (This
-        // used to be asserted on the feed too; the feed is off the default now, so
-        // the register is the one list on the shipped screen that carries it.)
-        self::assertCount(3, $crawler->filter('[data-patrol-log] tbody tr[data-patrol][data-patrol-type]'));
+        // The log rows name what the coverage plate spotlights when one is
+        // hovered: the layer their own type is drawn in, and the reference that
+        // layer identifies a feature by. (This used to be asserted on the feed
+        // too; the feed is off the default now, so the register is the one list
+        // on the shipped screen that carries it.)
+        self::assertCount(3, $crawler->filter('[data-patrol-log] tbody tr[data-atlas-highlight]'));
+        self::assertSame(
+            'patrol.tracks.walk:'.$this->walkWithObservations->getRef(),
+            $crawler->filter('[data-patrol-log] tbody tr[data-patrol="'.$this->walkWithObservations->getUuid()->toRfc4122().'"]')->attr('data-atlas-highlight'),
+        );
 
         // Station markers: the design labels each station on the map. A station
         // has no coordinates of its own, so only stations whose patrols recorded
@@ -256,9 +261,8 @@ final class DashboardPageTest extends WebTestCase
         self::assertSame(['South landing', 'North post'], $stations);
         self::assertCount(
             1,
-            $crawler->filter('[data-patrol-log] .patrol-chiprow button[data-patrol-station="North post"]'),
+            $crawler->filter('[data-patrol-log] .patrol-chiprow a[data-patrol-station="North post"]'),
         );
-        self::assertCount(3, $crawler->filter('[data-patrol-log] tbody tr[data-patrol-station]'));
     }
 
     /**
@@ -344,8 +348,11 @@ final class DashboardPageTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-w="map"] .patrol-chiprow .patrol-ghost'));
         self::assertCount(0, $crawler->filter('[data-w="map"] .patrol-chiprow .patrol-monthchip'));
 
-        // Type stays a row of quick toggle chips (all + the two configured types).
-        self::assertCount(3, $crawler->filter('[data-w="map"] .patrol-chiprow button[data-patrol-type]'));
+        // Type stays a row of quick chips (all + the two configured types), and
+        // every one is a real link driving ?type= rather than a browser event.
+        $typeChips = $crawler->filter('[data-w="map"] .patrol-chiprow a.mchip');
+        self::assertCount(3, $typeChips);
+        self::assertStringContainsString('type=walk', (string) $typeChips->eq(1)->attr('href'));
     }
 
     /**

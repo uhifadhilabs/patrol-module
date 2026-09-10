@@ -25,8 +25,10 @@ use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetService;
 use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
+use Uhifadhi\Patrol\Model\PatrolFilter;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Service\PatrolCoverageService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
@@ -67,6 +69,9 @@ final class PatrolController
         private readonly PatrolRepository $patrols,
         private readonly PatrolDashboardService $dashboard,
         private readonly PatrolMapService $plates,
+        // The ground the month's routes covered, held for the day it was
+        // measured on — PL·03's set operation is real work on a busy month.
+        private readonly PatrolCoverageService $coverage,
         // The one place the day's live reading is measured — "out right now",
         // the zone gaps and the observation queue. The dashboard's direction
         // widgets (Out right now, Where nobody has been, Observations awaiting
@@ -94,11 +99,13 @@ final class PatrolController
         // and the calendar title are stated relative to the SAME instant.
         $now = new \DateTimeImmutable();
 
-        // ONE FILTER DRIVES EVERYTHING: the MONTH the map, log and charts read is
-        // the ?month=YYYY-MM the month dropdown drives, defaulting to the month
-        // containing "now". Untrusted like every query field — a month that does
-        // not parse degrades to the current month rather than throwing.
-        [$monthStart, $nextMonth] = self::windowFor($request, $now);
+        // ONE FILTER DRIVES EVERYTHING, and this is where it is read: type,
+        // station, zone and month, once, out of the query. The map, the log and
+        // the charts are all readings of the set it selects, so they cannot be
+        // answering different questions. Untrusted like every query field — an
+        // unreadable value widens the view rather than narrowing it.
+        $filter = PatrolFilter::fromRequest($request, $now);
+        [$monthStart, $nextMonth] = $filter->window();
 
         // The rows to LOAD are wider than the month: the calendar draws its dimmed
         // neighbours and the five-week chart runs back before the month — one
@@ -119,9 +126,11 @@ final class PatrolController
                 $monthStart,
                 $nextMonth,
             ),
-            $monthStart,
+            $filter,
             // The ZONE each patrol set out in — a live PostGIS spatial join
             // against the host's zone polygons, over exactly the month's rows.
+            // The zone FILTER reads it too, so a patrol is narrowed by the same
+            // answer the map draws it under.
             $patrolZones = $this->patrols->zonesForPatrols($area, $monthStart, $nextMonth),
         );
 
@@ -133,8 +142,11 @@ final class PatrolController
             // The month on screen — the filter's choice, so the bar can name it
             // and mark the chosen option, and the page can read one month.
             'month' => $monthStart,
-            // patrol id → zone name, so the log rows can carry data-patrol-zone
-            // and the client-side ZONE filter drives the map + log together.
+            // THE FILTER ITSELF, so every chip and option in the bar can link to
+            // the same question narrowed on one axis, and mark what is chosen.
+            'filter' => $filter,
+            // patrol id → zone name: the log rows name the zone each patrol set
+            // out in, which is what the ZONE options are chosen from.
             'patrolZones' => $patrolZones,
             'recordScreens' => $this->mayRecord(),
             'manageScreens' => $this->mayManage(),
@@ -151,6 +163,11 @@ final class PatrolController
                 $this->dashboard->coveragePayload($area->getGeom(), $dashboard, $this->types, $patrolZones),
                 $this->types,
                 PatrolDashboardService::typeColors($this->types),
+                // The ground the MONTH's routes covered — PL·03's own set
+                // operation, drawn. Not narrowed by the chips, exactly as the
+                // KPI beside it is not: the shape and the number are the same
+                // measurement or one of them is lying.
+                $this->coverage->bufferFor($area, $monthStart, $nextMonth, $now),
             ),
             // The live reading the off-by-default direction widgets need, from
             // the ONE service that measures it (see the overview service): who is
@@ -158,33 +175,6 @@ final class PatrolController
             // observation queue. A dashboard that shows none of these still pays
             // for them, which is cheap; a preset that shows them must have them.
         ] + $this->overview->dashboardReading($area, $now)));
-    }
-
-    /**
-     * THE MONTH THE DASHBOARD OPENS ON — the `month=YYYY-MM` the month dropdown
-     * drives, or the month containing "now" when it is absent or unreadable.
-     *
-     * Untrusted like every other query field: a hand-edited month that does not
-     * parse degrades to the current month rather than throwing. Mirrors the
-     * incidents dashboard's own window resolution, so the two modules read a
-     * chosen month the same way.
-     *
-     * @return array{0: \DateTimeImmutable, 1: \DateTimeImmutable} [monthStart, nextMonth]
-     */
-    public static function windowFor(Request $request, \DateTimeImmutable $now): array
-    {
-        // getString() is deliberate: a query bag holding an ARRAY for "month" is
-        // a bad request, and this coerces it to '' rather than letting an array
-        // reach the parse.
-        $month = trim($request->query->getString('month'));
-        if ('' !== $month) {
-            $parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', $month.'-01');
-            if (false !== $parsed) {
-                return PatrolDashboardService::monthRange($parsed);
-            }
-        }
-
-        return PatrolDashboardService::monthRange($now);
     }
 
     /**

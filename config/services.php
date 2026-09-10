@@ -32,6 +32,7 @@ use Uhifadhi\Patrol\Service\GeoService;
 use Uhifadhi\Patrol\Service\GpxParser;
 use Uhifadhi\Patrol\Service\GpxWriter;
 use Uhifadhi\Patrol\Service\ObservationAmendmentService;
+use Uhifadhi\Patrol\Service\PatrolCoverageService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolHoldService;
 use Uhifadhi\Patrol\Service\PatrolMapService;
@@ -84,6 +85,23 @@ return static function (ContainerConfigurator $container): void {
     $services->set('patrol.map', PatrolMapService::class)
         ->args([service(MapBuilderInterface::class)]);
     $services->alias(PatrolMapService::class, 'patrol.map');
+
+    /*
+     * THE GROUND THE MONTH'S ROUTES COVERED — PL·03's set operation, held for
+     * the day it was measured on.
+     *
+     * The cache is the framework's own application pool, taken with
+     * nullOnInvalid() exactly as the token storage further down is: a host that
+     * wired no cache still gets the shape, measured every time.
+     *
+     * @see https://symfony.com/doc/current/cache.html
+     */
+    $services->set('patrol.coverage', PatrolCoverageService::class)
+        ->args([
+            service(PatrolRepository::class),
+            PatrolDashboardService::COVERAGE_BUFFER_M,
+            service('cache.app')->nullOnInvalid(),
+        ]);
 
     // The widget library's URL map, shared by the dashboard and the library
     // itself, with THIS AREA named in every URL.
@@ -222,6 +240,7 @@ return static function (ContainerConfigurator $container): void {
             service(PatrolRepository::class),
             service('patrol.dashboard'),
             service('patrol.map'),
+            service('patrol.coverage'),
             // The day's live reading (out now, zone gaps, the observation queue)
             // for the direction widgets — measured in the ONE place the overview
             // measures it, so the dashboard and /areas/{uuid} never disagree.

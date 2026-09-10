@@ -12,7 +12,7 @@
    lists; the map's own type filtering is the legend, which carries one
    switchable row per patrol type. #}
 {% import '@UhifadhiPatrol/dashboard/_ui.html.twig' as ui %}
-{% set patrolFilters %}{{ ui.filters(dashboard, types, typeColor, now, area, month|default(now)) }}{% endset %}
+{% set patrolFilters %}{{ ui.filters(dashboard, types, typeColor, now, area, filter) }}{% endset %}
 <div class="c">
     <span class="tab">Coverage<span class="src">· one filter drives map AND log</span></span>
     {{ render_map(map, {'role': 'img', 'aria-label': 'Patrol tracks'}, patrolFilters) }}

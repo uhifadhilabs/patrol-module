@@ -259,4 +259,107 @@ final class PatrolRepositoryOverviewTest extends IntegrationTestCase
 
         self::assertNull($this->repository()->coverageBufferGeoJson($area, self::BUFFER_M, $this->monthStart, $this->nextMonth));
     }
+
+    /**
+     * A REAL TRACK IS A DENSE TRACE, and buffering one produces a shape whose
+     * outline wanders vertex by vertex around every recorded fix. Unsimplified,
+     * a month of those reaches the page as a body of coordinates a screen cannot
+     * resolve, so the shape is simplified for transport before it travels.
+     */
+    public function testTheCoverageBufferIsSimplifiedForTransport(): void
+    {
+        $area = $this->makeArea();
+        $this->makePatrol($area, '2026-03-10T06:00:00Z', self::denseTrack());
+
+        $repository = $this->repository();
+        $simplified = $repository->coverageBufferGeoJson($area, self::BUFFER_M, $this->monthStart, $this->nextMonth);
+        $whole = $repository->coverageBufferGeoJson($area, self::BUFFER_M, $this->monthStart, $this->nextMonth, simplify: false);
+
+        self::assertNotNull($simplified);
+        self::assertNotNull($whole);
+        self::assertLessThan(\strlen($whole), \strlen($simplified));
+    }
+
+    /**
+     * SIMPLIFYING MUST NOT COST THE GEOMETRY. The tolerance is below what a
+     * plate at area zoom can draw, so the shape that travels still covers the
+     * ground the shape that was measured covered — the same claim the KPI
+     * beside it makes.
+     */
+    public function testTheSimplifiedBufferStillCoversTheSameGround(): void
+    {
+        $area = $this->makeArea();
+        $this->makePatrol($area, '2026-03-10T06:00:00Z', self::denseTrack());
+
+        $repository = $this->repository();
+        $simplified = $repository->coverageBufferGeoJson($area, self::BUFFER_M, $this->monthStart, $this->nextMonth);
+        $whole = $repository->coverageBufferGeoJson($area, self::BUFFER_M, $this->monthStart, $this->nextMonth, simplify: false);
+
+        self::assertNotNull($simplified);
+        self::assertNotNull($whole);
+        /** @var array{type?: string} $decoded */
+        $decoded = json_decode($simplified, true, 512, \JSON_THROW_ON_ERROR);
+        self::assertContains($decoded['type'] ?? null, ['Polygon', 'MultiPolygon']);
+        // Within half a percent of the measured area, on a deliberately tight
+        // wander — a difference no reader of a whole-area plate could see, and
+        // none the KPI beside it would round differently.
+        self::assertEqualsWithDelta(1.0, self::areaOf($simplified) / self::areaOf($whole), 0.005);
+    }
+
+    /** A dense trace, as a handset records one: many fixes a few metres apart. */
+    private static function denseTrack(): string
+    {
+        $points = [];
+        for ($i = 0; $i <= 400; ++$i) {
+            // A gentle wander, so the buffered outline carries real detail
+            // rather than being one straight corridor.
+            $points[] = [34.95 + ($i * 0.00025), -2.95 + (sin($i / 9) * 0.0004)];
+        }
+
+        return json_encode(['type' => 'LineString', 'coordinates' => $points], \JSON_THROW_ON_ERROR);
+    }
+
+    /** The planar area of a GeoJSON shape, for comparing one against another. */
+    private static function areaOf(string $geoJson): float
+    {
+        $decoded = json_decode($geoJson, true, 512, \JSON_THROW_ON_ERROR);
+        self::assertIsArray($decoded);
+        $rings = $decoded['coordinates'] ?? [];
+        self::assertIsArray($rings);
+
+        return self::shoelace($rings);
+    }
+
+    /**
+     * The absolute shoelace area of every innermost ring found, summed — enough
+     * to compare two forms of the same shape without a second geometry library.
+     *
+     * @param array<mixed> $node
+     */
+    private static function shoelace(array $node): float
+    {
+        // A ring is a list of [x, y] pairs; anything deeper is a wrapper.
+        if (\is_array($node[0] ?? null) && !\is_array($node[0][0] ?? null)) {
+            $area = 0.0;
+            $count = \count($node);
+            for ($i = 0; $i < $count; ++$i) {
+                /** @var array{0: float, 1: float} $a */
+                $a = $node[$i];
+                /** @var array{0: float, 1: float} $b */
+                $b = $node[($i + 1) % $count];
+                $area += ($a[0] * $b[1]) - ($b[0] * $a[1]);
+            }
+
+            return abs($area) / 2;
+        }
+
+        $total = 0.0;
+        foreach ($node as $child) {
+            if (\is_array($child)) {
+                $total += self::shoelace($child);
+            }
+        }
+
+        return $total;
+    }
 }

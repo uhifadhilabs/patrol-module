@@ -15,6 +15,7 @@ namespace Uhifadhi\Patrol\Service;
 
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Model\PatrolDashboard;
+use Uhifadhi\Patrol\Model\PatrolFilter;
 
 /**
  * Computes the dashboard's data contract from plain entities. Pure — "now" is
@@ -249,15 +250,17 @@ final class PatrolDashboardService
      * @param list<Patrol>                        $patrols          latest first, the LOAD window ({@see self::loadRange()})
      * @param array<string, array{label: string}> $types            the deployment's patrol.types map
      * @param float|null                          $coverageFraction PL·03, queried by the caller for the month on screen (see {@see self::monthRange()}); null where it is unknown
-     * @param \DateTimeImmutable|null             $month            the month on screen — the MONTH filter's choice; null means the month containing $now
-     * @param array<string, string>               $patrolZones      patrol uuid → zone name (the live spatial join); drives the ZONE filter's menu
+     * @param PatrolFilter|null                   $filter           the one filter the whole screen reads — type, station, zone and month; null is the month containing $now, narrowed by nothing
+     * @param array<string, string>               $patrolZones      patrol uuid → zone name (the live spatial join); the ZONE filter's menu and its predicate
      */
-    public function build(array $patrols, array $types, \DateTimeImmutable $now, ?float $coverageFraction = null, ?\DateTimeImmutable $month = null, array $patrolZones = []): PatrolDashboard
+    public function build(array $patrols, array $types, \DateTimeImmutable $now, ?float $coverageFraction = null, ?PatrolFilter $filter = null, array $patrolZones = []): PatrolDashboard
     {
+        $filter ??= new PatrolFilter($now->modify('first day of this month')->setTime(0, 0));
+
         // The map, the log and the charts all read ONE month — the MONTH filter's
         // choice, defaulting to the month containing "now". The window every "this
         // month" figure is scoped to.
-        [$monthStart, $nextMonth] = self::monthRange($month ?? $now);
+        [$monthStart, $nextMonth] = $filter->window();
 
         $monthCount = 0;
         $monthDistanceKm = 0.0;
@@ -286,6 +289,25 @@ final class PatrolDashboardService
         $presented = array_values(array_filter(
             $patrols,
             static fn (Patrol $patrol): bool => $patrol->getStatus()->isPresentable(),
+        ));
+
+        // THE FILTER MENUS ARE THE MONTH'S, not the narrowed view's: a station
+        // you chose must not be the only station the menu still offers, or the
+        // filter is a door that locks behind you. Read before the narrowing,
+        // therefore — the counts below are read after it.
+        $menuStations = self::namesPresent($presented, $monthStart, $nextMonth, static fn (Patrol $patrol): string => $patrol->getStation() ?? '');
+        $menuZones = self::namesPresent($presented, $monthStart, $nextMonth, static fn (Patrol $patrol): string => $patrolZones[$patrol->getUuid()->toRfc4122()] ?? '');
+
+        // ONE FILTER DRIVES EVERYTHING, and this is where it does it: the map,
+        // the log, the KPIs, the charts and the calendar are all readings of the
+        // set below, so they cannot be answering different questions.
+        $presented = array_values(array_filter(
+            $presented,
+            static fn (Patrol $patrol): bool => $filter->matches(
+                $patrol->getType(),
+                $patrol->getStation() ?? '',
+                $patrolZones[$patrol->getUuid()->toRfc4122()] ?? '',
+            ),
         ));
 
         // THE MONTH'S presented patrols — the map, the log and the feed read the
@@ -366,43 +388,51 @@ final class PatrolDashboardService
             lastPatrol: $lastPatrol,
             // The five weeks up to the month's reference week — anchored to "now"
             // for the live month, to the month's close for a past one.
-            weeklySeries: $this->weeklySeries($counted, $types, self::weeklyAnchor($month ?? $now, $now)),
+            weeklySeries: $this->weeklySeries($counted, $types, self::weeklyAnchor($filter->month, $now)),
             stationSeries: $stationSeries,
             effortSeries: $effortSeries,
-            stations: array_column($stationSeries, 'station'),
+            // The MENUS, which list the whole month so every choice stays
+            // reachable — unlike the counts beside them, which are the narrowed
+            // view's.
+            stations: $menuStations,
             // The zones the month's patrols set out in, sorted — the ZONE filter's
             // menu. Computed by a live PostGIS spatial join, never a stored field.
-            zones: self::zonesPresent($presentedMonth, $patrolZones),
+            zones: $menuZones,
             // The calendar shows the month on screen; ‹ › then fetches any other
             // month through the same method (PatrolCalendarController).
-            calendar: $this->calendarFor($presented, $month ?? $now, $now),
+            calendar: $this->calendarFor($presented, $filter->month, $now),
         );
     }
 
     /**
-     * The distinct zones the month's patrols set out in, sorted for the filter
-     * menu — the spatial join's names, deduplicated. A month whose patrols all
-     * fell outside every zone (or were hand-logged, so had no track to place)
-     * yields an empty list, and the menu says "no zones yet".
+     * The distinct names a month's presented patrols carry on one axis, sorted
+     * for a filter menu. A patrol with no station, or whose start fell in no
+     * zone (or which was hand-logged, so had no track to place), carries the
+     * empty string and contributes nothing — the menu then says "no … yet"
+     * rather than offering a nameless option.
      *
-     * @param list<Patrol>          $patrols     the month's presented patrols
-     * @param array<string, string> $patrolZones patrol uuid → zone name
+     * @param list<Patrol>             $patrols the presented patrols over the LOAD window
+     * @param \Closure(Patrol): string $name    the axis to read
      *
      * @return list<string>
      */
-    private static function zonesPresent(array $patrols, array $patrolZones): array
+    private static function namesPresent(array $patrols, \DateTimeImmutable $monthStart, \DateTimeImmutable $nextMonth, \Closure $name): array
     {
-        $zones = [];
+        $names = [];
         foreach ($patrols as $patrol) {
-            $zone = $patrolZones[$patrol->getUuid()->toRfc4122()] ?? '';
-            if ('' !== $zone) {
-                $zones[$zone] = true;
+            $started = $patrol->getStartedAt();
+            if (null === $started || $started < $monthStart || $started >= $nextMonth) {
+                continue;
+            }
+            $value = $name($patrol);
+            if ('' !== $value) {
+                $names[$value] = true;
             }
         }
-        $names = array_keys($zones);
-        sort($names);
+        $sorted = array_keys($names);
+        sort($sorted);
 
-        return $names;
+        return $sorted;
     }
 
     /**

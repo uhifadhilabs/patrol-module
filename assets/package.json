@@ -9,11 +9,6 @@
                 "fetch": "eager",
                 "enabled": true
             },
-            "rows": {
-                "main": "controllers/rows_controller.js",
-                "fetch": "eager",
-                "enabled": true
-            },
             "calendar": {
                 "main": "controllers/calendar_controller.js",
                 "fetch": "eager",

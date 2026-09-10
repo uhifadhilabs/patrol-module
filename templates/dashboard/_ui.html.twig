@@ -49,127 +49,131 @@
     {%- if user -%}{{ user.firstName|first }}{{ user.lastName|first }}{%- else -%}··{%- endif -%}
 {% endmacro %}
 
-{# One filter row drives the map, the log AND the charts (the design's own
-   caption). It carries FOUR filters, and they split into two kinds on purpose:
+{# ONE FILTER ROW DRIVES THE MAP, THE LOG AND THE CHARTS — the design's own
+   caption on the coverage plate. It carries FOUR axes, and all four are the
+   same kind of thing: a query parameter.
 
-    - TYPE, STATION and ZONE filter CLIENT-SIDE: each publishes a `patrol:filter`
-      document event, and every coverage map and patrol list on the page answers
-      it live, with no reload — patrol's deliberate real-time filtering. Every
-      chip row on the page re-marks itself from the same event, so the row above
-      the map and the row above the log always agree.
+       ?type=&station=&zone=&month=YYYY-MM
 
-          patrol:filter {type, station, zone}
+   EVERY OPTION IS A REAL LINK. Narrowing in the browser would make the map and
+   the log agree with each other and with nothing else: the link could not be
+   shared, a reload would lose the choice, the server-rendered counts would
+   describe a month nobody is looking at, and the charts would not narrow at
+   all. One PatrolFilter, read once by the controller, is what keeps the map,
+   the log and the charts three readings of one answer — the same idiom the
+   incidents register uses.
 
-    - MONTH filters SERVER-SIDE: it is a different QUESTION, not a different way of
-      looking at one answer, so each option is a real link that re-queries the
-      whole dashboard for that month (?month=YYYY-MM). This is the incidents
-      "one filter drives everything" idiom — the map, the log and the charts are
-      all scoped to the chosen month, and the type/station/zone chips then filter
-      within it.
+   The type pills stay quick toggles (the design draws them so); station, zone
+   and month are dropdowns in the incidents bar's shared chrome (.i-dd*), one
+   open at a time, closed on an outside click or Escape by the filters
+   controller — which is chrome, and the only thing left in it.
 
-   The type pills stay quick toggles (the design draws them so); station, zone and
-   month are dropdowns in the incidents bar's shared chrome (.i-dd*), one open at a
-   time, closed on an outside click or Escape by the filters controller. #}
-{% macro filters(dashboard, types, typeColor, now, area, month) %}
-    {% set month = month|default(now) %}
+   THE COUNTS ARE THE NARROWED VIEW's; THE MENUS ARE THE MONTH's. A station you
+   chose must not be the only station the menu still offers. #}
+{% macro filters(dashboard, types, typeColor, now, area, filter) %}
+    {% set here = area is defined and area ? 'patrol_dashboard' : null %}
     <div class="patrol-chiprow" {{ stimulus_controller('@uhifadhi/patrol-module/filters') }}>
         {# TYPE TOGGLES — quick chips, not a dropdown: the design draws them so, and
            the type is the one filter you flick between without opening anything. #}
-        <button type="button" class="mchip on" data-patrol-type="all" aria-pressed="true"
-                {{ stimulus_target('@uhifadhi/patrol-module/filters', 'chip') }}
-                {{ stimulus_action('@uhifadhi/patrol-module/filters', 'choose') }}>all · {{ dashboard.totalCount }}</button>
-        {% for key, type in types %}
-            {# The pill wears the colour of the tracks it filters — the one
-               typeColors() map, never a second palette (the map-legend rule). #}
-            <button type="button" class="mchip patrol-tfilter" data-patrol-type="{{ key }}" aria-pressed="false"
-                    style="--patrol-track: {{ _self.color(typeColor, key) }}"
-                    {{ stimulus_target('@uhifadhi/patrol-module/filters', 'chip') }}
-                    {{ stimulus_action('@uhifadhi/patrol-module/filters', 'choose') }}><i></i>{{ type.label|lower }} · {{ dashboard.typeCounts[key]|default(0) }}</button>
-        {% endfor %}
+        {% if here %}
+            <a class="mchip{{ filter.type is null ? ' on' }}" href="{{ path(here, {uuid: area.uuid}|merge(filter.withoutType.toQuery)) }}"
+               aria-pressed="{{ filter.type is null ? 'true' : 'false' }}">all &middot; {{ dashboard.totalCount }}</a>
+            {% for key, type in types %}
+                {# The pill wears the colour of the tracks it filters — the one
+                   typeColors() map, never a second palette (the map-legend rule). #}
+                <a class="mchip patrol-tfilter{{ filter.type == key ? ' on' }}" href="{{ path(here, {uuid: area.uuid}|merge(filter.onlyType(key).toQuery)) }}"
+                   style="--patrol-track: {{ _self.color(typeColor, key) }}"
+                   aria-pressed="{{ filter.type == key ? 'true' : 'false' }}"><i></i>{{ type.label|lower }} &middot; {{ dashboard.typeCounts[key]|default(0) }}</a>
+            {% endfor %}
+        {% else %}
+            <span class="mchip on">all &middot; {{ dashboard.totalCount }}</span>
+            {% for key, type in types %}
+                <span class="mchip patrol-tfilter" style="--patrol-track: {{ _self.color(typeColor, key) }}"><i></i>{{ type.label|lower }} &middot; {{ dashboard.typeCounts[key]|default(0) }}</span>
+            {% endfor %}
+        {% endif %}
 
         <span class="sep"></span>
 
         {# STATION — a DROPDOWN in the incidents bar's chrome (.i-dd*, ported into
-           patrol.css). Each option publishes the patrol:filter document event, so
-           the coverage map and every patrol list re-render together with no
-           reload. Open/close (one at a time, Escape, outside-click) is the same
-           controller behaviour incidents uses. #}
-        <span class="i-dd" data-patrol-dd {{ stimulus_target('@uhifadhi/patrol-module/filters', 'stationMenu') }}>
+           patrol.css). Every option is a real link driving ?station=, and the
+           trigger names the chosen one. #}
+        <span class="i-dd{{ filter.station ? ' patrol-dd-chosen' }}" data-patrol-dd>
             <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
                     {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
-                <span {{ stimulus_target('@uhifadhi/patrol-module/filters', 'stationLabel') }}>station</span><span class="i-ddcaret">&#9662;</span>
+                <span>{{ filter.station ?: 'station' }}</span><span class="i-ddcaret">&#9662;</span>
             </button>
             <div class="i-ddmenu" data-patrol-dd-menu role="listbox" aria-label="Filter by station">
                 <span class="i-ddhead">station</span>
-                {% if dashboard.stations|length %}
-                    <button type="button" class="i-ddopt on" role="option" data-patrol-station="all"
-                            {{ stimulus_target('@uhifadhi/patrol-module/filters', 'station') }}
-                            {{ stimulus_action('@uhifadhi/patrol-module/filters', 'chooseStation') }}><span class="i-ddopt-l">all stations</span></button>
+                {% if here and dashboard.stations|length %}
+                    <a class="i-ddopt{{ filter.station is null ? ' on' }}" role="option" data-patrol-station="all"
+                       href="{{ path(here, {uuid: area.uuid}|merge(filter.withoutStation.toQuery)) }}"><span class="i-ddopt-l">all stations</span></a>
                     <span class="i-ddsep"></span>
                 {% endif %}
                 {% for station in dashboard.stations %}
-                    <button type="button" class="i-ddopt" role="option" data-patrol-station="{{ station }}"
-                            {{ stimulus_target('@uhifadhi/patrol-module/filters', 'station') }}
-                            {{ stimulus_action('@uhifadhi/patrol-module/filters', 'chooseStation') }}><span class="i-ddopt-l">{{ station }}</span></button>
+                    {% if here %}
+                        <a class="i-ddopt{{ filter.station == station ? ' on' }}" role="option" data-patrol-station="{{ station }}"
+                           href="{{ path(here, {uuid: area.uuid}|merge(filter.onlyStation(station).toQuery)) }}"><span class="i-ddopt-l">{{ station }}</span></a>
+                    {% else %}
+                        <span class="i-ddopt" role="option" data-patrol-station="{{ station }}"><span class="i-ddopt-l">{{ station }}</span></span>
+                    {% endif %}
                 {% else %}
                     <span class="i-ddopt is-empty" role="option"><span class="i-ddopt-l">no stations yet</span></span>
                 {% endfor %}
             </div>
         </span>
 
-        {# ZONE — the design's zone dropdown, now real: a patrol carries no zone
-           field, so each patrol's zone is computed by a live PostGIS spatial join
+        {# ZONE — the design's zone dropdown. A patrol carries no zone field, so
+           each patrol's zone is computed by a live PostGIS spatial join
            (PatrolRepository::zonesForPatrols — the zone its track set out in) and
-           the menu lists the zones this month's patrols fall in. Filters
-           client-side exactly like the station menu, publishing patrol:filter. #}
-        <span class="i-dd" data-patrol-dd {{ stimulus_target('@uhifadhi/patrol-module/filters', 'zoneMenu') }}>
+           the menu lists the zones this month's patrols fall in. #}
+        <span class="i-dd{{ filter.zone ? ' patrol-dd-chosen' }}" data-patrol-dd>
             <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
                     {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
-                <span {{ stimulus_target('@uhifadhi/patrol-module/filters', 'zoneLabel') }}>zone</span><span class="i-ddcaret">&#9662;</span>
+                <span>{{ filter.zone ?: 'zone' }}</span><span class="i-ddcaret">&#9662;</span>
             </button>
             <div class="i-ddmenu" data-patrol-dd-menu role="listbox" aria-label="Filter by zone">
                 <span class="i-ddhead">zone</span>
-                {% if dashboard.zones|length %}
-                    <button type="button" class="i-ddopt on" role="option" data-patrol-zone="all"
-                            {{ stimulus_target('@uhifadhi/patrol-module/filters', 'zone') }}
-                            {{ stimulus_action('@uhifadhi/patrol-module/filters', 'chooseZone') }}><span class="i-ddopt-l">all zones</span></button>
+                {% if here and dashboard.zones|length %}
+                    <a class="i-ddopt{{ filter.zone is null ? ' on' }}" role="option" data-patrol-zone="all"
+                       href="{{ path(here, {uuid: area.uuid}|merge(filter.withoutZone.toQuery)) }}"><span class="i-ddopt-l">all zones</span></a>
                     <span class="i-ddsep"></span>
                 {% endif %}
                 {% for zone in dashboard.zones %}
-                    <button type="button" class="i-ddopt" role="option" data-patrol-zone="{{ zone }}"
-                            {{ stimulus_target('@uhifadhi/patrol-module/filters', 'zone') }}
-                            {{ stimulus_action('@uhifadhi/patrol-module/filters', 'chooseZone') }}><span class="i-ddopt-l">{{ zone }}</span></button>
+                    {% if here %}
+                        <a class="i-ddopt{{ filter.zone == zone ? ' on' }}" role="option" data-patrol-zone="{{ zone }}"
+                           href="{{ path(here, {uuid: area.uuid}|merge(filter.onlyZone(zone).toQuery)) }}"><span class="i-ddopt-l">{{ zone }}</span></a>
+                    {% else %}
+                        <span class="i-ddopt" role="option" data-patrol-zone="{{ zone }}"><span class="i-ddopt-l">{{ zone }}</span></span>
+                    {% endif %}
                 {% else %}
                     <span class="i-ddopt is-empty" role="option"><span class="i-ddopt-l">no zones yet</span></span>
                 {% endfor %}
             </div>
         </span>
 
-        {# MONTH — a real dropdown now, not a dead indicator: this month and the
-           five before it, each a link that re-queries the whole dashboard for that
-           month (?month=YYYY-MM), so the map, log and charts move together. The
-           days are anchored to the first of the month before subtracting, so an
-           overflowing day-of-month never skips a month. A host that never mounted
-           the dashboard route (no `area`) falls back to the plain label. #}
-        {% if area is defined and area %}
+        {# MONTH — this month and the five before it, each a link that re-queries
+           the whole dashboard for that month while keeping every other choice.
+           The days are anchored to the first of the month before subtracting, so
+           an overflowing day-of-month never skips a month. A host that never
+           mounted the dashboard route falls back to the plain label. #}
+        {% if here %}
             <span class="i-dd patrol-dd-chosen" data-patrol-dd>
                 <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
                         {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
-                    <span>{{ month|date('F Y')|lower }}</span><span class="i-ddcaret">&#9662;</span>
+                    <span>{{ filter.month|date('F Y')|lower }}</span><span class="i-ddcaret">&#9662;</span>
                 </button>
                 <div class="i-ddmenu" data-patrol-dd-menu role="listbox" aria-label="Choose month">
                     <span class="i-ddhead">month</span>
                     {% set anchor = now|date_modify('first day of this month') %}
                     {% for i in 0..5 %}
                         {% set m = anchor|date_modify('-' ~ i ~ ' months') %}
-                        {% set mKey = m|date('Y-m') %}
-                        <a class="i-ddopt{{ month|date('Y-m') == mKey ? ' on' }}" role="option"
-                           href="{{ path('patrol_dashboard', {uuid: area.uuid, month: mKey}) }}"><span class="i-ddopt-l">{{ m|date('F Y')|lower }}</span></a>
+                        <a class="i-ddopt{{ filter.month|date('Y-m') == m|date('Y-m') ? ' on' }}" role="option"
+                           href="{{ path(here, {uuid: area.uuid}|merge(filter.inMonth(m).toQuery)) }}"><span class="i-ddopt-l">{{ m|date('F Y')|lower }}</span></a>
                     {% endfor %}
                 </div>
             </span>
         {% else %}
-            <span class="mchip patrol-monthchip">{{ month|date('F Y')|lower }}</span>
+            <span class="mchip patrol-monthchip">{{ filter.month|date('F Y')|lower }}</span>
         {% endif %}
     </div>
 {% endmacro %}

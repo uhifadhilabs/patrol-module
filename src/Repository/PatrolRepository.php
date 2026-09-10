@@ -27,6 +27,16 @@ use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
  */
 final class PatrolRepository extends ServiceEntityRepository
 {
+    /**
+     * The tolerance the covered-ground shape is simplified to before it travels,
+     * in degrees — the unit the geometry column is stored in.
+     *
+     * 0.0001° is roughly 11 m at the equator, well under a screen pixel at the
+     * zoom a whole area is read at, so the drawn edge is unchanged while the
+     * payload loses the vertices a buffered curve spends on being round.
+     */
+    private const string SIMPLIFY_DEGREES = '0.0001';
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Patrol::class);
@@ -679,21 +689,37 @@ final class PatrolRepository extends ServiceEntityRepository
      * Null — never an empty geometry — where no track was recorded in the
      * window: the layer then draws nothing and still ships its legend entry,
      * which is the honest form of "no coverage recorded this month".
+     *
+     * SIMPLIFIED FOR TRANSPORT, because a buffered track is a round shape and a
+     * round shape is a great many vertices: a month's union reaches the page as
+     * a large body of coordinates a screen cannot resolve. The simplification
+     * is the topology-preserving one, which cannot hand back a torn or
+     * self-intersecting polygon, at {@see self::SIMPLIFY_DEGREES} — well below
+     * one screen pixel at the zoom an area is read at. A caller for which the
+     * vertices themselves are the point asks for the whole shape.
+     *
+     * @see https://postgis.net/docs/ST_SimplifyPreserveTopology.html
+     *
+     * @param bool $simplify false for the geometry exactly as measured
      */
-    public function coverageBufferGeoJson(AreaOfInterest $area, float $bufferMetres, \DateTimeImmutable $from, \DateTimeImmutable $until): ?string
+    public function coverageBufferGeoJson(AreaOfInterest $area, float $bufferMetres, \DateTimeImmutable $from, \DateTimeImmutable $until, bool $simplify = true): ?string
     {
         $entityManager = $this->getEntityManager();
         $patrol = $this->getClassMetadata();
         $areaMeta = $entityManager->getClassMetadata(AreaOfInterest::class);
 
+        $covered = \sprintf(
+            'CASE WHEN a.%2$s IS NULL'
+            ."\n     THEN ST_Union(ST_Buffer(p.%1\$s::geography, :buffer)::geometry)"
+            ."\n     ELSE ST_Intersection(ST_Union(ST_Buffer(p.%1\$s::geography, :buffer)::geometry), a.%2\$s)"
+            ."\nEND",
+            $patrol->getColumnName('track'),
+            $areaMeta->getColumnName('geom'),
+        );
+
         $sql = \sprintf(
             <<<'SQL'
-                SELECT ST_AsGeoJSON(
-                           CASE WHEN a.%2$s IS NULL
-                                THEN ST_Union(ST_Buffer(p.%1$s::geography, :buffer)::geometry)
-                                ELSE ST_Intersection(ST_Union(ST_Buffer(p.%1$s::geography, :buffer)::geometry), a.%2$s)
-                           END
-                       ) AS geojson
+                SELECT ST_AsGeoJSON(%9$s) AS geojson
                 FROM %3$s a
                 INNER JOIN %4$s p ON p.%5$s = a.%6$s
                 WHERE a.%6$s = :area
@@ -711,6 +737,7 @@ final class PatrolRepository extends ServiceEntityRepository
             $areaMeta->getSingleIdentifierColumnName(),
             $patrol->getColumnName('status'),
             $patrol->getColumnName('startedAt'),
+            $simplify ? \sprintf('ST_SimplifyPreserveTopology(%s, %s)', $covered, self::SIMPLIFY_DEGREES) : $covered,
         );
 
         $geoJson = $entityManager->getConnection()->fetchOne($sql, [

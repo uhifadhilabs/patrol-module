@@ -8,9 +8,9 @@
    map's own type filtering is the plate's legend. #}
 {% import '@UhifadhiPatrol/dashboard/_ui.html.twig' as ui %}
 {% set patrolMaplogLimit = 8 %}
-<div class="c" data-patrol-maplog {{ stimulus_controller('@uhifadhi/patrol-module/rows') }}>
+<div class="c" data-patrol-maplog>
     <span class="tab">Coverage + log<span class="src">· one filter, one viewport, one list</span></span>
-    {% set patrolFilters %}{{ ui.filters(dashboard, types, typeColor, now, area, month|default(now)) }}{% endset %}
+    {% set patrolFilters %}{{ ui.filters(dashboard, types, typeColor, now, area, filter) }}{% endset %}
     <div class="patrol-maplog-split">
         <div class="patrol-maplog-map">
             {{ render_map(map, {'role': 'img', 'aria-label': 'Patrol tracks'}, patrolFilters) }}
@@ -18,20 +18,16 @@
         <div class="patrol-maplog-list">
             <span class="patrol-listhd">{{ min(dashboard.patrols|length, patrolMaplogLimit) }} patrols in view <em>of {{ dashboard.totalCount }} this month</em></span>
             {% for patrol in dashboard.patrols|slice(0, patrolMaplogLimit) %}
+                {# Hovering a hit spotlights its track on the plate beside it. #}
                 <a class="patrol-hit{{ patrol.discarded ? ' patrol-abandoned' }}" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}"
-                   data-patrol="{{ patrol.uuid.toRfc4122 }}" data-patrol-type="{{ patrol.type }}" data-patrol-station="{{ patrol.station }}" data-patrol-zone="{{ patrolZones[patrol.uuid.toRfc4122]|default('') }}"
-                   {{ stimulus_target('@uhifadhi/patrol-module/rows', 'row') }}
-                   {{ stimulus_action('@uhifadhi/patrol-module/rows', 'hover', 'mouseenter') }}
-                   {{ stimulus_action('@uhifadhi/patrol-module/rows', 'unhover', 'mouseleave') }}>
+                   data-patrol="{{ patrol.uuid.toRfc4122 }}"
+                   data-atlas-highlight="patrol.tracks.{{ patrol.type }}:{{ patrol.ref }}">
                     <span class="patrol-hit-r1"><b class="patrol-ref">{{ patrol.ref }}</b>{{ ui.type_chip(patrol.type, types, typeColor) }}<span class="patrol-hit-go">Open →</span></span>
                     <span class="patrol-hit-r2">{{ patrol.station ?: '—' }} · {{ ui.lead_name(patrol.lead) }} · {{ ui.distance(patrol) }} · {{ ui.started(patrol) }}</span>
                 </a>
             {% else %}
-                <p class="patrol-empty">No patrols recorded this month.</p>
+                <p class="patrol-empty">{{ filter.isNarrowed ? 'No patrols match this filter.' : 'No patrols recorded this month.' }}</p>
             {% endfor %}
-            {% if dashboard.patrols|length %}
-                <p class="patrol-empty patrol-hidden" {{ stimulus_target('@uhifadhi/patrol-module/rows', 'empty') }}>No patrols of that type this month.</p>
-            {% endif %}
         </div>
     </div>
     <p class="patrol-note">patrol tracks may cross the boundary · a station sits where its patrols set out</p>

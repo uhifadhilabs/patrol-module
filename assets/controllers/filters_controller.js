@@ -1,40 +1,19 @@
 import { Controller } from '@hotwired/stimulus';
 
 /*
- * The filter bar — "one filter drives map AND log" (the design's own caption on
- * PL·05).
+ * THE FILTER BAR'S CHROME, and nothing else.
  *
- * TWO JOBS, deliberately kept in one controller because they act on the one bar:
+ * The filter itself is a QUERY: every chip and option in the bar is a real link
+ * driving ?type / ?station / ?zone / ?month, read once by the controller into a
+ * PatrolFilter, so the map, the log and the charts are three readings of one
+ * answer. Nothing in this file narrows anything.
  *
- *  1. THE FILTER ITSELF, client-side. The chips, the coverage maps and the row
- *     lists are separate widgets a person can re-order or switch off, so they
- *     never reach into one another's DOM: a chip publishes a document event and
- *     whoever is on the page answers it.
- *
- *         patrol:filter {type, station}  — 'all' or one patrol type key / station
- *
- *     Every chip row on the page listens too, so the row above the map and the
- *     row above the log always show the same choice. Counts stay server-rendered:
- *     filtering is a way of LOOKING at the month, not a different month.
- *
- *  2. THE DROPDOWN CHROME, mirroring the incidents filter bar: the station filter
- *     is an .i-dd panel opened by its .i-ddt trigger, one panel at a time, closed
- *     on an outside click or Escape. Type stays a row of quick TOGGLE chips.
- *
- * TODO(patrol_period): the month is a plain indicator, not a dropdown — patrol's
- * map and log are all-time by design, so there is no month query to drive them
- * the way incidents has one; a real period switch is a separate change.
+ * What is left is the manners a dropdown needs and a link cannot express — the
+ * same manners the incidents bar has: a panel opens on its trigger, only one is
+ * open at a time, and an outside click or Escape closes it.
  */
 export default class extends Controller {
-    static targets = ['chip', 'station', 'stationLabel', 'stationMenu', 'zone', 'zoneLabel', 'zoneMenu'];
-
     connect() {
-        this.state = { type: 'all', station: 'all', zone: 'all' };
-        this.onFilter = (event) => this.mark(event.detail ?? {});
-        document.addEventListener('patrol:filter', this.onFilter);
-
-        // Dropdown chrome, the same manners the incidents bar has: close an open
-        // panel on an outside click or Escape.
         this.onDocumentClick = (event) => {
             if (!this.element.contains(event.target)) {
                 this.closeAll();
@@ -50,7 +29,6 @@ export default class extends Controller {
     }
 
     disconnect() {
-        document.removeEventListener('patrol:filter', this.onFilter);
         document.removeEventListener('click', this.onDocumentClick);
         document.removeEventListener('keydown', this.onKeydown);
     }
@@ -78,60 +56,5 @@ export default class extends Controller {
                 trigger.setAttribute('aria-expanded', 'false');
             }
         });
-    }
-
-    choose(event) {
-        this.publish({ type: event.currentTarget.dataset.patrolType ?? 'all' });
-    }
-
-    chooseStation(event) {
-        this.publish({ station: event.currentTarget.dataset.patrolStation ?? 'all' });
-        // Choosing closes the panel, the way the incidents options do on navigation.
-        this.closeAll();
-    }
-
-    chooseZone(event) {
-        this.publish({ zone: event.currentTarget.dataset.patrolZone ?? 'all' });
-        this.closeAll();
-    }
-
-    publish(change) {
-        const detail = { ...this.state, ...change };
-        document.dispatchEvent(new CustomEvent('patrol:filter', { detail }));
-    }
-
-    mark(detail) {
-        this.state = {
-            type: detail.type ?? 'all',
-            station: detail.station ?? 'all',
-            zone: detail.zone ?? 'all',
-        };
-
-        this.chipTargets.forEach((chip) => {
-            const on = (chip.dataset.patrolType ?? 'all') === this.state.type;
-            chip.classList.toggle('on', on);
-            chip.setAttribute('aria-pressed', on ? 'true' : 'false');
-        });
-        this.stationTargets.forEach((item) => {
-            item.classList.toggle('on', (item.dataset.patrolStation ?? 'all') === this.state.station);
-        });
-        this.zoneTargets.forEach((item) => {
-            item.classList.toggle('on', (item.dataset.patrolZone ?? 'all') === this.state.zone);
-        });
-        // The trigger names the chosen station (its caret sits beside it in its own
-        // element); the whole dropdown reads as active when one is chosen.
-        if (this.hasStationLabelTarget) {
-            this.stationLabelTarget.textContent = this.state.station === 'all' ? 'station' : this.state.station;
-        }
-        if (this.hasStationMenuTarget) {
-            this.stationMenuTarget.classList.toggle('patrol-dd-chosen', this.state.station !== 'all');
-        }
-        // The zone menu reads active the same way, and names the chosen zone.
-        if (this.hasZoneLabelTarget) {
-            this.zoneLabelTarget.textContent = this.state.zone === 'all' ? 'zone' : this.state.zone;
-        }
-        if (this.hasZoneMenuTarget) {
-            this.zoneMenuTarget.classList.toggle('patrol-dd-chosen', this.state.zone !== 'all');
-        }
     }
 }
