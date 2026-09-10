@@ -35,7 +35,7 @@ use Uhifadhi\Patrol\Repository\ObservationAmendmentRepository;
 use Uhifadhi\Patrol\Service\GeoService;
 use Uhifadhi\Patrol\Service\GpxWriter;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
-use Uhifadhi\Patrol\Service\PatrolMap;
+use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Storage\PatrolFileSource;
 
 /**
@@ -71,7 +71,7 @@ final class PatrolDetailController
         private readonly UrlGeneratorInterface $urls,
         private readonly GeoService $geo,
         private readonly GpxWriter $gpx,
-        private readonly PatrolMap $plates,
+        private readonly PatrolMapService $plates,
         private readonly ObservationAmendmentRepository $amendments,
         private readonly array $types,
         private readonly array $categories,

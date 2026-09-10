@@ -99,7 +99,7 @@ consumers of the same pipeline shape, on sibling topics.
 
 ## 6 · The maps are the atlas's, and the module writes no map JavaScript
 
-A patrol map is stated in PHP and drawn by the atlas. `Service/PatrolMap` builds
+A patrol map is stated in PHP and drawn by the atlas. `Service/PatrolMapService` builds
 an `AtlasMap` — the layers, the boundary, the legend rows — and the template
 calls `render_map()`. The imagery, the control stack, the base-layer menu, the
 scale bar, fullscreen and the legend's layout are the platform's; this module

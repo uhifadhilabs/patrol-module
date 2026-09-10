@@ -30,7 +30,7 @@ use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
-use Uhifadhi\Patrol\Service\PatrolMap;
+use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
 use Uhifadhi\Patrol\Service\PatrolWidgetUrls;
 use Uhifadhi\Patrol\Widget\PatrolWidgets;
@@ -71,7 +71,7 @@ final class PatrolWidgetsController
         private readonly UrlGeneratorInterface $router,
         private readonly PatrolRepository $patrols,
         private readonly PatrolDashboardService $dashboard,
-        private readonly PatrolMap $plates,
+        private readonly PatrolMapService $plates,
         // The library previews EVERY widget, including the direction widgets that
         // read the day's live state (out now, gaps, the observation queue), so it
         // needs the same reading the dashboard does — from the same service.

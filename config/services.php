@@ -34,7 +34,7 @@ use Uhifadhi\Patrol\Service\GpxWriter;
 use Uhifadhi\Patrol\Service\ObservationAmendmentService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolHoldService;
-use Uhifadhi\Patrol\Service\PatrolMap;
+use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolRecordingService;
 use Uhifadhi\Patrol\Service\PatrolWidgetUrls;
 use Uhifadhi\Patrol\Service\TaxonomyAdminService;
@@ -81,9 +81,9 @@ return static function (ContainerConfigurator $container): void {
      * atlas to draw. The module writes no map JavaScript: this builds the map,
      * and render_map() puts it on the page.
      */
-    $services->set('patrol.map', PatrolMap::class)
+    $services->set('patrol.map', PatrolMapService::class)
         ->args([service(MapBuilderInterface::class)]);
-    $services->alias(PatrolMap::class, 'patrol.map');
+    $services->alias(PatrolMapService::class, 'patrol.map');
 
     // The widget library's URL map, shared by the dashboard and the library
     // itself, with THIS AREA named in every URL.

@@ -43,7 +43,7 @@ use Uhifadhi\Bundle\AtlasBundle\Model\LegendItem;
  *
  * @see vendor/uhifadhi/uhifadhi/src/Uhifadhi/Bundle/AtlasBundle/docs/components.md
  */
-final readonly class PatrolMap
+final readonly class PatrolMapService
 {
     /** The legend heading the patrol layers sit under. */
     public const string PATROLS_GROUP = 'patrols';

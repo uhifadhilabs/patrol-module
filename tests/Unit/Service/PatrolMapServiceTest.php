@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use Uhifadhi\Bundle\AtlasBundle\Map\MapBuilder;
 use Uhifadhi\Bundle\AtlasBundle\Model\AtlasMap;
 use Uhifadhi\Bundle\AtlasBundle\Model\LegendItem;
-use Uhifadhi\Patrol\Service\PatrolMap;
+use Uhifadhi\Patrol\Service\PatrolMapService;
 
 /**
  * THE MODULE'S PLATES, STATED IN PHP. Patrol writes no map JavaScript: it says
@@ -28,7 +28,7 @@ use Uhifadhi\Patrol\Service\PatrolMap;
  * will not parse is simply not drawn — a bad track is a plate without that
  * track, never a screen that fails.
  */
-final class PatrolMapTest extends TestCase
+final class PatrolMapServiceTest extends TestCase
 {
     private const string BOUNDARY = '{"type":"Polygon","coordinates":[[[-29.5,-3.2],[-29.4,-3.2],[-29.4,-3.1],[-29.5,-3.1],[-29.5,-3.2]]]}';
     private const string TRACK = '{"type":"LineString","coordinates":[[-29.48,-3.18],[-29.46,-3.16],[-29.44,-3.14]]}';
@@ -58,7 +58,7 @@ final class PatrolMapTest extends TestCase
 
         self::assertSame('patrol.tracks.foot', $row->layerId);
         self::assertSame(2, $row->count);
-        self::assertSame(PatrolMap::PATROLS_GROUP, $row->group);
+        self::assertSame(PatrolMapService::PATROLS_GROUP, $row->group);
     }
 
     /**
@@ -270,8 +270,8 @@ final class PatrolMapTest extends TestCase
         return ['foot' => '#3ED9A8', 'vehicle' => '#5FA8E0'];
     }
 
-    private static function map(): PatrolMap
+    private static function map(): PatrolMapService
     {
-        return new PatrolMap(new MapBuilder());
+        return new PatrolMapService(new MapBuilder());
     }
 }

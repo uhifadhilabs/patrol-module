@@ -28,7 +28,7 @@ use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
-use Uhifadhi\Patrol\Service\PatrolMap;
+use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
 use Uhifadhi\Patrol\Widget\PatrolWidgets;
 
@@ -65,7 +65,7 @@ final class PatrolController
         private readonly Environment $twig,
         private readonly PatrolRepository $patrols,
         private readonly PatrolDashboardService $dashboard,
-        private readonly PatrolMap $plates,
+        private readonly PatrolMapService $plates,
         // The one place the day's live reading is measured — "out right now",
         // the zone gaps and the observation queue. The dashboard's direction
         // widgets (Out right now, Where nobody has been, Observations awaiting
