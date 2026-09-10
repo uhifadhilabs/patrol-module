@@ -2,8 +2,9 @@
    design system. What ShellBundle ships (.page, .c/.tab, .kpi, .chip, .mchip,
    .tbl, .crumb/.pghead/.open-btn, .map-frame/.map-btn, plus the token channels
    --c-*, --shadow and --font-mono) is REUSED, never redefined here. The design
-   vocabulary shell.css does not carry — the .ch chart text/lines, .backbtn and
-   the .i-dd* dropdown chrome — is this module's own. Every other class is
+   vocabulary shell.css does not carry — the .ch chart text/lines and the .i-dd*
+   dropdown chrome — is this module's own. The way back off a screen is the
+   shell's own .tgl, not a pill of ours. Every other class is
    patrol-prefixed so it can never collide with a shell class (the shell owns
    .page, .thumb, .map-legend, .who — none of them is touched).
 
@@ -73,17 +74,6 @@
 .ch text.annoS { fill: rgb(var(--c-fog)); font-size: 6.9px; }
 .ch line.grid { stroke: color-mix(in srgb, rgb(var(--c-fog)) 22%, transparent); stroke-width: .6; }
 .ch line.ax { stroke: color-mix(in srgb, rgb(var(--c-fog)) 55%, transparent); stroke-width: .8; }
-
-/* "< All modules" — the pill back out of the module to the area's module grid.
-   Design's --card hover tint has no host token; the panel colour (--c-p1) is the
-   closest "lift". */
-.backbtn {
-    display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: rgb(var(--c-fog));
-    text-decoration: none; padding: 6px 14px 6px 10px; border: 1px solid var(--c-ln2); border-radius: 99px;
-    margin-bottom: 16px; transition: color .15s, border-color .15s, background .15s;
-}
-.backbtn:hover { color: rgb(var(--c-tx)); border-color: rgb(var(--c-fog)); background: rgb(var(--c-p1)); }
-.backbtn svg { display: block; }
 
 /* ---- filter chip row + station menu ----------------------------------- */
 .patrol-chiprow { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 12px; align-items: center; }

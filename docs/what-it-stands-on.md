@@ -113,8 +113,9 @@ installation did not mount instead of throwing the page away.
 
 ## The generic component vocabulary
 
-`.c`, `.tab`, `.kpi`, `.tbl`, `.chip`, `.mchip`, `.crumb`, `.pghead`, `.backbtn`,
-`.open-btn`, `.tgl` and the page scaffold are the **shell's** design-system
+`.c`, `.tab`, `.kpi`, `.tbl`, `.chip`, `.mchip`, `.crumb`, `.pghead`,
+`.open-btn`, `.tgl` — the way back off every screen — and the page scaffold are
+the **shell's** design-system
 stylesheet; `.w-grid`, `.w-cell` and `.w-span-*` are the shell's widget sheet.
 This bundle's
 `public/patrol.css` adds only what a patrol screen needs and no other surface
