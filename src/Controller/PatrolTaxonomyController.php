@@ -28,6 +28,7 @@ use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
 use Uhifadhi\Patrol\Entity\TaxonomyKind;
 use Uhifadhi\Patrol\Entity\TaxonomySubcategory;
 use Uhifadhi\Patrol\Exception\TaxonomyConflictException;
@@ -65,7 +66,7 @@ use Uhifadhi\Patrol\Service\TaxonomyAdminService;
  * "write the first kind" start and leaves the picker's socket open. See
  * templates/taxonomy/_empty.html.twig.
  */
-#[Route(defaults: [PatrolModuleProvider::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
+#[Route(defaults: [RegistryBundle::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class PatrolTaxonomyController
 {
     /** Managing the observation vocabulary rides on its own authority — not `patrols.record`. */

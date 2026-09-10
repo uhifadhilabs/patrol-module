@@ -27,6 +27,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
 use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Exception\InvalidGpxException;
@@ -69,7 +70,7 @@ use Uhifadhi\Patrol\Service\TrackIngestService;
  */
 // EVERY ROUTE BELOW BELONGS TO THIS MODULE, and says so: where an area has
 // parked Patrols, the registry closes these routes before the controller runs.
-#[Route(defaults: [PatrolModuleProvider::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
+#[Route(defaults: [RegistryBundle::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class PatrolRecordController
 {
     /**

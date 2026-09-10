@@ -28,6 +28,7 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
 use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
@@ -65,7 +66,7 @@ use Uhifadhi\Storage\Exception\EvidenceStorageFailedException;
  */
 // EVERY ROUTE BELOW BELONGS TO THIS MODULE, and says so: where an area has
 // parked Patrols, the registry closes these routes before the controller runs.
-#[Route(defaults: [PatrolModuleProvider::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
+#[Route(defaults: [RegistryBundle::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class ObservationAmendmentController
 {
     public function __construct(

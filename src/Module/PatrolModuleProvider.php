@@ -36,22 +36,6 @@ final class PatrolModuleProvider implements ModuleProviderInterface
      */
     public const string SLUG = 'patrols';
 
-    /**
-     * THE REGISTRY'S ROUTE MARKER, spelled out rather than imported — the one
-     * place this bundle writes the string.
-     *
-     * Every controller here stamps `_uhifadhi_module: patrols` on its routes so
-     * that where an area has parked this module, RegistryBundle closes its
-     * pages with a 404 before a controller runs. The registry publishes the
-     * same string as `RegistryBundle::MODULE_ROUTE_DEFAULT`, and importing it
-     * would be correct too — the core is a hard requirement, so that constant
-     * is always there. It is spelled out because a route attribute is evaluated
-     * at load time and this bundle keeps exactly one string in it; the other
-     * half of that choice is the test, which asserts the two spellings agree
-     * where the registry is installed — Functional\ParkedModuleTest.
-     */
-    public const string MODULE_ROUTE_DEFAULT = '_uhifadhi_module';
-
     public function __construct(
         private readonly string $category,
     ) {

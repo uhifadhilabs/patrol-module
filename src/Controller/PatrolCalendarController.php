@@ -21,6 +21,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
@@ -53,7 +54,7 @@ use Uhifadhi\Patrol\Service\PatrolDashboardService;
  */
 // EVERY ROUTE BELOW BELONGS TO THIS MODULE, and says so: where an area has
 // parked Patrols, the registry closes these routes before the controller runs.
-#[Route(defaults: [PatrolModuleProvider::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
+#[Route(defaults: [RegistryBundle::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class PatrolCalendarController
 {
     /** The only month shape accepted: four-digit year, two-digit month. */

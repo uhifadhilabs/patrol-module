@@ -26,6 +26,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
@@ -56,7 +57,7 @@ use Uhifadhi\Patrol\Storage\PatrolFileSource;
  */
 // EVERY ROUTE BELOW BELONGS TO THIS MODULE, and says so: where an area has
 // parked Patrols, the registry closes these routes before the controller runs.
-#[Route(defaults: [PatrolModuleProvider::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
+#[Route(defaults: [RegistryBundle::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class PatrolDetailController
 {
     /**

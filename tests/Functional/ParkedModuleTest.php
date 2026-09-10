@@ -102,11 +102,6 @@ final class ParkedModuleTest extends WebTestCase
      */
     public function testEveryRouteOfThisModuleDeclaresTheModule(): void
     {
-        // The bundle spells the marker out rather than importing it, keeping
-        // exactly one string in a route attribute. This is where the two
-        // spellings are held to each other.
-        self::assertSame(RegistryBundle::MODULE_ROUTE_DEFAULT, PatrolModuleProvider::MODULE_ROUTE_DEFAULT);
-
         $router = static::getContainer()->get('router');
         \assert($router instanceof RouterInterface);
 
