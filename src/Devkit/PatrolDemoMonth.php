@@ -61,6 +61,17 @@ final class PatrolDemoMonth
     /** Fixed seed: the same area always produces the same demo history. */
     public const int RANDOM_SEED = 20260823;
 
+    /**
+     * Slots a shift's lead is drawn from. This class never sees a person: it
+     * draws a slot, and the caller resolves that slot against whatever roster
+     * the installation has — so the seed decides who led which shift, and a
+     * roster of another size still gets a whole month.
+     *
+     * The count is divisible by every roster size up to ten, so taking it
+     * modulo a roster leaves everybody on it equally likely to lead.
+     */
+    public const int LEAD_SLOTS = 2520;
+
     private const int MIN_TRACK_POINTS = 30;
     private const int MAX_TRACK_POINTS = 120;
 
@@ -207,6 +218,7 @@ final class PatrolDemoMonth
      *     gpx: ?string,
      *     type: string,
      *     station: string,
+     *     leadSlot: int,
      *     team: string,
      *     note: ?string,
      *     startedAt: \DateTimeImmutable,
@@ -234,7 +246,7 @@ final class PatrolDemoMonth
 
     /**
      * @return array{
-     *     gpx: ?string, type: string, station: string, team: string, note: ?string,
+     *     gpx: ?string, type: string, station: string, leadSlot: int, team: string, note: ?string,
      *     startedAt: \DateTimeImmutable, endedAt: \DateTimeImmutable, distanceKm: float,
      *     observations: list<array{category: string, note: string, position: array{0: float, 1: float}, loggedAt: \DateTimeImmutable, photos: int}>,
      * }
@@ -266,6 +278,7 @@ final class PatrolDemoMonth
             'gpx' => $this->gpx($points, $startedAt, $endedAt),
             'type' => $type,
             'station' => $station['name'],
+            'leadSlot' => $this->leadSlot(),
             'team' => $this->team(),
             'note' => 0 === $this->randomizer->getInt(0, 2) ? $this->pick(self::PATROL_NOTES) : null,
             'startedAt' => $startedAt,
@@ -281,7 +294,7 @@ final class PatrolDemoMonth
      * it for a measured shift.
      *
      * @return array{
-     *     gpx: ?string, type: string, station: string, team: string, note: ?string,
+     *     gpx: ?string, type: string, station: string, leadSlot: int, team: string, note: ?string,
      *     startedAt: \DateTimeImmutable, endedAt: \DateTimeImmutable, distanceKm: float,
      *     observations: list<array{category: string, note: string, position: array{0: float, 1: float}, loggedAt: \DateTimeImmutable, photos: int}>,
      * }
@@ -294,6 +307,7 @@ final class PatrolDemoMonth
             'gpx' => null,
             'type' => $this->pick($this->types),
             'station' => $this->stations[$this->pickStationIndex()]['name'],
+            'leadSlot' => $this->leadSlot(),
             'team' => $this->team(),
             'note' => self::SKETCH_NOTE,
             'startedAt' => $startedAt,
@@ -659,6 +673,20 @@ final class PatrolDemoMonth
         return $km;
     }
 
+    /**
+     * WHO LED THE SHIFT, AS A SLOT — {@see self::LEAD_SLOTS}. The caller reads
+     * it against the people the installation has, because a generator that
+     * invented a lead would invent a person nothing can credit hours to.
+     */
+    private function leadSlot(): int
+    {
+        return $this->randomizer->getInt(0, self::LEAD_SLOTS - 1);
+    }
+
+    /**
+     * WHO ELSE WAS OUT. The lead is drawn separately and stands first on the
+     * team line, so this names the rest of the crew and never the lead.
+     */
     private function team(): string
     {
         /** @var list<string> $roster */

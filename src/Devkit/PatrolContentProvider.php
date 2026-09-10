@@ -47,13 +47,16 @@ use Uhifadhi\Patrol\Service\TrackIngestService;
  * {@see TaxonomyAdminService}, the service behind the admin screen. Nothing
  * below constructs a record or persists one.
  *
- * WHAT THAT DISCIPLINE COSTS, SAID PLAINLY. The sample month describes three
+ * SOMEBODY LED EVERY SHIFT, AND THEY ARE ONE OF THE SYNTHETIC DEMO PEOPLE the
+ * team slice seeds — which is what `dependsOn()` buys. The sample month draws a
+ * lead SLOT per shift from its own seed and this resolves it against the roster
+ * the installation has, so a re-seeded demo credits the same people again. The
+ * lead is the first name on the team line: they are on the record as the lead,
+ * and the team string names who else was out.
+ *
+ * WHAT THAT DISCIPLINE COSTS, SAID PLAINLY. The sample month describes two
  * things this module has no way to write:
  *
- *   THE LEAD on a patrol — a relation to a person. Both write paths accept one,
- *   but naming a demo account as the ranger who led a shift would put a
- *   colleague's name on invented work, so the leads are left unset and the team
- *   line carries the invented roster instead.
  *   THE GAPS in a track. A recorded patrol's gap count is whatever its own
  *   timestamps imply, because that is what ingest measures; the sample month
  *   cannot assert one.
@@ -167,9 +170,9 @@ final readonly class PatrolContentProvider implements ContentProviderInterface
     }
 
     /**
-     * The people. A patrol is recorded BY somebody, and a register whose every
-     * observation was recorded by nobody says nothing about who is doing the
-     * work.
+     * The people. A patrol is LED by somebody and its observations are recorded
+     * BY somebody, and a register whose every shift was led by nobody says
+     * nothing about who is doing the work — and credits nobody the hours.
      *
      * Areas are not named here, deliberately: nothing installed ships area demo
      * content, and devkit refuses an edge to a key no provider declares. The
@@ -206,11 +209,14 @@ final readonly class PatrolContentProvider implements ContentProviderInterface
             new \DateTimeImmutable(),
         );
 
-        $recorder = $this->firstPerson();
+        $roster = $this->roster();
+        $recorder = $roster[0] ?? null;
         $photographs = $this->photoVariants();
 
         try {
             foreach ($month->patrols() as $plan) {
+                $lead = [] === $roster ? null : $roster[$plan['leadSlot'] % \count($roster)];
+
                 $patrol = null === $plan['gpx']
                     ? $this->recording->record(
                         $area,
@@ -218,7 +224,7 @@ final readonly class PatrolContentProvider implements ContentProviderInterface
                         $plan['startedAt'],
                         $plan['endedAt'],
                         $plan['station'],
-                        null,
+                        $lead,
                         $plan['team'],
                         $plan['note'],
                         $plan['distanceKm'],
@@ -229,7 +235,7 @@ final readonly class PatrolContentProvider implements ContentProviderInterface
                         $plan['type'],
                         PatrolSourceEnum::Gpx,
                         $plan['station'],
-                        null,
+                        $lead,
                         $plan['team'],
                         $plan['note'],
                     );
@@ -349,15 +355,19 @@ final readonly class PatrolContentProvider implements ContentProviderInterface
     }
 
     /**
-     * Whoever the installation already has an account for. This creates nobody:
-     * accounts belong to whoever owns them.
+     * The people the installation already has accounts for, oldest first — the
+     * demo team where the team slice has run, which it has, because this is
+     * seeded after it. This creates nobody: accounts belong to whoever owns
+     * them, and an installation with none seeds a month nobody is credited for.
+     *
+     * @return list<UserInterface>
      */
-    private function firstPerson(): ?UserInterface
+    private function roster(): array
     {
         /** @var list<UserInterface> $users */
-        $users = $this->entityManager->getRepository(UserInterface::class)->findBy([], ['id' => 'ASC'], 1);
+        $users = $this->entityManager->getRepository(UserInterface::class)->findBy([], ['id' => 'ASC']);
 
-        return $users[0] ?? null;
+        return $users;
     }
 
     /**

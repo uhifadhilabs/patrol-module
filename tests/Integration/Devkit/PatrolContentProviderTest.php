@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Tests\Integration\Devkit;
 
+use Doctrine\ORM\Tools\SchemaTool;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Contracts\Devkit\ContentProviderInterface;
@@ -24,6 +25,7 @@ use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Entity\TaxonomyKind;
 use Uhifadhi\Patrol\Entity\TaxonomySubcategory;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Tests\Integration\Fixtures\CollectedContentProviders;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
@@ -207,6 +209,137 @@ final class PatrolContentProviderTest extends IntegrationTestCase
         $this->em->clear();
 
         self::assertSame(PatrolDemoMonth::PATROLS, $this->em->getRepository(Patrol::class)->count([]));
+    }
+
+    /**
+     * SOMEBODY LED EVERY SHIFT, AND IT IS SOMEBODY THE INSTALLATION HAS. The
+     * team slice seeds the people first — that is what dependsOn() buys — and
+     * every patrol below is led by one of them, which is the fact the effort
+     * widget credits hours to and the department KPIs read a department off.
+     */
+    public function testEveryDemoPatrolIsLedByOneOfTheDemoPeople(): void
+    {
+        $this->aDemoTeam();
+        $this->anArea();
+
+        $this->provider()->load();
+        $this->em->clear();
+
+        $roster = $this->rosterEmails();
+        self::assertGreaterThan(1, \count($roster), 'The demo team is the roster the leads are drawn from.');
+
+        $led = [];
+        foreach ($this->em->getRepository(Patrol::class)->findAll() as $patrol) {
+            $lead = $patrol->getLead();
+            self::assertNotNull($lead, 'A demo patrol nobody led credits nobody and reads "Lead —".');
+            self::assertContains($lead->getEmail(), $roster);
+            $led[] = $lead->getEmail();
+        }
+
+        self::assertCount(PatrolDemoMonth::PATROLS, $led);
+        self::assertGreaterThan(1, \count(array_unique($led)), 'A month led by one person draws a one-bar effort chart.');
+    }
+
+    /**
+     * THE DESIGN'S ORDER — the lead is the first name on the team line, and the
+     * team names who else was out. So the lead is a person on the record rather
+     * than a name inside the team string, and the string never repeats them:
+     * the detail band draws "Lead · A. Example + the rest", and a repeated name
+     * would be somebody counted twice on their own shift.
+     */
+    public function testTheLeadIsTheFirstNameOnTheTeamLine(): void
+    {
+        $this->aDemoTeam();
+        $this->anArea();
+
+        $this->provider()->load();
+        $this->em->clear();
+
+        foreach ($this->em->getRepository(Patrol::class)->findAll() as $patrol) {
+            $lead = $patrol->getLead();
+            self::assertNotNull($lead);
+
+            $lastName = $lead->getLastName();
+            self::assertNotNull($lastName);
+
+            $team = (string) $patrol->getTeam();
+            self::assertNotSame('', $team, 'The team line names who came along with the lead.');
+            self::assertStringNotContainsString($lead->getFullName(), $team);
+            self::assertStringNotContainsString($lastName, $team);
+        }
+    }
+
+    /**
+     * THE SAME SEED PICKS THE SAME LEADS. A demo re-seeded onto a fresh database
+     * describes the same month it did before, leads included — otherwise a
+     * screenshot of the effort chart means nothing the next morning.
+     */
+    public function testReseedingPicksTheSameLeadsAgain(): void
+    {
+        $this->aDemoTeam();
+        $this->anArea();
+        $this->provider()->load();
+        $this->em->clear();
+
+        $first = $this->leadEmailsInOrder();
+
+        $this->rebuildSchema();
+        $this->aDemoTeam();
+        $this->anArea();
+        $this->provider()->load();
+        $this->em->clear();
+
+        self::assertSame($first, $this->leadEmailsInOrder());
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function leadEmailsInOrder(): array
+    {
+        $emails = [];
+        foreach ($this->em->getRepository(Patrol::class)->findBy([], ['id' => 'ASC']) as $patrol) {
+            $emails[] = $patrol->getLead()?->getEmail();
+        }
+
+        return array_values(array_filter($emails, \is_string(...)));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function rosterEmails(): array
+    {
+        $emails = [];
+        foreach ($this->em->getRepository(User::class)->findAll() as $person) {
+            $email = $person->getEmail();
+            self::assertNotNull($email, 'An account with no address is not somebody who can sign in.');
+            $emails[] = $email;
+        }
+
+        return $emails;
+    }
+
+    /** The people the core's own team slice seeds, collected off devkit's tag as devkit collects them. */
+    private function aDemoTeam(): void
+    {
+        $providers = $this->service('devkit.content_providers');
+        \assert($providers instanceof CollectedContentProviders);
+
+        $byKey = $providers->byKey();
+        self::assertArrayHasKey('team', $byKey, 'The people a demo patrol is led by come from team.');
+        $byKey['team']->load();
+        $this->em->clear();
+    }
+
+    /** An empty database again, and an entity manager that knows nothing of the one before it. */
+    private function rebuildSchema(): void
+    {
+        $schemaTool = new SchemaTool($this->em);
+        $metadata = $this->em->getMetadataFactory()->getAllMetadata();
+        $schemaTool->dropSchema($metadata);
+        $schemaTool->createSchema($metadata);
+        $this->em->clear();
     }
 
     private function provider(): ContentProviderInterface
