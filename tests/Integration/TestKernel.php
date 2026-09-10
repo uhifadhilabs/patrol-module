@@ -15,6 +15,7 @@ namespace Uhifadhi\Patrol\Tests\Integration;
 
 use ApiPlatform\Symfony\Bundle\ApiPlatformBundle;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
+use Doctrine\Bundle\MigrationsBundle\DoctrineMigrationsBundle;
 use FundiStadi\PostGISBundle\FundiStadiPostGISBundle;
 use League\FlysystemBundle\FlysystemBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
@@ -72,6 +73,10 @@ final class TestKernel extends Kernel
         yield new StimulusBundle();
         yield new UXIconsBundle();
         yield new DoctrineBundle();
+        // An installation has this, and this module ships a history for it to run.
+        // Without it the bundle's migrations_paths block is guarded out and
+        // tests/Integration/Migrations has nothing to assert.
+        yield new DoctrineMigrationsBundle();
         yield new FundiStadiPostGISBundle();
         yield new SecurityBundle();
         // An installation installs api-platform; this stands in for one so the

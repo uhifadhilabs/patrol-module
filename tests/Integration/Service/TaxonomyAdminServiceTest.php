@@ -22,9 +22,10 @@ use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
  * THE AREA-SCOPED PATROL TAXONOMY, PROVEN AGAINST THE REAL DATABASE. The schema
- * for the two new tables is built by IntegrationTestCase from the entity
- * metadata, so every assertion below is also proof the columns persist — this
- * module ships no migrations, exactly as it ships none for its other entities.
+ * for the two tables is built by IntegrationTestCase from the entity metadata,
+ * so every assertion below is also proof the columns persist. That the SHIPPED
+ * migration creates the same two tables is the drift lock's business
+ * (tests/Integration/Migrations), not this test's.
  *
  * SHALLOW: there is no behaviour-block test here, because a patrol sub-category
  * has none. That absence is the model, and the functional suite pins that the

@@ -157,6 +157,42 @@ final class UhifadhiPatrolBundle extends AbstractBundle
             ]);
         }
 
+        /*
+         * THE SQL THAT CREATES THIS MODULE'S TABLES, SHIPPED WITH IT.
+         *
+         * An installation runs `doctrine:migrations:migrate` and writes no
+         * version for patrol_* — the same way it writes none for the core.
+         * `doctrine:migrations:diff` stays what it runs for the entities IT
+         * writes, and after an update of this package it must report no changes.
+         *
+         * One guarded block, and an installation configures nothing:
+         *
+         * > migrations_paths: A list of namespace/path pairs where to look for
+         * > migrations.
+         *
+         * The guard is not decoration: an application may have this bundle and
+         * not the migrations bundle, and there this module simply has no history
+         * to run.
+         *
+         * The namespace is mapped by this package's composer.json with an
+         * EXPLICIT psr-4 prefix. `Uhifadhi\Patrol\` is `src/`, so a lowercase
+         * `migrations/` directory resolves under nothing; the failure would show
+         * up only on a case-sensitive filesystem, which is to say in an
+         * installation and not here.
+         *
+         * @see https://symfony.com/bundles/DoctrineMigrationsBundle/current/index.html
+         * @see vendor/doctrine/doctrine-migrations-bundle/src/DependencyInjection/Configuration.php
+         *      — the `migrations_paths` node, keyed by namespace.
+         * @see vendor/uhifadhi/uhifadhi/src/Uhifadhi/Bundle/AreaBundle/AreaBundle.php
+         */
+        if ($builder->hasExtension('doctrine_migrations')) {
+            $container->extension('doctrine_migrations', [
+                'migrations_paths' => [
+                    'Uhifadhi\\Patrol\\Migrations' => __DIR__.'/../migrations',
+                ],
+            ], prepend: true);
+        }
+
         // Zero-config persistence: the bundle maps its own entities, so hosts
         // never write a doctrine mappings block for patrol_* tables.
         if ($builder->hasExtension('doctrine')) {

@@ -53,7 +53,8 @@
     },
     "autoload": {
         "psr-4": {
-            "Uhifadhi\\Patrol\\": "src/"
+            "Uhifadhi\\Patrol\\": "src/",
+            "Uhifadhi\\Patrol\\Migrations\\": "migrations/"
         }
     },
     "autoload-dev": {
@@ -63,6 +64,7 @@
     },
     "require-dev": {
         "api-platform/core": "^4.3",
+        "doctrine/doctrine-migrations-bundle": "^4.0",
         "friendsofphp/php-cs-fixer": "^3.95",
         "phpdocumentor/reflection-docblock": "^6.0",
         "phpstan/phpstan": "^2.2",

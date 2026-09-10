@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 $finder = (new PhpCsFixer\Finder())
-    ->in([__DIR__.'/src', __DIR__.'/tests', __DIR__.'/config'])
+    ->in([__DIR__.'/src', __DIR__.'/tests', __DIR__.'/config', __DIR__.'/migrations'])
     // Auto-generated Symfony config-reference dump (gitignored, regenerated) —
     // "for apps only", not our code; php-cs-fixer's finder ignores .gitignore.
     ->notPath('reference.php');

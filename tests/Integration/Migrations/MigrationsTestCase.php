@@ -128,6 +128,25 @@ abstract class MigrationsTestCase extends KernelTestCase
         return $output;
     }
 
+    /**
+     * A fresh kernel, and so a fresh migration instance for every version.
+     * doctrine/migrations freezes a migration the moment it has run — the
+     * dependency factory caches one instance per version — so a test that runs
+     * a version twice, or runs up() and then down(), has to reboot between.
+     *
+     * @see vendor/doctrine/migrations/src/AbstractMigration.php — addSql() throws
+     *      FrozenMigration once the version is no longer editable.
+     */
+    protected function rebootKernel(): void
+    {
+        self::ensureKernelShutdown();
+        self::bootKernel();
+
+        /** @var Connection $connection */
+        $connection = static::getContainer()->get('doctrine.dbal.default_connection');
+        $this->connection = $connection;
+    }
+
     /** The whole history, every namespace, in the order the comparator puts it. */
     protected function migrateToLatest(): string
     {
