@@ -15,24 +15,38 @@ namespace Uhifadhi\Patrol\Tests\Integration\Migrations;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
-use Uhifadhi\Bundle\TeamBundle\Entity\User;
-use Uhifadhi\Patrol\Entity\Patrol;
-use Uhifadhi\Patrol\Service\TaxonomyAdminService;
-use Uhifadhi\Patrol\Service\TrackIngestService;
+use Uhifadhi\Contracts\Devkit\ContentProviderInterface;
+use Uhifadhi\Patrol\Devkit\PatrolContentProvider;
+use Uhifadhi\Patrol\Devkit\PatrolDemoMonth;
+use Uhifadhi\Patrol\Tests\Integration\Fixtures\CollectedContentProviders;
 
 /**
  * A PATROL RECORDED BEFORE AN UPGRADE IS STILL THERE AFTER IT.
  *
- * HOW THIS SEEDS, AND WHAT THAT COVERS. This module has no content provider, so
- * the rows are written by the module's own PUBLIC services against the migrated
- * schema — nothing is hand-inserted: {@see TrackIngestService::ingest()} for a
- * patrol carrying a real LINESTRING, and {@see TaxonomyAdminService} for the
- * area's observation taxonomy, a kind and a sub-category under it. That is
- * three of the eleven tables, which is what this bundle's public surface writes
- * without an HTTP request; the other eight are locked by
+ * THE ROWS ARE NOT WRITTEN HERE. They are seeded by this module's OWN content
+ * provider ({@see PatrolContentProvider}), through the services a person's
+ * screens and a ranger's handset use — so what is asserted to survive is shaped
+ * the way real content is: tracks with real LINESTRINGs, observations positioned
+ * on them, stored photographs, and an area taxonomy. A hand-written fixture
+ * would never have produced that spread.
+ *
+ * HOW THE SEEDING IS DRIVEN, said plainly, because the provider needs two things
+ * it does not create:
+ *
+ *   PEOPLE — {@see PatrolContentProvider::dependsOn()} returns `['team']`, and
+ *   the observations are recorded against accounts the installation already has.
+ *   So TeamBundle's own content provider is run first, reached through
+ *   {@see CollectedContentProviders} — devkit's collector, played by a fixture —
+ *   which is the same door devkit uses and keeps the dependency honest.
+ *
+ *   AN AREA — nothing installed ships area demo content, which is why the
+ *   provider takes the first area the installation has and seeds nothing when
+ *   there is none. There is no provider to drive, so the area is the smallest
+ *   honest fixture: one persisted AreaOfInterest with the boundary its NOT NULL
+ *   columns require.
+ *
+ * Five of the eleven tables carry rows this way; the other six are locked by
  * {@see MigrationsCoverSchemaTest}, which asserts the SCHEMA rather than rows.
- * The area and the person come from the core (AreaBundle, TeamBundle) and are
- * persisted directly — this module defines neither and creates neither.
  *
  * WHAT down() IS FOR, HONESTLY. A version that creates a table has a `down()`
  * that drops it, and dropping a table drops its rows. The round-trip below is
@@ -52,27 +66,24 @@ final class MigrationsUpgradeKeepsDataTest extends MigrationsTestCase
     {
         $this->emptyDatabase();
         $this->migrateToLatest();
-        $patrolId = $this->seed();
+        $this->seedADemoMonth();
+
+        $before = $this->counts();
+        self::assertSame(PatrolDemoMonth::PATROLS, $before['patrol_patrol'], 'The seeding has to have left something to protect.');
+        self::assertGreaterThan(0, $before['patrol_observation']);
+        self::assertGreaterThan(0, $before['patrol_observation_photo']);
 
         // Today this re-runs a history already at its head; the moment a second
         // version ships it is the upgrade itself, and this assertion is the one
         // that catches a version that rebuilds a table instead of altering it.
         $this->migrateToLatest();
 
-        $em = $this->entityManager();
-        $em->clear();
+        self::assertSame($before, $this->counts());
 
-        $stored = $em->find(Patrol::class, $patrolId);
-        self::assertInstanceOf(Patrol::class, $stored);
-        self::assertSame('walk', $stored->getType());
-        self::assertSame(4, $stored->getPointCount());
-
-        // The geometry column survived too, which no scalar assertion shows.
-        self::assertNotNull($stored->getTrack());
-
-        self::assertSame(1, $this->rowCount('patrol_patrol'));
-        self::assertSame(1, $this->rowCount('patrol_taxonomy_kind'));
-        self::assertSame(1, $this->rowCount('patrol_taxonomy_subcategory'));
+        // The geometry column survived too, which no count shows.
+        $trackless = $this->connection->fetchOne("SELECT COUNT(*) FROM patrol_patrol WHERE source = 'gpx' AND track IS NULL");
+        \assert(is_numeric($trackless));
+        self::assertSame(0, (int) $trackless, 'A recorded patrol lost its track across the migrate.');
     }
 
     public function testThisModulesHistoryUnwindsAndComesBack(): void
@@ -126,35 +137,56 @@ final class MigrationsUpgradeKeepsDataTest extends MigrationsTestCase
         return $versions;
     }
 
-    /** @return non-empty-string the id of the seeded patrol */
-    private function seed(): string
+    /**
+     * A month of patrolling, seeded the way devkit seeds it: the providers are
+     * collected off the tag, team's runs first because patrol depends on it, and
+     * the area is the one fixture nothing installed ships a provider for.
+     */
+    private function seedADemoMonth(): void
+    {
+        /** @var CollectedContentProviders $providers */
+        $providers = static::getContainer()->get('test_public.devkit.content_providers');
+        $byKey = $providers->byKey();
+
+        self::assertArrayHasKey('team', $byKey, 'The people this module records observations against come from team.');
+        $byKey['team']->load();
+
+        $this->anArea();
+
+        self::assertArrayHasKey('patrol', $byKey);
+        $patrol = $byKey['patrol'];
+        self::assertInstanceOf(ContentProviderInterface::class, $patrol);
+        $patrol->load();
+
+        $this->entityManager()->clear();
+    }
+
+    private function anArea(): void
     {
         $em = $this->entityManager();
 
-        $lead = new User()->setPassword('x')->setEmail('lead@example.test')->setFirstName('Alex')->setLastName('Example');
-        $em->persist($lead);
-
         $area = new AreaOfInterest()->setSource('test fixture');
-        $area->setName('Example reserve')->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.0],[35.1,-3.0],[35.1,-2.9],[35.0,-2.9],[35.0,-3.0]]]]}');
+        $area->setName('Sample Area')
+            ->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.6],[-29.0,-3.6],[-29.0,-2.8],[-30.0,-2.8],[-30.0,-3.6]]]]}');
         $em->persist($area);
         $em->flush();
+    }
 
-        /** @var TrackIngestService $ingest */
-        $ingest = static::getContainer()->get('test_public.'.TrackIngestService::class);
-        $gpx = file_get_contents(\dirname(__DIR__, 2).'/Fixtures/gpx/short_track.gpx');
-        \assert(\is_string($gpx));
+    /** @return array<string, int> */
+    private function counts(): array
+    {
+        $counts = [];
+        foreach ([
+            'patrol_patrol',
+            'patrol_observation',
+            'patrol_observation_photo',
+            'patrol_taxonomy_kind',
+            'patrol_taxonomy_subcategory',
+        ] as $table) {
+            $counts[$table] = $this->rowCount($table);
+        }
 
-        $patrol = $ingest->ingest($gpx, $area, type: 'walk', station: 'North post', lead: $lead, team: 'B. Example');
-
-        /** @var TaxonomyAdminService $taxonomy */
-        $taxonomy = static::getContainer()->get('test_public.'.TaxonomyAdminService::class);
-        $kind = $taxonomy->createKind($area, 'Wildlife');
-        $taxonomy->createSubcategory($kind, 'Elephant');
-
-        $id = (string) $patrol->getId();
-        \assert('' !== $id);
-
-        return $id;
+        return $counts;
     }
 
     private function entityManager(): EntityManagerInterface

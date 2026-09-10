@@ -34,10 +34,13 @@ use Uhifadhi\Bundle\ShellBundle\ShellBundle;
 use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Bundle\TeamBundle\Security\ApiTokenAuthenticator;
 use Uhifadhi\Bundle\TeamBundle\TeamBundle;
+use Uhifadhi\Patrol\Tests\Integration\Fixtures\CollectedContentProviders;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 use Uhifadhi\Patrol\UhifadhiPatrolBundle;
 use Uhifadhi\Storage\Controller\EvidenceController;
 use Uhifadhi\Storage\UhifadhiStorageBundle;
+
+use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 /**
  * The smallest INSTALLATION this bundle can live in, and every part of it is
@@ -191,6 +194,15 @@ final class TestKernel extends Kernel
         // who holds it. Tagged by hand — a reusable-bundle test kernel does not
         // autoconfigure.
         $container->services()->set(FixedRecordVoter::class)->tag('security.voter');
+
+        // And DEVKIT's content collector, which the migrations upgrade lock
+        // seeds through: this module's demo month depends on team's people, and
+        // the tag is where that dependency is actually satisfied. devkit is
+        // require-dev and absent here, so the collector is a fixture reading the
+        // same tag its command reads.
+        $container->services()->set(CollectedContentProviders::class)
+            ->args([tagged_iterator('uhifadhi.devkit.content_provider')])->public();
+        $container->services()->alias('test_public.devkit.content_providers', CollectedContentProviders::class)->public();
 
         $container->extension('doctrine', [
             'dbal' => [
