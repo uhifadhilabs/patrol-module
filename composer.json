@@ -48,7 +48,6 @@
         "symfony/twig-bundle": "^7.3 || ^8.0",
         "symfony/uid": "^7.3 || ^8.0",
         "symfony/ux-icons": "^3.4",
-        "symfony/ux-leaflet-map": "^2.20 || ^3.0",
         "symfony/ux-map": "^2.20 || ^3.0",
         "uhifadhi/storage-module": "0.2.x-dev",
         "uhifadhi/uhifadhi": "^1.0@dev"
