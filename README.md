@@ -8,6 +8,7 @@ A [uhifadhi](https://github.com/uhifadhilabs) module bundle.
 
 - [What it is](#what-it-is)
 - [Installation](#installation)
+- [Upgrading](#upgrading)
 - [Learn more](#learn-more)
 - [License](#license)
 
@@ -34,6 +35,29 @@ composer require uhifadhi/patrol-module
 
 The bundle maps its own entities and ships its own assets (AssetMapper), so
 there is no doctrine block and no asset wiring to write.
+
+### The tables
+
+```bash
+php bin/console doctrine:migrations:migrate
+```
+
+That is the whole step. This module ships the SQL for the eleven `patrol_*`
+tables it owns, under its own namespace, and registers the path itself — an
+installation writes no version for them, exactly as it writes none for the core.
+
+`doctrine:migrations:diff` stays what you run for the entities **you** write,
+and it is run against your own namespace:
+
+```bash
+php bin/console doctrine:migrations:diff --namespace=DoctrineMigrations
+```
+
+Pass `--namespace` every time. Several namespaces are registered in an
+installation — the core's bundles, this module's, yours — and the command's
+default target is not necessarily yours. After installing or updating this
+package that command must report no changes; if it wants to create a
+`patrol_*` table, the migrate above has not been run.
 
 ### The two repositories an installation names
 
@@ -129,6 +153,38 @@ This bundle ships none of them, and each is a composer requirement rather than
 something an installation is expected to have written. What each one carries is
 in [docs/what-it-stands-on.md](docs/what-it-stands-on.md).
 
+## Upgrading
+
+```bash
+# 1. back up the database first — a migration is not a transaction on every engine
+pg_dump ... > backup.sql
+
+# 2. read what it plans to do before it does it
+php bin/console doctrine:migrations:migrate --dry-run
+
+# 3. run it
+php bin/console doctrine:migrations:migrate
+```
+
+`composer update uhifadhi/patrol-module` brings new versions with the code that
+needs them; the migrate is what applies them. `--write-sql=upgrade.sql` writes
+the statements to a file instead of running them, for a database somebody else
+applies changes to.
+
+**If this installation already created the `patrol_*` tables itself** — with its
+own `doctrine:migrations:diff`, before this module shipped a history — the
+tables are already there and the shipped version must not run. Mark it executed
+without running it:
+
+```bash
+php bin/console doctrine:migrations:version --add \
+    'Uhifadhi\Patrol\Migrations\Version20260910044923'
+```
+
+Then run `doctrine:migrations:diff --namespace=DoctrineMigrations` and delete
+whatever version of yours creates a `patrol_*` table — those tables are this
+module's, and from here on it is the module that changes them.
+
 ## Learn more
 
 - [docs/what-it-stands-on.md](docs/what-it-stands-on.md) — the frame, the widget
@@ -148,8 +204,8 @@ in [docs/what-it-stands-on.md](docs/what-it-stands-on.md).
   sources, live tracking as a v2 third door) recorded with their revisit
   triggers. **Read it before changing the model** — none of them is an
   oversight.
-- [docs/development.md](docs/development.md) — `composer check` and the PostGIS
-  test container.
+- [docs/development.md](docs/development.md) — `composer check`, the PostGIS
+  test container, and the rules a shipped migration obeys.
 
 ## License
 
