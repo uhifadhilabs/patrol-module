@@ -121,7 +121,7 @@ final class PatrolDashboardServiceTest extends TestCase
 
         $patrolZones = [
             $north->getUuid()->toRfc4122() => 'Highland',
-            $ridge->getUuid()->toRfc4122() => 'Crater floor',
+            $ridge->getUuid()->toRfc4122() => 'Basin floor',
             $northAgain->getUuid()->toRfc4122() => 'Highland',
             // $unzoned is absent — its start fell in no zone.
         ];
@@ -136,7 +136,7 @@ final class PatrolDashboardServiceTest extends TestCase
         );
 
         // Distinct and sorted, one entry per zone however many patrols fell in it.
-        self::assertSame(['Crater floor', 'Highland'], $dashboard->zones);
+        self::assertSame(['Basin floor', 'Highland'], $dashboard->zones);
     }
 
     /**

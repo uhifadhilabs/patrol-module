@@ -69,7 +69,7 @@ final class TaxonomyAdminPageTest extends WebTestCase
 
     public function testTheEmptyStartRendersTheGhostAndTheWriteFirstKindPath(): void
     {
-        $area = $this->anArea('Pololeti');
+        $area = $this->anArea('Southern Reserve');
         $this->client->loginUser($this->aManager());
 
         $crawler = $this->client->request('GET', $this->taxonomyUrl($area));
@@ -80,7 +80,7 @@ final class TaxonomyAdminPageTest extends WebTestCase
         self::assertCount(0, $crawler->filter('.tx-mgr'));
         // The inert ghost sketch of a taxonomy's shape.
         self::assertCount(1, $crawler->filter('.tx-sketch'));
-        self::assertStringContainsString('Pololeti has no observation kinds yet', $crawler->text());
+        self::assertStringContainsString('Southern Reserve has no observation kinds yet', $crawler->text());
         // One honest way in: a real form that writes the first kind.
         self::assertCount(1, $crawler->filter('.tx-empty form[action$="/taxonomy/kinds"]'));
     }
@@ -213,13 +213,13 @@ final class TaxonomyAdminPageTest extends WebTestCase
 
     public function testOneAreasKindsNeverAppearInAnother(): void
     {
-        $ngorongoro = $this->anArea('Ngorongoro');
-        $pololeti = $this->anArea('Pololeti');
-        $this->admin()->createKind($ngorongoro, 'Wildlife');
+        $northern = $this->anArea('Northern Reserve');
+        $southern = $this->anArea('Southern Reserve');
+        $this->admin()->createKind($northern, 'Wildlife');
         $this->client->loginUser($this->aManager());
 
-        // Pololeti sees its own (empty) list, not Ngorongoro's kind.
-        $crawler = $this->client->request('GET', $this->taxonomyUrl($pololeti));
+        // The southern area sees its own (empty) list, not the northern one's kind.
+        $crawler = $this->client->request('GET', $this->taxonomyUrl($southern));
         self::assertCount(1, $crawler->filter('.tx-empty'));
         self::assertStringNotContainsString('Wildlife', $crawler->filter('.tx-empty')->text());
     }
@@ -227,14 +227,14 @@ final class TaxonomyAdminPageTest extends WebTestCase
     /** A kind of another area is a 404 on this area's write route — no reach across. */
     public function testWritingToAnotherAreasRowIs404(): void
     {
-        $ngorongoro = $this->anArea('Ngorongoro');
-        $pololeti = $this->anArea('Pololeti');
-        $kind = $this->admin()->createKind($ngorongoro, 'Wildlife');
+        $northern = $this->anArea('Northern Reserve');
+        $southern = $this->anArea('Southern Reserve');
+        $kind = $this->admin()->createKind($northern, 'Wildlife');
         $this->client->loginUser($this->aManager());
 
-        $html = $this->client->request('GET', $this->taxonomyUrl($pololeti))->html();
-        // Ngorongoro's kind uuid, posted at Pololeti's URL.
-        $this->client->request('POST', $this->taxonomyUrl($pololeti).'/kinds/'.$kind->getUuid()->toRfc4122().'/deactivate', [
+        $html = $this->client->request('GET', $this->taxonomyUrl($southern))->html();
+        // The northern area's kind uuid, posted at the southern area's URL.
+        $this->client->request('POST', $this->taxonomyUrl($southern).'/kinds/'.$kind->getUuid()->toRfc4122().'/deactivate', [
             '_token' => $this->tokenFrom($html),
         ]);
 

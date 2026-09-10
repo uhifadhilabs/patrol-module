@@ -29,8 +29,13 @@ use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
  * incidents module reads `lat`/`lng` and builds a GeoJSON Point in `[lon, lat]`
  * order from them. So the two keys must arrive as their names promise: `lat` the
  * latitude, `lng` the longitude. Getting them the wrong way round does not fail
- * loudly — it silently relocates the incident, and a −3.16/35.67 observation in
- * Ngorongoro lands as 35.67/−3.16, in the sea off Gibraltar.
+ * loudly — it silently relocates the incident by thousands of kilometres, to
+ * wherever the mirrored pair happens to land, and the record still looks
+ * perfectly well formed.
+ *
+ * The fixture sits in open water on purpose: the numbers are here to be read
+ * back in the order they were written, and a synthetic coordinate cannot be
+ * mistaken for somebody's deployment.
  *
  * This suite boots the one environment where a stubbed `incident_new` route
  * exists (see {@see \Uhifadhi\Patrol\Tests\Integration\TestKernel}), so the
@@ -40,9 +45,12 @@ final class ObservationFileAsIncidentTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
 
-    /** Ngorongoro, roughly — the coordinate the product owner reported lost. */
-    private const float NGORONGORO_LAT = -3.1620;
-    private const float NGORONGORO_LNG = 35.6735;
+    /**
+     * A point whose two halves cannot be confused for each other: different
+     * magnitudes, different signs, so a swap is visible rather than plausible.
+     */
+    private const float OBSERVATION_LAT = -20.1620;
+    private const float OBSERVATION_LNG = 5.6735;
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
@@ -64,13 +72,13 @@ final class ObservationFileAsIncidentTest extends WebTestCase
         $schemaTool->dropSchema($metadata);
         $schemaTool->createSchema($metadata);
 
-        $this->area = new AreaOfInterest()->setSource('test fixture')->setName('ngorongoro')->setGeom(
-            '{"type":"MultiPolygon","coordinates":[[[[35.4,-3.4],[35.9,-3.4],[35.9,-2.9],[35.4,-2.9],[35.4,-3.4]]]]}',
+        $this->area = new AreaOfInterest()->setSource('test fixture')->setName('demo reserve')->setGeom(
+            '{"type":"MultiPolygon","coordinates":[[[[5.4,-20.4],[5.9,-20.4],[5.9,-19.9],[5.4,-19.9],[5.4,-20.4]]]]}',
         );
         $this->em->persist($this->area);
 
         $this->patrol = new Patrol($this->area, 'walk')
-            ->setStation('Crater rim')
+            ->setStation('north gate')
             ->setStartedAt(new \DateTimeImmutable('today 06:10'))
             ->setEndedAt(new \DateTimeImmutable('today 12:30'))
             ->setSource(PatrolSourceEnum::Manual);
@@ -78,11 +86,11 @@ final class ObservationFileAsIncidentTest extends WebTestCase
 
         // GeoJSON is [lon, lat] — the order the geometry column stores.
         $this->observation = new Observation($this->patrol, 'maintenance')
-            ->setNote('Snare line found on the crater floor.')
+            ->setNote('Snare line found on the valley floor.')
             ->setPosition(\sprintf(
                 '{"type":"Point","coordinates":[%F,%F]}',
-                self::NGORONGORO_LNG,
-                self::NGORONGORO_LAT,
+                self::OBSERVATION_LNG,
+                self::OBSERVATION_LAT,
             ))
             ->setLoggedAt(new \DateTimeImmutable('today 08:15'));
         $this->em->persist($this->observation);
@@ -129,9 +137,8 @@ final class ObservationFileAsIncidentTest extends WebTestCase
         self::assertArrayHasKey('lng', $query);
 
         // The keys must mean what they say — latitude in lat, longitude in lng —
-        // so the incidents module rebuilds the SAME Ngorongoro point and not its
-        // mirror in the sea off Gibraltar.
-        self::assertSame(self::NGORONGORO_LAT, (float) $query['lat'], 'lat must carry the latitude, not the longitude.');
-        self::assertSame(self::NGORONGORO_LNG, (float) $query['lng'], 'lng must carry the longitude, not the latitude.');
+        // so the incidents module rebuilds the SAME point and not its mirror.
+        self::assertSame(self::OBSERVATION_LAT, (float) $query['lat'], 'lat must carry the latitude, not the longitude.');
+        self::assertSame(self::OBSERVATION_LNG, (float) $query['lng'], 'lng must carry the longitude, not the latitude.');
     }
 }

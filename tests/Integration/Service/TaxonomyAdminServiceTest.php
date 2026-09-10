@@ -67,14 +67,14 @@ final class TaxonomyAdminServiceTest extends IntegrationTestCase
     /** Each area owns its own list; the two never merge, even with the same words. */
     public function testKindsAreScopedToTheirArea(): void
     {
-        $ngorongoro = $this->anArea('Ngorongoro');
-        $pololeti = $this->anArea('Pololeti');
+        $northern = $this->anArea('Northern Reserve');
+        $southern = $this->anArea('Southern Reserve');
 
-        $this->admin()->createKind($ngorongoro, 'Wildlife');
-        $this->admin()->createKind($pololeti, 'Carcass');
+        $this->admin()->createKind($northern, 'Wildlife');
+        $this->admin()->createKind($southern, 'Carcass');
 
-        $here = $this->kinds()->forArea($ngorongoro);
-        $there = $this->kinds()->forArea($pololeti);
+        $here = $this->kinds()->forArea($northern);
+        $there = $this->kinds()->forArea($southern);
 
         self::assertCount(1, $here);
         self::assertCount(1, $there);
@@ -142,10 +142,10 @@ final class TaxonomyAdminServiceTest extends IntegrationTestCase
     /** A sub-category's wire-code is area-unique and independent per area. */
     public function testSubWireCodesAreAreaUniqueAndPerAreaIndependent(): void
     {
-        $ngorongoro = $this->anArea('Ngorongoro');
-        $pololeti = $this->anArea('Pololeti');
-        $here = $this->admin()->createKind($ngorongoro, 'Wildlife');
-        $there = $this->admin()->createKind($pololeti, 'Wildlife');
+        $northern = $this->anArea('Northern Reserve');
+        $southern = $this->anArea('Southern Reserve');
+        $here = $this->admin()->createKind($northern, 'Wildlife');
+        $there = $this->admin()->createKind($southern, 'Wildlife');
 
         $a = $this->admin()->createSubcategory($here, 'Sighting');
         $b = $this->admin()->createSubcategory($there, 'Sighting');
