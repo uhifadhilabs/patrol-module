@@ -17,7 +17,7 @@
 {% block shell_page_subtitle %}Record a patrol without a GPX file — details, observations, and an optional sketched route.{% endblock %}
 
 {% block patrol_page %}
-<a class="tgl" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">{{ ux_icon('shell:chevron-left') }}All patrols</a>
+<a class="backbtn" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">{{ ux_icon('shell:chevron-left') }}All patrols</a>
 
 <div class="grid g32">
     <form class="c" method="post" action="{{ path('patrol_log', {uuid: area.uuid}) }}" data-patrol-log>

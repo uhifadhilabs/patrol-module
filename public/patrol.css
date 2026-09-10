@@ -4,7 +4,7 @@
    --c-*, --shadow and --font-mono) is REUSED, never redefined here. The design
    vocabulary shell.css does not carry — the .ch chart text/lines and the .i-dd*
    dropdown chrome — is this module's own. The way back off a screen is the
-   shell's own .tgl, not a pill of ours. Every other class is
+   shell's own .backbtn, not a pill of ours. Every other class is
    patrol-prefixed so it can never collide with a shell class (the shell owns
    .page, .thumb, .map-legend, .who — none of them is touched).
 

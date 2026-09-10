@@ -54,7 +54,7 @@
 {% endblock %}
 
 {% block patrol_page %}
-<a class="tgl" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">{{ ux_icon('shell:chevron-left') }}All patrols</a>
+<a class="backbtn" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">{{ ux_icon('shell:chevron-left') }}All patrols</a>
 
 {# The discarded notice. Everything a reader needs in one block, in the order
    they ask it: that this patrol was thrown away, why, what happens to it next,

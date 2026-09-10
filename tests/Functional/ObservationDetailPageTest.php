@@ -146,12 +146,11 @@ final class ObservationDetailPageTest extends WebTestCase
         self::assertStringNotContainsString('File as incident', $crawler->filter('.pghead')->text());
 
         // Back to the parent patrol, and the crumb ends at "obs 2".
-        // The way back is the shell's quiet control, .tgl — the same one every
-        // other module's way back wears — and not a pill of patrol's own.
-        $back = $crawler->filter(\sprintf('a.tgl:contains("Patrol %s")', $this->patrol->getRef()));
+        // The way back is the shell's own pill, .backbtn — the control the shell
+        // ships for it — and not a chip or a pill of patrol's own.
+        $back = $crawler->filter(\sprintf('a.backbtn:contains("Patrol %s")', $this->patrol->getRef()));
         self::assertCount(1, $back);
         self::assertGreaterThan(0, $back->filter('svg')->count());
-        self::assertStringNotContainsString('backbtn', $crawler->html());
         self::assertStringContainsString('obs 2', $crawler->filter('.crumb')->text());
 
         // PL·01 — the plate payload carries this observation's point AND the

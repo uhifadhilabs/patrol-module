@@ -27,7 +27,7 @@
 {% endblock %}
 
 {% block patrol_page %}
-<a class="tgl" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">{{ ux_icon('shell:chevron-left') }}All patrols</a>
+<a class="backbtn" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">{{ ux_icon('shell:chevron-left') }}All patrols</a>
 
 {# The calendar card — identical to the dashboard widget (_w_cal): the Stimulus
    controller wires ‹ ›, and the body is the month fragment for the month asked

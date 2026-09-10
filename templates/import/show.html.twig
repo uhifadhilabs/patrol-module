@@ -20,7 +20,7 @@
 {% block shell_page_subtitle %}Upload a GPX track → preview what was parsed → confirm the patrol details and save.{% endblock %}
 
 {% block patrol_page %}
-<a class="tgl" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">{{ ux_icon('shell:chevron-left') }}All patrols</a>
+<a class="backbtn" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">{{ ux_icon('shell:chevron-left') }}All patrols</a>
 
 {# One form spans both cards: the file, the details and (after a parse) the
    carried-over XML post together, so confirming never asks for the file twice. #}

@@ -55,7 +55,7 @@
 {% endblock %}
 
 {% block patrol_page %}
-<a class="tgl" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">{{ ux_icon('shell:chevron-left') }}Patrol {{ patrol.ref }}</a>
+<a class="backbtn" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">{{ ux_icon('shell:chevron-left') }}Patrol {{ patrol.ref }}</a>
 
 {# THE IDENTITY BAND — the observation's own facts, in the platform's shared
    .factband, below the tabs. This is the settled design's PL·02: the meta moved

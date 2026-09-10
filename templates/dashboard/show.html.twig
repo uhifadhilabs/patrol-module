@@ -45,7 +45,7 @@
    module's page — so it is rendered only where the installation mounted that
    screen. A back button to a route nobody registered is a 500 on the way home. #}
 {% set modules = patrol_url('area_modules', {uuid: area.uuid}) %}
-{% if modules %}<a class="tgl" href="{{ modules }}">{{ ux_icon('shell:chevron-left') }}All modules</a>{% endif %}
+{% if modules %}<a class="backbtn" href="{{ modules }}">{{ ux_icon('shell:chevron-left') }}All modules</a>{% endif %}
 
 <div class="patrol-wgrid">
     {% for widget in widgets %}

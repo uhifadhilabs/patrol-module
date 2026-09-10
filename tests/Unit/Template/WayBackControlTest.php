@@ -20,11 +20,11 @@ use PHPUnit\Framework\TestCase;
  *
  * Every patrol screen opens with a way back — "‹ All modules" on the dashboard,
  * "‹ All patrols" on the detail, the log, the import and the calendar, "‹ Patrol
- * PT-…" on an observation. The shell already ships the control for a quiet
- * secondary action, `.tgl`, and it is what every other module's way back wears.
- * Patrol dressed the same control in a private `.backbtn` of its own — a pill
- * with a different size, radius and hover — so one platform control rendered two
- * ways depending on which module the reader was standing in.
+ * PT-…" on an observation. The shell ships the control the design draws for it,
+ * `.backbtn` — the pill with its own size, radius, hover and the 16px of air
+ * below it — so every module's way back renders the same way whichever module
+ * the reader is standing in. A module that dresses it in something else, a chip
+ * or a pill of its own, is the drift this test exists to catch.
  *
  * The glyph goes the same way: the chevron is `shell:chevron-left` from the
  * shell's icon set, never an svg hand-drawn into the markup, so a change to the
@@ -64,9 +64,9 @@ final class WayBackControlTest extends TestCase
         }
 
         self::assertMatchesRegularExpression(
-            '/\bclass="(?:[^"]*\s)?tgl(?:\s[^"]*)?"/',
+            '/\bclass="(?:[^"]*\s)?backbtn(?:\s[^"]*)?"/',
             $back,
-            \sprintf('%s dresses the way back in a class of its own; the shell ships .tgl for it.', basename($path)),
+            \sprintf('%s dresses the way back in a class of its own; the shell ships .backbtn for it.', basename($path)),
         );
         self::assertStringContainsString(
             "ux_icon('shell:chevron-left')",
@@ -76,11 +76,28 @@ final class WayBackControlTest extends TestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('templates')]
-    public function testNoTemplateShipsThePrivateBackPill(string $path): void
+    public function testNoWayBackWearsTheChipInsteadOfThePill(string $path): void
+    {
+        $back = self::wayBack(self::withoutComments((string) file_get_contents($path)));
+
+        if (null === $back) {
+            self::expectNotToPerformAssertions();
+
+            return;
+        }
+
+        self::assertDoesNotMatchRegularExpression(
+            '/\bclass="(?:[^"]*\s)?tgl(?:\s[^"]*)?"/',
+            $back,
+            \sprintf('%s wears the shell\'s chip where the way back belongs.', basename($path)),
+        );
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('templates')]
+    public function testNoTemplateHandDrawsTheChevron(string $path): void
     {
         $markup = self::withoutComments((string) file_get_contents($path));
 
-        self::assertStringNotContainsString('backbtn', $markup, basename($path).' still carries the private back pill.');
         self::assertStringNotContainsString(
             self::INLINE_CHEVRON,
             $markup,
