@@ -49,131 +49,21 @@
     {%- if user -%}{{ user.firstName|first }}{{ user.lastName|first }}{%- else -%}··{%- endif -%}
 {% endmacro %}
 
-{# ONE FILTER ROW DRIVES THE MAP, THE LOG AND THE CHARTS — the design's own
-   caption on the coverage plate. It carries FOUR axes, and all four are the
-   same kind of thing: a query parameter.
+{# ONE FILTER ROW DRIVES THE MAP, THE LOG AND THE CHARTS — and it is the SAME
+   row the full log wears, drawn once in @UhifadhiPatrol/_filters.html.twig. Two
+   copies of a filter row is two answers to "what is on screen".
 
-       ?type=&station=&zone=&month=YYYY-MM
-
-   EVERY OPTION IS A REAL LINK. Narrowing in the browser would make the map and
-   the log agree with each other and with nothing else: the link could not be
-   shared, a reload would lose the choice, the server-rendered counts would
-   describe a month nobody is looking at, and the charts would not narrow at
-   all. One PatrolFilter, read once by the controller, is what keeps the map,
-   the log and the charts three readings of one answer — the same idiom the
-   incidents register uses.
-
-   The type pills stay quick toggles (the design draws them so); station, zone
-   and month are dropdowns in the incidents bar's shared chrome (.i-dd*), one
-   open at a time, closed on an outside click or Escape by the filters
-   controller — which is chrome, and the only thing left in it.
-
-   THE COUNTS ARE THE NARROWED VIEW's; THE MENUS ARE THE MONTH's. A station you
-   chose must not be the only station the menu still offers. #}
+   THE DASHBOARD CARRIES NO SEARCH BOX. Searching is what the full log is for;
+   a card capped at its latest rows would answer a search with the rows it had
+   room for, which is worse than not offering one. #}
 {% macro filters(dashboard, types, typeColor, now, area, filter) %}
-    {% set here = area is defined and area ? 'patrol_dashboard' : null %}
-    <div class="patrol-chiprow" {{ stimulus_controller('@uhifadhi/patrol-module/filters') }}>
-        {# TYPE TOGGLES — quick chips, not a dropdown: the design draws them so, and
-           the type is the one filter you flick between without opening anything. #}
-        {% if here %}
-            <a class="mchip{{ filter.type is null ? ' on' }}" href="{{ path(here, {uuid: area.uuid}|merge(filter.withoutType.toQuery)) }}"
-               aria-pressed="{{ filter.type is null ? 'true' : 'false' }}">all &middot; {{ dashboard.totalCount }}</a>
-            {% for key, type in types %}
-                {# The pill wears the colour of the tracks it filters — the one
-                   typeColors() map, never a second palette (the map-legend rule). #}
-                <a class="mchip patrol-tfilter{{ filter.type == key ? ' on' }}" href="{{ path(here, {uuid: area.uuid}|merge(filter.onlyType(key).toQuery)) }}"
-                   style="--patrol-track: {{ _self.color(typeColor, key) }}"
-                   aria-pressed="{{ filter.type == key ? 'true' : 'false' }}"><i></i>{{ type.label|lower }} &middot; {{ dashboard.typeCounts[key]|default(0) }}</a>
-            {% endfor %}
-        {% else %}
-            <span class="mchip on">all &middot; {{ dashboard.totalCount }}</span>
-            {% for key, type in types %}
-                <span class="mchip patrol-tfilter" style="--patrol-track: {{ _self.color(typeColor, key) }}"><i></i>{{ type.label|lower }} &middot; {{ dashboard.typeCounts[key]|default(0) }}</span>
-            {% endfor %}
-        {% endif %}
-
-        <span class="sep"></span>
-
-        {# STATION — a DROPDOWN in the incidents bar's chrome (.i-dd*, ported into
-           patrol.css). Every option is a real link driving ?station=, and the
-           trigger names the chosen one. #}
-        <span class="i-dd{{ filter.station ? ' patrol-dd-chosen' }}" data-patrol-dd>
-            <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
-                    {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
-                <span>{{ filter.station ?: 'station' }}</span><span class="i-ddcaret">&#9662;</span>
-            </button>
-            <div class="i-ddmenu" data-patrol-dd-menu role="listbox" aria-label="Filter by station">
-                <span class="i-ddhead">station</span>
-                {% if here and dashboard.stations|length %}
-                    <a class="i-ddopt{{ filter.station is null ? ' on' }}" role="option" data-patrol-station="all"
-                       href="{{ path(here, {uuid: area.uuid}|merge(filter.withoutStation.toQuery)) }}"><span class="i-ddopt-l">all stations</span></a>
-                    <span class="i-ddsep"></span>
-                {% endif %}
-                {% for station in dashboard.stations %}
-                    {% if here %}
-                        <a class="i-ddopt{{ filter.station == station ? ' on' }}" role="option" data-patrol-station="{{ station }}"
-                           href="{{ path(here, {uuid: area.uuid}|merge(filter.onlyStation(station).toQuery)) }}"><span class="i-ddopt-l">{{ station }}</span></a>
-                    {% else %}
-                        <span class="i-ddopt" role="option" data-patrol-station="{{ station }}"><span class="i-ddopt-l">{{ station }}</span></span>
-                    {% endif %}
-                {% else %}
-                    <span class="i-ddopt is-empty" role="option"><span class="i-ddopt-l">no stations yet</span></span>
-                {% endfor %}
-            </div>
-        </span>
-
-        {# ZONE — the design's zone dropdown. A patrol carries no zone field, so
-           each patrol's zone is computed by a live PostGIS spatial join
-           (PatrolRepository::zonesForPatrols — the zone its track set out in) and
-           the menu lists the zones this month's patrols fall in. #}
-        <span class="i-dd{{ filter.zone ? ' patrol-dd-chosen' }}" data-patrol-dd>
-            <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
-                    {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
-                <span>{{ filter.zone ?: 'zone' }}</span><span class="i-ddcaret">&#9662;</span>
-            </button>
-            <div class="i-ddmenu" data-patrol-dd-menu role="listbox" aria-label="Filter by zone">
-                <span class="i-ddhead">zone</span>
-                {% if here and dashboard.zones|length %}
-                    <a class="i-ddopt{{ filter.zone is null ? ' on' }}" role="option" data-patrol-zone="all"
-                       href="{{ path(here, {uuid: area.uuid}|merge(filter.withoutZone.toQuery)) }}"><span class="i-ddopt-l">all zones</span></a>
-                    <span class="i-ddsep"></span>
-                {% endif %}
-                {% for zone in dashboard.zones %}
-                    {% if here %}
-                        <a class="i-ddopt{{ filter.zone == zone ? ' on' }}" role="option" data-patrol-zone="{{ zone }}"
-                           href="{{ path(here, {uuid: area.uuid}|merge(filter.onlyZone(zone).toQuery)) }}"><span class="i-ddopt-l">{{ zone }}</span></a>
-                    {% else %}
-                        <span class="i-ddopt" role="option" data-patrol-zone="{{ zone }}"><span class="i-ddopt-l">{{ zone }}</span></span>
-                    {% endif %}
-                {% else %}
-                    <span class="i-ddopt is-empty" role="option"><span class="i-ddopt-l">no zones yet</span></span>
-                {% endfor %}
-            </div>
-        </span>
-
-        {# MONTH — this month and the five before it, each a link that re-queries
-           the whole dashboard for that month while keeping every other choice.
-           The days are anchored to the first of the month before subtracting, so
-           an overflowing day-of-month never skips a month. A host that never
-           mounted the dashboard route falls back to the plain label. #}
-        {% if here %}
-            <span class="i-dd patrol-dd-chosen" data-patrol-dd>
-                <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
-                        {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
-                    <span>{{ filter.month|date('F Y')|lower }}</span><span class="i-ddcaret">&#9662;</span>
-                </button>
-                <div class="i-ddmenu" data-patrol-dd-menu role="listbox" aria-label="Choose month">
-                    <span class="i-ddhead">month</span>
-                    {% set anchor = now|date_modify('first day of this month') %}
-                    {% for i in 0..5 %}
-                        {% set m = anchor|date_modify('-' ~ i ~ ' months') %}
-                        <a class="i-ddopt{{ filter.month|date('Y-m') == m|date('Y-m') ? ' on' }}" role="option"
-                           href="{{ path(here, {uuid: area.uuid}|merge(filter.inMonth(m).toQuery)) }}"><span class="i-ddopt-l">{{ m|date('F Y')|lower }}</span></a>
-                    {% endfor %}
-                </div>
-            </span>
-        {% else %}
-            <span class="mchip patrol-monthchip">{{ filter.month|date('F Y')|lower }}</span>
-        {% endif %}
-    </div>
+    {% import '@UhifadhiPatrol/_filters.html.twig' as row %}
+    {{ row.row('patrol_dashboard', area, filter, types, typeColor, now, {
+        allCount: dashboard.totalCount,
+        typeCounts: dashboard.typeCounts,
+        stations: dashboard.stations,
+        stationCounts: {},
+        zones: dashboard.zones,
+        zoneCounts: {},
+    }, null) }}
 {% endmacro %}

@@ -14,9 +14,11 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Uhifadhi\Bundle\AtlasBundle\Map\MapBuilderInterface;
+use Uhifadhi\Contracts\Shell\ModuleTabsInterface;
 use Uhifadhi\Patrol\Controller\PatrolCalendarController;
 use Uhifadhi\Patrol\Controller\PatrolController;
 use Uhifadhi\Patrol\Controller\PatrolDetailController;
+use Uhifadhi\Patrol\Controller\PatrolListController;
 use Uhifadhi\Patrol\Repository\FlightRepository;
 use Uhifadhi\Patrol\Repository\LaunchPointRepository;
 use Uhifadhi\Patrol\Repository\ObservationAmendmentRepository;
@@ -35,11 +37,14 @@ use Uhifadhi\Patrol\Service\ObservationAmendmentService;
 use Uhifadhi\Patrol\Service\PatrolCoverageService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolHoldService;
+use Uhifadhi\Patrol\Service\PatrolListService;
 use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolRecordingService;
+use Uhifadhi\Patrol\Service\PatrolScreenAccessService;
 use Uhifadhi\Patrol\Service\PatrolWidgetUrls;
 use Uhifadhi\Patrol\Service\TaxonomyAdminService;
 use Uhifadhi\Patrol\Service\TrackIngestService;
+use Uhifadhi\Patrol\Shell\PatrolModuleTabs;
 use Uhifadhi\Patrol\Twig\PatrolTrailExtension;
 
 /*
@@ -216,6 +221,33 @@ return static function (ContainerConfigurator $container): void {
         ]);
 
     /*
+     * THE FULL LOG's own reading: which of the month's patrols one page shows,
+     * and the count beside every option in the filter row. Pure — no clock, no
+     * repository — which is what lets the whole page be unit-tested.
+     */
+    $services->set('patrol.list', PatrolListService::class);
+
+    /*
+     * WHETHER TO DRAW A DOOR. Two questions — does the screen exist in this
+     * installation, and may this viewer open it — asked in one place so no
+     * screen answers only half of them.
+     */
+    $services->set('patrol.screen_access', PatrolScreenAccessService::class)
+        ->args([
+            param('patrol.record_screens'),
+            service('security.authorization_checker')->nullOnInvalid(),
+        ]);
+
+    /*
+     * THE MODULE'S DATA PLACES. Tagged BY HAND: a reusable bundle does not
+     * autoconfigure, so the platform's registerForAutoconfiguration never fires
+     * for it and a forgotten tag is a module with no strip and no children in
+     * the sidebar's tree, with nothing anywhere saying why.
+     */
+    $services->set('patrol.module_tabs', PatrolModuleTabs::class)
+        ->tag(ModuleTabsInterface::TAG);
+
+    /*
      * THE CRUMB'S ONE HELPER — `patrol_url()`, which answers null for a screen
      * the installation did not mount instead of throwing the page away. See
      * PatrolTrailExtension for why a module's breadcrumb cannot use path().
@@ -269,6 +301,19 @@ return static function (ContainerConfigurator $container): void {
         ->public();
 
     $services->alias(PatrolController::class, 'patrol.controller.dashboard')->public();
+
+    $services->set('patrol.controller.list', PatrolListController::class)
+        ->args([
+            service('twig'),
+            service(PatrolRepository::class),
+            service('patrol.list'),
+            service('patrol.screen_access'),
+            param('patrol.types'),
+            param('patrol.discard_retention_days'),
+        ])
+        ->public();
+
+    $services->alias(PatrolListController::class, 'patrol.controller.list')->public();
 
     /*
      * The calendar's month fragment (PL·11 ‹ ›). Registered beside the dashboard

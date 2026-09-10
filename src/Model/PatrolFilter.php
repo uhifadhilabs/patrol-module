@@ -41,6 +41,7 @@ final readonly class PatrolFilter
      * @param string|null        $type    one configured patrol type key; null is every type
      * @param string|null        $station one station's free-text name; null is every station
      * @param string|null        $zone    one zone's name, as the spatial join reports it; null is every zone
+     * @param string|null        $search  free text over a patrol's id, lead, station and notes; null is every patrol
      * @param \DateTimeImmutable $month   the first instant of the month on screen
      */
     public function __construct(
@@ -48,6 +49,7 @@ final readonly class PatrolFilter
         public ?string $type = null,
         public ?string $station = null,
         public ?string $zone = null,
+        public ?string $search = null,
     ) {
     }
 
@@ -63,6 +65,7 @@ final readonly class PatrolFilter
             self::word($request, 'type'),
             self::word($request, 'station'),
             self::word($request, 'zone'),
+            self::word($request, 'q'),
         );
     }
 
@@ -80,45 +83,68 @@ final readonly class PatrolFilter
     /** The same question narrowed to one patrol type — what a type chip links to. */
     public function onlyType(string $type): self
     {
-        return new self($this->month, $type, $this->station, $this->zone);
+        return new self($this->month, $type, $this->station, $this->zone, $this->search);
     }
 
     /** The same question with the type cleared — what the "all" chip links to. */
     public function withoutType(): self
     {
-        return new self($this->month, null, $this->station, $this->zone);
+        return new self($this->month, null, $this->station, $this->zone, $this->search);
     }
 
     public function onlyStation(string $station): self
     {
-        return new self($this->month, $this->type, $station, $this->zone);
+        return new self($this->month, $this->type, $station, $this->zone, $this->search);
     }
 
     public function withoutStation(): self
     {
-        return new self($this->month, $this->type, null, $this->zone);
+        return new self($this->month, $this->type, null, $this->zone, $this->search);
     }
 
     public function onlyZone(string $zone): self
     {
-        return new self($this->month, $this->type, $this->station, $zone);
+        return new self($this->month, $this->type, $this->station, $zone, $this->search);
     }
 
     public function withoutZone(): self
     {
-        return new self($this->month, $this->type, $this->station, null);
+        return new self($this->month, $this->type, $this->station, null, $this->search);
     }
 
     /** The same choices in a different month — what a month option links to. */
     public function inMonth(\DateTimeImmutable $month): self
     {
-        return new self($month->modify('first day of this month')->setTime(0, 0), $this->type, $this->station, $this->zone);
+        return new self($month->modify('first day of this month')->setTime(0, 0), $this->type, $this->station, $this->zone, $this->search);
     }
 
     /** Whether anything at all is narrowing the screen beyond its month. */
     public function isNarrowed(): bool
     {
-        return null !== $this->type || null !== $this->station || null !== $this->zone;
+        return null !== $this->type || null !== $this->station || null !== $this->zone || null !== $this->search;
+    }
+
+    /**
+     * DOES THIS PATROL'S TEXT ANSWER THE SEARCH? Case-insensitively, over
+     * whatever the caller decided is searchable about a patrol — its id, its
+     * lead, its station and its notes.
+     *
+     * @param list<string|null> $fields
+     */
+    public function matchesSearch(array $fields): bool
+    {
+        if (null === $this->search) {
+            return true;
+        }
+
+        $needle = mb_strtolower($this->search);
+        foreach ($fields as $field) {
+            if (null !== $field && str_contains(mb_strtolower($field), $needle)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -153,6 +179,9 @@ final readonly class PatrolFilter
         }
         if (null !== $this->zone) {
             $query['zone'] = $this->zone;
+        }
+        if (null !== $this->search) {
+            $query['q'] = $this->search;
         }
         $query['month'] = $this->month->format('Y-m');
 

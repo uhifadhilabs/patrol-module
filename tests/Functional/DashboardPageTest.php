@@ -155,8 +155,10 @@ final class DashboardPageTest extends WebTestCase
         self::assertSelectorTextContains('[data-kpi="last"] .kpi span', $this->boat->getRef());
 
         // Filter chips: one per configured type, each with its live count.
-        self::assertStringContainsString('walking round · 2', (string) $crawler->filter('[data-w="map"]')->text());
-        self::assertStringContainsString('boat · 1', (string) $crawler->filter('[data-w="map"]')->text());
+        // The type chip is a DROPDOWN — a set the deployment writes has no length
+        // a pill row can plan for — so the counts live in its options.
+        self::assertStringContainsString('walking round2', (string) $crawler->filter('[data-w="map"] .lfilt')->text());
+        self::assertStringContainsString('boat1', (string) $crawler->filter('[data-w="map"] .lfilt')->text());
 
         // Patrol log: one row per patrol, with the ref, the explicit lowercase
         // start ("sat 22 aug · 06:10"), the observation chip and Open →.
@@ -235,9 +237,9 @@ final class DashboardPageTest extends WebTestCase
 
         // The filter chips are real LINKS carrying the query they select, so one
         // request drives the map, the log AND the charts.
-        $chips = $crawler->filter('[data-w="map"] .patrol-chiprow a.mchip');
-        self::assertCount(3, $chips); // all + the two configured types
-        self::assertStringNotContainsString('type=', (string) $chips->first()->attr('href'));
+        $types = $crawler->filter('[data-w="map"] .lfilt .i-ddmenu[aria-label="Filter by patrol type"] a.i-ddopt');
+        self::assertCount(3, $types); // all types + the two configured ones
+        self::assertStringNotContainsString('type=', (string) $types->first()->attr('href'));
 
         // The log rows name what the coverage plate spotlights when one is
         // hovered: the layer their own type is drawn in, and the reference that
@@ -260,7 +262,8 @@ final class DashboardPageTest extends WebTestCase
         self::assertSame(['South landing', 'North post'], $stations);
         self::assertCount(
             1,
-            $crawler->filter('[data-patrol-log] .patrol-chiprow a[data-patrol-station="North post"]'),
+            $crawler->filter('[data-patrol-log] .lfilt .i-ddmenu[aria-label="Filter by station"] a.i-ddopt')
+                ->reduce(static fn ($n): bool => 'North post' === trim($n->text())),
         );
     }
 
@@ -312,15 +315,16 @@ final class DashboardPageTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
 
-        // Three dropdowns in the shared chrome, inside the map row.
-        $dd = $crawler->filter('[data-w="map"] .patrol-chiprow .i-dd');
-        self::assertCount(3, $dd);
+        // FOUR dropdowns in the shared chrome, inside the map row: the patrol
+        // type is one of them now, because a vocabulary a deployment writes has
+        // no length a pill row can plan for.
+        $dd = $crawler->filter('[data-w="map"] .lfilt .i-dd');
+        self::assertCount(4, $dd);
 
-        // Every station, plus "all", is a real option carrying the value the
-        // client-side filter reads (data-patrol-station) — one filter, map + log.
-        $stations = $crawler->filter('[data-w="map"] .patrol-chiprow .i-ddmenu .i-ddopt[data-patrol-station]')
-            ->each(static fn ($n): string => (string) $n->attr('data-patrol-station'));
-        self::assertContains('all', $stations);
+        // Every station, plus "all", is a real option re-querying the page.
+        $stations = $crawler->filter('[data-w="map"] .lfilt .i-ddmenu[aria-label="Filter by station"] a.i-ddopt')
+            ->each(static fn ($n): string => trim($n->text()));
+        self::assertContains('All stations', $stations);
         self::assertContains('North post', $stations);
         self::assertContains('South landing', $stations);
         self::assertCount(3, $stations);
@@ -328,29 +332,29 @@ final class DashboardPageTest extends WebTestCase
         // The ZONE dropdown exists and its options publish the client-side filter
         // (chooseZone). This fixture draws no zone polygons, so the menu is the
         // honest empty state rather than a dead control.
-        $zoneMenu = $crawler->filter('[data-w="map"] .patrol-chiprow .i-ddmenu[aria-label="Filter by zone"]');
+        $zoneMenu = $crawler->filter('[data-w="map"] .lfilt .i-ddmenu[aria-label="Filter by zone"]');
         self::assertCount(1, $zoneMenu);
 
         // The MONTH dropdown is real now: this month and the five before it, each
         // a link that re-queries the dashboard (?month=YYYY-MM), the current month
         // marked as chosen. No dead indicator chip when the route is mounted.
-        $monthOptions = $crawler->filter('[data-w="map"] .patrol-chiprow .i-ddmenu[aria-label="Choose month"] a.i-ddopt');
+        $monthOptions = $crawler->filter('[data-w="map"] .lfilt .i-ddmenu[aria-label="Choose month"] a.i-ddopt');
         self::assertCount(6, $monthOptions);
         self::assertStringContainsString('month=', (string) $monthOptions->first()->attr('href'));
         self::assertCount(
             1,
-            $crawler->filter('[data-w="map"] .patrol-chiprow .i-ddmenu[aria-label="Choose month"] a.i-ddopt.on'),
+            $crawler->filter('[data-w="map"] .lfilt .i-ddmenu[aria-label="Choose month"] a.i-ddopt.on'),
         );
         // No dashed ghost chip, and no plain indicator chip (the fallback is only
         // for a host with no dashboard route).
-        self::assertCount(0, $crawler->filter('[data-w="map"] .patrol-chiprow .patrol-ghost'));
-        self::assertCount(0, $crawler->filter('[data-w="map"] .patrol-chiprow .patrol-monthchip'));
+        self::assertCount(0, $crawler->filter('[data-w="map"] .lfilt .patrol-ghost'));
+        self::assertCount(0, $crawler->filter('[data-w="map"] .lfilt .patrol-monthchip'));
 
-        // Type stays a row of quick chips (all + the two configured types), and
-        // every one is a real link driving ?type= rather than a browser event.
-        $typeChips = $crawler->filter('[data-w="map"] .patrol-chiprow a.mchip');
-        self::assertCount(3, $typeChips);
-        self::assertStringContainsString('type=walk', (string) $typeChips->eq(1)->attr('href'));
+        // Every type option is a real link driving ?type= rather than a browser
+        // event, so the map, the log and the charts move together.
+        $typeOptions = $crawler->filter('[data-w="map"] .lfilt .i-ddmenu[aria-label="Filter by patrol type"] a.i-ddopt');
+        self::assertCount(3, $typeOptions);
+        self::assertStringContainsString('type=walk', (string) $typeOptions->eq(1)->attr('href'));
     }
 
     /**
@@ -406,7 +410,7 @@ final class DashboardPageTest extends WebTestCase
         $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols?month=not-a-month');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('[data-w="map"] .patrol-chiprow .i-ddmenu[aria-label="Choose month"] a.i-ddopt.on', strtolower(new \DateTimeImmutable()->format('F Y')));
+        self::assertSelectorTextContains('[data-w="map"] .lfilt .i-ddmenu[aria-label="Choose month"] a.i-ddopt.on', strtolower(new \DateTimeImmutable()->format('F Y')));
     }
 
     /**

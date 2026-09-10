@@ -131,6 +131,12 @@
 }
 .i-ddopt:hover { background: rgb(var(--c-raised)); text-decoration: none; }
 .i-ddopt.on { background: color-mix(in srgb, rgb(var(--c-acc)) 12%, transparent); }
+/* The chosen value, in the trigger — what the chip says without opening. */
+.i-ddval { display: inline-flex; align-items: center; gap: 5px; }
+/* An option's leading mark. Colourless here: a patrol type wears its track
+   colour on the chip that filters by it, and a second coloured mark in the menu
+   would be a second palette to keep in step. */
+.i-dot { width: 8px; height: 8px; border-radius: 2px; flex: none; background: transparent; }
 .i-ddopt-l { flex: 1; white-space: nowrap; }
 .i-ddopt-n { font-family: var(--font-mono); font-size: 10.5px; color: rgb(var(--c-dim)); font-variant-numeric: tabular-nums; }
 .i-ddopt.on .i-ddopt-n { color: rgb(var(--c-acc)); }

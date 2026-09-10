@@ -1,0 +1,131 @@
+{# THE ONE FILTER ROW, drawn once and read by both of the module's data places.
+
+   ONE GET DRIVES EVERYTHING. Every option is a real link carrying the whole
+   question — ?type=&station=&zone=&q=&month=YYYY-MM — so the choice survives a
+   reload, can be sent to somebody, and is the same question the map, the charts
+   and the counts are all reading. Narrowing in the browser would make the row
+   agree with itself and with nothing else on the page.
+
+   EVERY AXIS IS A DROPDOWN CHIP. A patrol type is a set the deployment writes,
+   and a set a deployment writes has no length this row can plan for: as a pill
+   row it wraps the moment an area names its sixth type. The chip states what is
+   chosen and opens the rest, which reads the same at three types and at thirty.
+
+   THE COUNTS ARE THE NARROWED VIEW'S, and a count is printed only where the
+   caller measured one: a number the page cannot stand behind is worse than no
+   number.
+
+   THE SEARCH SITS AT THE RIGHT END, which is the shell's `.lsearch` doing the
+   pushing — this module defines none of that vocabulary. #}
+
+{% macro option(here, area, filter, label, count, on) %}
+    <a class="i-ddopt{{ on ? ' on' }}" role="option" aria-selected="{{ on ? 'true' : 'false' }}"
+       href="{{ path(here, {uuid: area.uuid}|merge(filter.toQuery)) }}"><span class="i-dot"></span><span class="i-ddopt-l">{{ label }}</span>
+        {%- if count is not null %}<span class="i-ddopt-n">{{ count }}</span>{% endif -%}
+    </a>
+{% endmacro %}
+
+{# counts: {allCount, typeCounts, stations, stationCounts, zones, zoneCounts}
+   search: the placeholder the search box wears, or null for a row without one #}
+{% macro row(here, area, filter, types, typeColor, now, counts, search) %}
+    <div class="lfilt" {{ stimulus_controller('@uhifadhi/patrol-module/filters') }}>
+
+        {# PATROL TYPE — the deployment's own vocabulary, so a dropdown and never
+           a pill row. The trigger names the chosen type and its count. #}
+        <span class="i-dd{{ filter.type ? ' patrol-dd-chosen' }}" data-patrol-dd>
+            <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
+                    {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
+                <span class="i-ddval">
+                    {%- if filter.type -%}
+                        {{ types[filter.type].label|default(filter.type)|lower }}
+                        {%- if counts.typeCounts[filter.type] is defined %} &middot; {{ counts.typeCounts[filter.type] }}{% endif -%}
+                    {%- else -%}
+                        all{% if counts.allCount is not null %} &middot; {{ counts.allCount }}{% endif %}
+                    {%- endif -%}
+                </span><span class="i-ddcaret">&#9662;</span>
+            </button>
+            <div class="i-ddmenu" data-patrol-dd-menu role="listbox" aria-label="Filter by patrol type">
+                <span class="i-ddhead">patrol type</span>
+                {{ _self.option(here, area, filter.withoutType, 'All types', counts.allCount, filter.type is null) }}
+                <span class="i-ddsep"></span>
+                {% for key, type in types %}
+                    {{ _self.option(here, area, filter.onlyType(key), type.label|lower, counts.typeCounts[key]|default(null), filter.type == key) }}
+                {% else %}
+                    <span class="i-ddopt is-empty" role="option"><span class="i-ddopt-l">no patrol types yet</span></span>
+                {% endfor %}
+            </div>
+        </span>
+
+        {# STATION — where a patrol set off from. #}
+        <span class="i-dd{{ filter.station ? ' patrol-dd-chosen' }}" data-patrol-dd>
+            <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
+                    {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
+                <span class="i-ddval">{{ filter.station ?: 'station' }}</span><span class="i-ddcaret">&#9662;</span>
+            </button>
+            <div class="i-ddmenu" data-patrol-dd-menu role="listbox" aria-label="Filter by station">
+                <span class="i-ddhead">station</span>
+                {% if counts.stations|length %}
+                    {{ _self.option(here, area, filter.withoutStation, 'All stations', null, filter.station is null) }}
+                    <span class="i-ddsep"></span>
+                {% endif %}
+                {% for station in counts.stations %}
+                    {{ _self.option(here, area, filter.onlyStation(station), station, counts.stationCounts[station]|default(null), filter.station == station) }}
+                {% else %}
+                    <span class="i-ddopt is-empty" role="option"><span class="i-ddopt-l">no stations yet</span></span>
+                {% endfor %}
+            </div>
+        </span>
+
+        {# ZONE — a patrol carries no zone field, so this is the zone its track
+           set out in, answered by the same spatial join the map reads. #}
+        <span class="i-dd{{ filter.zone ? ' patrol-dd-chosen' }}" data-patrol-dd>
+            <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
+                    {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
+                <span class="i-ddval">{{ filter.zone ?: 'zone' }}</span><span class="i-ddcaret">&#9662;</span>
+            </button>
+            <div class="i-ddmenu" data-patrol-dd-menu role="listbox" aria-label="Filter by zone">
+                <span class="i-ddhead">zone</span>
+                {% if counts.zones|length %}
+                    {{ _self.option(here, area, filter.withoutZone, 'All zones', null, filter.zone is null) }}
+                    <span class="i-ddsep"></span>
+                {% endif %}
+                {% for zone in counts.zones %}
+                    {{ _self.option(here, area, filter.onlyZone(zone), zone, counts.zoneCounts[zone]|default(null), filter.zone == zone) }}
+                {% else %}
+                    <span class="i-ddopt is-empty" role="option"><span class="i-ddopt-l">no zones yet</span></span>
+                {% endfor %}
+            </div>
+        </span>
+
+        {# MONTH — this month and the five before it. The days are anchored to
+           the first of the month before subtracting, so an overflowing day of
+           month never skips one. #}
+        <span class="i-dd patrol-dd-chosen" data-patrol-dd>
+            <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
+                    {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
+                <span class="i-ddval">{{ filter.month|date('F Y')|lower }}</span><span class="i-ddcaret">&#9662;</span>
+            </button>
+            <div class="i-ddmenu" data-patrol-dd-menu role="listbox" aria-label="Choose month">
+                <span class="i-ddhead">month</span>
+                {% set anchor = now|date_modify('first day of this month') %}
+                {% for i in 0..5 %}
+                    {% set m = anchor|date_modify('-' ~ i ~ ' months') %}
+                    {{ _self.option(here, area, filter.inMonth(m), m|date('F Y')|lower, null, filter.month|date('Y-m') == m|date('Y-m')) }}
+                {% endfor %}
+            </div>
+        </span>
+
+        {# THE SEARCH, at the right end. A GET form so the text joins the same
+           question every chip carries; the other axes ride along as hidden
+           fields, so searching keeps the month and the narrowing somebody set. #}
+        {% if search %}
+            <form class="lsearch" method="get" action="{{ path(here, {uuid: area.uuid}) }}" role="search">
+                {% for key, value in filter.toQuery %}
+                    {% if key != 'q' %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}
+                {% endfor %}
+                {{ ux_icon('shell:search') }}
+                <input class="fld" type="search" name="q" value="{{ filter.search }}" placeholder="{{ search }}" aria-label="{{ search }}">
+            </form>
+        {% endif %}
+    </div>
+{% endmacro %}

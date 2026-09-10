@@ -1,0 +1,127 @@
+{# EVERY PATROL THE MONTH HOLDS — the dashboard's log card without a cap on it,
+   which is the one thing a card cannot be: a card that grew with the data would
+   make a busy month a page nobody can read.
+
+   THE PAGE IS ONE GET. The filter row, the counts inside it, these rows and the
+   pager are all readings of a single query, so the count in the card's caption
+   and the rows under it can never be answering different questions.
+
+   THE FRAME IS THE SHELL'S. The tab strip, the Configure action and the way back
+   are drawn by the shell from this module's declarations — see
+   Uhifadhi\Patrol\Shell\PatrolModuleTabs — so nothing here draws navigation. #}
+{% extends '@UhifadhiPatrol/base.html.twig' %}
+{% import '@UhifadhiPatrol/dashboard/_ui.html.twig' as ui %}
+{% import '@UhifadhiPatrol/_filters.html.twig' as filters %}
+
+{% block title %}Patrols{% endblock %}
+
+{% block patrol_trail_tail %} <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / all{% endblock %}
+
+{% block shell_page_title %}{{ area.name }} — Patrols{% endblock %}
+
+{% block shell_page_subtitle %}Every patrol logged in this area, newest first — the dashboard’s log widget without a cap on it. Search runs over the id, the lead, the station and the observation notes; the filter row is the same one query the map and the charts read.{% endblock %}
+
+{% block shell_page_actions %}
+    {% if recordScreens|default(false) %}
+        <a class="cta" href="{{ path('patrol_log', {uuid: area.uuid}) }}">{{ ux_icon('patrol:pen-line') }}Log patrol</a>
+    {% endif %}
+{% endblock %}
+
+{% block patrol_page %}
+<div class="c">
+    <span class="tab">Every patrol<span class="src">· {{ month|date('F Y')|lower }} · {{ list.totalCount }} {{ list.totalCount == 1 ? 'patrol' : 'patrols' }}</span></span>
+
+    {{ filters.row('patrol_list', area, filter, types, typeColor, now, {
+        allCount: list.allCount,
+        typeCounts: list.typeCounts,
+        stations: list.stations,
+        stationCounts: list.stationCounts,
+        zones: list.zones,
+        zoneCounts: list.zoneCounts,
+    }, 'Search patrols…') }}
+
+    <table class="tbl">
+        <thead>
+            <tr>
+                <th>patrol</th>
+                <th>type</th>
+                <th>station</th>
+                <th>lead</th>
+                <th class="num">team</th>
+                <th class="num">duration</th>
+                <th class="num">distance</th>
+                <th>observations</th>
+                <th>status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for patrol in list.patrols %}
+            <tr class="{{ patrol.discarded ? 'patrol-abandoned' }}" data-patrol="{{ patrol.uuid.toRfc4122 }}">
+                <td>
+                    <span class="mono patrol-ref">{{ patrol.ref }}</span>
+                    <em class="patrol-rowsub">{{ ui.started(patrol) }}</em>
+                </td>
+                <td>{{ ui.type_chip(patrol.type, types, typeColor) }}</td>
+                <td>{{ patrol.station ?: '—' }}</td>
+                <td>{{ ui.lead_name(patrol.lead) }}</td>
+                <td class="num">{{ patrol.teamRangerIds|length ?: '—' }}</td>
+                <td class="num">{{ ui.duration(patrol) }}</td>
+                <td class="num">{{ ui.distance(patrol) }}{% if patrol.discarded %}<em class="patrol-rowsub">not counted</em>{% endif %}</td>
+                <td>
+                    {% if patrol.observations|length %}
+                        <span class="chip warn">{{ patrol.observations|length }} obs</span>
+                    {% else %}
+                        <span class="chip idle">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if patrol.discarded %}
+                        {% if patrol.held %}
+                            <span class="chip warn">held for review</span>
+                        {% else %}
+                            <span class="chip patrol-discard-pill">discarded</span>
+                            {% if patrol.discardedAt %}
+                                {% set _removedAt = patrol.discardedAt|date_modify('+' ~ retentionDays ~ ' days') %}
+                                <em class="patrol-rowsub">removed <time datetime="{{ _removedAt|date('c') }}" data-localtime-format="date">{{ _removedAt|date('j M')|lower }}</time></em>
+                            {% endif %}
+                        {% endif %}
+                    {% else %}
+                        <span class="chip ok">logged</span>
+                    {% endif %}
+                </td>
+                <td class="patrol-right"><a class="open-btn" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">Open →</a></td>
+            </tr>
+        {% else %}
+            <tr><td colspan="10">{{ filter.isNarrowed ? 'No patrols match this filter.' : 'No patrols recorded this month.' }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    {# THE PAGER, in the shell's own vocabulary. It carries the whole question,
+       so paging never quietly widens or narrows what is being paged through. #}
+    <div class="pgr">
+        <span class="cnt">{{ list.firstIndex }}–{{ list.lastIndex }} of {{ list.totalCount }}</span>
+        <span class="sp"></span>
+        {% if list.page > 1 %}
+            <a href="{{ path('patrol_list', {uuid: area.uuid, page: list.page - 1}|merge(filter.toQuery)) }}">← Newer</a>
+        {% else %}
+            <a class="off" href="#">← Newer</a>
+        {% endif %}
+        {% for p in 1..list.pageCount %}
+            {% if p == list.page %}
+                <span class="pg-n on">{{ p }}</span>
+            {% elseif p <= 3 or p == list.pageCount %}
+                <a href="{{ path('patrol_list', {uuid: area.uuid, page: p}|merge(filter.toQuery)) }}">{{ p }}</a>
+            {% elseif p == 4 %}
+                <span class="pg-n gap">…</span>
+            {% endif %}
+        {% endfor %}
+        {% if list.page < list.pageCount %}
+            <a href="{{ path('patrol_list', {uuid: area.uuid, page: list.page + 1}|merge(filter.toQuery)) }}">Older →</a>
+        {% else %}
+            <a class="off" href="#">Older →</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
