@@ -261,6 +261,7 @@ final class TestKernel extends Kernel
             // The widget framework, by the ids ShellBundle publishes,
             // plus the registry a surface has to be findable in.
             \Uhifadhi\Patrol\Service\PatrolRecordingService::class => 'patrol.recording',
+            \Uhifadhi\Patrol\Devkit\PatrolContentProvider::class => 'patrol.devkit.content',
             \Uhifadhi\Patrol\Service\PatrolHoldService::class => 'patrol.hold',
             \Uhifadhi\Patrol\Service\ObservationAmendmentService::class => 'patrol.observation_amendments',
             \Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetService::class => 'shell.widget.service',

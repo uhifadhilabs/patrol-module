@@ -42,6 +42,7 @@ use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
 use Uhifadhi\Patrol\Controller\PatrolWidgetsController;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
 use Uhifadhi\Patrol\Devkit\PatrolCommandProvider;
+use Uhifadhi\Patrol\Devkit\PatrolContentProvider;
 use Uhifadhi\Patrol\Module\PatrolDepartmentKpiProvider;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Overview\PatrolAttention;
@@ -304,6 +305,38 @@ final class UhifadhiPatrolBundle extends AbstractBundle
          * module that forgot this tag would silently lose access to its own
          * evidence — a confusing way to find out.
          */
+        /*
+                 * THE TWO WRITES THE FIELD APP MAKES — appending a patrol's observations
+                 * and storing one photograph — registered UNCONDITIONALLY, beside the
+                 * evidence voter and the file source and for the same reason those are:
+                 * an installation that never installed api-platform can still HOLD
+                 * observations and photographs (imported, seeded, migrated) and must
+                 * still be able to write them.
+                 *
+                 * The processors that put them on /api stay inside the api-platform
+                 * guard below; only the door is guarded, exactly as it is for
+                 * 'patrol.taxonomy_admin' and the three screen writes.
+                 *
+                 * The photo bytes go to the platform's evidence storage, by service id —
+                 * the storage bundle is a reusable bundle and its ids are its public
+                 * surface (its docs/service-reference.md).
+                 */
+        $services->set('patrol.api.observation_sync', ObservationSyncService::class)
+            ->args([
+                service('doctrine.orm.entity_manager'),
+                service(ObservationRepository::class),
+                service(LaunchPointRepository::class),
+                service(FlightRepository::class),
+                param('patrol.observation_categories'),
+            ]);
+
+        $services->set('patrol.api.photo_sync', PhotoSyncService::class)
+            ->args([
+                service('doctrine.orm.entity_manager'),
+                service(ObservationPhotoRepository::class),
+                service('storage.evidence_storage'),
+            ]);
+
         $services->set('patrol.evidence_voter', PatrolEvidenceVoter::class)
             ->args([service(ObservationPhotoRepository::class)])
             ->tag('uhifadhi.evidence_access_voter');
@@ -501,30 +534,11 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     param('patrol.gap_threshold_minutes'),
                 ]);
 
-            $services->set('patrol.api.observation_sync', ObservationSyncService::class)
-                ->args([
-                    service('doctrine.orm.entity_manager'),
-                    service(ObservationRepository::class),
-                    service(LaunchPointRepository::class),
-                    service(FlightRepository::class),
-                    param('patrol.observation_categories'),
-                ]);
-
             $services->set('patrol.api.flight_sync', FlightSyncService::class)
                 ->args([
                     service('doctrine.orm.entity_manager'),
                     service(LaunchPointRepository::class),
                     service(FlightRepository::class),
-                ]);
-
-            // The bytes go to the platform's evidence storage, by service id —
-            // the storage bundle is a reusable bundle and its ids are its public
-            // surface (its docs/service-reference.md).
-            $services->set('patrol.api.photo_sync', PhotoSyncService::class)
-                ->args([
-                    service('doctrine.orm.entity_manager'),
-                    service(ObservationPhotoRepository::class),
-                    service('storage.evidence_storage'),
                 ]);
 
             $services->set('patrol.api.completion', PatrolCompletionService::class)
@@ -587,6 +601,33 @@ final class UhifadhiPatrolBundle extends AbstractBundle
          * is the firewall now, and a flag beside it would be a second one that
          * can disagree.
          */
+        /*
+                 * A DEMO MONTH, OFFERED THE SAME WAY. An inert provider naming a slice
+                 * of sample content; devkit collects it and seeds it in a dev install,
+                 * and in production nothing collects it. Its load() calls this module's
+                 * own public services and nothing else, so demo content can only ever be
+                 * shaped the way the product shapes it.
+                 *
+                 * THE TAG IS A LITERAL STRING for the same reason the command tag is:
+                 * reading a constant of devkit's would load a class that is not
+                 * installed in production.
+                 */
+        $services->set('patrol.devkit.content', PatrolContentProvider::class)
+            ->args([
+                service('doctrine.orm.entity_manager'),
+                service(PatrolRepository::class),
+                service(ObservationRepository::class),
+                service('patrol.geo'),
+                service('patrol.track_ingest'),
+                service('patrol.recording'),
+                service('patrol.api.observation_sync'),
+                service('patrol.api.photo_sync'),
+                service('patrol.taxonomy_admin'),
+                param('patrol.types'),
+                param('patrol.observation_categories'),
+            ])
+            ->tag('uhifadhi.devkit.content_provider');
+
         $services->set('patrol.devkit.commands', PatrolCommandProvider::class)
             ->args([service('patrol.photo_thumbnail_backfill')])
             ->tag('uhifadhi.devkit.command_provider');
