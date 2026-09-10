@@ -135,18 +135,12 @@
     <div class="c patrol-plate" data-patrol-track>
         <span class="tab">Track plate<span class="src">· {{ patrol.ref }} · satellite · live</span></span>
         <span class="lib">{{ patrol.source.value == 'gpx' ? 'gpx track' : (patrol.source.value == 'api' ? 'api track' : 'sketched route') }}</span>
-        {{ ui.viewer(
-            payload,
+        {{ ui.plate(
+            map,
             'Patrol ' ~ patrol.ref ~ ' track',
             patrol.ref ~ ' · ' ~ (patrol.station ?: '—') ~ ' · ' ~ typeLabel|lower,
-            'satellite · live · numbered rings = observations',
-            'patrol-plate-viewer-tall'
+            'satellite · live · numbered markers = observations'
         ) }}
-        <div class="patrol-legend">
-            <span class="chip patrol-tchip" style="--patrol-track: {{ trackColor }}">track</span>
-            <span class="chip warn">observation</span>
-            <span class="chip idle">● start · ○ end</span>
-        </div>
     </div>
 
     <div class="patrol-side">

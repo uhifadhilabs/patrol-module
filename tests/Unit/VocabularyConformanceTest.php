@@ -73,6 +73,61 @@ final class VocabularyConformanceTest extends VocabularyConformanceTestCase
     }
 
     /**
+     * THE MODULE DRAWS NO MAP OF ITS OWN.
+     *
+     * Every map on the platform is the atlas's plate: a module states what is on
+     * it in PHP and calls render_map(), which mounts one controller and links one
+     * Leaflet. A module template that names a map controller of its own, or
+     * reaches for Leaflet directly, has started a second answer to a settled
+     * question — a map that looks and behaves unlike every other map in the
+     * product, and, with Leaflet, a second module namespace whose layers the
+     * real map refuses.
+     */
+    public function testNoTemplateDrawsAMapOfItsOwn(): void
+    {
+        $offenders = [];
+        foreach (self::templateFiles() as $file) {
+            // What a template EMITS, so a comment explaining where the map comes
+            // from is not read as a map.
+            $markup = (string) preg_replace('/\{#.*?#\}/s', '', (string) file_get_contents($file));
+            $name = basename($file);
+
+            if (preg_match('/data-controller="[^"]*(map|plate)[^"]*"/i', $markup, $matches)
+                && !str_contains($matches[0], 'atlas-bundle--map-plate')) {
+                $offenders[] = $name.': '.$matches[0];
+            }
+
+            // The atlas's own stylesheet constant names the sheet, not the
+            // library; anything else spelling "leaflet" is reaching past the
+            // plate for the map itself.
+            if (preg_match('/leaflet/i', $markup)) {
+                $offenders[] = $name.': leaflet';
+            }
+        }
+
+        self::assertSame([], $offenders, 'a module draws no map of its own: state it in PHP and call render_map()');
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function templateFiles(): array
+    {
+        $files = [];
+        $directory = new \RecursiveDirectoryIterator(self::bundlePath().'/templates', \FilesystemIterator::SKIP_DOTS);
+        /** @var \SplFileInfo $file */
+        foreach (new \RecursiveIteratorIterator($directory) as $file) {
+            if ($file->isFile() && str_ends_with($file->getFilename(), '.html.twig')) {
+                $files[] = $file->getPathname();
+            }
+        }
+
+        sort($files);
+
+        return $files;
+    }
+
+    /**
      * @param class-string $bundle
      * @param int<1, max>  $levels
      */

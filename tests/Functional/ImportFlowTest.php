@@ -149,10 +149,10 @@ final class ImportFlowTest extends WebTestCase
         // span, and the ONE silence longer than the 5-minute threshold.
         $preview = $crawler->filter('[data-patrol-preview]');
         self::assertCount(1, $preview);
-        self::assertStringContainsString('4 points', $preview->filter('.patrol-ol-id')->text());
-        self::assertStringContainsString('06:00–06:25', $preview->filter('.patrol-ol-id')->text());
+        self::assertStringContainsString('4 points', $preview->filter('.patrol-cap-id')->text());
+        self::assertStringContainsString('06:00–06:25', $preview->filter('.patrol-cap-id')->text());
         self::assertStringContainsString('valid gpx', $preview->text());
-        self::assertStringContainsString('1 gap > 5 min', $preview->filter('.patrol-legend')->text());
+        self::assertStringContainsString('1 gap > 5 min', $preview->filter('.patrol-chiprow-flat')->text());
         self::assertStringContainsString('short_track.gpx', $crawler->filter('.patrol-filechip')->text());
         self::assertStringContainsString('parsed', $crawler->filter('.patrol-filechip')->text());
 

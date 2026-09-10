@@ -66,13 +66,7 @@
     <div class="c patrol-plate" data-patrol-sketch>
         <span class="tab">Route sketch<span class="src">· click to add points · double-click to finish</span></span>
         <span class="lib">optional</span>
-        {{ ui.viewer(
-            {'boundary': area.geom, 'track': null},
-            'Route sketch',
-            'no points yet',
-            'sketched route · dashed until saved',
-            'patrol-plate-viewer-tall'
-        ) }}
+        {{ ui.plate(map, 'Route sketch', 'no points yet', 'sketched route · dashed until saved') }}
         <div class="use"><b>Sketch, don’t fake precision</b> — a hand-drawn route is stored as a sketch, clearly distinct from GPX tracks; distance shows as approximate.</div>
     </div>
 </div>

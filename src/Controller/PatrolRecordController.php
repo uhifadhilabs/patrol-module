@@ -34,6 +34,7 @@ use Uhifadhi\Patrol\Exception\InvalidPatrolTimesException;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\PatrolMap;
 use Uhifadhi\Patrol\Service\PatrolRecordingService;
 use Uhifadhi\Patrol\Service\TrackIngestService;
 
@@ -86,6 +87,7 @@ final class PatrolRecordController
         private readonly EntityManagerInterface $entityManager,
         private readonly PatrolRepository $patrols,
         private readonly PatrolDashboardService $dashboard,
+        private readonly PatrolMap $plates,
         private readonly TrackIngestService $ingest,
         private readonly PatrolRecordingService $recording,
         private readonly AuthorizationCheckerInterface $authorizationChecker,
@@ -190,10 +192,10 @@ final class PatrolRecordController
                 'gpxData' => null !== $gpxXml ? base64_encode($gpxXml) : null,
                 // The area outline is drawn under the parsed track, so an
                 // imported file can be seen to land inside the area.
-                'payload' => [
+                'map' => $this->plates->track([
                     'boundary' => $area->getGeom(),
                     'track' => $track?->toGeoJson(),
-                ],
+                ]),
                 'gapThresholdMinutes' => $this->gapThresholdMinutes,
                 'error' => $error,
             ]),
@@ -267,6 +269,9 @@ final class PatrolRecordController
         return new Response(
             $this->twig->render('@UhifadhiPatrol/log/show.html.twig', [
                 'area' => $area,
+                // A sketched route is not recorded geometry, so the plate has
+                // the area and nothing else on it.
+                'map' => $this->plates->track(['boundary' => $area->getGeom(), 'track' => null]),
                 'types' => $this->types,
                 'stations' => $this->stations($area),
                 'users' => $this->users(),

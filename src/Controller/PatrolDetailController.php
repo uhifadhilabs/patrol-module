@@ -35,6 +35,7 @@ use Uhifadhi\Patrol\Repository\ObservationAmendmentRepository;
 use Uhifadhi\Patrol\Service\GeoService;
 use Uhifadhi\Patrol\Service\GpxWriter;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\PatrolMap;
 use Uhifadhi\Patrol\Storage\PatrolFileSource;
 
 /**
@@ -70,6 +71,7 @@ final class PatrolDetailController
         private readonly UrlGeneratorInterface $urls,
         private readonly GeoService $geo,
         private readonly GpxWriter $gpx,
+        private readonly PatrolMap $plates,
         private readonly ObservationAmendmentRepository $amendments,
         private readonly array $types,
         private readonly array $categories,
@@ -111,7 +113,7 @@ final class PatrolDetailController
             'holdToken' => $this->holdToken($patrol),
             // The plate payload: the recorded track plus the positioned
             // observations, which the controller draws as numbered rings.
-            'payload' => [
+            'map' => $this->plates->track([
                 // The area outline travels with every plate: a track is read
                 // AGAINST it, and it is all the plate can draw when a
                 // hand-logged patrol recorded no route at all.
@@ -130,7 +132,7 @@ final class PatrolDetailController
                     ],
                     array_filter($rows, static fn (array $row): bool => null !== $row['position']),
                 )),
-            ],
+            ]),
         ]));
     }
 
@@ -273,7 +275,7 @@ final class PatrolDetailController
             'next' => $siblings['next'],
             // The parent track travels with the payload as context (drawn
             // faded), so the observation reads as a point ON the patrol.
-            'payload' => [
+            'map' => $this->plates->track([
                 'boundary' => $area->getGeom(),
                 'track' => $patrol->getTrack(),
                 'color' => $this->trackColor($patrol),
@@ -298,7 +300,7 @@ final class PatrolDetailController
                     ],
                     $rows,
                 ),
-            ],
+            ]),
         ]));
     }
 

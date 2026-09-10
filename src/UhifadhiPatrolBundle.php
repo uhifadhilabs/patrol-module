@@ -395,6 +395,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service('router'),
                     service(PatrolRepository::class),
                     service('patrol.dashboard'),
+                    service('patrol.map'),
                     // The day's live reading for the direction widgets the library
                     // previews (out now, gaps, the observation queue).
                     service('patrol.overview'),
@@ -419,6 +420,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service('doctrine.orm.entity_manager'),
                     service(PatrolRepository::class),
                     service('patrol.dashboard'),
+                    service('patrol.map'),
                     service('patrol.track_ingest'),
                     service('patrol.recording'),
                     service('security.authorization_checker'),

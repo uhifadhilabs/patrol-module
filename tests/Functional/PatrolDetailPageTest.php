@@ -143,41 +143,38 @@ final class PatrolDetailPageTest extends WebTestCase
         // Export GPX is offered only for a recorded track.
         self::assertStringContainsString('Export GPX', $crawler->filter('.pghead')->text());
 
-        // PL·01 — the plate carries the Stimulus controller and a payload with
-        // the track plus the positioned observations as numbered rings.
-        $plate = $crawler->filter('[data-controller="uhifadhi--patrol-module--track-plate"]');
-        self::assertCount(1, $plate);
-        $payload = json_decode(
-            (string) $plate->attr('data-uhifadhi--patrol-module--track-plate-payload-value'),
-            true,
-        );
-        self::assertIsArray($payload);
-        self::assertIsString($payload['track'] ?? null);
-        self::assertStringContainsString('LineString', $payload['track']);
-        $rings = $payload['observations'] ?? null;
-        self::assertIsArray($rings);
-        // Only the observation that recorded a position can be drawn.
-        self::assertCount(1, $rings);
-        $ring = $rings[0];
-        self::assertIsArray($ring);
-        self::assertSame(1, $ring['n'] ?? null);
-        // The deployment's WORD for the category, never the stored key: the ring
-        // tooltip reads like the chip under it.
-        self::assertSame('Maintenance need', $ring['category'] ?? null);
-        self::assertStringContainsString('Point', json_encode($ring, \JSON_THROW_ON_ERROR));
-        // A ring is a way into its observation page.
-        self::assertIsString($ring['url'] ?? null);
-        self::assertStringContainsString('/observations/', $ring['url']);
+        // PL·01 — the plate is the atlas's, and what is on it is stated in PHP:
+        // the track, its ends, and every positioned observation as a marker.
+        $plate = self::plate($crawler);
+        self::assertStringContainsString('LineString', json_encode(self::features($plate, 'patrol.track'), \JSON_THROW_ON_ERROR));
+        self::assertCount(2, self::features($plate, 'patrol.endpoints'));
+
+        // Only the observation that recorded a position can be drawn, and it is
+        // a marker rather than a layer feature because it opens its own page.
+        $markers = self::markers($crawler);
+        self::assertCount(1, $markers);
+        $marker = $markers[0];
+        // The deployment's WORD for the category, never the stored key: the
+        // marker reads like the chip under it.
+        self::assertSame('obs 1 · Maintenance need', $marker['title'] ?? null);
+        $window = $marker['infoWindow'] ?? null;
+        self::assertIsArray($window);
+        self::assertIsString($window['content']);
+        self::assertStringContainsString('/observations/', $window['content']);
+
         // The plate draws the area outline the track is read against, and the
         // track wears this patrol type's one colour.
-        self::assertIsString($payload['boundary'] ?? null);
-        self::assertStringContainsString('MultiPolygon', $payload['boundary']);
-        self::assertIsString($payload['color'] ?? null);
-        // The controls are mounted by the host's platform chrome module, not
-        // rendered here; the plate ships the frame they mount into.
-        self::assertCount(1, $crawler->filter('.patrol-viewer .patrol-canvas'));
+        $boundary = $plate['boundary'];
+        self::assertIsArray($boundary);
+        self::assertStringContainsString('MultiPolygon', json_encode($boundary['geojson'], \JSON_THROW_ON_ERROR));
+        self::assertIsString(self::layer($plate, 'patrol.track')['swatch'] ?? null);
+
+        // The controls are the atlas's, mounted by its one map controller; the
+        // module renders no chrome markup of its own.
+        self::assertCount(1, $crawler->filter('.map-plate .viewer .map-canvas'));
         self::assertCount(0, $crawler->filter('.patrol-zoomui'));
-        self::assertStringContainsString($this->patrol->getRef().' · North post · walking round', $crawler->filter('.patrol-ol-id')->text());
+        // The caption rides in the plate's filter slot, one row above the map.
+        self::assertStringContainsString($this->patrol->getRef().' · North post · walking round', $crawler->filter('.map-plate .map-filters')->text());
 
         // The identity band — the patrol's own facts in the platform's shared
         // .factband below the tabs (PL·02 in the settled design is this band, not
@@ -296,5 +293,79 @@ final class PatrolDetailPageTest extends WebTestCase
     private function url(AreaOfInterest $area, Patrol $patrol): string
     {
         return '/areas/'.$area->getUuidString().'/modules/patrols/'.$patrol->getUuid()->toRfc4122();
+    }
+
+    /**
+     * WHAT THE PLATE CARRIES. The atlas writes its whole payload under one key
+     * of the UX Map map's own `extra`, and UX Map forwards it to the browser as
+     * a Stimulus value on the map element.
+     *
+     * @return array{layers: list<array<string, mixed>>, boundary: array<string, mixed>|null, ...}
+     */
+    private static function plate(Crawler $crawler): array
+    {
+        $plate = $crawler->filter('[data-controller="uhifadhi--atlas-bundle--map-plate"]');
+        self::assertCount(1, $plate);
+
+        $extra = json_decode((string) $plate->filter('[data-symfony--ux-leaflet-map--map-extra-value]')->attr('data-symfony--ux-leaflet-map--map-extra-value'), true, 512, \JSON_THROW_ON_ERROR);
+        self::assertIsArray($extra);
+        $atlas = $extra['atlas'] ?? null;
+        self::assertIsArray($atlas);
+        self::assertIsList($atlas['layers'] ?? null);
+
+        /** @var array{layers: list<array<string, mixed>>, boundary: array<string, mixed>|null} $atlas */
+        return $atlas;
+    }
+
+    /**
+     * One of the plate's layers, by the id the module gave it.
+     *
+     * @param array{layers: list<array<string, mixed>>, boundary: array<string, mixed>|null} $plate
+     *
+     * @return array<string, mixed>
+     */
+    private static function layer(array $plate, string $id): array
+    {
+        foreach ($plate['layers'] as $layer) {
+            if ($id === ($layer['id'] ?? null)) {
+                return $layer;
+            }
+        }
+
+        self::fail(\sprintf('The plate draws no layer "%s".', $id));
+    }
+
+    /**
+     * The features of one of the plate's layers.
+     *
+     * @param array{layers: list<array<string, mixed>>, boundary: array<string, mixed>|null} $plate
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function features(array $plate, string $id): array
+    {
+        $collection = self::layer($plate, $id)['features'] ?? null;
+        self::assertIsArray($collection);
+        self::assertIsList($collection['features'] ?? null);
+
+        /** @var list<array<string, mixed>> $features */
+        $features = $collection['features'];
+
+        return $features;
+    }
+
+    /**
+     * The markers on the plate — the elements UX Map models itself, which the
+     * atlas passes straight through.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function markers(Crawler $crawler): array
+    {
+        $decoded = json_decode((string) $crawler->filter('[data-symfony--ux-leaflet-map--map-markers-value]')->attr('data-symfony--ux-leaflet-map--map-markers-value'), true, 512, \JSON_THROW_ON_ERROR);
+        self::assertIsList($decoded);
+
+        /** @var list<array<string, mixed>> $decoded */
+        return $decoded;
     }
 }

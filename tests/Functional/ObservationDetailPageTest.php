@@ -17,6 +17,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\TeamBundle\Entity\User;
@@ -153,25 +154,21 @@ final class ObservationDetailPageTest extends WebTestCase
         self::assertGreaterThan(0, $back->filter('svg')->count());
         self::assertStringContainsString('obs 2', $crawler->filter('.crumb')->text());
 
-        // PL·01 — the plate payload carries this observation's point AND the
-        // parent track, which the controller draws faded for context.
-        $plate = $crawler->filter('[data-controller="uhifadhi--patrol-module--track-plate"]');
-        self::assertCount(1, $plate);
-        $payload = json_decode(
-            (string) $plate->attr('data-uhifadhi--patrol-module--track-plate-payload-value'),
-            true,
-        );
-        self::assertIsArray($payload);
-        self::assertIsString($payload['track'] ?? null);
-        self::assertStringContainsString('LineString', json_encode($payload['track'], \JSON_THROW_ON_ERROR));
+        // PL·01 — the plate carries this observation's point AND the parent
+        // track, which is drawn back because the page is about the observation.
+        $plate = self::plate($crawler);
+        self::assertStringContainsString('LineString', json_encode(self::features($plate, 'patrol.track'), \JSON_THROW_ON_ERROR));
+        // The route is context here, so its ends are not drawn.
+        self::assertSame(['patrol.track'], array_column($plate['layers'], 'id'));
         // The area outline travels with the plate here too.
-        self::assertIsString($payload['boundary'] ?? null);
-        self::assertStringContainsString('MultiPolygon', $payload['boundary']);
-        $ring = $payload['observation'] ?? null;
-        self::assertIsArray($ring);
-        self::assertSame(2, $ring['n'] ?? null);
-        self::assertStringContainsString('Point', json_encode($ring, \JSON_THROW_ON_ERROR));
-        self::assertStringContainsString('obs 2 · maintenance need · 08:15', $crawler->filter('.patrol-ol-id')->text());
+        $boundary = $plate['boundary'];
+        self::assertIsArray($boundary);
+        self::assertStringContainsString('MultiPolygon', json_encode($boundary['geojson'], \JSON_THROW_ON_ERROR));
+
+        $titles = array_column(self::markers($crawler), 'title');
+        self::assertContains('obs 2 · Maintenance need', $titles);
+        // The caption rides in the plate's filter slot, one row above the map.
+        self::assertStringContainsString('obs 2 · maintenance need · 08:15', $crawler->filter('.map-plate .map-filters')->text());
 
         // The identity band — the observation's own facts in the platform's
         // shared .factband below the tabs (PL·02 in the settled design is this
@@ -448,45 +445,28 @@ final class ObservationDetailPageTest extends WebTestCase
         self::assertCount(0, $crawler->filter('.patrol-obsnav'));
     }
 
-    public function testThePlatePayloadCarriesEveryObservationWithExactlyOneCurrent(): void
+    public function testThePlateCarriesEveryObservationAsItsOwnMarker(): void
     {
         $crawler = $this->client->request('GET', $this->url($this->area, $this->patrol, $this->observation));
 
         self::assertResponseIsSuccessful();
-        $payload = json_decode(
-            (string) $crawler
-                ->filter('[data-controller="uhifadhi--patrol-module--track-plate"]')
-                ->attr('data-uhifadhi--patrol-module--track-plate-payload-value'),
-            true,
-        );
-        self::assertIsArray($payload);
 
-        // Every sibling travels with the plate, in the SAME order the arrows
-        // walk, so a ring can be clicked as well as arrowed to.
-        $siblings = $payload['observations'] ?? null;
-        self::assertIsArray($siblings);
-        self::assertCount(2, $siblings);
-        self::assertSame([1, 2], array_column($siblings, 'n'));
-        self::assertSame(
-            [
-                $this->url($this->area, $this->patrol, $this->firstObservation),
-                $this->url($this->area, $this->patrol, $this->observation),
-            ],
-            array_column($siblings, 'url'),
-        );
-        // Exactly one is the one being viewed.
-        self::assertSame([false, true], array_column($siblings, 'current'));
-        // The sibling with no recorded position says so rather than inventing one.
-        $sibling = $siblings[0];
-        self::assertIsArray($sibling);
-        self::assertArrayHasKey('position', $sibling);
-        self::assertNull($sibling['position']);
+        // Every sibling that recorded a position is drawn, in the SAME order the
+        // arrows walk, so a marker can be opened as well as arrowed to. The one
+        // with no position holds its number in the list beside the map and is
+        // not drawn — an invented position would be worse than none.
+        $markers = self::markers($crawler);
+        self::assertCount(1, $markers);
 
-        $current = $siblings[1];
-        self::assertIsArray($current);
-        self::assertIsString($current['position'] ?? null);
-        self::assertStringContainsString('Point', $current['position']);
-        self::assertSame('Maintenance need', $current['category'] ?? null);
+        $marker = $markers[0];
+        self::assertSame('obs 2 · Maintenance need', $marker['title'] ?? null);
+        $window = $marker['infoWindow'] ?? null;
+        self::assertIsArray($window);
+        self::assertIsString($window['content']);
+        self::assertStringContainsString(
+            $this->url($this->area, $this->patrol, $this->observation),
+            $window['content'],
+        );
     }
 
     public function testAnObservationReachedThroughAnotherPatrolIsNotFound(): void
@@ -508,5 +488,79 @@ final class ObservationDetailPageTest extends WebTestCase
         return '/areas/'.$area->getUuidString()
             .'/modules/patrols/'.$patrol->getUuid()->toRfc4122()
             .'/observations/'.$observation->getUuid()->toRfc4122();
+    }
+
+    /**
+     * WHAT THE PLATE CARRIES. The atlas writes its whole payload under one key
+     * of the UX Map map's own `extra`, and UX Map forwards it to the browser as
+     * a Stimulus value on the map element.
+     *
+     * @return array{layers: list<array<string, mixed>>, boundary: array<string, mixed>|null, ...}
+     */
+    private static function plate(Crawler $crawler): array
+    {
+        $plate = $crawler->filter('[data-controller="uhifadhi--atlas-bundle--map-plate"]');
+        self::assertCount(1, $plate);
+
+        $extra = json_decode((string) $plate->filter('[data-symfony--ux-leaflet-map--map-extra-value]')->attr('data-symfony--ux-leaflet-map--map-extra-value'), true, 512, \JSON_THROW_ON_ERROR);
+        self::assertIsArray($extra);
+        $atlas = $extra['atlas'] ?? null;
+        self::assertIsArray($atlas);
+        self::assertIsList($atlas['layers'] ?? null);
+
+        /** @var array{layers: list<array<string, mixed>>, boundary: array<string, mixed>|null} $atlas */
+        return $atlas;
+    }
+
+    /**
+     * One of the plate's layers, by the id the module gave it.
+     *
+     * @param array{layers: list<array<string, mixed>>, boundary: array<string, mixed>|null} $plate
+     *
+     * @return array<string, mixed>
+     */
+    private static function layer(array $plate, string $id): array
+    {
+        foreach ($plate['layers'] as $layer) {
+            if ($id === ($layer['id'] ?? null)) {
+                return $layer;
+            }
+        }
+
+        self::fail(\sprintf('The plate draws no layer "%s".', $id));
+    }
+
+    /**
+     * The features of one of the plate's layers.
+     *
+     * @param array{layers: list<array<string, mixed>>, boundary: array<string, mixed>|null} $plate
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function features(array $plate, string $id): array
+    {
+        $collection = self::layer($plate, $id)['features'] ?? null;
+        self::assertIsArray($collection);
+        self::assertIsList($collection['features'] ?? null);
+
+        /** @var list<array<string, mixed>> $features */
+        $features = $collection['features'];
+
+        return $features;
+    }
+
+    /**
+     * The markers on the plate — the elements UX Map models itself, which the
+     * atlas passes straight through.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function markers(Crawler $crawler): array
+    {
+        $decoded = json_decode((string) $crawler->filter('[data-symfony--ux-leaflet-map--map-markers-value]')->attr('data-symfony--ux-leaflet-map--map-markers-value'), true, 512, \JSON_THROW_ON_ERROR);
+        self::assertIsList($decoded);
+
+        /** @var list<array<string, mixed>> $decoded */
+        return $decoded;
     }
 }

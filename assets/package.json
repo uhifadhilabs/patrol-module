@@ -4,16 +4,6 @@
     "license": "AGPL-3.0-or-later",
     "symfony": {
         "controllers": {
-            "coverage-map": {
-                "main": "controllers/coverage_map_controller.js",
-                "fetch": "eager",
-                "enabled": true
-            },
-            "track-plate": {
-                "main": "controllers/track_plate_controller.js",
-                "fetch": "eager",
-                "enabled": true
-            },
             "filters": {
                 "main": "controllers/filters_controller.js",
                 "fetch": "eager",

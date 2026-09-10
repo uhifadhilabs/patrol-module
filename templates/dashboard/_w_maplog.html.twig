@@ -2,19 +2,18 @@
    direction leads with it.
 
    ONE FILTER, ONE VIEWPORT, ONE LIST. The coverage map at full height with the
-   month's patrols docked beside it. The map is the SAME viewer the "Coverage map"
-   widget draws (same payload, same host map chrome, same legend — the map-legend
-   contract), and the list is the month's patrols. Type/station/zone chips filter
-   both halves at once through the shared rows controller, exactly as the log's
-   own filter row does. #}
+   month's patrols docked beside it. The map is the SAME plate the "Coverage map"
+   widget draws — the atlas's, stated in PHP — and the list is the month's
+   patrols. The chips filter the list through the shared rows controller; the
+   map's own type filtering is the plate's legend. #}
 {% import '@UhifadhiPatrol/dashboard/_ui.html.twig' as ui %}
 {% set patrolMaplogLimit = 8 %}
 <div class="c" data-patrol-maplog {{ stimulus_controller('@uhifadhi/patrol-module/rows') }}>
     <span class="tab">Coverage + log<span class="src">· one filter, one viewport, one list</span></span>
-    {{ ui.filters(dashboard, types, typeColor, now, area, month|default(now)) }}
+    {% set patrolFilters %}{{ ui.filters(dashboard, types, typeColor, now, area, month|default(now)) }}{% endset %}
     <div class="patrol-maplog-split">
         <div class="patrol-maplog-map">
-            {{ ui.viewer(coveragePayload, 'Patrol tracks') }}
+            {{ render_map(map, {'role': 'img', 'aria-label': 'Patrol tracks'}, patrolFilters) }}
         </div>
         <div class="patrol-maplog-list">
             <span class="patrol-listhd">{{ min(dashboard.patrols|length, patrolMaplogLimit) }} patrols in view <em>of {{ dashboard.totalCount }} this month</em></span>
@@ -35,5 +34,5 @@
             {% endif %}
         </div>
     </div>
-    {{ ui.legend(types, typeColor) }}
+    <p class="patrol-note">patrol tracks may cross the boundary · a station sits where its patrols set out</p>
 </div>

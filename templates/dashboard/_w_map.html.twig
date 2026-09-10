@@ -1,9 +1,20 @@
 {# Widget "map" — the coverage map (PL·05), with the filter row the design puts
-   on both the map and the log. #}
+   on both the map and the log.
+
+   THE MAP IS THE ATLAS'S. What is drawn on it is stated in PHP
+   (Service/PatrolMap) and rendered by render_map(): the imagery, the boundary
+   treatment, the control stack, the legend and fullscreen are the platform's,
+   and this module writes no map JavaScript.
+
+   The filter row goes in the plate's own filter slot, one row above the map and
+   inside the plate, so the chips come along into fullscreen instead of being
+   left behind on the page. Type, station and zone still drive the log and the
+   lists; the map's own type filtering is the legend, which carries one
+   switchable row per patrol type. #}
 {% import '@UhifadhiPatrol/dashboard/_ui.html.twig' as ui %}
+{% set patrolFilters %}{{ ui.filters(dashboard, types, typeColor, now, area, month|default(now)) }}{% endset %}
 <div class="c">
     <span class="tab">Coverage<span class="src">· one filter drives map AND log</span></span>
-    {{ ui.filters(dashboard, types, typeColor, now, area, month|default(now)) }}
-    {{ ui.viewer(coveragePayload, 'Patrol tracks') }}
-    {{ ui.legend(types, typeColor) }}
+    {{ render_map(map, {'role': 'img', 'aria-label': 'Patrol tracks'}, patrolFilters) }}
+    <p class="patrol-note">patrol tracks may cross the boundary · a station sits where its patrols set out</p>
 </div>

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use Uhifadhi\Bundle\AtlasBundle\Map\MapBuilderInterface;
 use Uhifadhi\Patrol\Controller\PatrolCalendarController;
 use Uhifadhi\Patrol\Controller\PatrolController;
 use Uhifadhi\Patrol\Controller\PatrolDetailController;
@@ -33,6 +34,7 @@ use Uhifadhi\Patrol\Service\GpxWriter;
 use Uhifadhi\Patrol\Service\ObservationAmendmentService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolHoldService;
+use Uhifadhi\Patrol\Service\PatrolMap;
 use Uhifadhi\Patrol\Service\PatrolRecordingService;
 use Uhifadhi\Patrol\Service\PatrolWidgetUrls;
 use Uhifadhi\Patrol\Service\TaxonomyAdminService;
@@ -73,6 +75,15 @@ return static function (ContainerConfigurator $container): void {
         ->args([service('patrol.geo')]);
 
     $services->set('patrol.dashboard', PatrolDashboardService::class);
+
+    /*
+     * THE MODULE'S PLATES. What patrol states about its two maps, handed to the
+     * atlas to draw. The module writes no map JavaScript: this builds the map,
+     * and render_map() puts it on the page.
+     */
+    $services->set('patrol.map', PatrolMap::class)
+        ->args([service(MapBuilderInterface::class)]);
+    $services->alias(PatrolMap::class, 'patrol.map');
 
     // The widget library's URL map, shared by the dashboard and the library
     // itself, with THIS AREA named in every URL.
@@ -210,6 +221,7 @@ return static function (ContainerConfigurator $container): void {
             service('twig'),
             service(PatrolRepository::class),
             service('patrol.dashboard'),
+            service('patrol.map'),
             // The day's live reading (out now, zone gaps, the observation queue)
             // for the direction widgets — measured in the ONE place the overview
             // measures it, so the dashboard and /areas/{uuid} never disagree.
@@ -263,6 +275,7 @@ return static function (ContainerConfigurator $container): void {
             service('router'),
             service('patrol.geo'),
             service('patrol.gpx_writer'),
+            service('patrol.map'),
             // The amendment trail the observation screen reads (PL·06). Not
             // behind the security guard the WRITE is behind: a correction is
             // part of the record and must be readable wherever the record is,

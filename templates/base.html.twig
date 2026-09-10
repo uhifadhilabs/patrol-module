@@ -25,7 +25,7 @@
    must be linked by the page rendering it. Without it the grid has nothing
    declaring a span and every widget draws one column wide.
 
-   Ordered leaflet → widget → preview → patrol, weakest to strongest: this
+   Ordered map → widget → preview → patrol, weakest to strongest: this
    module's own sheet is the one allowed to override, and it is last.
 
    Symfony docs — https://symfony.com/doc/current/frontend/asset_mapper.html :
@@ -38,19 +38,14 @@
 
 {% block stylesheets %}
     {{ parent() }}
-    {# Leaflet FIRST, so patrol.css can restyle its controls into the design's
-       pills. Both files come from AtlasBundle, by its own constants —
-       never a CDN, and the same Leaflet the area map runs on, so a patrol map
-       and an area map cannot disagree about how a layer draws. #}
-    <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Bundle\\AtlasBundle\\AtlasBundle::LEAFLET_CSS')) }}">
-    {# THE MAP CHROME STYLESHEET — the atlas's ONE map.css, the single definition
-       of the zoom pills, the base-layer menu, the live scale bar, the scroll-bargain
-       hint and the fullscreen control that map-chrome's chrome.js builds into every
-       plate (.map-chrome*, .leaflet-control-*). The controllers build that chrome as
-       DOM (see leaflet_plate.js → mountMapChrome); without this sheet the controls
-       are there but unstyled and invisible — the design's zoom / Satellite·Map /
-       fullscreen, top-right, would never appear. Loaded BEFORE patrol.css so the
-       module's own plate rules still win where they must. #}
+    {# THE MAP STYLESHEET — the atlas's ONE map.css: the plate column, the imagery
+       frame, the zoom pills, the base-layer menu, the live scale bar, the
+       scroll-bargain hint, the legend and the fullscreen layout that every plate
+       in the product wears. render_map() emits the markup those rules dress, so
+       without this sheet a patrol map is an unstyled box. Leaflet's own sheet is
+       not linked beside it: the UX Map Leaflet bridge's controller imports it,
+       so there is one Leaflet and one copy of its styles. Loaded BEFORE
+       patrol.css so the module's own rules still win where they must. #}
     <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Bundle\\AtlasBundle\\AtlasBundle::STYLESHEET')) }}">
     {# The dashboard grid's own vocabulary, from the bundle that owns it. #}
     <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Bundle\\ShellBundle\\ShellBundle::WIDGET_STYLESHEET')) }}">
@@ -69,16 +64,6 @@
        contributor's stylesheet() — and a path typed twice is a path that
        eventually differs. #}
     <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Patrol\\UhifadhiPatrolBundle::STYLESHEET')) }}">
-{% endblock %}
-
-{# Leaflet is a classic script exposing `window.L`, which is what the map
-   controllers read. A classic <script> in <head> runs before the deferred
-   importmap modules, so `window.L` is there by the time a controller connects.
-   MapLibre is deliberately NOT used: raster tiles + GeoJSON need no WebGL, and
-   WebGL failed silently (blank map) in constrained environments. #}
-{% block javascripts %}
-    <script src="{{ asset(constant('Uhifadhi\\Bundle\\AtlasBundle\\AtlasBundle::LEAFLET_JS')) }}"></script>
-    {{ parent() }}
 {% endblock %}
 
 {# THE TRAIL'S SHARED PREFIX, said once. Every patrol screen sits under the same

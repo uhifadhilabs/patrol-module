@@ -76,16 +76,15 @@
         <div class="c patrol-plate" data-patrol-preview>
             <span class="tab">Parsed preview<span class="src">· from the file, before saving</span></span>
             <span class="lib">step 1 result</span>
-            {{ ui.viewer(
-                payload,
+            {{ ui.plate(
+                map,
                 'Parsed GPX track',
                 track.pointCount|number_format ~ ' points · '
                     ~ (track.startedAt ? track.startedAt|date('H:i') : '—') ~ '–' ~ (track.endedAt ? track.endedAt|date('H:i') : '—')
                     ~ ' · ' ~ track.distanceKm|number_format(1) ~ ' km',
-                'parsed track · not yet saved',
-                'patrol-plate-viewer-tall'
+                'parsed track · not yet saved'
             ) }}
-            <div class="patrol-legend">
+            <div class="patrol-chiprow patrol-chiprow-flat">
                 <span class="chip ok">valid gpx</span>
                 {% if track.gapCount > 0 %}
                     <span class="chip warn">{{ track.gapCount }} {{ track.gapCount == 1 ? 'gap' : 'gaps' }} &gt; {{ gapThresholdMinutes|round }} min</span>

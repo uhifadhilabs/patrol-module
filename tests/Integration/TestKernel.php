@@ -26,6 +26,7 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 use Symfony\UX\Icons\UXIconsBundle;
+use Symfony\UX\Map\UXMapBundle;
 use Symfony\UX\StimulusBundle\StimulusBundle;
 use Uhifadhi\Bundle\AreaBundle\AreaBundle;
 use Uhifadhi\Bundle\AtlasBundle\AtlasBundle;
@@ -75,6 +76,9 @@ final class TestKernel extends Kernel
         yield new TwigBundle();
         yield new StimulusBundle();
         yield new UXIconsBundle();
+        // UX Map and its Leaflet bridge: the atlas's plates are built on them,
+        // and every patrol screen that draws a map renders through them.
+        yield new UXMapBundle();
         yield new DoctrineBundle();
         // An installation has this, and this module ships a history for it to run.
         // Without it the bundle's migrations_paths block is guarded out and
@@ -238,6 +242,12 @@ final class TestKernel extends Kernel
         $container->extension('ux_icons', [
             'iconify' => ['on_demand' => false],
         ]);
+
+        // Which renderer draws the maps. UX Map draws nothing at all until a
+        // renderer is named, and an installation names this one.
+        //
+        // @see https://symfony.com/bundles/ux-map/current/index.html#configuration
+        $container->extension('ux_map', ['renderer' => 'leaflet://default']);
 
         $services = $container->services();
 

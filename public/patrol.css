@@ -148,133 +148,27 @@
 /* --patrol-track is set inline per element: the type vocabulary is deployment
    config, so its colour cannot be a fixed class. */
 .patrol-tchip { color: var(--patrol-track); border-color: color-mix(in srgb, var(--patrol-track) 45%, transparent); }
-.patrol-legend { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
 /* The legend's station key wears the marker's own square, so the legend and the
    map cannot describe stations differently. */
-.patrol-stationkey { display: inline-flex; align-items: center; gap: 6px; }
-.patrol-stationkey i { width: 7px; height: 7px; border-radius: 2px; background: #b9c8bd; flex: none; }
-.patrol-note { font: 500 9.5px var(--font-mono); color: rgb(var(--c-dim)); }
+/* The chart legends' row of type chips. The MAP's legend is the atlas's and is
+   drawn by the plate; this is the one under a chart. */
+.patrol-legend { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+.patrol-note { font: 500 9.5px var(--font-mono); color: rgb(var(--c-dim)); margin: 10px 0 0; }
+
+/* THE CAPTION ROW a detail plate puts above its map — the design's two overlay
+   labels, in the plate's own filter slot rather than floating on the imagery,
+   which the plate owns. */
+.patrol-cap {
+    font: 600 10px var(--font-mono); color: rgb(var(--c-fog)); letter-spacing: .04em;
+    border: 1px solid var(--c-ln2); border-radius: 6px; padding: 3px 8px;
+}
+.patrol-cap-id { color: rgb(var(--c-tx)); }
+
+/* A chip row that states rather than filters: the import preview's verdict. */
+.patrol-chiprow-flat { margin: 0 0 2px; }
 .patrol-ref { font: 600 11px var(--font-mono); }
 .patrol-right { text-align: right; }
 .patrol-empty { font-size: 12px; color: rgb(var(--c-fog)); line-height: 1.5; }
-
-/* ---- the imagery viewer (fixed dark chrome over satellite tiles) -------- */
-/* The design's own map height, read off its markup rather than eyeballed: the
-   dashboard's coverage frames (PL·05 and PL·08) are height:min(56vh,540px). A
-   Leaflet canvas needs a stated height anyway — with an aspect-ratio instead,
-   a wide widget grew far taller than the design.
-   The fixed dark ground stops tiles flashing the theme background while they
-   load. */
-.patrol-viewer {
-    position: relative; border-radius: 10px; overflow: hidden;
-    background: #20241f; height: min(56vh, 540px); isolation: isolate;
-}
-.patrol-canvas { position: absolute; inset: 0; isolation: isolate; }
-/* Leaflet paints its own ground; the plate's dark ground must show through
-   while tiles load, and the container must never be white in light theme. */
-.patrol-canvas .leaflet-container { width: 100%; height: 100%; background: #20241f; font: inherit; }
-/* The attribution and the live scale bar wear the design's overlay pill — the
-   scale replaces the design's static "500 m ⎯⎯⎯" label, which would be a lie on
-   a map that zooms. */
-.patrol-canvas .leaflet-control-attribution,
-.patrol-canvas .leaflet-control-scale-line {
-    font: 600 9px var(--font-mono); color: #eaf2ec; letter-spacing: .04em;
-    background: rgba(10, 14, 11, .72); border: 1px solid rgba(234, 242, 236, .18);
-    border-radius: 6px; padding: 3px 7px;
-}
-.patrol-canvas .leaflet-control-attribution a { color: #eaf2ec; }
-.patrol-canvas .leaflet-control-scale-line { border-top: 0; }
-.patrol-canvas .leaflet-tooltip {
-    font: 600 10px var(--font-mono); color: #eaf2ec; background: rgba(10, 14, 11, .88);
-    border: 1px solid rgba(234, 242, 236, .18); border-radius: 6px; box-shadow: none;
-}
-.patrol-canvas .leaflet-tooltip::before { display: none; }
-
-/* The scroll bargain: a plain wheel over a plate scrolls the page and flashes
-   this hint; Ctrl/⌘ + wheel zooms. In full screen the hint never appears,
-   because there the wheel zooms outright. */
-.patrol-wheelhint {
-    position: absolute; inset: 0; z-index: 7; display: grid; place-items: center;
-    font: 600 12px var(--font-mono); color: #eaf2ec; letter-spacing: .04em;
-    background: rgba(10, 14, 11, .55); pointer-events: none;
-    opacity: 0; transition: opacity 180ms ease;
-}
-.patrol-wheelhint.on { opacity: 1; }
-@media (prefers-reduced-motion: reduce) {
-    .patrol-wheelhint { transition: none; }
-}
-
-/* A station: the design's small light square with the station's name beside it
-   (fixed hexes — it sits on imagery, dark in both themes). Not interactive: a
-   station is a label on the map, and the chip menu is where it is chosen. */
-.patrol-station { display: flex; align-items: center; gap: 4px; white-space: nowrap; pointer-events: none; }
-.patrol-station i { width: 8px; height: 8px; border-radius: 2px; background: #b9c8bd; flex: none; }
-.patrol-station b {
-    font: 600 9px var(--font-mono); color: #d7e2d9;
-    text-shadow: 0 1px 2px rgba(10, 14, 11, .9);
-}
-
-/* An observation: the design's dashed amber ring with its number above it. The
-   amber is a fixed hex, not the theme's --c-warn, for the same reason the track
-   colours are fixed — it is drawn over imagery, which is dark in both themes. */
-.patrol-ring { display: grid; place-items: center; }
-/* A sibling observation on the observation screen: present, clickable, but
-   plainly not the one being read. */
-.patrol-ring-faded { opacity: .55; }
-.patrol-ring-faded span { width: 11px; height: 11px; border-width: 1.2px; font-size: 7px; }
-.patrol-ring-link { cursor: pointer; }
-.patrol-ring-link:hover { opacity: 1; }
-.patrol-ring span {
-    display: grid; place-items: center; width: 14px; height: 14px;
-    border: 1.6px dashed #dba33f; border-radius: 50%;
-    font: 700 8px var(--font-mono); color: #dba33f;
-    background: rgba(10, 14, 11, .55);
-}
-.patrol-ol {
-    position: absolute; z-index: 5; font: 600 10px var(--font-mono); color: #eaf2ec;
-    background: rgba(10, 14, 11, .72); border: 1px solid rgba(234, 242, 236, .18);
-    border-radius: 6px; padding: 4px 8px; letter-spacing: .04em; pointer-events: none;
-}
-.patrol-ol-src { left: 10px; bottom: 10px; }
-/* The chrome pills, the base-layer menu, the scroll hint and Leaflet's own
-   control/tooltip styling live in the HOST's app.css (.map-chrome*,
-   .map-chrome-host): one definition for every map on the platform. A module
-   must never ship a second copy of platform chrome.
-   What stays here is patrol's own: the plate frame, the rings, the stations,
-   the legend and the full-screen behaviour of this widget's chips. */
-
-/* ---- fullscreen: the whole widget card goes up ------------------------- */
-/* The chips and the legend are part of reading the map, so the card expands,
-   not the tiles alone — and the design says the legend floats bottom-right in
-   full screen (the host's own convention: every layer ships a legend). */
-.c:fullscreen { position: relative; display: flex; flex-direction: column; background: rgb(var(--c-cv)); padding: 16px; }
-.c:fullscreen .patrol-viewer { flex: 1; height: auto; min-height: 0; }
-.c:fullscreen .patrol-legend {
-    position: absolute; right: 26px; bottom: 26px; z-index: 8; margin: 0; max-width: 40ch;
-    background: rgba(10, 14, 11, .82); border: 1px solid rgba(234, 242, 236, .18);
-    border-radius: 10px; padding: 8px 10px;
-}
-.c:fullscreen .patrol-legend .patrol-note { color: rgba(234, 242, 236, .65); }
-/* The filter chips float TOP-LEFT in full screen, the mirror of the legend's
-   bottom-right — one filter still drives map AND log, and the log keeps the
-   choice for when the map shrinks back into the page. Patrol-specific: the
-   host's area map has no filter chips, so this belongs in patrol.css. */
-.c:fullscreen .patrol-chiprow {
-    position: absolute; left: 26px; top: 26px; z-index: 8; margin: 0; max-width: min(60ch, 60vw);
-    background: rgba(10, 14, 11, .82); border: 1px solid rgba(234, 242, 236, .18);
-    border-radius: 10px; padding: 8px 10px;
-}
-/* Over imagery the pills need the overlay's contrast, not the page card's.
-   The chosen chip keeps the ACCENT as its text colour, never --c-accT: on the
-   page that pairs with a solid accent fill, but here the fill is a 10% tint, so
-   on-accent text is near-black on near-nothing and the label vanishes. */
-.c:fullscreen .patrol-chiprow .mchip { color: #eaf2ec; border-color: rgba(234, 242, 236, .28); }
-.c:fullscreen .patrol-chiprow .mchip.on { color: rgb(var(--c-acc)); border-color: rgb(var(--c-acc)); }
-.c:fullscreen .patrol-chiprow .patrol-tfilter.on { color: var(--patrol-track); border-color: var(--patrol-track); }
-.c:fullscreen .patrol-menu-list { background: rgba(10, 14, 11, .95); border-color: rgba(234, 242, 236, .18); }
-.c:fullscreen .patrol-menu-item { color: #eaf2ec; }
-/* The card's own header has no place over a full-screen map. */
-.c:fullscreen > .tab, .c:fullscreen > .lib { display: none; }
 
 /* ---- rows a filter can hide -------------------------------------------- */
 /* One class for a table row and a feed row alike: the rows controller toggles
@@ -331,17 +225,13 @@
 .patrol-side { flex: 1.1; min-width: 300px; display: flex; flex-direction: column; gap: 16px; }
 .patrol-side > .c { margin-bottom: 0; }
 .patrol-side-spacer { gap: 0; }
-/* Each plate keeps the design's own frame height rather than stretching to the
-   sidebar: the observation plate min(46vh,440px), the track plate min(58vh,560px). */
-.patrol-plate .patrol-plate-viewer { flex: none; height: min(46vh, 440px); }
-.patrol-plate .patrol-plate-viewer-tall { height: min(58vh, 560px); }
+
 /* A plate the map FILLS pulls up tight under the floating tab, exactly as the
    design's .c.plate-fill does (padding:14px 14px 16px) — the host card's 24px top
-   is there to clear the tab on a text card, and reads as a gap over a viewer.
-   Scoped to plates that actually hold a viewer, so the observation/photos plates
+   is there to clear the tab on a text card, and reads as a gap over a map.
+   Scoped to cards that actually hold a plate, so the observation/photos cards
    keep the host card's default padding, as the design leaves them. */
-.patrol-plate:has(.patrol-plate-viewer) { padding: 14px 14px 16px; }
-.patrol-ol-id { left: 10px; top: 10px; }
+.patrol-plate:has(.map-plate) { padding: 14px 14px 16px; }
 
 /* ---- observation rows (PL·04 on the patrol detail) ---------------------- */
 /* The design marks a populated row as clickable (its Open → is the affordance

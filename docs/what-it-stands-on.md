@@ -86,16 +86,18 @@ photographs exist. Where the bytes go is in [photo-storage.md](photo-storage.md)
 
 ## The maps
 
-Patrols' maps ride the platform's own map layer rather than shipping a second
-copy of it (see [design-decisions.md](design-decisions.md) §6):
+Patrols' maps are the atlas's, not a second copy of a map layer (see
+[design-decisions.md](design-decisions.md) §6):
 
-- **Leaflet**, self-hosted by `AtlasBundle` and linked through that bundle's
-  `LEAFLET_CSS` / `LEAFLET_JS` constants (`window.L`). No CDN, never MapLibre.
-- **Basemaps** under the importmap specifier `uhifadhi/basemaps`, exporting
-  `satelliteLayer(L, map)` and `streetLayer(L)`.
-- **Boundary treatment** under `uhifadhi/boundary`, exporting `drawBoundary(L,
-  map, geojson, { scrim })` — the platform's one area outline: the
-  outside-the-area scrim, a white casing and the jade line.
+- **The map builder**, `Uhifadhi\Bundle\AtlasBundle\Map\MapBuilderInterface`,
+  which hands back a map already carrying the deployment's imagery, the
+  platform's control stack and its fullscreen behaviour.
+- **`render_map(map, attrs, filters)`**, the Twig function that puts a plate on
+  a page: the filter row above the map, the map element, and the legend floating
+  over it.
+- **The map stylesheet**, `AtlasBundle::STYLESHEET`, linked by this module's base
+  template. Leaflet itself arrives with UX Map's Leaflet bridge, so there is one
+  Leaflet on the page and this module links none.
 
 ## The per-area catalogue
 

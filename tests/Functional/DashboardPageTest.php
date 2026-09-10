@@ -17,6 +17,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Observation;
@@ -190,42 +191,42 @@ final class DashboardPageTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-patrol-calendar] .patrol-dc.patrol-today'));
         self::assertCount(3, $crawler->filter('[data-patrol-calendar] .patrol-daypill'));
 
-        // Coverage map: the shipped dashboard now carries ONE map (the buried
-        // second map beside the feed was dropped — owner ruling), and its payload
-        // holds the area boundary plus every track.
-        $maps = $crawler->filter('[data-controller="uhifadhi--patrol-module--coverage-map"]');
-        self::assertCount(1, $maps);
-        $payload = json_decode(
-            (string) $maps->first()->attr('data-uhifadhi--patrol-module--coverage-map-payload-value'),
-            true,
-        );
-        self::assertIsArray($payload);
-        self::assertIsString($payload['boundary'] ?? null);
-        self::assertStringContainsString('MultiPolygon', $payload['boundary']);
-        self::assertIsArray($payload['patrols'] ?? null);
-        // Only the two patrols that actually recorded a track are drawn.
-        self::assertCount(2, $payload['patrols']);
-        self::assertStringContainsString('LineString', json_encode($payload['patrols'], \JSON_THROW_ON_ERROR));
-        // Each drawn track knows which patrol it is (the map tooltip and the
-        // row-hover spotlight both need it) and which colour to wear.
-        foreach ($payload['patrols'] as $entry) {
-            self::assertIsArray($entry);
-            self::assertArrayHasKey('ref', $entry);
-            self::assertArrayHasKey('uuid', $entry);
-            self::assertArrayHasKey('color', $entry);
+        // Coverage map: the shipped dashboard carries ONE plate, and what is on
+        // it is stated in PHP — the area's boundary, and one layer per patrol
+        // type holding the tracks that were actually recorded.
+        $plate = self::plate($crawler);
+        $boundary = $plate['boundary'];
+        self::assertIsArray($boundary);
+        self::assertStringContainsString('MultiPolygon', json_encode($boundary['geojson'], \JSON_THROW_ON_ERROR));
+
+        // Only the two patrols that actually recorded a track are drawn, whatever
+        // types they were patrolled as.
+        $drawn = [];
+        foreach ($plate['layers'] as $layer) {
+            $id = $layer['id'] ?? null;
+            if (\is_string($id) && str_starts_with($id, 'patrol.tracks.')) {
+                $drawn = [...$drawn, ...self::features($plate, $id)];
+            }
+        }
+        self::assertCount(2, $drawn);
+        self::assertStringContainsString('LineString', json_encode($drawn, \JSON_THROW_ON_ERROR));
+        // Each drawn track knows which patrol it is and which colour to wear.
+        foreach ($drawn as $feature) {
+            $properties = $feature['properties'] ?? null;
+            self::assertIsArray($properties);
+            self::assertArrayHasKey('ref', $properties);
+            self::assertArrayHasKey('color', $properties);
         }
 
-        // The map controls are NOT server-rendered: the host's platform chrome
-        // module builds zoom, DIM, the base-layer menu and fullscreen into the
-        // frame, so neither repo keeps a copy of that markup. What this page
-        // must ship is the frame the chrome mounts into.
-        self::assertCount(1, $crawler->filter('.patrol-viewer .patrol-canvas'));
+        // The plate's own frame, and no chrome markup of the module's: the
+        // controls are the atlas's, built by its one map controller.
+        self::assertCount(1, $crawler->filter('.map-plate .viewer .map-canvas'));
         self::assertCount(0, $crawler->filter('.patrol-zoomui'));
 
-        // ...but the chrome it mounts is STYLED by AtlasBundle's map.css, which
-        // the base template must link — without it the zoom pills, the
-        // Satellite/Map toggle and fullscreen are built as DOM but invisible.
-        // Found in a browser: a map with a legend and tiles but no controls.
+        // The chrome is STYLED by AtlasBundle's map.css, which the base template
+        // must link — without it the zoom pills, the Satellite/Map toggle and
+        // fullscreen are built as DOM but invisible. Found in a browser: a map
+        // with a legend and tiles but no controls.
         self::assertStringContainsString(
             'atlas/map',
             (string) $this->client->getResponse()->getContent(),
@@ -248,8 +249,11 @@ final class DashboardPageTest extends WebTestCase
         // has no coordinates of its own, so only stations whose patrols recorded
         // a track can be placed — and the rows state their station so the
         // station menu filters the list as well as the map.
-        self::assertIsArray($payload['stations'] ?? null);
-        self::assertSame(['South landing', 'North post'], array_column($payload['stations'], 'name'));
+        $stations = array_map(
+            static fn (array $feature): mixed => \is_array($feature['properties'] ?? null) ? $feature['properties']['label'] ?? null : null,
+            self::features($plate, 'patrol.stations'),
+        );
+        self::assertSame(['South landing', 'North post'], $stations);
         self::assertCount(
             1,
             $crawler->filter('[data-patrol-log] .patrol-chiprow button[data-patrol-station="North post"]'),
@@ -531,5 +535,64 @@ final class DashboardPageTest extends WebTestCase
         // The door opens: the manager reaches the screen the link names.
         $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols/taxonomy');
         self::assertResponseIsSuccessful();
+    }
+
+    /**
+     * WHAT THE PLATE CARRIES. The atlas writes its whole payload under one key
+     * of the UX Map map's own `extra`, and UX Map forwards it to the browser as
+     * a Stimulus value on the map element.
+     *
+     * @return array{layers: list<array<string, mixed>>, boundary: array<string, mixed>|null, ...}
+     */
+    private static function plate(Crawler $crawler): array
+    {
+        $plate = $crawler->filter('[data-controller="uhifadhi--atlas-bundle--map-plate"]');
+        self::assertCount(1, $plate);
+
+        $extra = json_decode((string) $plate->filter('[data-symfony--ux-leaflet-map--map-extra-value]')->attr('data-symfony--ux-leaflet-map--map-extra-value'), true, 512, \JSON_THROW_ON_ERROR);
+        self::assertIsArray($extra);
+        $atlas = $extra['atlas'] ?? null;
+        self::assertIsArray($atlas);
+        self::assertIsList($atlas['layers'] ?? null);
+
+        /** @var array{layers: list<array<string, mixed>>, boundary: array<string, mixed>|null} $atlas */
+        return $atlas;
+    }
+
+    /**
+     * One of the plate's layers, by the id the module gave it.
+     *
+     * @param array{layers: list<array<string, mixed>>, boundary: array<string, mixed>|null} $plate
+     *
+     * @return array<string, mixed>
+     */
+    private static function layer(array $plate, string $id): array
+    {
+        foreach ($plate['layers'] as $layer) {
+            if ($id === ($layer['id'] ?? null)) {
+                return $layer;
+            }
+        }
+
+        self::fail(\sprintf('The plate draws no layer "%s".', $id));
+    }
+
+    /**
+     * The features of one of the plate's layers.
+     *
+     * @param array{layers: list<array<string, mixed>>, boundary: array<string, mixed>|null} $plate
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function features(array $plate, string $id): array
+    {
+        $collection = self::layer($plate, $id)['features'] ?? null;
+        self::assertIsArray($collection);
+        self::assertIsList($collection['features'] ?? null);
+
+        /** @var list<array<string, mixed>> $features */
+        $features = $collection['features'];
+
+        return $features;
     }
 }
