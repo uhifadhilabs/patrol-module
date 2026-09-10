@@ -109,6 +109,40 @@ final class VocabularyConformanceTest extends VocabularyConformanceTestCase
     }
 
     /**
+     * AND SHIPS NO MAP CONTROLLER EITHER.
+     *
+     * The template check above catches a map controller a template MOUNTS. This
+     * catches one the package merely ships — a file in assets/, or an entry in
+     * the package's own controllers block, that reaches for Leaflet or builds a
+     * map. Flex maintains that block in the host's controllers.json, so a
+     * controller declared here is a controller loaded on every page whether a
+     * template names it or not.
+     */
+    public function testTheModuleShipsNoMapControllerAtAll(): void
+    {
+        $offenders = [];
+        foreach (glob(self::bundlePath().'/assets/controllers/*.js') ?: [] as $file) {
+            $source = (string) file_get_contents($file);
+            $name = basename($file);
+
+            if (preg_match('/\bleaflet\b|window\.L\b|uhifadhi\/(basemaps|boundary|map-chrome)/i', $source, $matches)) {
+                $offenders[] = $name.': '.$matches[0];
+            }
+        }
+
+        $manifest = (string) file_get_contents(self::bundlePath().'/assets/package.json');
+        /** @var array{symfony?: array{controllers?: array<string, mixed>}} $declared */
+        $declared = json_decode($manifest, true, 512, \JSON_THROW_ON_ERROR);
+        foreach (array_keys($declared['symfony']['controllers'] ?? []) as $controller) {
+            if (preg_match('/map|plate/i', (string) $controller)) {
+                $offenders[] = 'package.json: '.$controller;
+            }
+        }
+
+        self::assertSame([], $offenders, 'every map on the platform is the atlas\'s plate; a module ships no map controller');
+    }
+
+    /**
      * @return list<string>
      */
     private static function templateFiles(): array
