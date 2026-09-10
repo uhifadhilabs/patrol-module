@@ -52,7 +52,7 @@ use Uhifadhi\Storage\Exception\EvidenceStorageFailedException;
  * corrected behind the thing correcting it.
  *
  * WHO MAY: "anyone who may edit the patrol" — the module's one recording
- * permission, checked in code for the same reason the module provider declares
+ * permission, checked in code for the same reason PatrolRecordController checks
  * it in code (the #[IsGranted] attribute is honoured by a listener in
  * symfony/security-http, which this bundle does not require).
  *
@@ -187,12 +187,12 @@ final class ObservationAmendmentController
 
     /**
      * Checked in code rather than with #[IsGranted] — see
-     * {@see PatrolModuleProvider::RECORD_PERMISSION} for the full reasoning.
+     * {@see PatrolRecordController} for the full reasoning.
      */
     private function denyUnlessRecorder(): void
     {
-        if (!$this->authorizationChecker->isGranted(PatrolModuleProvider::RECORD_PERMISSION)) {
-            throw new AccessDeniedException('Amending an observation requires "'.PatrolModuleProvider::RECORD_PERMISSION.'".');
+        if (!$this->authorizationChecker->isGranted(PatrolRecordController::RECORD_PERMISSION)) {
+            throw new AccessDeniedException('Amending an observation requires "'.PatrolRecordController::RECORD_PERMISSION.'".');
         }
     }
 

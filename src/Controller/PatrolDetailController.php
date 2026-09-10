@@ -380,7 +380,7 @@ final class PatrolDetailController
      */
     private function canAmend(): bool
     {
-        return $this->authorizationChecker?->isGranted(PatrolModuleProvider::RECORD_PERMISSION) ?? false;
+        return $this->authorizationChecker?->isGranted(PatrolRecordController::RECORD_PERMISSION) ?? false;
     }
 
     /**
@@ -506,7 +506,7 @@ final class PatrolDetailController
             return null;
         }
 
-        if (!$this->authorizationChecker->isGranted(PatrolModuleProvider::RECORD_PERMISSION)) {
+        if (!$this->authorizationChecker->isGranted(PatrolRecordController::RECORD_PERMISSION)) {
             return null;
         }
 

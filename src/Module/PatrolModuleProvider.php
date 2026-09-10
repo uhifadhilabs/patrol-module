@@ -16,6 +16,7 @@ namespace Uhifadhi\Patrol\Module;
 use Uhifadhi\Contracts\ModulePermission;
 use Uhifadhi\Contracts\ModuleProviderInterface;
 use Uhifadhi\Contracts\ModuleProviderTrait;
+use Uhifadhi\Patrol\Controller\PatrolRecordController;
 use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
 
 /**
@@ -26,11 +27,6 @@ use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
 final class PatrolModuleProvider implements ModuleProviderInterface
 {
     use ModuleProviderTrait;
-    /**
-     * The permission that puts field effort on the record. Declared by the
-     * module; the host's voter decides which positions actually hold it.
-     */
-    public const string RECORD_PERMISSION = 'patrols.record';
 
     /**
      * THE SLUG, ONCE. It is the answer below, and it is also what every
@@ -108,7 +104,7 @@ final class PatrolModuleProvider implements ModuleProviderInterface
     {
         return [
             new ModulePermission(
-                self::RECORD_PERMISSION,
+                PatrolRecordController::RECORD_PERMISSION,
                 'Patrols',
                 'Record',
                 'Record patrols: import a GPS track or log one by hand, and add the observations made along the way.',

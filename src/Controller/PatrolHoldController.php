@@ -57,7 +57,7 @@ use Uhifadhi\Patrol\Service\PatrolHoldService;
  * that grows a line per button is one nobody administers correctly.
  *
  * Registered only where the host runs SecurityBundle, exactly like the recording
- * screens and for the same reason — see PatrolModuleProvider::RECORD_PERMISSION and
+ * screens and for the same reason — see PatrolRecordController's docblock and
  * UhifadhiPatrolBundle::loadExtension().
  *
  * THE WRITE ITSELF IS NOT HERE — PatrolHoldService holds and releases, and owns
@@ -135,12 +135,12 @@ final class PatrolHoldController
     /**
      * Checked in code rather than with #[IsGranted]: that attribute is honoured
      * by a listener in symfony/security-http, which this bundle does not
-     * require — see PatrolModuleProvider::RECORD_PERMISSION for the full reasoning.
+     * require — see PatrolRecordController for the full reasoning.
      */
     private function denyUnlessRecorder(): void
     {
-        if (!$this->authorizationChecker->isGranted(PatrolModuleProvider::RECORD_PERMISSION)) {
-            throw new AccessDeniedException('Holding a patrol for review requires "'.PatrolModuleProvider::RECORD_PERMISSION.'".');
+        if (!$this->authorizationChecker->isGranted(PatrolRecordController::RECORD_PERMISSION)) {
+            throw new AccessDeniedException('Holding a patrol for review requires "'.PatrolRecordController::RECORD_PERMISSION.'".');
         }
     }
 

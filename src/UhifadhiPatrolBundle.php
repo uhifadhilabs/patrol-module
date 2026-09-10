@@ -37,6 +37,7 @@ use Uhifadhi\Patrol\Api\State\UploadPhotoProcessor;
 use Uhifadhi\Patrol\Command\PurgeDiscardedCommand;
 use Uhifadhi\Patrol\Controller\ObservationAmendmentController;
 use Uhifadhi\Patrol\Controller\PatrolHoldController;
+use Uhifadhi\Patrol\Controller\PatrolRecordController;
 use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
 use Uhifadhi\Patrol\Controller\PatrolWidgetsController;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
@@ -253,14 +254,13 @@ final class UhifadhiPatrolBundle extends AbstractBundle
         );
 
         /*
-         * The screens that CHANGE a field record — holding a discarded patrol,
-         * amending an observation, the observation taxonomy — are registered ONLY
-         * inside this guard. They must never exist unprotected: without
-         * symfony/security there is no authorization checker to enforce
-         * "patrols.record", and a host in that state gets no such controller at
-         * all (the routes fail loudly) rather than an open write endpoint. The
-         * check is in code and not an #[IsGranted] attribute so it holds
-         * wherever the controller is called from.
+         * The two RECORDING screens (import GPX, log patrol) are registered ONLY
+         * inside this guard. They are the only screens that create patrols, so
+         * they must never exist unprotected: without symfony/security there is no
+         * authorization checker to enforce "patrols.record", and a host in that
+         * state gets no recording controller at all (the routes fail loudly)
+         * rather than an open write endpoint. See PatrolRecordController for why
+         * the check is in code and not an #[IsGranted] attribute.
          *
          * The guard asks whether SecurityBundle is actually in the kernel, read
          * from the kernel.bundles parameter. Two other checks look right and are
@@ -359,6 +359,9 @@ final class UhifadhiPatrolBundle extends AbstractBundle
             ->args([service(ObservationPhotoRepository::class), service('router')])
             ->tag(FileSourceInterface::TAG);
 
+        // The dashboard offers "Import GPX" / "Log patrol" only where those
+        // routes exist, so a host without security shows no link into nowhere.
+        $builder->setParameter('patrol.record_screens', $hasSecurity);
         // The widget library edits ONE PERSON's layout, so it needs a signed-in
         // user for the same reason and lives under the same guard; a host without
         // security simply renders the design's default layout for everyone.
@@ -409,6 +412,23 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 ])
                 ->public();
             $services->alias(PatrolWidgetsController::class, 'patrol.controller.widgets')->public();
+
+            $services->set('patrol.controller.record', PatrolRecordController::class)
+                ->args([
+                    service('twig'),
+                    service('router'),
+                    service('doctrine.orm.entity_manager'),
+                    service(PatrolRepository::class),
+                    service('patrol.dashboard'),
+                    service('patrol.map'),
+                    service('patrol.track_ingest'),
+                    service('patrol.recording'),
+                    service('security.authorization_checker'),
+                    param('patrol.types'),
+                    param('patrol.gap_threshold_minutes'),
+                ])
+                ->public();
+            $services->alias(PatrolRecordController::class, 'patrol.controller.record')->public();
 
             // Holding a discarded patrol for review — the detail screen's one
             // write. Under this guard for the same reason the recording screens

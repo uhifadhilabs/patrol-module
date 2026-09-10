@@ -31,6 +31,13 @@
     {% if widgetScreens %}
         <a class="tgl w-act" href="{{ path('patrol_widgets', {uuid: area.uuid}) }}">{{ ux_icon('shell:layout-grid') }} Widget library</a>
     {% endif %}
+    {# The two recording screens exist only where the host runs SecurityBundle
+       (they enforce patrols.record — see UhifadhiPatrolBundle), so the
+       links are rendered only when their routes do. #}
+    {% if recordScreens %}
+        <a class="tgl patrol-act" href="{{ path('patrol_import', {uuid: area.uuid}) }}">{{ ux_icon('patrol:upload') }}Import GPX</a>
+        <a class="cta" href="{{ path('patrol_log', {uuid: area.uuid}) }}">{{ ux_icon('patrol:pen-line') }}Log patrol</a>
+    {% endif %}
 {% endblock %}
 
 {% block patrol_page %}
