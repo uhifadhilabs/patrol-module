@@ -24,14 +24,14 @@ use Uhifadhi\Bundle\RegistryBundle\Service\AreaModuleService;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 
 /**
- * PARKING PATROLS TAKES ITS PAGES WITH IT — the module's half of the seam's
+ * PARKING PATROLS TAKES ITS PAGES WITH IT — the module's half of the registry's
  * route gate.
  *
- * The seam enforces it and the seam tests the enforcement; what belongs here is
- * the two things only this bundle can be held to. First, that every route it
+ * The registry enforces it and the core tests the enforcement; what belongs here
+ * is the two things only this bundle can be held to. First, that every route it
  * ships says which module it is — the `_uhifadhi_module` default, stamped once
- * per controller, which is what lets the seam recognise a patrol page precisely
- * rather than inferring it from a URL. Second, the whole round trip through a
+ * per controller, which is what lets the registry recognise a patrol page
+ * precisely rather than inferring it from a URL. Second, the whole round trip through a
  * real request: park, gone; unpark, back.
  *
  * The 404 is the point. A 403 would confirm the pages are there and being kept
@@ -97,16 +97,15 @@ final class ParkedModuleTest extends WebTestCase
     /**
      * EVERY ROUTE THIS BUNDLE SHIPS SAYS WHOSE IT IS. One class-level default
      * per controller, so a controller added later without it fails here rather
-     * than quietly leaning on the seam's path-shape fallback — which only holds
+     * than quietly leaning on the registry's path-shape fallback — which only holds
      * while the URL segment happens to match the slug.
      */
     public function testEveryRouteOfThisModuleDeclaresTheModule(): void
     {
-        // The bundle spells the marker out rather than importing it, because the
-        // seam is a dev dependency here and a route attribute referencing its
-        // constant would make it a hard one. This is where the two spellings are
-        // held to each other — the only place the seam is guaranteed present.
-        self::assertSame(RegistryBundle::MODULE_ROUTE_DEFAULT, PatrolModuleProvider::SEAM_ROUTE_DEFAULT);
+        // The bundle spells the marker out rather than importing it, keeping
+        // exactly one string in a route attribute. This is where the two
+        // spellings are held to each other.
+        self::assertSame(RegistryBundle::MODULE_ROUTE_DEFAULT, PatrolModuleProvider::MODULE_ROUTE_DEFAULT);
 
         $router = static::getContainer()->get('router');
         \assert($router instanceof RouterInterface);

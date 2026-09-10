@@ -20,7 +20,7 @@ use Uhifadhi\Storage\Security\EvidenceAccessVoterInterface;
 
 /**
  * Who may read a patrol photograph — the module half of storage-module's
- * permission seam.
+ * permission contract.
  *
  * The storage bundle stores bytes and refuses to guess: a key that NO module
  * claims is denied, so until this class existed patrol's own photographs were
@@ -37,7 +37,7 @@ use Uhifadhi\Storage\Security\EvidenceAccessVoterInterface;
  *
  * REVISIT WHEN the host grows per-area permissions. Then this becomes "may the
  * user view the patrol's area", resolved through the photo → observation →
- * patrol → area chain the lookup below already walks; the seam does not change,
+ * patrol → area chain the lookup below already walks; the contract does not change,
  * only the question asked at the end of it.
  */
 final class PatrolEvidenceVoter implements EvidenceAccessVoterInterface
@@ -55,7 +55,7 @@ final class PatrolEvidenceVoter implements EvidenceAccessVoterInterface
     public function mayRead(string $key, ?UserInterface $user): bool
     {
         // A visitor who is not signed in. The host's firewall would normally
-        // have stopped them before this, but the seam is asked anyway and must
+        // have stopped them before this, but this voter is asked anyway and must
         // answer for itself: a deployment that ever exposes the serving route
         // more loosely must not thereby expose field evidence.
         if (null === $user) {

@@ -41,28 +41,25 @@ use Uhifadhi\Storage\UhifadhiStorageBundle;
 /**
  * The smallest INSTALLATION this bundle can live in, and every part of it is
  * real: framework + twig + doctrine + PostGIS + security + api-platform, the
- * shell every patrol screen renders through, the widget framework the dashboard
- * IS, the area a patrol happens in, the seam that switches this module on there,
- * the team the account class comes from and the storage the photographs go to —
+ * five core bundles — the shell every patrol screen renders through and the
+ * widget framework the dashboard IS, the atlas its maps draw with, the area a
+ * patrol happens in, the registry that switches this module on there and the
+ * team the account class comes from — and the storage the photographs go to,
  * against a REAL PostGIS database (PATROL_TEST_DATABASE_URL, see
  * phpunit.dist.xml). Vocabulary config uses the synthetic example domain.
  *
- * NOTHING HERE IS A COPY ANY MORE, and that is the change. This kernel used to
- * assemble a stand-in: a `layout.html.twig` typed into a fixture directory, a
- * hand-wired WidgetService pointing at classes copied under tests/Fixtures, and
- * three route definitions standing in for an application's own pages. A copy
- * cannot hold a contract — it pins whatever the copyist believed — so each of
- * them is now the published bundle it was imitating.
+ * NOTHING HERE IS A COPY. Every bundle above is the published one, because a
+ * copy cannot hold a contract — it pins whatever the copyist believed.
  *
- * THE AREA, THE PLACE AND THE PERSON ALL COME FROM MODULES. Patrol's records
- * point at an area (uhifadhi/area-module) and at a person (the class an
- * installation resolves the contract to, played by team's). Neither is this
- * bundle's to define, and neither is stubbed here.
+ * THE AREA, THE PLACE AND THE PERSON ALL COME FROM THE CORE. Patrol's records
+ * point at an area (AreaBundle) and at a person (the class an installation
+ * resolves the contract to, which TeamBundle answers). Neither is this bundle's
+ * to define, and neither is stubbed here.
  *
- * TEAM AND AREA ARE BOOTED FOR THEIR MODELS, NOT FOR THEIR DASHBOARDS. Both are
- * modules with widget surfaces of their own, which would land in the registry
- * beside this module's; {@see OnlyThisModulesSurfacesPass} keeps them out, so
- * what this suite asserts about the registry stays about PATROLS.
+ * TEAM AND AREA ARE BOOTED FOR THEIR MODELS, NOT FOR THEIR DASHBOARDS. Both
+ * carry widget surfaces of their own, which would land in the registry beside
+ * this module's; {@see OnlyThisModulesSurfacesPass} keeps them out, so what this
+ * suite asserts about the registry stays about PATROLS.
  */
 final class TestKernel extends Kernel
 {
@@ -200,24 +197,29 @@ final class TestKernel extends Kernel
                 // against the column names it will actually meet.
                 'naming_strategy' => 'doctrine.orm.naming_strategy.underscore',
                 // NO 'mappings' AND NO 'resolve_target_entities' HERE, both
-                // deliberately. Every entity this module points at now arrives
-                // with the module that owns it — the area and its zones from
-                // uhifadhi/area-module, the person and the org chart from
-                // uhifadhi/team-module — and each maps its own; team prepends the
-                // contract's resolution from its own bundle, which is the one
-                // line an installation used to have to write. If either ever
-                // stopped happening the schema would not build and this whole
-                // suite would say so at once.
+                // deliberately. Every entity this module points at arrives with
+                // the bundle that owns it — the area and its zones from
+                // AreaBundle, the person and the org chart from TeamBundle — and
+                // each maps its own; TeamBundle prepends the user contract's
+                // resolution from its own bundle, so an installation writes no
+                // doctrine line at all. If either ever stopped happening the
+                // schema would not build and this whole suite would say so at
+                // once.
             ],
         ]);
 
-        // A real installation vendors its icon set (bin/console ux:icons:import). These
-        // tests are about the module's markup, not about which glyph an icon
-        // resolves to, so a missing one renders as nothing rather than failing
-        // the page — and the assertions never depend on an icon being there.
+        // WHAT A DEPLOYMENT SETS, AND WHY IT IS HERE. With on-demand fetching
+        // on, a name no file answers to is fetched from a remote API and
+        // cached, so a missing glyph stays invisible until the deployment that
+        // has no outbound network draws a blank square. An installation turns
+        // it off, and this kernel is an installation. Every name these screens
+        // draw is answered from a directory a bundle registers — `patrol:` by
+        // this one, `shell:` by the shell — which is what the vocabulary
+        // conformance test holds them to.
+        //
+        // @see https://symfony.com/bundles/ux-icons/current/index.html#icons-on-demand
         $container->extension('ux_icons', [
-            'icon_dir' => __DIR__.'/Fixtures/icons',
-            'ignore_not_found' => true,
+            'iconify' => ['on_demand' => false],
         ]);
 
         $services = $container->services();
@@ -235,7 +237,7 @@ final class TestKernel extends Kernel
             // collects it here — devkit is not in this kernel — so a test holds
             // it and calls the handler devkit would have called.
             \Uhifadhi\Patrol\Devkit\PatrolCommandProvider::class => 'patrol.devkit.commands',
-            // The two halves of the storage seam, and the registry the hub reads
+            // The two halves of the storage contract, and the registry the hub reads
             // through — so a test can prove the tag was applied AND that the two
             // halves still claim the same keys.
             \Uhifadhi\Patrol\Storage\PatrolFileSource::class => 'patrol.file_source',
@@ -251,7 +253,7 @@ final class TestKernel extends Kernel
             \Uhifadhi\Patrol\Overview\PatrolMapLayers::class => 'patrol.overview.map_layers',
             \Uhifadhi\Patrol\Overview\PatrolPulse::class => 'patrol.overview.pulse',
             \Uhifadhi\Patrol\Overview\PatrolOverviewCopy::class => 'patrol.overview.copy',
-            // The widget framework, by the ids uhifadhi/widget-module publishes,
+            // The widget framework, by the ids ShellBundle publishes,
             // plus the registry a surface has to be findable in.
             \Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetService::class => 'shell.widget.service',
             \Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetEndpoint::class => 'shell.widget.endpoint',
@@ -328,7 +330,7 @@ final class TestKernel extends Kernel
         // imports the directory. Without this the photos card would link at
         // nothing and the voter would never be asked anything.
         // Only the serving route: the storage bundle's Files hub is a host
-        // screen standing on the host's widget framework, which a bundle test
+        // screen standing on the shell's widget framework, which a bundle test
         // kernel does not have and does not need.
         $evidence = (new \ReflectionClass(EvidenceController::class))->getFileName();
         if (\is_string($evidence)) {
@@ -343,24 +345,21 @@ final class TestKernel extends Kernel
 
         // THE SCREENS THIS MODULE'S CRUMB POINTS AT, mounted from the bundles
         // that own them rather than declared as bare paths here. The area
-        // register and the area page are uhifadhi/area-module's; the front door
-        // is the shell's. `area_modules` is deliberately absent — the
-        // per-area module grid is the seam's page and the seam does not ship one
-        // yet, which is exactly the case patrol_url() answers null for and the
-        // crumb prints as plain text.
+        // register, the area page and the per-area module grid are AreaBundle's;
+        // the front door is the shell's.
         $routes->import('@ShellBundle/Controller/', 'attribute');
         $routes->import('@AreaBundle/Controller/', 'attribute');
 
         // THE INCIDENTS MODULE'S FRONT DOOR, STUBBED — but only in the
-        // `incident_seam` environment. The File-as-incident button exists only
-        // where a host installs an incidents module exposing `incident_new`
-        // (the seam is the route name + prefill query keys, and neither bundle
-        // names the other's classes). Most of this suite runs with no such
-        // module, so the button is honestly absent; a test that needs to inspect
-        // the seam URL it builds boots this one environment, where the route
+        // `incident_contract` environment. The File-as-incident button exists
+        // only where a host installs an incidents module exposing `incident_new`
+        // (the contract is the route name + prefill query keys, and neither
+        // bundle names the other's classes). Most of this suite runs with no
+        // such module, so the button is honestly absent; a test that needs to
+        // inspect the URL it builds boots this one environment, where the route
         // exists to be generated (never dispatched — nothing here navigates to
         // it, so it carries no controller).
-        if ('incident_seam' === $this->environment) {
+        if ('incident_contract' === $this->environment) {
             $routes->add('incident_new', '/areas/{uuid}/modules/incidents/new')
                 ->methods(['GET']);
         }
@@ -390,7 +389,7 @@ final class TestKernel extends Kernel
     public function getCacheDir(): string
     {
         // Namespaced by environment: a suite that boots a second environment
-        // (see the `incident_seam` route above) must not share a compiled
+        // (see the `incident_contract` route above) must not share a compiled
         // container with the default one.
         return sys_get_temp_dir().'/patrol-module-tests/cache/'.$this->environment;
     }

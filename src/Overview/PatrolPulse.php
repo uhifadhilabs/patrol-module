@@ -44,7 +44,7 @@ use Uhifadhi\Patrol\Service\PatrolOverviewService;
  * closed patrol, and a status chip repeating that would be noise.
  *
  * When the platform's move log lands (Symfony Workflow plus an audit trail),
- * this is the seam it fills; nothing on the host's widget changes.
+ * this is the contribution point it fills; nothing on the area's own widget changes.
  */
 final readonly class PatrolPulse implements PulseProviderInterface
 {

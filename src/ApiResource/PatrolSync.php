@@ -25,7 +25,7 @@ use Uhifadhi\Patrol\Api\State\CreatePatrolProcessor;
 /**
  * The field app's patrol endpoints — API-CONTRACT.md §4, §5, §6, §7, §9, §9A.
  *
- * ## The module seam
+ * ## Registering with the registry
  *
  * The HOST installs api-platform (one /api, one firewall, one OpenAPI document)
  * and knows nothing about patrols. This bundle declares its own endpoints here,

@@ -1,20 +1,20 @@
-/* Patrol screen styles — the widget-dashboard additions on top of the host's
-   design system. What the refactored skeleton host actually ships (.page, .c/.tab,
-   .kpi, .chip, .tbl, .crumb/.pghead/.open-btn, .map-frame/.map-btn, plus the token
-   channels --c-*, --shadow and --font-mono) is REUSED, never redefined here. The
-   design vocabulary shell.css does not carry — the .ch chart text/lines, .backbtn
-   and the .i-dd* dropdown chrome — is this module's own. Every other class is
+/* Patrol screen styles — the widget-dashboard additions on top of the shell's
+   design system. What ShellBundle ships (.page, .c/.tab, .kpi, .chip, .mchip,
+   .tbl, .crumb/.pghead/.open-btn, .map-frame/.map-btn, plus the token channels
+   --c-*, --shadow and --font-mono) is REUSED, never redefined here. The design
+   vocabulary shell.css does not carry — the .ch chart text/lines, .backbtn and
+   the .i-dd* dropdown chrome — is this module's own. Every other class is
    patrol-prefixed so it can never collide with a shell class (the shell owns
    .page, .thumb, .map-legend, .who — none of them is touched).
 
-   Colours come from the host tokens (rgb(var(--c-*))) so the module flips with
+   Colours come from the shell's tokens (rgb(var(--c-*))) so the module flips with
    the theme; the imagery viewer keeps fixed dark chrome because it sits on
    satellite tiles, and per-type track colours arrive as the inline custom
    property --patrol-track (the deployment configures its own types, so the
    colour cannot be a static class).
 
    Shipped with the bundle and linked only where the module renders (see
-   templates/base.html.twig), so the host's stylesheet never mentions patrol. */
+   templates/base.html.twig), so the shell's stylesheet never mentions patrol. */
 
 /* The per-type track colour. Elements that have one carry it as an inline
    custom property, because a deployment configures its own patrol types and a
@@ -25,7 +25,7 @@
 
 /* ---- widget grid ------------------------------------------------------ */
 /* Twelve columns; each widget declares its span. The span class comes from the
-   person's stored preference (the host widget framework resolving
+   person's stored preference (the shell's widget framework resolving
    PatrolWidgets), which is the design's own
    layout until they change it in the widget library. */
 .patrol-wgrid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; }

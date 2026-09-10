@@ -46,7 +46,7 @@
             <a class="tgl patrol-obsnav-a" href="{{ next.url }}" rel="next" title="Observation {{ next.n }} — {{ next.category }}" aria-label="Next observation: {{ next.n }} of {{ total }}, {{ next.category }}">{{ ux_icon('patrol:chevron-right') }}</a>
         </span>
     {% endif %}
-    {# The incidents seam: the URL exists only when the host installs an
+    {# The incidents contract: the URL exists only when the host installs an
        incidents module exposing `incident_new` (prefill query contract —
        see fileAsIncidentUrl()); without it the button honestly is not there. #}
     {% if fileAsIncidentUrl %}

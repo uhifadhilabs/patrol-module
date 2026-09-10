@@ -52,7 +52,7 @@ final class TaxonomyAdminServiceTest extends IntegrationTestCase
     {
         $area = new AreaOfInterest();
         $area->setName($name);
-        // NOT NULL in uhifadhi/area-module: an area is always something an
+        // NOT NULL in AreaBundle: an area is always something an
         // installation got from somewhere.
         $area->setSource('test fixture');
         $area->setGeom('{"type":"MultiPolygon","coordinates":[[[[35.0,-3.6],[36.0,-3.6],[36.0,-2.8],[35.0,-2.8],[35.0,-3.6]]]]}');

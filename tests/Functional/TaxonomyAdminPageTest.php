@@ -301,7 +301,7 @@ final class TaxonomyAdminPageTest extends WebTestCase
     }
 
     /**
-     * An area running Patrols — persisted, then switched on through the seam so
+     * An area running Patrols — persisted, then switched on in the registry so
      * its module routes are not 404 (see EveryAreaRunsPatrols).
      */
     private function anArea(string $name = 'Sample Area'): AreaOfInterest

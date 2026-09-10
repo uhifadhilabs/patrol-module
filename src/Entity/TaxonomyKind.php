@@ -69,7 +69,7 @@ class TaxonomyKind
 
     /**
      * The area this kind belongs to. Mapped to the concrete AreaOfInterest, as
-     * {@see Patrol::$area} is: this bundle already requires uhifadhi/area-module
+     * {@see Patrol::$area} is: this bundle already has AreaBundle
      * and its entity is the one identity ({@see AreaOfInterest::getId()}) an area
      * is told apart by. onDelete CASCADE, so removing an area takes its taxonomy.
      */

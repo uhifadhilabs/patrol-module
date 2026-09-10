@@ -23,7 +23,7 @@ use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 
 /**
- * THE FILE-AS-INCIDENT SEAM CARRIES THE REAL PLACE.
+ * THE FILE-AS-INCIDENT LINK CARRIES THE REAL PLACE.
  *
  * The button hands the incidents module a prefill query string, and the
  * incidents module reads `lat`/`lng` and builds a GeoJSON Point in `[lon, lat]`
@@ -36,7 +36,7 @@ use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
  * exists (see {@see \Uhifadhi\Patrol\Tests\Integration\TestKernel}), so the
  * button renders and its href can be read.
  */
-final class ObservationFileAsIncidentSeamTest extends WebTestCase
+final class ObservationFileAsIncidentTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
 
@@ -54,7 +54,7 @@ final class ObservationFileAsIncidentSeamTest extends WebTestCase
     {
         // The environment whose kernel registers a stub `incident_new`, so the
         // File-as-incident button is present and its href can be inspected.
-        $this->client = self::createClient(['environment' => 'incident_seam']);
+        $this->client = self::createClient(['environment' => 'incident_contract']);
         /** @var EntityManagerInterface $em */
         $em = static::getContainer()->get('doctrine.orm.entity_manager');
         $this->em = $em;
@@ -107,7 +107,7 @@ final class ObservationFileAsIncidentSeamTest extends WebTestCase
         }
     }
 
-    public function testTheSeamCarriesLatitudeAndLongitudeUnswapped(): void
+    public function testTheLinkCarriesLatitudeAndLongitudeUnswapped(): void
     {
         $crawler = $this->client->request('GET', \sprintf(
             '/areas/%s/modules/patrols/%s/observations/%s',

@@ -11,7 +11,7 @@ oversight.
 - [3 · Observation photos are deferred — SETTLED](#3--observation-photos-are-deferred--settled-this-decision-has-fallen)
 - [4 · Sources are honest: sketch ≠ track](#4--sources-are-honest-sketch--track)
 - [5 · Live tracking is v2, and it is a third door](#5--live-tracking-is-v2-and-it-is-a-third-door)
-- [6 · The maps run on the map module's Leaflet and the map module's basemaps](#6--the-maps-run-on-the-map-modules-leaflet-and-the-map-modules-basemaps)
+- [6 · The maps run on the atlas's Leaflet and the atlas's basemaps](#6--the-maps-run-on-the-atlass-leaflet-and-the-atlass-basemaps)
 
 ## 1 · Station is a string, not an entity
 
@@ -97,26 +97,26 @@ consumers of the same pipeline shape, on sibling topics.
 
 **Sequencing:** after the v1 screens are ported and installed.
 
-## 6 · The maps run on the map module's Leaflet and the map module's basemaps
+## 6 · The maps run on the atlas's Leaflet and the atlas's basemaps
 
-The patrol base template loads the self-hosted Leaflet shipped by
-`uhifadhi/map-module`, through that bundle's own `LEAFLET_CSS` / `LEAFLET_JS`
+The patrol base template loads the self-hosted Leaflet shipped by `AtlasBundle`,
+through that bundle's own `LEAFLET_CSS` / `LEAFLET_JS`
 constants rather than a literal path, and the map controllers import the
 platform's map modules — `uhifadhi/basemaps` for the satellite and street layers,
 `uhifadhi/boundary` for how an area outline is drawn — rather than holding tile
 sources or boundary styling of their own. The bundle defines no boundary colour,
-weight or opacity anywhere: there is one definition, in the map module, and
-nothing to keep in sync.
+weight or opacity anywhere: there is one definition, in the atlas, and nothing
+to keep in sync.
 
-This used to say "the host's". The map platform left the old monolith for a
-module of its own, and nothing in this bundle changed to follow it: the import
-names are bare specifiers, so they went on resolving to the same three files at
-a new address. Only the Leaflet `<link>` and `<script>` moved, from a literal
-path to the constants — which is what those constants are for.
+The import names are bare specifiers, which is what lets the files move: they go
+on resolving to the same three modules wherever the package that ships them
+lives, and only the right-hand side of an installation's importmap entry
+changes. The Leaflet `<link>` and `<script>` are class constants for the same
+reason.
 
 WHICH IMAGERY a satellite layer draws is now the deployment's configuration
-(`map.satellite.provider`: esri, google or its own source), read by the basemap
-seam from the document. This bundle neither knows nor needs to.
+(`atlas.satellite.provider`: esri, google or its own source), read by the
+basemap module from the document. This bundle neither knows nor needs to.
 
 The one thing each map decides for itself is whether the outside-the-area SCRIM
 is drawn. The coverage map (PL·05/PL·08) shows it, like the area map: it
@@ -129,10 +129,9 @@ line.
 **Why:** the platform rule is that the same layer renders identically wherever
 it appears — a patrol map and an area map must not disagree about what
 "satellite" means, and two copies of Leaflet on one page is a bug waiting to
-happen. This bundle is a uhifadhi module: it already binds to
-`uhifadhi/area-module`'s `AreaOfInterest`, so depending on the map seam costs
-nothing extra. No
-CDN, and never MapLibre (raster tiles + GeoJSON need no WebGL).
+happen. This bundle is a uhifadhi module: `AreaBundle` and `AtlasBundle` ship in
+the one core package it already requires, so drawing on the atlas costs nothing
+extra. No CDN, and never MapLibre (raster tiles + GeoJSON need no WebGL).
 
 **Revisit when:** the bundle is ever wanted outside a uhifadhi installation.
 Then the two

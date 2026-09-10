@@ -59,13 +59,13 @@ use Uhifadhi\Patrol\Service\TaxonomyAdminService;
  * firewall. The class-level route default tags every route with the module slug,
  * so parking Patrols in an area closes these routes with the rest of the module.
  *
- * THE COPY-FROM-ANOTHER-AREA PICKER IS DEFERRED, and the seam is marked in the
+ * THE COPY-FROM-ANOTHER-AREA PICKER IS DEFERRED, and where it will attach is marked in the
  * empty-state template. It needs to enumerate areas and read their NAMES, which
  * requires an area-directory contract that is not yet ruled; this admin ships the
  * "write the first kind" start and leaves the picker's socket open. See
  * templates/taxonomy/_empty.html.twig.
  */
-#[Route(defaults: [PatrolModuleProvider::SEAM_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
+#[Route(defaults: [PatrolModuleProvider::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class PatrolTaxonomyController
 {
     /** Managing the observation vocabulary rides on its own authority — not `patrols.record`. */
@@ -213,7 +213,7 @@ final class PatrolTaxonomyController
     }
 
     /*
-     * DEFERRED SEAM — "COPY FROM ANOTHER AREA".
+     * DEFERRED — "COPY FROM ANOTHER AREA".
      *
      * RULED (taxonomy design): at first setup an area may copy ANOTHER real area's
      * observation taxonomy as an editable starting point, which then diverges. It

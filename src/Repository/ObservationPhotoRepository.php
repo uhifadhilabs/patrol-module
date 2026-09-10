@@ -94,13 +94,13 @@ final class ObservationPhotoRepository extends ServiceEntityRepository
     /**
      * ONE OBSERVATION'S PHOTOGRAPHS, with the same chain the hub prints.
      *
-     * The narrow half of {@see findForFilesHub()}, for the cross-module seam
+     * The narrow half of {@see findForFilesHub()}, for the cross-module contract
      * ({@see \Uhifadhi\Storage\Registry\FileSourceInterface::filesForRecord()}):
      * the incidents report flow shows the photographs of the observation it is
      * being filed from, and it must not read every photograph in the deployment
      * to draw two thumbnails.
      *
-     * The joins are kept because the entry the seam builds names the observation
+     * The joins are kept because the entry that contract builds names the observation
      * and its area, exactly as a hub tile does — one query, not one per
      * photograph.
      *

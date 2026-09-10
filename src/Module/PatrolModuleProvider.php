@@ -30,32 +30,27 @@ final class PatrolModuleProvider implements ModuleProviderInterface
 
     /**
      * THE SLUG, ONCE. It is the answer below, and it is also what every
-     * controller in this bundle stamps on its routes so the seam can close them
-     * where an area has parked this module — two places that must never drift,
-     * so there is only one string.
+     * controller in this bundle stamps on its routes so the registry can close
+     * them where an area has parked this module — two places that must never
+     * drift, so there is only one string.
      */
     public const string SLUG = 'patrols';
 
     /**
-     * THE SEAM'S ROUTE MARKER, spelled out rather than imported — the one place
-     * this bundle writes the string.
+     * THE REGISTRY'S ROUTE MARKER, spelled out rather than imported — the one
+     * place this bundle writes the string.
      *
      * Every controller here stamps `_uhifadhi_module: patrols` on its routes so
-     * that where an area has parked this module, the seam closes its pages with
-     * a 404 before a controller runs. The seam publishes the same string as
-     * `RegistryBundle::MODULE_ROUTE_DEFAULT`, and importing it would be the
-     * tidier code and the wrong dependency: the seam is a **dev** requirement
-     * here (see composer.json, and the `suggest` entry that says what an
-     * installation loses without it), so a class-constant reference in a route
-     * attribute would make it a hard one — a bundle that cannot be installed
-     * without the catalogue it merely registers with.
-     *
-     * A route default nothing reads is inert, which is exactly what this is on
-     * an installation with no seam, or with a seam older than 0.2. That the two
-     * spellings agree is asserted where the seam IS installed —
-     * Functional\ParkedModuleTest.
+     * that where an area has parked this module, RegistryBundle closes its
+     * pages with a 404 before a controller runs. The registry publishes the
+     * same string as `RegistryBundle::MODULE_ROUTE_DEFAULT`, and importing it
+     * would be correct too — the core is a hard requirement, so that constant
+     * is always there. It is spelled out because a route attribute is evaluated
+     * at load time and this bundle keeps exactly one string in it; the other
+     * half of that choice is the test, which asserts the two spellings agree
+     * where the registry is installed — Functional\ParkedModuleTest.
      */
-    public const string SEAM_ROUTE_DEFAULT = '_uhifadhi_module';
+    public const string MODULE_ROUTE_DEFAULT = '_uhifadhi_module';
 
     public function __construct(
         private readonly string $category,

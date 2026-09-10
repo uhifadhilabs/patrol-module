@@ -16,16 +16,6 @@
    page — place — brand, so naming the area here would print it twice. #}
 {% block title %}Patrols · widget library{% endblock %}
 
-{% block javascripts %}
-    {{ parent() }}
-    {# type="module" is deferred by definition, so the library is armed after
-       the DOM exists. The script is the HOST's — one library, every surface. #}
-    <script type="module">
-        import { initWidgetLibrary } from 'uhifadhi/widgets';
-        initWidgetLibrary();
-    </script>
-{% endblock %}
-
 {% block patrol_trail_tail %} <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / widget library{% endblock %}
 
 {% block shell_page_title %}{{ area.name }} — Patrols · widget library{% endblock %}
@@ -47,6 +37,21 @@
     <a class="cta" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">{{ ux_icon('shell:chevron-left') }}Back to dashboard</a>
 {% endblock %}
 
+{# NO SCRIPT TAG HERE, and that is deliberate rather than an omission. The page
+   renders server-side and every action on it is a plain form post, so it is
+   whole without JavaScript; what the script adds is PREVIEW and the picker's
+   live filtering. It lives in ShellBundle under the AssetMapper namespace
+   `@uhifadhi/shell-bundle`, and naming that namespace belongs to importmap.php
+   — the one file a bundle may not write. An installation that wants the
+   enhancement adds it once, for every surface at once:
+
+     // assets/app.js
+     import '@uhifadhi/shell-bundle/widgets';
+
+   The module arms itself on import, so there is no call to write. A hard
+   `import` typed here instead would be this module deciding an installation's
+   importmap on its behalf, and would take the whole page down wherever that
+   entry is absent. #}
 {% block patrol_page %}
 {{ include('@Shell/widget/_library.html.twig', {
     catalog: catalog,

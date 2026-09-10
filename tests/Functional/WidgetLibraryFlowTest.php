@@ -110,7 +110,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
         // never as a generic "Default layout"…
         self::assertStringContainsString(PatrolWidgets::DEFAULT_LABEL, $html);
         // …and the component is the HOST's: its root carries the framework's
-        // own attributes, which is what the host's widgets script drives.
+        // own attributes, which is what the shell's widgets script drives.
         self::assertCount(1, $crawler->filter('['.WidgetDom::ROOT.']'));
         self::assertCount(1, $crawler->filter('['.WidgetDom::CSRF_TOKEN.']'));
 

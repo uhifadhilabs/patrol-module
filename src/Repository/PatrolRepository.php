@@ -446,11 +446,11 @@ final class PatrolRepository extends ServiceEntityRepository
      *
      * THE DEPARTMENT ARRIVES AS AN ID, NOT AS AN ENTITY, and that is the whole
      * of what this query needs: the key `position.department_id` is compared
-     * against. Departments belong to uhifadhi/team-module and NOTHING PUBLISHES
+     * against. Departments belong to TeamBundle and NOTHING PUBLISHES
      * A CONTRACT FOR ONE, so a signature naming that bundle's class would make
      * every installation of this module install team's — for a value that is
      * one integer by the time it reaches SQL. The same reasoning the area
-     * module's KPI seam states for its own DepartmentRef, applied one layer
+     * module's KPI contract states for its own DepartmentRef, applied one layer
      * down.
      */
     public function coverageFractionForDepartment(?AreaOfInterest $area, int $departmentId, float $bufferMetres, \DateTimeImmutable $from, \DateTimeImmutable $until): ?float

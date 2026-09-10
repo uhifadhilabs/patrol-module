@@ -24,7 +24,7 @@ use Uhifadhi\Patrol\Widget\PatrolWidgets;
  * Before this module joined the fleet it compiled against doubles of the old
  * application's widget classes, which meant the one thing it could never prove
  * was the thing that matters: that an installation booting
- * uhifadhi/widget-module finds this module's dashboard in the registry. A
+ * ShellBundle finds this module's dashboard in the registry. A
  * surface nothing registers is a surface `widget:prune` reads as an orphan — it
  * would delete every layout anybody ever saved of a patrols dashboard, in every
  * area, and the module would never notice.

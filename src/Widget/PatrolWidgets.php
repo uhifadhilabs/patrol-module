@@ -41,7 +41,7 @@ use Uhifadhi\Bundle\ShellBundle\Widget\Registry\WidgetSurfaceInterface;
  * week" — the widget ships as an honest empty state rather than an invented
  * number, and the preset still composes it (see the module's dashboard partials).
  *
- * It rides uhifadhi/widget-module rather than a copy of it: the dashboard, the
+ * It rides ShellBundle's widget framework rather than a copy of it: the dashboard, the
  * library and the save endpoints all read this one object, so a widget can never
  * exist on one screen and not the other.
  *
@@ -112,7 +112,7 @@ final class PatrolWidgets implements WidgetSurfaceInterface
      * place here.
      *
      * `cols` is the width the catalogue draws it at, the spans are the widths the
-     * width-chips offer (widest first, as the host's Widget enforces), and `on`
+     * width-chips offer (widest first, as the shell's Widget enforces), and `on`
      * is whether the SHIPPED composition includes it.
      *
      * @return list<Widget>
@@ -138,7 +138,7 @@ final class PatrolWidgets implements WidgetSurfaceInterface
             // ---- the nine widgets the five directions needed, all off by default ----
             new Widget('maplog', 'Coverage + log', 'a', 12, [12, 9], on: false, note: 'The coverage map at full height with the matching patrols docked beside it — one filter, one viewport, one list.'),
             new Widget('now', 'Out right now', 'a', 12, [12, 9, 6], on: false, note: 'The patrols that have started and not yet closed, with their last position ping and how long they have been out.'),
-            new Widget('obsq', 'Observations awaiting action', 'c', 12, [12, 9, 6], on: false, note: 'Observations logged on patrol that nobody has filed as an incident yet, oldest first. The seam between the two modules, made visible.'),
+            new Widget('obsq', 'Observations awaiting action', 'c', 12, [12, 9, 6], on: false, note: 'Observations logged on patrol that nobody has filed as an incident yet, oldest first. The join between the two modules, made visible.'),
             new Widget('handover', 'Shift handover note', 'c', 12, [12, 9, 6], on: false, note: 'The last shift in one card: what closed, what is still open, and the three things the next shift is being handed.'),
             new Widget('gaps', 'Where nobody has been', 'd', 6, [12, 9, 6], on: false, note: 'Every zone by how long since a patrol last entered it, worst first. The one widget that shows absence rather than activity.'),
             new Widget('effort', 'Effort by ranger', 'd', 6, [12, 9, 6], on: false, note: 'Patrol-hours per ranger this month — who carried the month, not who logged the most rows.'),

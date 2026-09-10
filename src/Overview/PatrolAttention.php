@@ -36,7 +36,7 @@ use Uhifadhi\Patrol\Service\PatrolOverviewService;
  * incident: the incidents module records that on its own side
  * (`Incident::sourceRecordUuid`) and nothing on this side mirrors it. Raising
  * every observation as unfiled would put a queue of invented work in front of a
- * ranger, and raising none is the only truthful alternative until the seam
+ * ranger, and raising none is the only truthful alternative until the contract
  * exists. See PL·A4, which says the same thing in its own words.
  *
  * NOTHING IS STORED and nobody dismisses one by hand. The host asks on every

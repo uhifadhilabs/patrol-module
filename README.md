@@ -4,6 +4,13 @@ Field patrol effort as first-class records: GPX track ingest, en-route
 observations with photos, coverage mapping and a per-user widget dashboard.
 A [uhifadhi](https://github.com/uhifadhilabs) module bundle.
 
+## Contents
+
+- [What it is](#what-it-is)
+- [Installation](#installation)
+- [Learn more](#learn-more)
+- [License](#license)
+
 ## What it is
 
 - **Patrols** — a patrol is a typed, timed record (who led it, which station,
@@ -28,16 +35,37 @@ composer require uhifadhi/patrol-module
 The bundle maps its own entities and ships its own assets (AssetMapper), so
 there is no doctrine block and no asset wiring to write.
 
+### The two repositories an installation names
+
+This module requires the uhifadhi core (`uhifadhi/uhifadhi`) and the evidence
+store (`uhifadhi/storage-module`), and neither is on Packagist. **Composer does
+not inherit a dependency's `repositories`**, so an installation names both at
+its own root or `composer require` cannot find them:
+
+```jsonc
+// composer.json (the installation)
+"repositories": [
+    { "type": "vcs", "url": "https://github.com/uhifadhilabs/uhifadhi" },
+    { "type": "vcs", "url": "https://github.com/uhifadhilabs/storage-module" }
+]
+```
+
+Both are public, so nothing has to be authenticated. While they are untagged an
+installation also needs `"minimum-stability": "dev"` with
+`"prefer-stable": true` — composer will not resolve a transitive dev dependency
+under a stable floor, and root-requiring a dependency's dependencies is a trap
+rather than a workaround.
+
 ### Who the records point at
 
 Five columns name a person — who led the patrol, who put it on hold, who
 recorded the observation, who acted on the event, who signed the amendment —
 and none of them names an account class. They are mapped to
 `Uhifadhi\Contracts\Entity\UserInterface`, and the installation resolves
-that interface to whatever it calls its people. Install
-`uhifadhi/team-module` and the answer arrives with it (0.3.2 and later states
-the resolution from its own bundle); otherwise write one line naming your own
-class, under the `orm:` key already in `config/packages/doctrine.yaml`:
+that interface to whatever it calls its people. The core's `TeamBundle` states
+that resolution from its own bundle, so an ordinary installation writes nothing;
+you write a line only to **disagree**, naming your own class under the `orm:`
+key already in `config/packages/doctrine.yaml`:
 
 ```yaml
 doctrine:
@@ -92,20 +120,19 @@ patrol:
 
 ### What this module stands on
 
-Everything that is not about patrols arrives as another module bundle: the page
-frame from `uhifadhi/shell-module`, the dashboard mechanics from
-`uhifadhi/widget-module`, the area and its overview seams from
-`uhifadhi/area-module`, the evidence store from `uhifadhi/storage-module`, the
-maps from `uhifadhi/map-module` and the per-area catalogue from
-`uhifadhi/seam-module`. This bundle ships none of them, and each is a composer
-requirement rather than something an installation is expected to have written.
-What each one carries is in
-[docs/what-it-stands-on.md](docs/what-it-stands-on.md).
+Everything that is not about patrols arrives with the core (`uhifadhi/uhifadhi`)
+or the evidence store: the page frame and the dashboard mechanics from
+`ShellBundle`, the area and its overview contribution points from `AreaBundle`,
+the maps from `AtlasBundle`, the per-area catalogue from `RegistryBundle`, the
+people from `TeamBundle`, and the photographs from `uhifadhi/storage-module`.
+This bundle ships none of them, and each is a composer requirement rather than
+something an installation is expected to have written. What each one carries is
+in [docs/what-it-stands-on.md](docs/what-it-stands-on.md).
 
 ## Learn more
 
 - [docs/what-it-stands-on.md](docs/what-it-stands-on.md) — the frame, the widget
-  framework, the area, the evidence store and the map seam these screens draw on.
+  framework, the area, the evidence store and the maps these screens draw on.
 - [docs/configuration.md](docs/configuration.md) — every `patrol.yaml` key.
 - [docs/screens.md](docs/screens.md) — the screens this module adds, by route.
 - [docs/ingest.md](docs/ingest.md) — one parsing service, two doors into it.
@@ -113,8 +140,9 @@ What each one carries is in
   upgrade path from per-module storage, and patrol's entries on the Files hub.
 - [docs/discarded-patrols.md](docs/discarded-patrols.md) — what a discard means,
   what it is counted in, the retention clock and how a review hold stops it.
-- [docs/area-overview.md](docs/area-overview.md) — the five seams patrols fills
-  on an area's overview page, and the one thing it cannot tell that page.
+- [docs/area-overview.md](docs/area-overview.md) — the five contribution points
+  patrols fills on an area's overview page, and the one thing it cannot tell
+  that page.
 - [docs/design-decisions.md](docs/design-decisions.md) — deliberate modeling
   choices (station as string, free-text team, how photos are stored, honest
   sources, live tracking as a v2 third door) recorded with their revisit

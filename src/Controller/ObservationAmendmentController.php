@@ -64,8 +64,8 @@ use Uhifadhi\Storage\Service\EvidenceStorage;
  * and config/services.php for the reusable-bundle rule.
  */
 // EVERY ROUTE BELOW BELONGS TO THIS MODULE, and says so: where an area has
-// parked Patrols, the seam closes these routes before the controller runs.
-#[Route(defaults: [PatrolModuleProvider::SEAM_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
+// parked Patrols, the registry closes these routes before the controller runs.
+#[Route(defaults: [PatrolModuleProvider::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class ObservationAmendmentController
 {
     /** What one correction may say, in characters. Long enough for a paragraph. */

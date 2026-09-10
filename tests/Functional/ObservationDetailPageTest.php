@@ -140,7 +140,7 @@ final class ObservationDetailPageTest extends WebTestCase
         self::assertStringContainsString($this->patrol->getRef().' walking round patrol', $subtitle);
         self::assertStringContainsString('A. Alpha', $subtitle);
         // The File-as-incident button exists only when a host installs an
-        // incidents module exposing `incident_new` (the seam is the route name
+        // incidents module exposing `incident_new` (the contract is the route name
         // + prefill query keys). This kernel has none, so the honest page shows
         // no dead control — the design's graceful absence.
         self::assertStringNotContainsString('File as incident', $crawler->filter('.pghead')->text());
@@ -281,7 +281,7 @@ final class ObservationDetailPageTest extends WebTestCase
      * storage-module's file preview, the same component the Files hub opens its
      * own tiles in. This module owns none of that markup — it includes the
      * partial and fills the contract — so what is asserted here is exactly the
-     * seam: the shell is on the page, and every tile speaks the contract.
+     * join: the shell is on the page, and every tile speaks the contract.
      * → @UhifadhiStorage/overlay/_preview.html.twig
      */
     public function testAPhotographOpensInTheSharedFilePreview(): void

@@ -48,8 +48,8 @@ use Uhifadhi\Patrol\Widget\PatrolWidgets;
  * MapEntity.
  */
 // EVERY ROUTE BELOW BELONGS TO THIS MODULE, and says so: where an area has
-// parked Patrols, the seam closes these routes before the controller runs.
-#[Route(defaults: [PatrolModuleProvider::SEAM_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
+// parked Patrols, the registry closes these routes before the controller runs.
+#[Route(defaults: [PatrolModuleProvider::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class PatrolController
 {
     /**

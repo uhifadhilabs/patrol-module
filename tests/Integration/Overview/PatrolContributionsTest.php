@@ -37,7 +37,7 @@ use Uhifadhi\Patrol\Overview\PatrolPulse;
 use Uhifadhi\Patrol\UhifadhiPatrolBundle;
 
 /**
- * THE FIVE SEAMS, on one morning.
+ * THE FIVE CONTRIBUTION POINTS, on one morning.
  *
  * The point of every assertion below is that the module SAYS NOTHING IT CANNOT
  * MEASURE: no tile where there is nothing to count, no attention row for a fact
@@ -482,7 +482,7 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
      * THE MODULE'S WORDS, AS THE HOST WILL SPEND THEM. Phrases, lower case and
      * unpunctuated: the host owns the sentence, the conjunction and the full
      * stop, so anything more from here would be the module writing the host's
-     * copy — the exact thing this seam was added to stop.
+     * copy — the exact thing this contribution point was added to stop.
      */
     public function testTheModuleContributesItsOwnPhrasesAndNoSentences(): void
     {

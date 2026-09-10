@@ -21,8 +21,8 @@ use Uhifadhi\Patrol\Widget\PatrolWidgets;
 /**
  * THE SUITE DECLARES THIS MODULE'S SURFACES AND NOBODY ELSE'S.
  *
- * {@see TestKernel} boots uhifadhi/team-module for the account class every
- * stored layout is keyed by, and uhifadhi/area-module for the place a patrol
+ * {@see TestKernel} boots TeamBundle for the account class every
+ * stored layout is keyed by, and AreaBundle for the place a patrol
  * happens in. Both are modules with dashboards of their own, so it tags two surfaces into the widget registry —
  * and every surface either adds or renames would otherwise rewrite the expected
  * value of a test about THIS bundle. That is a dependency's release notes
@@ -34,7 +34,7 @@ use Uhifadhi\Patrol\Widget\PatrolWidgets;
  * that the registry holds the patrols dashboard stays an assertion about patrols
  * rather than about a version number.
  *
- * Copied in discipline from uhifadhi/widget-module's own suite, which needs the
+ * Copied in discipline from ShellBundle's own suite, which needs the
  * same isolation for the same reason and names it OnlyThisSuitesSurfacesPass.
  */
 final class OnlyThisModulesSurfacesPass implements CompilerPassInterface

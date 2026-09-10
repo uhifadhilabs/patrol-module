@@ -34,7 +34,7 @@ use Uhifadhi\Patrol\UhifadhiPatrolBundle;
  *
  * UNINSTALL THE MODULE AND EVERY ONE OF THESE DISAPPEARS from the library, from
  * the strip, from the attention list and from the map's legend. That is the
- * whole point of the seam, and it is why the group here is a CONTRIBUTOR rather
+ * whole point of the contribution point, and it is why the group here is a CONTRIBUTOR rather
  * than a design direction: a person has to be able to tell that "Out right now"
  * came from patrols, so that its disappearance reads as the system working.
  *
@@ -97,7 +97,7 @@ final readonly class PatrolOverviewContributor implements ContributesStylesheetI
             new Widget('pl_now', 'Out right now', $group, 6, [12, 9, 6], on: true, note: 'The patrols that have opened and not closed, with their last position ping. The only polling widget on the surface.'),
             new Widget('pl_today', 'Patrols today', $group, 6, [12, 9, 6, 4, 3], on: false, note: 'Today only — closed, kilometres, observations — against the same day last week.'),
             new Widget('pl_gaps', 'Where nobody has been', $group, 6, [12, 9, 6], on: false, note: 'Zones by days since a patrol last entered them, worst first. Absence, not activity.'),
-            new Widget('pl_obsq', 'Observations awaiting action', $group, 12, [12, 9, 6], on: false, note: 'Observations logged on patrol that nobody has filed yet — the seam between the two modules.'),
+            new Widget('pl_obsq', 'Observations awaiting action', $group, 12, [12, 9, 6], on: false, note: 'Observations logged on patrol that nobody has filed yet — the join between the two modules.'),
             new Widget('pl_column', 'Patrols — the whole column', $group, 6, [12, 9, 6, 4, 3], on: false, note: 'The module’s entire overview section as ONE widget: its heading and its cards, stacked. A module may contribute a column as well as widgets.'),
         ];
     }

@@ -64,7 +64,7 @@ final class PatrolConfiguration
             ->children()
                 ->scalarNode('module_category')
                     // OPERATIONS, because a patrol is the rangers' OWN work. The
-                    // default was 'pressure' — which in the host's catalogue means
+                    // default was 'pressure' — which in the registry's catalogue means
                     // human pressure ON the ecosystem, and so filed the people
                     // doing the protecting alongside the thing they protect
                     // against. A deployment may still override it.

@@ -122,7 +122,7 @@ final class PatrolFileSourceRegistrationTest extends IntegrationTestCase
     // ── ONE OBSERVATION'S PHOTOGRAPHS, FOR A MODULE THAT DOES NOT OWN THEM ──
 
     /**
-     * THE CROSS-MODULE SEAM, through the registry the asking module actually
+     * THE CROSS-MODULE CONTRACT, through the registry the asking module actually
      * holds. The incidents report flow, opened from an observation, draws that
      * observation's photographs on its source card — and it has nothing but a
      * record uuid and the `source` token patrol put on the wire.

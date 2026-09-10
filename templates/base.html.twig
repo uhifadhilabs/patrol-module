@@ -4,7 +4,7 @@
    module's vocabulary loads only where the module renders and the file-preview
    overlay is linked exactly once per page.
 
-   THE FRAME IS THE SHELL'S (uhifadhi/shell-module), not this module's. Before
+   THE FRAME IS SHELLBUNDLE'S, not this module's. Before
    the fleet had a shell, these pages extended a `layout.html.twig` an
    application was expected to provide, and typed their own `<div class="page">`
    and their own flash loop inside it — which is why both are gone from here:
@@ -21,7 +21,7 @@
 
    THE WIDGET MODULE'S SHEET IS NOT OPTIONAL. The dashboard IS a widget
    dashboard, so `.w-grid`, `.w-cell`, `.w-span-*` and the whole library chrome
-   are drawn by uhifadhi/widget-module's stylesheet, which its own header says
+   are drawn by the shell's widget stylesheet, which its own header says
    must be linked by the page rendering it. Without it the grid has nothing
    declaring a span and every widget draws one column wide.
 
@@ -39,11 +39,11 @@
 {% block stylesheets %}
     {{ parent() }}
     {# Leaflet FIRST, so patrol.css can restyle its controls into the design's
-       pills. Both files come from uhifadhi/map-module, by its own constants —
+       pills. Both files come from AtlasBundle, by its own constants —
        never a CDN, and the same Leaflet the area map runs on, so a patrol map
        and an area map cannot disagree about how a layer draws. #}
     <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Bundle\\AtlasBundle\\AtlasBundle::LEAFLET_CSS')) }}">
-    {# THE MAP CHROME STYLESHEET — map-module's ONE map.css, the single definition
+    {# THE MAP CHROME STYLESHEET — the atlas's ONE map.css, the single definition
        of the zoom pills, the base-layer menu, the live scale bar, the scroll-bargain
        hint and the fullscreen control that map-chrome's chrome.js builds into every
        plate (.map-chrome*, .leaflet-control-*). The controllers build that chrome as

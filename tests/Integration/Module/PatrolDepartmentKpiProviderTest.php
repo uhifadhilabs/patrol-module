@@ -316,12 +316,12 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
     }
 
     /**
-     * A department as the SEAM hands it over — id, name and uuid, never the
+     * A department as the CONTRACT hands it over — id, name and uuid, never the
      * entity.
      *
-     * This is the shape uhifadhi/area-module's KPI seam takes, and the reason it
-     * takes it: departments belong to uhifadhi/team-module and nothing publishes
-     * a contract for one, so a seam typed against team's class would make every
+     * This is the shape AreaBundle's KPI contract takes, and the reason it
+     * takes it: departments belong to TeamBundle and nothing publishes
+     * a contract for one, so a signature typed against team's class would make every
      * module that reports a figure hard-require team. Whoever holds the
      * department resolves it to a ref — here, the test playing the surface that
      * renders a performance page.

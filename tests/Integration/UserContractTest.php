@@ -88,7 +88,7 @@ final class UserContractTest extends IntegrationTestCase
 
         // THE ACCOUNT TABLE IS READ, NEVER NAMED. What an installation calls its
         // people is its own business — this one resolves the contract to
-        // uhifadhi/team-module's class, which stores them in `team_user`, and an
+        // TeamBundle's class, which stores them in `team_user`, and an
         // installation with its own account class stores them somewhere else
         // again. Asking the mapping is the same reading the module's own SQL
         // does, and it is why this assertion survived that change.

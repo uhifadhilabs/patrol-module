@@ -1,5 +1,13 @@
 # Discarded patrols and retention
 
+## Contents
+
+- [What a discard is](#what-a-discard-is)
+- [The review hold](#the-review-hold)
+- [The event trail](#the-event-trail)
+
+## What a discard is
+
 A ranger can throw a patrol away in the field — a false start, a test run, a
 device left recording in a vehicle. It still uploads, with a **required reason**,
 and arrives here as `status: discarded`.
@@ -23,11 +31,15 @@ bin/console patrol:purge-discarded --dry-run   # name the sweep before trusting 
 bin/console patrol:purge-discarded             # idempotent; run it from cron
 ```
 
+## The review hold
+
 Unless it is **held for review** — a web-side action on the patrol's detail page,
 gated by `patrols.record`, which stops the retention clock indefinitely. Nothing
 on the phone can raise a hold, clear one, or shorten the window. Releasing a hold
 resumes the clock from the ORIGINAL discard: a hold pauses the deletion, it does
 not grant a fresh lifetime.
+
+## The event trail
 
 Every action a ranger takes on a patrol — rename, patrol-type change, discard —
 also arrives as an **append-only event** and is rendered on the detail page's

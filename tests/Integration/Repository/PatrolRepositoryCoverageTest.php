@@ -167,7 +167,7 @@ final class PatrolRepositoryCoverageTest extends IntegrationTestCase
     }
 
     /**
-     * AN AREA CAN EXIST BEFORE ITS BOUNDARY DOES. uhifadhi/area-module 0.11 made
+     * AN AREA CAN EXIST BEFORE ITS BOUNDARY DOES. AreaBundle makes
      * `area_of_interest.geom` nullable — an area is gazetted and named before a
      * boundary is imported for it — so a boundaryless area is a real, persistable
      * shape again, not a constraint violation.

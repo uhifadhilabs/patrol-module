@@ -54,8 +54,8 @@ use Uhifadhi\Patrol\Storage\PatrolFileSource;
  * PatrolController and config/services.php for the reusable-bundle rule.
  */
 // EVERY ROUTE BELOW BELONGS TO THIS MODULE, and says so: where an area has
-// parked Patrols, the seam closes these routes before the controller runs.
-#[Route(defaults: [PatrolModuleProvider::SEAM_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
+// parked Patrols, the registry closes these routes before the controller runs.
+#[Route(defaults: [PatrolModuleProvider::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class PatrolDetailController
 {
     /**
@@ -303,7 +303,7 @@ final class PatrolDetailController
     }
 
     /**
-     * The File-as-incident seam, from this side: the incidents module (when the
+     * The File-as-incident contract, from this side: the incidents module (when the
      * host installs one) exposes `incident_new` accepting a prefill query
      * string (record/label/back/source/at/lat/lng/note — its IncidentPrefill).
      * The ROUTE NAME + QUERY KEYS are the whole contract; neither bundle names
@@ -327,7 +327,7 @@ final class PatrolDetailController
         if (null !== $row['position']) {
             // GeoService::coordinates() returns [lon, lat] — GeoJSON order — so
             // longitude comes first. Naming the first slot $lat here would ship
-            // the seam swapped, relocating the incident into the sea.
+            // the two swapped, relocating the incident into the sea.
             [$lng, $lat] = $this->geo->coordinates($row['position']);
             $params['lat'] = (string) $lat;
             $params['lng'] = (string) $lng;

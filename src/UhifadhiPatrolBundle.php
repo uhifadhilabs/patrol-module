@@ -255,7 +255,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
         }
 
         /*
-         * PATROL'S HALF OF THE PERMISSION SEAM.
+         * PATROL'S HALF OF THE PERMISSION CONTRACT.
          *
          * Storage denies any key no module claims, so without this service every
          * patrol photograph is a 403 — the right failure direction, and the
@@ -275,7 +275,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
         /*
          * PATROL'S FILES, ON THE PLATFORM'S FILES HUB.
          *
-         * The other half of the same seam: the voter says who may READ a
+         * The other half of the same contract: the voter says who may READ a
          * photograph, this says which photographs exist and what may be done to
          * them. Registered beside it and for the same reason — a host that holds
          * photographs must be able to list them whether or not it ever installed
@@ -329,7 +329,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     // The day's live reading for the direction widgets the library
                     // previews (out now, gaps, the observation queue).
                     service('patrol.overview'),
-                    // uhifadhi/widget-module, BY ITS PUBLISHED SERVICE IDS: the
+                    // ShellBundle, BY ITS PUBLISHED SERVICE IDS: the
                     // module ships a catalogue (PatrolWidgets), never a copy of
                     // the algebra that resolves it — and that bundle's endpoint
                     // service answers every widget write, so this module
@@ -566,7 +566,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 service('storage.thumbnail_generator'),
             ]);
 
-        // The department KPI seam. APPENDED last on purpose: it is the newest thing this bundle
+        // The department KPI contribution point. APPENDED last on purpose: it is the newest thing this bundle
         // plugs into, and it depends on nothing declared above it.
         //
         // Tagged EXPLICITLY, exactly like 'uhifadhi.module' above and for the same reason: a
@@ -588,7 +588,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
             ->tag(DepartmentKpiProviderInterface::TAG);
 
         /*
-         * THE AREA OVERVIEW SEAM — the module's contribution to /areas/{uuid}.
+         * THE AREA OVERVIEW CONTRIBUTION POINTS — the module's contribution to /areas/{uuid}.
          *
          * FIVE TAGS, FIVE SEPARATE THINGS. One puts this module's widgets and its
          * own templates on the page; the other four put PARTS into widgets the HOST
@@ -603,12 +603,10 @@ final class UhifadhiPatrolBundle extends AbstractBundle
          * (symfony.com/doc/current/bundles/best_practices.html), so an
          * installation's registerForAutoconfiguration never fires for these classes.
          *
-         * THE TAG NAMES ARE THE INTERFACES' OWN CONSTANTS, which they could not be
-         * before: these seams used to be an application's classes, off this bundle's
-         * classpath at build time, so the names were literals pinned to a stub by a
-         * test. They belong to uhifadhi/area-module now and it is a requirement of
-         * this package, so the constant is readable here — and a rename is a compile
-         * error rather than a module that silently stops contributing.
+         * THE TAG NAMES ARE THE INTERFACES' OWN CONSTANTS. They belong to
+         * AreaBundle, which ships in the core this package requires, so the
+         * constant is readable here — and a rename is a compile error rather
+         * than a module that silently stops contributing.
          *
          * ONE READING, FIVE CONSUMERS. All five share 'patrol.overview', so the
          * strip's "3 out", the live card's three rows and the plate's three live

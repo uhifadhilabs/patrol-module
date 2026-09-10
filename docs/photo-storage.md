@@ -1,5 +1,10 @@
 # Photographs and the storage module
 
+## Contents
+
+- [Photographs need the storage module](#photographs-need-the-storage-module)
+- [Patrol's photographs on the Files hub](#patrols-photographs-on-the-files-hub)
+
 ## Photographs need the storage module
 
 Observation photos are stored by `uhifadhi/storage-module`, which is a hard
@@ -36,6 +41,12 @@ photographs the preview they never had with:
 bin/console patrol:photos:backfill-thumbs   # idempotent; --dry-run to look first
 ```
 
+That command exists **only where `uhifadhi/devkit-module` is installed**, which
+is `require-dev`. It is a migration aid run once on the release that needs it,
+not an operation a production console keeps standing by, so this module ships it
+as an inert `Devkit\CommandProviderInterface` descriptor and devkit materialises
+it — see `src/Devkit/PatrolCommandProvider.php`.
+
 ## Patrol's photographs on the Files hub
 
 Where an installation also mounts storage-module's cross-module hub at `/files`, patrol's
@@ -44,7 +55,7 @@ hands over one entry per `ObservationPhoto`, carrying the observation it belongs
 to (`OBS-0214`, linked to its own page), the patrol's area, the handset's
 `takenAt` and the sync time. Nothing is registered on the hub's side.
 
-It is the SECOND half of the same seam. `PatrolEvidenceVoter` answers *may you
+It is the SECOND half of the same contract. `PatrolEvidenceVoter` answers *may you
 read these bytes*; the source answers *what may be done to this file*, and both
 read `PhotoEvidenceKey` so the two can never disagree about which keys are
 patrol's.

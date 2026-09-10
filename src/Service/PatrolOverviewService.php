@@ -24,7 +24,7 @@ use Uhifadhi\Patrol\Repository\TrackPointRepository;
 /**
  * WHAT PATROLS TELLS THE AREA OVERVIEW, READ ONCE.
  *
- * The module contributes to `/areas/{uuid}` through five separate seams — a
+ * The module contributes to `/areas/{uuid}` through five separate contribution points — a
  * widget contributor, a now-tile provider, an attention provider, a map-layer
  * provider and a pulse provider — and four of them are asking about the same
  * morning. This is the one place that morning is measured, so the strip's "3

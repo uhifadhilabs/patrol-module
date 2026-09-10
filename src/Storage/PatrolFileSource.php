@@ -33,14 +33,14 @@ use Uhifadhi\Storage\Registry\FileSourceInterface;
  * photograph patrol holds is handed over here, already carrying the one thing
  * that makes it a file on this platform — the record it belongs to.
  *
- * The seam this implements is uhifadhi/storage-module's
+ * The contract this implements is uhifadhi/storage-module's
  * {@see FileSourceInterface}, and this class answers only what patrol knows:
  * which keys are ours, what each photograph belongs to, and what may be done to
  * it. It deliberately does NOT answer where the bytes are or whether the small
  * picture was made — the storage bundle adds those two from its own
  * configuration, and a module guessing at them would be inventing facts.
  *
- * The two seams patrol ships into storage answer two different questions and
+ * The two contracts patrol ships into storage answer two different questions and
  * must never disagree about which keys are patrol's:
  *
  *   - {@see \Uhifadhi\Patrol\Security\PatrolEvidenceVoter} — may you READ
@@ -67,7 +67,7 @@ final class PatrolFileSource implements FileSourceInterface
 
     /**
      * THE ONE TOKEN PATROL PUTS ON THE WIRE for itself, singular: the value of
-     * `source` in the File-as-incident seam
+     * `source` in the File-as-incident contract
      * ({@see \Uhifadhi\Patrol\Controller\PatrolDetailController::fileAsIncidentUrl()})
      * and the value another module hands back to {@see filesForRecord()} to ask
      * for one observation's photographs.

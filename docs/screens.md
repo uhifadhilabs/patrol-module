@@ -1,5 +1,12 @@
 # Screens
 
+## Contents
+
+- [The routes](#the-routes)
+- [Observation taxonomy admin](#observation-taxonomy-admin)
+
+## The routes
+
 | Screen | Route |
 |---|---|
 | Widget dashboard | `patrol_dashboard` |
@@ -11,8 +18,8 @@
 | Log patrol (manual) | `patrol_log` |
 | Observation taxonomy admin | `patrol_taxonomy` |
 
-The dashboard and the widget library are compositions on
-uhifadhi/widget-module — see [what-it-stands-on.md](what-it-stands-on.md).
+The dashboard and the widget library are compositions on the shell's widget
+framework — see [what-it-stands-on.md](what-it-stands-on.md).
 
 ## Observation taxonomy admin
 
@@ -46,5 +53,5 @@ not part of this admin.
 
 The **copy-from-another-area** first-setup gesture is **deferred**: it needs to
 enumerate areas and read their names, which requires an area-directory contract
-that is not yet ruled. The empty-state template marks the seam; the core start is
-complete without it.
+that is not yet ruled. The empty-state template marks where it will attach; the
+first-kind start is complete without it.

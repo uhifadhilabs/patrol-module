@@ -62,7 +62,7 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
     public function __construct(
         private readonly PatrolRepository $patrols,
         private readonly EntityManagerInterface $entityManager,
-        /** The slug this module is registered under in the host's catalogue. */
+        /** The slug this module is registered under in the registry's catalogue. */
         private readonly string $slug,
         private readonly string $name = 'Patrols',
     ) {
@@ -81,7 +81,7 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
      * areas is not the sum, the mean, or a row-per-area of two shares — it is one ratio over one
      * larger surface, which is exactly what {@see PatrolRepository::coverageFractionForDepartment()}
      * answers when asked without an area. The per-area table draws a dash in that column rather
-     * than a split nobody can define, which is the honest reading and the one the host's widget
+     * than a split nobody can define, which is the honest reading and the one the area's widget
      * already documents.
      *
      * @return list<DepartmentKpi>
@@ -213,7 +213,7 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
      * PL·03 for this department over one window, IN POINTS — 54.0 for 54 %.
      *
      * The repository answers a fraction of 1, because that is what a ratio of two areas is; the
-     * seam carries a share as the number a plate prints, because {@see DepartmentKpi::display()}
+     * contract carries a share as the number a plate prints, because {@see DepartmentKpi::display()}
      * formats the value it is given and {@see DepartmentKpi::delta()} moves a share in POINTS.
      * The conversion belongs here, once, rather than in every surface that reads the figure.
      *

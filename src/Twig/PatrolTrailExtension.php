@@ -24,14 +24,14 @@ use Twig\TwigFunction;
  *
  * WHY A MODULE NEEDS THIS AT ALL. Every patrol screen prints a breadcrumb, and a
  * patrol breadcrumb names screens this module does not own: the area register
- * and the area itself belong to uhifadhi/area-module, and the per-area module
- * grid belongs to the seam and is not built yet. Twig's own `path()` THROWS on a
+ * and the area itself belong to AreaBundle, and the per-area module
+ * grid belongs to the registry and is not built yet. Twig's own `path()` THROWS on a
  * route that is not registered, so a template naming any of them is a template
  * that takes the whole page down in an installation that mounted one screen
  * fewer.
  *
  * That is not a hypothetical. Area's own screens are optional — its README calls
- * both of its shell seams "route-tolerant: unmount a route and its tab or row is
+ * both of its shell contribution points "route-tolerant: unmount a route and its tab or row is
  * simply absent rather than every page failing" — and this is the same tolerance
  * applied to a crumb rather than to a tab.
  *

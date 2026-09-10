@@ -6,6 +6,14 @@ photos, all synced when signal returns. This feature adds the other tense — th
 staffed. It is **not built yet**; this doc records the shape it should take so the
 decision is made before the code is.
 
+## Contents
+
+- [What it is](#what-it-is)
+- [How the position gets there: a presence heartbeat](#how-the-position-gets-there-a-presence-heartbeat)
+- [Occupancy is a geofence, never a point](#occupancy-is-a-geofence-never-a-point)
+- [What it will need](#what-it-will-need)
+- [Status](#status)
+
 ## What it is
 
 A live map of rangers on patrol, and from it the question that matters
