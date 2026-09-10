@@ -58,7 +58,7 @@
 <a href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}" class="backbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Patrol {{ patrol.ref }}</a>
 
 {# THE IDENTITY BAND — the observation's own facts, in the platform's shared
-   .patrol-factband, below the tabs. This is the settled design's PL·02: the meta moved
+   .factband, below the tabs. This is the settled design's PL·02: the meta moved
    out of a sidebar card and onto the band every entity-detail screen wears, and
    it ends with the "The patrol →" more-link back up to the parent record.
 
@@ -67,7 +67,7 @@
    identity the bundle stores for neither observation nor patrol; Status
    ("linked to incident draft") lives in the incidents module, which need not be
    installed. An empty fact would be a claim about evidence that isn't true. #}
-<div class="patrol-factband">
+<div class="factband">
     <span class="f"><span class="k">Observation</span><span class="v">{{ n }} of {{ total }}<em>{{ patrol.ref }}</em></span></span>
     <span class="f"><span class="k">Category</span><span class="v">{{ categoryLabel|lower }}</span></span>
     {% if observation.loggedAt %}<span class="f"><span class="k">Logged</span><span class="v">{{ ui.stamp(observation.loggedAt) }}</span></span>{% endif %}

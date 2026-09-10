@@ -180,11 +180,11 @@ final class PatrolDetailPageTest extends WebTestCase
         self::assertStringContainsString($this->patrol->getRef().' · North post · walking round', $crawler->filter('.patrol-ol-id')->text());
 
         // The identity band — the patrol's own facts in the platform's shared
-        // .patrol-factband below the tabs (PL·02 in the settled design is this band, not
+        // .factband below the tabs (PL·02 in the settled design is this band, not
         // a sidebar card): the computed duration and average speed (14.2 km over
         // 6 h 20 = 2.24… km/h), the source and the GPS honesty facts, the team as
         // the lead's secondary line, and the started stamp as a machine <time>.
-        $facts = $crawler->filter('.patrol-factband')->text();
+        $facts = $crawler->filter('.factband')->text();
         self::assertStringContainsString('North post', $facts);
         self::assertStringContainsString('6 h 20', $facts);
         self::assertStringContainsString('2.2', $facts);
@@ -243,7 +243,7 @@ final class PatrolDetailPageTest extends WebTestCase
         self::assertResponseIsSuccessful();
 
         // The started and ended identity-band facts are machine <time> elements.
-        $times = $crawler->filter('.patrol-factband time');
+        $times = $crawler->filter('.factband time');
         self::assertGreaterThanOrEqual(2, $times->count(), 'started and ended render as machine <time> elements.');
 
         // The datetime attribute is the STORED INSTANT — unambiguous across
@@ -280,8 +280,8 @@ final class PatrolDetailPageTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertStringNotContainsString('Export GPX', $crawler->filter('.pghead')->text());
-        self::assertStringContainsString('manual entry', $crawler->filter('.patrol-factband')->text());
-        self::assertStringNotContainsString('GPS points', $crawler->filter('.patrol-factband')->text());
+        self::assertStringContainsString('manual entry', $crawler->filter('.factband')->text());
+        self::assertStringNotContainsString('GPS points', $crawler->filter('.factband')->text());
         self::assertStringContainsString('Logged manually', $crawler->filter('[data-patrol-history]')->text());
         self::assertCount(1, $crawler->filter('[data-patrol-observations] .patrol-obs-empty'));
     }

@@ -110,9 +110,9 @@
    The station filter is a dropdown in the SAME chrome the incidents bar uses — a
    .mchip trigger (.i-ddt) opening a floating .i-ddmenu, hidden until its .i-dd
    carries .open (the filters controller toggles it, one at a time, and closes it
-   on Escape or an outside click). Ported here onto patrol's token bridge — the
-   same self-sufficiency as .patrol-factband — so the patrol bar carries its own filter
-   chrome without depending on incidents.css.
+   on Escape or an outside click). Ported here onto patrol's token bridge, so
+   the patrol bar carries its own filter chrome without depending on
+   incidents.css.
 
    The OPTIONS drive patrol's real-time filter (they publish the patrol:filter
    document event), which is the module's deliberate design: one filter, the map
@@ -329,60 +329,6 @@
 .patrol-dc.patrol-today .patrol-dn { color: rgb(var(--c-acc)); }
 .patrol-daypill { text-decoration: none; }
 .patrol-daypill .chip { cursor: pointer; }
-
-/* ---- the identity band (PL·02) ----------------------------------------- */
-/* THE IDENTITY BAND a patrol and an observation wear below the tabs. The
-   settled patrol designs moved the detail screens' facts out of a sidebar
-   "meta" card and onto this band, so both detail screens carry it.
-
-   IT IS PREFIXED, and that is the whole of what is deliberate here. The same
-   band is drawn by the area overview from AreaBundle's own sheet, under the
-   bare name `.factband` — and a patrol screen does not link that sheet, so this
-   module cannot simply use it. Two sheets defining one bare name is the case
-   the conformance rule exists to stop: on the area overview, where this sheet
-   IS linked beside area's, the page would carry two definitions of one
-   component and render whichever loaded last.
-
-   FOLLOW-UP: the band belongs in the shell, beside .pghead and .crumb, where
-   every entity-detail screen in the installation can draw it once. When it
-   lands there both copies go, this one included. */
-.patrol-factband {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0;
-    padding: 2px 4px;
-    margin-bottom: 18px;
-    border: 1px solid var(--c-ln);
-    border-radius: 12px;
-    background: rgb(var(--c-raised));
-}
-/* Each fact carries its own padding and a hairline divider from the previous —
-   the canonical band's rhythm (uhifadhi.css .patrol-factband), not a flat gap. */
-.patrol-factband .f { display: flex; flex-direction: column; gap: 2px; padding: 9px 16px; position: relative; }
-.patrol-factband .f + .f::before {
-    content: ''; position: absolute; left: 0; top: 11px; bottom: 11px; width: 1px; background: var(--c-ln);
-}
-.patrol-factband .k {
-    font-family: var(--font-mono);
-    font-size: 8.5px;
-    font-weight: 600;
-    letter-spacing: .15em;
-    text-transform: uppercase;
-    color: rgb(var(--c-dim));
-}
-.patrol-factband .v { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.patrol-factband .v em { font-style: normal; font-size: 10.5px; font-weight: 500; color: rgb(var(--c-fog)); margin-left: 3px; }
-.patrol-factband .sp { flex: 1; }
-.patrol-factband .more {
-    font-family: var(--font-mono); font-size: 9.5px; font-weight: 600;
-    letter-spacing: .1em; text-transform: uppercase; color: rgb(var(--c-fog));
-    text-decoration: none; white-space: nowrap; padding: 9px 15px;
-}
-.patrol-factband .more:hover { color: rgb(var(--c-acc)); }
-/* Narrow: the band wraps, and a divider between two facts that are now on
-   different lines would be a stray tick — drop it, as the canonical band does. */
-@media (max-width: 900px) { .patrol-factband .f + .f::before { display: none; } }
 
 /* ---- detail screens: plate + sidebar ----------------------------------- */
 /* The settled layout for both detail screens: a plate card (flex 2) beside a

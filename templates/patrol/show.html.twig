@@ -105,12 +105,12 @@
 {% endif %}
 
 {# THE IDENTITY BAND — the patrol's own facts, in the platform's shared
-   .patrol-factband, below the tabs. This is the settled design's PL·02: the meta
+   .factband, below the tabs. This is the settled design's PL·02: the meta
    moved out of a sidebar card and onto the band every entity-detail screen in
    the installation wears (the area overview, an observation, a station). A
    segment with no data is OMITTED, never rendered empty — the same rule the
    area band follows for IUCN and boundary. #}
-<div class="patrol-factband">
+<div class="factband">
     <span class="f"><span class="k">Id</span><span class="v">{{ patrol.ref }}</span></span>
     <span class="f"><span class="k">Type</span><span class="v">{{ typeLabel|lower }}</span></span>
     <span class="f"><span class="k">Station</span><span class="v">{{ patrol.station ?: '—' }}</span></span>

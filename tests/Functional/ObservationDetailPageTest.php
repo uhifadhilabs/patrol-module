@@ -170,10 +170,10 @@ final class ObservationDetailPageTest extends WebTestCase
         self::assertStringContainsString('obs 2 · maintenance need · 08:15', $crawler->filter('.patrol-ol-id')->text());
 
         // The identity band — the observation's own facts in the platform's
-        // shared .patrol-factband below the tabs (PL·02 in the settled design is this
+        // shared .factband below the tabs (PL·02 in the settled design is this
         // band, not a sidebar card), with the position printed as DMS
         // (5.72° = 5°43'12", 12.28° = 12°16'48") and a "The patrol →" more-link.
-        $facts = $crawler->filter('.patrol-factband')->text();
+        $facts = $crawler->filter('.factband')->text();
         self::assertStringContainsString('2 of 2', $facts);
         self::assertStringContainsString($this->patrol->getRef(), $facts);
         self::assertStringContainsString('5°43\'12"S 12°16\'48"E', $facts);
@@ -184,7 +184,7 @@ final class ObservationDetailPageTest extends WebTestCase
         );
         self::assertSame(
             '/areas/'.$this->area->getUuidString().'/modules/patrols/'.$this->patrol->getUuid()->toRfc4122(),
-            $crawler->filter('.patrol-factband a.more')->attr('href'),
+            $crawler->filter('.factband a.more')->attr('href'),
             'the band ends with a "The patrol →" link back up to the parent patrol',
         );
 
@@ -267,8 +267,8 @@ final class ObservationDetailPageTest extends WebTestCase
         // The count agrees with reality, in all three places the design prints it.
         self::assertStringContainsString('· 2 · from the field', $card->text());
         self::assertStringContainsString('2 photos', $crawler->filter('.pgsub')->text());
-        self::assertStringContainsString('Photos', $crawler->filter('.patrol-factband')->text());
-        self::assertStringContainsString('2', $crawler->filter('.patrol-factband')->text());
+        self::assertStringContainsString('Photos', $crawler->filter('.factband')->text());
+        self::assertStringContainsString('2', $crawler->filter('.factband')->text());
 
         // Still view-only: no upload control appeared with the photographs.
         self::assertCount(0, $card->filter('input'));
@@ -368,7 +368,7 @@ final class ObservationDetailPageTest extends WebTestCase
         $crawler = $this->client->request('GET', $this->url($this->area, $this->patrol, $this->observation));
 
         self::assertResponseIsSuccessful();
-        $facts = $crawler->filter('.patrol-factband')->text();
+        $facts = $crawler->filter('.factband')->text();
         self::assertStringContainsString('1 of 3', $facts);
         self::assertStringContainsString('2 still syncing', $facts);
     }
