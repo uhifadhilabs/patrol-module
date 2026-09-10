@@ -11,23 +11,25 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Uhifadhi\Patrol\Tests\Integration\Command;
+namespace Uhifadhi\Patrol\Tests\Integration\Devkit;
 
 use League\Flysystem\FilesystemOperator;
-use Symfony\Bundle\FrameworkBundle\Console\Application;
-use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Contracts\Devkit\CommandDescriptor;
+use Uhifadhi\Patrol\Devkit\PatrolCommandProvider;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
+use Uhifadhi\Patrol\Tests\Integration\Fixtures\RecordingCommandIo;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 use Uhifadhi\Storage\Service\EvidenceKey;
 
 /**
  * patrol:photos:backfill-thumbs — the previews for photographs that arrived
- * before this module adopted storage-module.
+ * before this module adopted the evidence storage, exercised as devkit
+ * exercises it: the descriptor's handler, an argument tail and a CommandIo.
  *
  * The fixtures use the LEGACY key shape on purpose (`patrol-<uuid>/<uuid>.jpg`),
  * because that is the only shape the backfill will ever meet in a real
@@ -36,7 +38,7 @@ use Uhifadhi\Storage\Service\EvidenceKey;
  * the evidence storage at the old directory makes yesterday's paths today's
  * keys, unchanged.
  */
-final class BackfillPhotoThumbsCommandTest extends IntegrationTestCase
+final class PatrolCommandProviderTest extends IntegrationTestCase
 {
     private Observation $observation;
 
@@ -62,10 +64,13 @@ final class BackfillPhotoThumbsCommandTest extends IntegrationTestCase
     {
         $photo = $this->legacyPhoto('a1b2c3d4-0000-4000-8000-000000000001', withBytes: true);
 
-        $tester = $this->backfill();
+        $io = $this->backfill();
 
-        self::assertSame(0, $tester->getStatusCode());
-        self::assertStringContainsString('1 photo without a preview', $tester->getDisplay());
+        // One photograph was considered and it now has a preview. Whether the
+        // bytes were written or adopted from an earlier run is not the
+        // assertion: the evidence directory outlives a single test, so both are
+        // correct answers and the row is what has to change either way.
+        self::assertStringContainsString(EvidenceKey::thumb($photo->getStoragePath()), $io->output());
 
         $this->em->refresh($photo);
         $thumbKey = $photo->getThumbKey();
@@ -98,23 +103,21 @@ final class BackfillPhotoThumbsCommandTest extends IntegrationTestCase
         $this->backfill();
         $second = $this->backfill();
 
-        self::assertSame(0, $second->getStatusCode());
-        self::assertStringContainsString('already has a preview', $second->getDisplay());
+        self::assertStringContainsString('already has a preview', $second->output());
     }
 
     /**
      * A row whose bytes are gone. Reported and skipped — deciding what a
-     * photograph with no file means is not a thumbnail command's call, and
+     * photograph with no file means is not a thumbnail sweep's call, and
      * failing the run would leave every later photo unprocessed.
      */
     public function testAPhotoWhoseBytesAreMissingIsReportedAndSkipped(): void
     {
         $photo = $this->legacyPhoto('a1b2c3d4-0000-4000-8000-000000000004', withBytes: false);
 
-        $tester = $this->backfill();
+        $io = $this->backfill();
 
-        self::assertSame(0, $tester->getStatusCode());
-        self::assertStringContainsString('missing', $tester->getDisplay());
+        self::assertStringContainsString('unavailable', $io->output());
         $this->em->refresh($photo);
         self::assertNull($photo->getThumbKey());
     }
@@ -123,9 +126,9 @@ final class BackfillPhotoThumbsCommandTest extends IntegrationTestCase
     {
         $photo = $this->legacyPhoto('a1b2c3d4-0000-4000-8000-000000000005', withBytes: true);
 
-        $tester = $this->backfill(['--dry-run' => true]);
+        $io = $this->backfill(['--dry-run']);
 
-        self::assertStringContainsString('Dry run', $tester->getDisplay());
+        self::assertStringContainsString('Dry run', $io->output());
         $this->em->refresh($photo);
         self::assertNull($photo->getThumbKey());
         self::assertFalse($this->evidence()->fileExists(EvidenceKey::thumb($photo->getStoragePath())));
@@ -169,18 +172,37 @@ final class BackfillPhotoThumbsCommandTest extends IntegrationTestCase
         return (string) ob_get_clean();
     }
 
-    /** @param array<string, bool|string> $input */
-    private function backfill(array $input = []): CommandTester
+    /**
+     * The descriptor's handler, called the way devkit's wrapper calls it.
+     *
+     * @param list<string> $arguments the tail a person typed
+     */
+    private function backfill(array $arguments = []): RecordingCommandIo
     {
-        $kernel = self::$kernel;
-        self::assertNotNull($kernel);
-        $application = new Application($kernel);
-        $application->setAutoExit(false);
+        $provider = static::getContainer()->get('test_public.'.PatrolCommandProvider::class);
+        self::assertInstanceOf(PatrolCommandProvider::class, $provider);
 
-        $tester = new CommandTester($application->find('patrol:photos:backfill-thumbs'));
-        $tester->execute($input);
+        $descriptor = $provider->commands()[0] ?? null;
+        self::assertInstanceOf(CommandDescriptor::class, $descriptor);
+        self::assertSame('patrol:photos:backfill-thumbs', $descriptor->name);
 
-        return $tester;
+        $io = new RecordingCommandIo();
+        self::assertSame(0, ($descriptor->handler)($arguments, $io));
+
+        return $io;
+    }
+
+    public function testAnArgumentTheHandlerDoesNotKnowIsRefusedOnTheErrorStream(): void
+    {
+        $provider = static::getContainer()->get('test_public.'.PatrolCommandProvider::class);
+        self::assertInstanceOf(PatrolCommandProvider::class, $provider);
+
+        $io = new RecordingCommandIo();
+        $exit = ($provider->commands()[0]->handler)(['--everything'], $io);
+
+        self::assertSame(1, $exit);
+        self::assertStringContainsString('--everything', implode("\n", $io->errors));
+        self::assertSame([], $io->written, 'A refusal says nothing on stdout.');
     }
 
     private function evidence(): FilesystemOperator

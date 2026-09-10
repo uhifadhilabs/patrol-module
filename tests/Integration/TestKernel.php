@@ -231,6 +231,10 @@ final class TestKernel extends Kernel
             // The area-scoped observation-taxonomy admin's logic, reached directly
             // by its integration test.
             \Uhifadhi\Patrol\Service\TaxonomyAdminService::class => 'patrol.taxonomy_admin',
+            // The inert descriptor devkit materialises into a command. Nothing
+            // collects it here — devkit is not in this kernel — so a test holds
+            // it and calls the handler devkit would have called.
+            \Uhifadhi\Patrol\Devkit\PatrolCommandProvider::class => 'patrol.devkit.commands',
             // The two halves of the storage seam, and the registry the hub reads
             // through — so a test can prove the tag was applied AND that the two
             // halves still claim the same keys.
@@ -293,7 +297,6 @@ final class TestKernel extends Kernel
         ]);
 
         $container->extension('patrol', [
-            'dev_tools' => true, // this IS the test env — the recipe enables it via when@test
             // Synthetic example vocabulary (never a client's). Deliberately NOT
             // the field app's words: patrol types and observation categories are
             // DEPLOYMENT config, and the sync tests prove the endpoints work

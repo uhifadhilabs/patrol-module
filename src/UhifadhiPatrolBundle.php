@@ -34,15 +34,14 @@ use Uhifadhi\Patrol\Api\State\AppendTrackProcessor;
 use Uhifadhi\Patrol\Api\State\CompletePatrolProcessor;
 use Uhifadhi\Patrol\Api\State\CreatePatrolProcessor;
 use Uhifadhi\Patrol\Api\State\UploadPhotoProcessor;
-use Uhifadhi\Patrol\Command\BackfillPhotoThumbsCommand;
 use Uhifadhi\Patrol\Command\PurgeDiscardedCommand;
-use Uhifadhi\Patrol\Command\SeedDemoCommand;
 use Uhifadhi\Patrol\Controller\ObservationAmendmentController;
 use Uhifadhi\Patrol\Controller\PatrolHoldController;
 use Uhifadhi\Patrol\Controller\PatrolRecordController;
 use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
 use Uhifadhi\Patrol\Controller\PatrolWidgetsController;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
+use Uhifadhi\Patrol\Devkit\PatrolCommandProvider;
 use Uhifadhi\Patrol\Module\PatrolDepartmentKpiProvider;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Overview\PatrolAttention;
@@ -71,6 +70,7 @@ use Uhifadhi\Patrol\Service\Api\PhotoSyncService;
 use Uhifadhi\Patrol\Service\Api\RangerResolver;
 use Uhifadhi\Patrol\Service\Api\TrackBatchService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
+use Uhifadhi\Patrol\Service\PhotoThumbnailBackfillService;
 use Uhifadhi\Patrol\Storage\PatrolFileSource;
 use Uhifadhi\Patrol\Widget\PatrolWidgets;
 use Uhifadhi\Storage\Registry\FileSourceInterface;
@@ -534,46 +534,37 @@ final class UhifadhiPatrolBundle extends AbstractBundle
             ])
             ->tag('console.command');
 
-        // Dev tooling: the demo seeder exists only where patrol.dev_tools is on
-        // (the recipe enables it via when@dev/when@test), so production never
-        // gets a command that writes invented patrols.
-        if (true === ($config['dev_tools'] ?? false)) {
-            $services->set('patrol.command.seed_demo', SeedDemoCommand::class)
-                ->args([
-                    service('doctrine.orm.entity_manager'),
-                    service(PatrolRepository::class),
-                    service('patrol.geo'),
-                    // The demo attaches real (invented) photographs to observations,
-                    // stored through the platform's evidence storage exactly as the
-                    // field API does — so they appear on the /files hub via
-                    // PatrolFileSource. Same service the purge command takes above.
-                    service('storage.evidence_storage'),
-                    param('patrol.types'),
-                    param('patrol.observation_categories'),
-                ])
-                ->tag('console.command');
+        /*
+         * THE ONE-OFF PREVIEW BACKFILL, OFFERED RATHER THAN SHIPPED. A
+         * migration aid somebody runs once is not an operation a production
+         * console needs standing by, so this module ships an INERT provider
+         * naming it and hands over a closure; devkit — dev-only, installed
+         * through `require-dev` — collects every such service and turns each
+         * descriptor into a real console command. In a production build devkit
+         * is absent, nothing collects this, and it is data waiting for a tool
+         * that is not there.
+         *
+         * THE TAG IS A LITERAL STRING, not a constant of devkit's. Reading one
+         * would load a class that is not installed in production, which is the
+         * whole arrangement inverted: the always-installed side names the
+         * promise, never the tool.
+         *
+         * Registered unconditionally, and the `dev_tools` flag that used to
+         * gate this module's dev tooling is gone with it: the dependency graph
+         * is the firewall now, and a flag beside it would be a second one that
+         * can disagree.
+         */
+        $services->set('patrol.devkit.commands', PatrolCommandProvider::class)
+            ->args([service('patrol.photo_thumbnail_backfill')])
+            ->tag('uhifadhi.devkit.command_provider');
 
-            /*
-             * The one-off preview backfill for photographs stored before this
-             * module adopted storage-module. Dev tooling by the same reasoning
-             * as the seeder: it is a migration aid a deployment runs once, not
-             * an operation a production console needs standing by.
-             *
-             * It takes the FLYSYSTEM STORAGE and the thumbnail engine directly
-             * rather than EvidenceStorage, because what it does — write one
-             * derived object beside a key that already exists — is the one thing
-             * the evidence API deliberately does not expose: store() validates
-             * and names a NEW upload, and this is neither.
-             */
-            $services->set('patrol.command.backfill_photo_thumbs', BackfillPhotoThumbsCommand::class)
-                ->args([
-                    service('doctrine.orm.entity_manager'),
-                    service(ObservationPhotoRepository::class),
-                    service('storage.evidence'),
-                    service('storage.thumbnail_generator'),
-                ])
-                ->tag('console.command');
-        }
+        $services->set('patrol.photo_thumbnail_backfill', PhotoThumbnailBackfillService::class)
+            ->args([
+                service('doctrine.orm.entity_manager'),
+                service(ObservationPhotoRepository::class),
+                service('storage.evidence'),
+                service('storage.thumbnail_generator'),
+            ]);
 
         // The department KPI seam. APPENDED last on purpose: it is the newest thing this bundle
         // plugs into, and it depends on nothing declared above it.
