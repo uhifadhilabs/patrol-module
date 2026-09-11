@@ -1,73 +1,200 @@
-{# Log a patrol by hand (settled design: the patrols module, main-screen
-   direction "log"): the details card (PL·01) beside the route sketch (PL·02).
-   No file, no track — the record is stamped "manual" so it can never be
-   mistaken for a recorded one. #}
+{# THE ONE ENTRY FLOW (settled design `log.html`): the three steps of logging a
+   patrol, as one page. A step is a card with a number; nothing is hidden behind
+   a wizard, because a person filling this in knows what they walked and should
+   be able to see the whole form.
+
+   A patrol with a GPX track and a patrol somebody walked with no device are the
+   same record; the difference is whether step 1 was used.
+
+   EVERY FILE ON THIS PAGE — the track and every photograph — goes through the
+   platform's upload component. `render_upload()` draws the dropzone in PL·01 and
+   an add tile in each of PL·03's evidence grids; this template writes no file
+   input, no dropzone and no upload JavaScript, and the component's own
+   vocabulary is the shell's. #}
 {% extends '@UhifadhiPatrol/base.html.twig' %}
 
 {% import '@UhifadhiPatrol/_ui.html.twig' as ui %}
 
 {# A PAGE SAYS ONLY WHAT IT IS. The shell's document composes the tab title as
    page — place — brand, so naming the area here would print it twice. #}
-{% block title %}Patrols · log patrol{% endblock %}
+{% block title %}Patrols · log a patrol{% endblock %}
 
 {% block patrol_trail_tail %} <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / log{% endblock %}
 
-{% block shell_page_title %}{{ area.name }} — Patrols · log patrol{% endblock %}
+{% block shell_page_title %}{{ area.name }} — Patrols · log a patrol{% endblock %}
 
-{% block shell_page_subtitle %}Record a patrol without a GPX file — details, observations, and an optional sketched route.{% endblock %}
+{% block shell_page_subtitle %}One way in for every patrol: drop the track if there is one, confirm what the patrol was, and record what was seen. Every file — the track and every photograph — goes through the same storage component.{% endblock %}
 
 {% block patrol_page %}
-<a class="backbtn" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">{{ ux_icon('shell:chevron-left') }}All patrols</a>
+<form class="patrol-log" method="post" action="{{ path('patrol_log', {uuid: area.uuid}) }}" data-patrol-log>
+<input type="hidden" name="_token" value="{{ token }}">
+{# THE DRAFT. Minted server-side when this page rendered; it is the half of every
+   upload target after the colon, and it is what lets a file arrive before the
+   patrol it belongs to exists. #}
+<input type="hidden" name="draft" value="{{ draft }}">
 
 <div class="grid g32">
-    <form class="c" method="post" action="{{ path('patrol_log', {uuid: area.uuid}) }}" data-patrol-log>
-        <span class="tab">Patrol details<span class="src">· manual entry · no GPX</span></span>
-        <div class="patrol-frow"><label>type</label>{{ ui.type_chips(types, form.type) }}</div>
-        <div class="patrol-frow"><label>station</label>{{ ui.station_chips(stations, form.station) }}</div>
-        <div class="patrol-frow"><label>lead</label>{{ ui.lead_select(users, form.lead) }}</div>
-        <div class="patrol-frow"><label>team</label><input class="fld" type="text" name="team" value="{{ form.team ?: '' }}" placeholder="names, comma-separated"></div>
-        {# The design writes explicit dates into these fields ("sat 22 aug 2026 ·
-           05:55"); datetime-local is the native control that carries exactly
-           that — a date AND a time, no parsing guesswork. #}
-        <div class="patrol-frow"><label>started</label><input class="fld" type="datetime-local" name="startedAt" value="{{ form.startedAt ?: '' }}" required></div>
-        <div class="patrol-frow"><label>ended</label><input class="fld" type="datetime-local" name="endedAt" value="{{ form.endedAt ?: '' }}"></div>
-        {# The design's placeholder promises the distance is derived from the
-           sketched route; the sketch is deferred below, so the field states
-           plainly that it is optional rather than promising a derivation that
-           cannot happen yet. #}
-        <div class="patrol-frow"><label>distance</label><input class="fld" type="number" name="distanceKm" step="0.1" min="0" value="{{ form.distanceKm is not null ? form.distanceKm : '' }}" placeholder="km (optional)"></div>
-        <div class="patrol-frow"><label>note</label><input class="fld" type="text" name="note" value="{{ form.note ?: '' }}" placeholder="optional patrol note"></div>
+<div class="patrol-formcol">
 
-        {# DEFERRED(observations-repeater): the design logs observations inline
-           here, each with a time, a category chip, a note and a pin on the
-           sketch. Adding rows to a form needs the repeater the sketch pin
-           depends on, so observations are added from the patrol detail screen
-           instead; the section and its "+ add observation" chip render inert
-           so the intended shape stays visible. #}
-        <h2 class="zone patrol-zone">observations</h2>
-        <p class="patrol-empty">No observations yet — they are added to the patrol after it is saved.</p>
-        <div class="patrol-chipset patrol-inert" aria-disabled="true"><span class="mchip patrol-ghost">+ add observation</span></div>
+    {# ── PL·01 ─────────────────────────────────────────────────────────────── #}
+    <div class="c" data-patrol-track>
+        <span class="tab">The track<span class="src">· step 1 · gpx</span></span>
+        <div class="patrol-pstep" data-patrol-step="1"><span class="n">1</span><span class="t">The track</span><span class="sp"></span><span class="patrol-opt">may be skipped</span></div>
 
-        {% if error %}
-            <p class="patrol-error" data-patrol-error>{{ error }}</p>
+        {% if track %}
+            {# The stored state the design draws: the module's own row, carrying
+               the chip with what it parsed out of the file. The remove hook is
+               the component's — a tile or row this module drew gains a working
+               remove by naming the key. #}
+            <div class="upl-list">
+                <div class="upl-file done">
+                    {{ ux_icon('patrol:file-pen', {width: 14, height: 14}) }}
+                    <span class="nm">{{ track.label }}</span>
+                    {% if track.byteSize %}<span class="sz">{{ (track.byteSize / 1024)|round }} KB</span>{% endif %}
+                    <span class="chip ok">{{ track.outcome }}</span>
+                    <span class="patrol-gap"></span>
+                    <button type="button" class="upl-act x" data-upl-remove data-upl-key="{{ track.storageKey }}" aria-label="Remove this track">&times;</button>
+                </div>
+            </div>
+            <input type="hidden" name="trackKey" value="{{ track.storageKey }}">
         {% endif %}
 
-        <div class="patrol-save-row">
-            <a class="tgl patrol-cancel" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">Cancel</a>
-            <button class="cta" type="submit">Save patrol ⏎</button>
-        </div>
-    </form>
+        {{ render_upload(trackKind ~ ':' ~ draft, 'zone', {
+            label: track ? 'Stored — replace the track, or' : 'Drop a .gpx track here, or',
+            input: 'trackKey',
+        }) }}
+        <span class="upl-kinds">the mobile tracker app POSTs to this same endpoint — one ingest service, two doors</span>
 
-    {# DEFERRED(route-sketch): the design lets a patrol's route be drawn by hand
-       (click to add points, double-click to finish) and stores it as a sketch,
-       distinct from a GPX track. That needs a drawing controller and a sketched
-       geometry the manual form can post; the card and its frame render empty
-       until then, so nothing on the page pretends a sketch was captured. #}
-    <div class="c patrol-plate" data-patrol-sketch>
-        <span class="tab">Route sketch<span class="src">· click to add points · double-click to finish</span></span>
-        <span class="lib">optional</span>
-        {{ ui.plate(map, 'Route sketch', 'no points yet', 'sketched route · dashed until saved') }}
-        <div class="use"><b>Sketch, don’t fake precision</b> — a hand-drawn route is stored as a sketch, clearly distinct from GPX tracks; distance shows as approximate.</div>
+        <div class="use"><b>Skip this step for a patrol with no track.</b> A foot patrol whose handset was flat is still a patrol: leave step 1 empty, sketch the route in step 2 if you want one, and the distance becomes yours to type rather than the file’s to state.</div>
     </div>
+
+    {# ── PL·02 ─────────────────────────────────────────────────────────────── #}
+    <div class="c" data-patrol-details>
+        <span class="tab">Patrol details<span class="src">· step 2 · confirm</span></span>
+        <div class="patrol-pstep" data-patrol-step="2"><span class="n">2</span><span class="t">Patrol details</span></div>
+
+        <div class="frow"><label>type</label>{{ ui.type_chips(types, form.type) }}</div>
+        <div class="frow"><label>station</label>{{ ui.station_chips(stations, form.station) }}</div>
+        <div class="frow"><label>lead</label>{{ ui.lead_select(users, form.lead) }}</div>
+        <div class="frow"><label>team</label><input class="fld" type="text" name="team" value="{{ form.team ?: '' }}" placeholder="names, comma-separated"></div>
+        {# The design writes explicit dates into these fields ("sat 22 aug 2026 ·
+           05:55"); datetime-local is the native control that carries exactly
+           that — a date AND a time, no parsing guesswork. With a track they are
+           the file's to state, so they are shown filled and read-only rather
+           than offered as something to disagree with. #}
+        <div class="frow"><label>started</label>
+            {% if track and track.startedAt %}
+                <input class="fld" type="text" value="{{ track.startedAt|date('D j M Y')|lower }} · {{ track.startedAt|date('H:i') }}" readonly>
+            {% else %}
+                <input class="fld" type="datetime-local" name="startedAt" value="{{ form.startedAt ?: '' }}">
+            {% endif %}
+        </div>
+        <div class="frow"><label>ended</label>
+            {% if track and track.endedAt %}
+                <input class="fld" type="text" value="{{ track.endedAt|date('D j M Y')|lower }} · {{ track.endedAt|date('H:i') }}" readonly>
+            {% else %}
+                <input class="fld" type="datetime-local" name="endedAt" value="{{ form.endedAt ?: '' }}">
+            {% endif %}
+        </div>
+        <div class="frow"><label>distance</label>
+            <div class="patrol-inline">
+                {% if track %}
+                    <input class="fld patrol-snum" type="text" value="{{ track.distanceKm|number_format(1) }}" readonly>
+                    <span class="chip idle">km · from the track</span>
+                {% else %}
+                    <input class="fld patrol-snum" type="number" name="distanceKm" step="0.1" min="0" value="{{ form.distanceKm is not null ? form.distanceKm : '' }}" placeholder="km">
+                    <span class="chip idle">km · typed</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="frow"><label>note</label><input class="fld" type="text" name="note" value="{{ form.note ?: '' }}" placeholder="optional patrol note"></div>
+
+        <div class="use">Time, distance and route come from the file when there is one. A hand-sketched route is offered <b>only</b> when step 1 was skipped — a sketch beside a real track would be two answers to one question.</div>
+    </div>
+
+    {% if map %}
+        {# DEFERRED(route-sketch): the design lets a patrol's route be drawn by
+           hand when step 1 was skipped, and stores it as a sketch distinct from
+           a GPX track. That needs a drawing surface and a sketched geometry the
+           form can post; the card and its frame render empty until then, so
+           nothing on the page pretends a sketch was captured. The card is drawn
+           ONLY where the design offers it — with no track — which is the half of
+           the rule that is not deferred. #}
+        <div class="c patrol-plate" data-patrol-sketch>
+            <span class="tab">Route sketch<span class="src">· offered only when step 1 was skipped</span></span>
+            <span class="lib">optional</span>
+            {{ ui.plate(map, 'Route sketch', 'no points yet', 'sketched route · dashed until saved') }}
+            <div class="use"><b>Sketch, don’t fake precision</b> — a hand-drawn route is stored as a sketch, clearly distinct from GPX tracks; distance shows as approximate.</div>
+        </div>
+    {% endif %}
 </div>
+
+{# ── PL·03 ─────────────────────────────────────────────────────────────────── #}
+<div class="c" data-patrol-observations>
+    <span class="tab">Observations<span class="src">· step 3 · what was seen</span></span>
+    <div class="patrol-pstep" data-patrol-step="3"><span class="n">3</span><span class="t">Observations</span><span class="sp"></span><span class="patrol-opt">as many as you like</span></div>
+
+    {% for observation in observations %}
+        {% set n = observation.ordinal %}
+        <div class="patrol-pobs" data-patrol-observation="{{ n }}">
+            <div class="hd"><span class="n">{{ n }}</span><b>{{ ui.observation_title(kinds, observation.kind, observation.subcategory) }}</b><span class="sp"></span></div>
+
+            {# The kind comes from THIS AREA's observation kinds, in the order
+               they are arranged there; the handset shows the same chips in the
+               same order. #}
+            <div class="frow"><label>kind</label>{{ ui.kind_chips(kinds, n, observation.kind) }}</div>
+            <div class="frow"><label>sub-category</label>{{ ui.subcategory_chips(kinds, n, observation.subcategory) }}</div>
+            <div class="frow"><label>time</label><input class="fld" type="text" name="observations[{{ n }}][time]" value="{{ observation.time ?: '' }}" placeholder="hh:mm" pattern="[0-9]{1,2}:[0-9]{2}"></div>
+            <div class="frow"><label>position</label>
+                <div class="patrol-inline">
+                    {% if track %}
+                        <span class="chip idle">from the track at {{ observation.time ?: 'the time you give' }}</span>
+                    {% else %}
+                        {# DEFERRED(map-pick): with no track there is nothing to
+                           read a position off, and the design's answer is to drop
+                           it on the map yourself — the same drawing surface the
+                           route sketch waits on. Stated, not faked: an
+                           observation with no position is recorded with none. #}
+                        <span class="chip idle">no track · no position</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="frow"><label>note</label><input class="fld" type="text" name="observations[{{ n }}][note]" value="{{ observation.note ?: '' }}" placeholder="what was seen"></div>
+
+            <div class="patrol-evh">Evidence</div>
+            <div class="upl-tilebed">
+                {% for file in observation.evidence %}
+                    <span class="upl-tile done">
+                        {{ ux_icon('patrol:map-pin', {width: 22, height: 22}) }}
+                        <span class="fn">{{ file.label }}</span>
+                        <button type="button" class="rm" data-upl-remove data-upl-key="{{ file.storageKey }}" aria-label="Remove this evidence">&times;</button>
+                    </span>
+                    <input type="hidden" name="observations[{{ n }}][photoKeys][]" value="{{ file.storageKey }}">
+                {% endfor %}
+                {{ render_upload(photoKind ~ ':' ~ draft ~ '-' ~ n, 'tile', {
+                    label: 'Add evidence',
+                    input: 'observations[' ~ n ~ '][photoKeys][]',
+                }) }}
+            </div>
+        </div>
+    {% endfor %}
+
+    {# Each observation POSTs with the patrol, not before it — so adding one is a
+       submit that redraws the form with another grid, each addressed by its own
+       ordinal. #}
+    <button type="submit" class="sadd" name="addObservation" value="1">+ Add observation</button>
+
+    <div class="use"><b>Position is prefilled from the track</b> at the time you give, so an observation lands where the patrol actually was. With no track, an observation is recorded without one.</div>
+</div>
+</div>
+
+{% if error %}
+    <p class="patrol-error" data-patrol-error>{{ error }}</p>
+{% endif %}
+
+<div class="save-row">
+    <a class="tgl patrol-cancel" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">Cancel</a>
+    <button class="cta" type="submit">Save patrol</button>
+</div>
+</form>
 {% endblock %}

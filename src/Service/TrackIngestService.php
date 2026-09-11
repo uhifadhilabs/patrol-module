@@ -39,7 +39,7 @@ final class TrackIngestService
     ) {
     }
 
-    /** Parse without saving — the import screen's preview step. */
+    /** Parse without saving — what the entry flow's track target reads a dropped file with. */
     public function preview(string $gpxXml): ParsedTrack
     {
         return $this->parser->parse($gpxXml, $this->gapThresholdMinutes);

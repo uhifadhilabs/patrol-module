@@ -35,7 +35,7 @@ use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
 final readonly class PatrolScreenAccessService
 {
     /**
-     * @param bool                               $recordScreens whether the recording screens EXIST in this installation
+     * @param bool                               $recordScreens whether the entry flow EXISTS in this installation
      * @param AuthorizationCheckerInterface|null $authorization null where the installation runs no security, which is also where the screens do not exist
      * @param bool                               $manageScreens whether the configuring screens EXIST in this installation
      */

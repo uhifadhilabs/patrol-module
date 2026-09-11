@@ -15,7 +15,6 @@ namespace Uhifadhi\Patrol\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,50 +22,76 @@ use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Requirement\Requirement;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
 use Uhifadhi\Contracts\Entity\UserInterface;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Entity\PatrolDraft;
+use Uhifadhi\Patrol\Entity\PatrolDraftFile;
 use Uhifadhi\Patrol\Entity\PatrolType;
 use Uhifadhi\Patrol\Entity\Station;
-use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Entity\TaxonomyKind;
 use Uhifadhi\Patrol\Exception\InvalidGpxException;
 use Uhifadhi\Patrol\Exception\InvalidPatrolTimesException;
+use Uhifadhi\Patrol\Exception\MissingPatrolStartException;
+use Uhifadhi\Patrol\Model\LoggedObservation;
+use Uhifadhi\Patrol\Model\LoggedPatrol;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Repository\StationRepository;
+use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;
+use Uhifadhi\Patrol\Service\PatrolDraftService;
 use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolRecordingService;
 use Uhifadhi\Patrol\Service\PatrolVocabularyService;
-use Uhifadhi\Patrol\Service\TrackIngestService;
+use Uhifadhi\Patrol\Upload\PatrolObservationPhotoTarget;
+use Uhifadhi\Patrol\Upload\PatrolTrackTarget;
 
 /**
- * The two screens that CREATE patrols (settled designs "import" and "log"):
- * uploading a GPX track, and logging a patrol that was never tracked.
+ * THE ONE WAY A PATROL ENTERS THIS MODULE (settled design `log`).
  *
- * Both are entirely about recording, so both — GET included — require the one
- * permission this module declares, "patrols.record". The bundle DECLARES the
- * requirement (see {@see PatrolModuleProvider});
- * the host's voter decides who holds it. Installing a module may never hand
- * existing users a new power, so the bundle grants it to nobody.
+ * There used to be two screens — import a GPX, or log a patrol by hand — and
+ * they were the same screen with one card missing. A patrol somebody walked with
+ * a handset and a patrol somebody walked with a flat battery are the same
+ * record; the only difference is whether step 1 was used. So there is one page,
+ * with three steps on it, and `patrol_import` is a permanent redirect into it.
+ *
+ * EVERY FILE GOES THROUGH THE PLATFORM'S UPLOAD COMPONENT. The track's dropzone
+ * and every evidence tile are `render_upload()`; this controller has no file
+ * handling of its own, no multipart branch, and no base64 field carrying a
+ * document back and forth. What it reads off a submission is the KEY the
+ * component already got back.
+ *
+ * WHICH MEANS THE FILES ARRIVE FIRST. The page opens a {@see PatrolDraft} — a
+ * row, minted server-side, that the two upload targets file against — and
+ * carries its id in a hidden field. Saving re-homes everything the draft holds
+ * under the patrol's own prefix; a page nobody saves is swept by
+ * `patrol:purge-discarded` on the same retention window as a discarded patrol.
+ *
+ * Recording is the privilege, and GET requires it too: the page mints a draft
+ * and the component draws a live upload endpoint, neither of which a reader who
+ * cannot record a patrol should be handed.
  *
  * Checked in code rather than with #[IsGranted]: that attribute is honoured by a
  * listener in symfony/security-http, which this bundle does not require — a host
- * without it would get silently UNPROTECTED recording screens. Symfony treats
+ * without it would get a silently UNPROTECTED recording screen. Symfony treats
  * security as an optional dependency the same way (symfony/twig-bridge lists
  * security-* under require-dev and injects a nullable AuthorizationCheckerInterface).
  * Here the service is only registered when the host has security at all, so the
- * checker is never null and the routes simply do not exist otherwise — see
+ * checker is never null and the route simply does not exist otherwise — see
  * UhifadhiPatrolBundle::loadExtension().
  *
- * NEITHER SCREEN WRITES A PATROL ITSELF. TrackIngestService is THE ingest path
- * for a recorded one (one service, two doors — this form today, the tracker
- * app's API POST later) and PatrolRecordingService is the write path for one
- * written up by hand. Both are reachable without a browser, which is what lets
- * demo content be seeded through the doors a person uses; the controller reads
- * the form, asks who is looking, and responds.
+ * IT WRITES NO PATROL ITSELF. {@see PatrolRecordingService} is the write path
+ * for the whole submission, track and observations and photographs together, and
+ * is reachable without a browser — which is what lets demo content be seeded
+ * through the door a person uses. The controller authorises, reads the form,
+ * and responds.
  *
  * A plain class, not a Symfony AbstractController subclass — see PatrolController
  * and config/services.php for the reusable-bundle rule.
@@ -77,10 +102,19 @@ use Uhifadhi\Patrol\Service\TrackIngestService;
 final class PatrolRecordController
 {
     /**
-     * The permission both screens require. Declared by the module; the host's
+     * The permission the screen requires. Declared by the module; the host's
      * voter decides which positions actually hold it.
      */
     public const string RECORD_PERMISSION = 'patrols.record';
+
+    /** The token the one submit carries — the design names it. */
+    public const string CSRF_TOKEN_ID = 'patrol_log';
+
+    /** How many observation grids a fresh page draws. The design shows one. */
+    private const int FIRST_OBSERVATION = 1;
+
+    /** A cap on the grids one submission may ask for, so a crafted form cannot. */
+    private const int MAX_OBSERVATIONS = 50;
 
     public function __construct(
         private readonly Environment $twig,
@@ -88,127 +122,41 @@ final class PatrolRecordController
         private readonly EntityManagerInterface $entityManager,
         private readonly PatrolTypeRepository $types,
         private readonly StationRepository $stations,
+        private readonly TaxonomyKindRepository $kinds,
         private readonly PatrolVocabularyService $vocabulary,
         private readonly PatrolMapService $plates,
-        private readonly TrackIngestService $ingest,
+        private readonly PatrolDraftService $drafts,
         private readonly PatrolRecordingService $recording,
         private readonly AuthorizationCheckerInterface $authorizationChecker,
-        private readonly float $gapThresholdMinutes,
+        private readonly TokenStorageInterface $tokenStorage,
+        private readonly CsrfTokenManagerInterface $csrf,
     ) {
     }
 
     /**
-     * Import a GPX track — ONE page in two steps, exactly as the design composes
-     * it: upload (PL·01) + patrol details (PL·02), and after a parse the parsed
-     * preview (PL·03) beside them. The confirm submit re-posts to the same route.
+     * THE RETIRED SCREEN. Importing a GPX is step 1 of logging a patrol now, so
+     * the old address is a permanent redirect rather than a second door — a link
+     * in somebody's notes, a bookmark, or a training slide still arrives
+     * somewhere that works.
      */
     #[Route(
         '/areas/{uuid}/modules/patrols/import',
         name: 'patrol_import',
         requirements: ['uuid' => Requirement::UUID],
-        methods: ['GET', 'POST'],
+        methods: ['GET'],
     )]
     public function import(
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
-        Request $request,
-    ): Response {
-        $this->denyUnlessRecorder();
-
-        $form = self::submittedDetails($request);
-        $filename = $request->request->getString('filename') ?: null;
-        $filesize = $request->request->getInt('filesize');
-        $gpxXml = null;
-        $track = null;
-        $error = null;
-        $status = Response::HTTP_OK;
-
-        if ($request->isMethod('POST')) {
-            $uploaded = $request->files->get('gpx');
-            if ($uploaded instanceof UploadedFile) {
-                $gpxXml = (string) file_get_contents($uploaded->getPathname());
-                $filename = $uploaded->getClientOriginalName();
-                $filesize = (int) $uploaded->getSize();
-            } else {
-                // The confirm step: the uploaded XML travelled back in a hidden
-                // base64 field rather than a session, because a reusable bundle
-                // cannot assume the host gives it one — and re-picking the file
-                // to confirm it is not a step anyone should have to repeat.
-                $encoded = $request->request->getString('gpxData');
-                $decoded = '' !== $encoded ? base64_decode($encoded, true) : false;
-                $gpxXml = \is_string($decoded) && '' !== $decoded ? $decoded : null;
-            }
-
-            if (null === $gpxXml) {
-                $error = 'Choose a .gpx track to import.';
-                $status = Response::HTTP_UNPROCESSABLE_ENTITY;
-            } else {
-                try {
-                    $track = $this->ingest->preview($gpxXml);
-                } catch (InvalidGpxException $invalid) {
-                    $error = $invalid->getMessage();
-                    $status = Response::HTTP_UNPROCESSABLE_ENTITY;
-                    $gpxXml = null;
-                }
-            }
-
-            // A parsed track means the XML above is readable — confirming saves
-            // exactly the bytes that were previewed.
-            if (null !== $track && $request->request->has('confirm')) {
-                $type = $this->chosenType($area, $form['type']);
-                if (!$type instanceof PatrolType) {
-                    $error = 'Choose a patrol type.';
-                    $status = Response::HTTP_UNPROCESSABLE_ENTITY;
-                } else {
-                    $patrol = $this->ingest->ingest(
-                        $gpxXml,
-                        $area,
-                        $type,
-                        PatrolSourceEnum::Gpx,
-                        $this->chosenStation($area, $form['station']),
-                        $this->lead($form['lead']),
-                        $form['team'],
-                        $form['note'],
-                    );
-                    $this->addFlash($request, 'success', \sprintf('Patrol %s imported from the GPX track.', $patrol->getRef()));
-
-                    return new RedirectResponse($this->urlGenerator->generate('patrol_show', [
-                        'uuid' => $area->getUuidString(),
-                        'patrol' => $patrol->getUuid()->toRfc4122(),
-                    ]));
-                }
-            }
-        }
-
-        return new Response(
-            $this->twig->render('@UhifadhiPatrol/import/show.html.twig', [
-                'area' => $area,
-                'types' => $this->offeredTypes($area),
-                'stations' => $this->stations->findByAreaActive($area),
-                'users' => $this->users(),
-                'form' => $form,
-                'track' => $track,
-                'filename' => $filename,
-                'filesize' => $filesize,
-                // Kept for the confirm submit; never echoed as anything but a
-                // hidden value.
-                'gpxData' => null !== $gpxXml ? base64_encode($gpxXml) : null,
-                // The area outline is drawn under the parsed track, so an
-                // imported file can be seen to land inside the area.
-                'map' => $this->plates->track([
-                    'boundary' => $area->getGeom(),
-                    'track' => $track?->toGeoJson(),
-                ]),
-                'gapThresholdMinutes' => $this->gapThresholdMinutes,
-                'error' => $error,
-            ]),
-            $status,
+    ): RedirectResponse {
+        return new RedirectResponse(
+            $this->urlGenerator->generate('patrol_log', ['uuid' => $area->getUuidString()]),
+            Response::HTTP_MOVED_PERMANENTLY,
         );
     }
 
     /**
-     * Log a patrol by hand — no file, no track. The record is stamped
-     * {@see PatrolSourceEnum::Manual} so a hand-entered patrol can never be
-     * mistaken for a recorded one.
+     * Log a patrol — PL·01 the track, PL·02 the details, PL·03 the observations,
+     * one submit.
      */
     #[Route(
         '/areas/{uuid}/modules/patrols/log',
@@ -222,67 +170,213 @@ final class PatrolRecordController
     ): Response {
         $this->denyUnlessRecorder();
 
+        $draft = $this->drafts->reopen(
+            $request->isMethod('POST') ? $request->request->getString('draft') : null,
+            $area,
+            $this->signedInPerson(),
+        );
+
         $form = self::submittedDetails($request);
+        $observations = self::submittedObservations($request);
         $error = null;
         $status = Response::HTTP_OK;
 
         if ($request->isMethod('POST')) {
-            $startedAt = self::parseMoment($form['startedAt']);
-            $endedAt = self::parseMoment($form['endedAt']);
+            $this->denyUnlessTokenValid($request);
 
-            // What the FORM can answer for: a word the deployment does not use,
-            // and a field left blank. Whether the two times make a patrol is the
-            // record's own rule and is settled by the service.
-            $type = $this->chosenType($area, $form['type']);
-            if (!$type instanceof PatrolType) {
-                $error = 'Choose a patrol type.';
-            } elseif (null === $startedAt) {
-                $error = 'A patrol needs the time it started.';
-            }
-
-            // No error means the form's own rules passed, the required start included.
-            if (null === $error) {
-                try {
-                    $patrol = $this->recording->record(
-                        $area,
-                        $type,
-                        $startedAt,
-                        $endedAt,
-                        $this->chosenStation($area, $form['station']),
-                        $this->lead($form['lead']),
-                        $form['team'],
-                        $form['note'],
-                        $form['distanceKm'],
-                    );
-
+            // "+ Add observation" is a submit, not a clone. The page comes back
+            // with one more grid, each addressed by its own ordinal — which is
+            // what the upload target files against — and every file already
+            // received is still on the draft, so nothing is lost by the
+            // round trip. See docs/screens.md for why this beats cloning a
+            // <template>: a cloned upload component would carry its sibling's
+            // target and file a photograph against the wrong observation.
+            if ($request->request->has('addObservation')) {
+                $observations[] = self::blankObservation(\count($observations) + 1);
+            } else {
+                [$patrol, $error, $status] = $this->save($area, $draft, $request, $form, $observations);
+                if (null !== $patrol) {
                     $this->addFlash($request, 'success', \sprintf('Patrol %s logged.', $patrol->getRef()));
 
                     return new RedirectResponse($this->urlGenerator->generate('patrol_show', [
                         'uuid' => $area->getUuidString(),
                         'patrol' => $patrol->getUuid()->toRfc4122(),
                     ]));
-                } catch (InvalidPatrolTimesException) {
-                    $error = 'A patrol cannot end before it started.';
                 }
             }
-
-            $status = Response::HTTP_UNPROCESSABLE_ENTITY;
         }
+
+        if ([] === $observations) {
+            $observations = [self::blankObservation(self::FIRST_OBSERVATION)];
+        }
+
+        $track = $this->heldTrack($draft);
 
         return new Response(
             $this->twig->render('@UhifadhiPatrol/log/show.html.twig', [
                 'area' => $area,
-                // A sketched route is not recorded geometry, so the plate has
-                // the area and nothing else on it.
-                'map' => $this->plates->track(['boundary' => $area->getGeom(), 'track' => null]),
+                'draft' => $draft->getUuid()->toRfc4122(),
+                'token' => $this->csrf->getToken(self::CSRF_TOKEN_ID)->getValue(),
+                'trackKind' => PatrolTrackTarget::KIND,
+                'photoKind' => PatrolObservationPhotoTarget::KIND,
+                'track' => $track,
                 'types' => $this->offeredTypes($area),
                 'stations' => $this->stations->findByAreaActive($area),
+                'kinds' => $this->kinds->forArea($area),
                 'users' => $this->users(),
                 'form' => $form,
+                'observations' => $this->withHeldEvidence($draft, $observations),
+                // A sketched route is offered only where step 1 was skipped — a
+                // sketch beside a real track would be two answers to one
+                // question — so the plate carries the area and nothing else.
+                'map' => null === $track ? $this->plates->track(['boundary' => $area->getGeom(), 'track' => null]) : null,
                 'error' => $error,
             ]),
             $status,
         );
+    }
+
+    /**
+     * The form's own rules, then the record's.
+     *
+     * @param array{type: string, station: ?string, lead: ?int, team: ?string, note: ?string, startedAt: ?string, endedAt: ?string, distanceKm: ?float} $form
+     * @param list<array{ordinal: int, kind: string, subcategory: string, time: ?string, note: ?string, photoKeys: list<string>}>                       $observations
+     *
+     * @return array{0: ?Patrol, 1: ?string, 2: int} the patrol, or the sentence to draw and the
+     *                                               status to draw it with
+     */
+    private function save(
+        AreaOfInterest $area,
+        PatrolDraft $draft,
+        Request $request,
+        array $form,
+        array $observations,
+    ): array {
+        // What the FORM can answer for: a word the deployment does not use.
+        // Whether the two times make a patrol is the record's own rule and is
+        // settled by the service.
+        $type = $this->chosenType($area, $form['type']);
+        if (!$type instanceof PatrolType) {
+            return [null, 'Choose a patrol type.', Response::HTTP_UNPROCESSABLE_ENTITY];
+        }
+
+        $trackKey = self::trimmedOrNull($request->request->getString('trackKey'));
+
+        try {
+            $patrol = $this->recording->log(
+                $area,
+                $draft,
+                new LoggedPatrol(
+                    type: $type,
+                    startedAt: self::parseMoment($form['startedAt']),
+                    endedAt: self::parseMoment($form['endedAt']),
+                    station: $this->chosenStation($area, $form['station']),
+                    lead: $this->lead($form['lead']),
+                    team: $form['team'],
+                    note: $form['note'],
+                    distanceKm: $form['distanceKm'],
+                    trackKey: $trackKey,
+                    observations: $this->resolveObservations($area, $observations),
+                ),
+                $this->signedInPerson(),
+            );
+        } catch (MissingPatrolStartException) {
+            return [null, 'A patrol needs the time it started.', Response::HTTP_UNPROCESSABLE_ENTITY];
+        } catch (InvalidPatrolTimesException) {
+            return [null, 'A patrol cannot end before it started.', Response::HTTP_UNPROCESSABLE_ENTITY];
+        } catch (InvalidGpxException $invalid) {
+            return [null, $invalid->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY];
+        }
+
+        return [$patrol, null, Response::HTTP_OK];
+    }
+
+    /**
+     * PL·03's two chip rows resolved to the ONE wire code an observation stores:
+     * the sub-category's where the person chose one under a kind this area
+     * offers, and the kind's own where the kind has no sub-categories or none
+     * was chosen.
+     *
+     * A code the area does not offer records nothing at all — the chips only
+     * ever submit a live code, so anything else is a stale form rather than
+     * somebody's intent, and the same reading the station chips already take.
+     *
+     * @param list<array{ordinal: int, kind: string, subcategory: string, time: ?string, note: ?string, photoKeys: list<string>}> $submitted
+     *
+     * @return list<LoggedObservation>
+     */
+    private function resolveObservations(AreaOfInterest $area, array $submitted): array
+    {
+        $offered = $this->kinds->forArea($area);
+
+        $resolved = [];
+        foreach ($submitted as $row) {
+            $kind = null;
+            foreach ($offered as $candidate) {
+                if ($candidate->isActive() && $candidate->getCode() === $row['kind']) {
+                    $kind = $candidate;
+                    break;
+                }
+            }
+
+            $code = $kind instanceof TaxonomyKind ? $kind->getCode() : '';
+            if ($kind instanceof TaxonomyKind) {
+                foreach ($kind->getSubcategories() as $sub) {
+                    if ($sub->isActive() && $sub->getCode() === $row['subcategory']) {
+                        $code = $sub->getCode();
+                        break;
+                    }
+                }
+            }
+
+            $resolved[] = new LoggedObservation(
+                ordinal: $row['ordinal'],
+                category: $code,
+                at: $row['time'],
+                note: $row['note'],
+                photoKeys: $row['photoKeys'],
+            );
+        }
+
+        return $resolved;
+    }
+
+    /**
+     * The grids, each with the files the draft is already holding for it — so a
+     * page that comes back after "+ Add observation" redraws every tile that was
+     * already there.
+     *
+     * @param list<array{ordinal: int, kind: string, subcategory: string, time: ?string, note: ?string, photoKeys: list<string>}> $observations
+     *
+     * @return list<array{ordinal: int, kind: string, subcategory: string, time: ?string, note: ?string, photoKeys: list<string>, evidence: list<PatrolDraftFile>}>
+     */
+    private function withHeldEvidence(PatrolDraft $draft, array $observations): array
+    {
+        $drawn = [];
+        foreach ($observations as $row) {
+            $slot = PatrolDraftFile::observationSlot($row['ordinal']);
+            $evidence = [];
+            foreach ($draft->getFiles() as $file) {
+                if ($file->getSlot() === $slot) {
+                    $evidence[] = $file;
+                }
+            }
+            $drawn[] = [...$row, 'evidence' => $evidence];
+        }
+
+        return $drawn;
+    }
+
+    /** The track this draft is holding, if any — PL·01's "Stored" state. */
+    private function heldTrack(PatrolDraft $draft): ?PatrolDraftFile
+    {
+        foreach ($draft->getFiles() as $file) {
+            if (PatrolDraftFile::TRACK_SLOT === $file->getSlot()) {
+                return $file;
+            }
+        }
+
+        return null;
     }
 
     /** Recording patrols is the privilege; nothing here runs without it. */
@@ -294,8 +388,21 @@ final class PatrolRecordController
     }
 
     /**
+     * One submit, one token. The uploads carry the STORAGE's token instead —
+     * one token for that whole surface, minted by the component — because they
+     * are that bundle's endpoint and not this screen's.
+     */
+    private function denyUnlessTokenValid(Request $request): void
+    {
+        if (!$this->csrf->isTokenValid(new CsrfToken(self::CSRF_TOKEN_ID, $request->request->getString('_token')))) {
+            throw new AccessDeniedException('That submission did not carry a valid token.');
+        }
+    }
+
+    /**
      * What the form contributed — everything a track cannot know. Read once, so
-     * a re-rendered page (preview, or an error) shows back what was typed.
+     * a re-rendered page (an added observation, or an error) shows back what was
+     * typed.
      *
      * @return array{type: string, station: ?string, lead: ?int, team: ?string, note: ?string, startedAt: ?string, endedAt: ?string, distanceKm: ?float}
      */
@@ -313,6 +420,61 @@ final class PatrolRecordController
             'startedAt' => self::trimmedOrNull($request->request->getString('startedAt')),
             'endedAt' => self::trimmedOrNull($request->request->getString('endedAt')),
             'distanceKm' => is_numeric($distance) ? (float) $distance : null,
+        ];
+    }
+
+    /**
+     * PL·03's records as the form gave them, keyed by the ordinal that also
+     * addresses their evidence grid.
+     *
+     * @return list<array{ordinal: int, kind: string, subcategory: string, time: ?string, note: ?string, photoKeys: list<string>}>
+     */
+    private static function submittedObservations(Request $request): array
+    {
+        /** @var array<mixed> $submitted */
+        $submitted = $request->request->all('observations');
+
+        $rows = [];
+        foreach ($submitted as $ordinal => $row) {
+            if (\count($rows) >= self::MAX_OBSERVATIONS) {
+                break;
+            }
+            if (!\is_array($row) || !is_numeric($ordinal) || (int) $ordinal < 1) {
+                continue;
+            }
+
+            $keys = [];
+            /** @var array<mixed> $posted */
+            $posted = \is_array($row['photoKeys'] ?? null) ? $row['photoKeys'] : [];
+            foreach ($posted as $key) {
+                if (\is_string($key) && '' !== $key) {
+                    $keys[] = $key;
+                }
+            }
+
+            $rows[] = [
+                'ordinal' => (int) $ordinal,
+                'kind' => \is_string($row['kind'] ?? null) ? $row['kind'] : '',
+                'subcategory' => \is_string($row['subcategory'] ?? null) ? $row['subcategory'] : '',
+                'time' => self::trimmedOrNull(\is_string($row['time'] ?? null) ? $row['time'] : ''),
+                'note' => self::trimmedOrNull(\is_string($row['note'] ?? null) ? $row['note'] : ''),
+                'photoKeys' => $keys,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /** @return array{ordinal: int, kind: string, subcategory: string, time: null, note: null, photoKeys: list<string>} */
+    private static function blankObservation(int $ordinal): array
+    {
+        return [
+            'ordinal' => $ordinal,
+            'kind' => '',
+            'subcategory' => '',
+            'time' => null,
+            'note' => null,
+            'photoKeys' => [],
         ];
     }
 
@@ -340,6 +502,18 @@ final class PatrolRecordController
     private function lead(?int $id): ?UserInterface
     {
         return null !== $id ? $this->entityManager->getRepository(UserInterface::class)->find($id) : null;
+    }
+
+    /**
+     * The signed-in account, narrowed to the platform's person. Null where the
+     * installation's account class is not one — a draft nobody owns takes no
+     * files, which is the safe direction.
+     */
+    private function signedInPerson(): ?UserInterface
+    {
+        $user = $this->tokenStorage->getToken()?->getUser();
+
+        return $user instanceof UserInterface ? $user : null;
     }
 
     /**

@@ -3,6 +3,7 @@
 ## Contents
 
 - [The routes](#the-routes)
+- [The one entry flow](#the-one-entry-flow)
 - [The dashboard's filter](#the-dashboards-filter)
 - [The module frame](#the-module-frame)
 - [Observation kinds](#observation-kinds)
@@ -20,8 +21,7 @@
 | Observation detail | `patrol_observation_show` |
 | Export a recorded track as GPX | `patrol_export_gpx` |
 | Export the filtered log (`csv`) or its tracks (`gpx`) | `patrol_export` |
-| Import GPX | `patrol_import` |
-| Log patrol (manual) | `patrol_log` |
+| Log a patrol — the one entry flow | `patrol_log` |
 | Observation kinds (configure section) | `patrol_kinds` |
 | Save the module's settings | `patrol_settings_save` |
 | Add / rename / retire a patrol type | `patrol_settings_type_add`, `patrol_settings_type_act` |
@@ -29,10 +29,89 @@
 
 `patrol_taxonomy` (`…/patrols/taxonomy`) still answers, permanently redirecting to
 `patrol_kinds` (`…/patrols/kinds`) — a saved link does not become a 404 over a
-rename.
+rename. `patrol_import` (`…/patrols/import`) does the same, into `patrol_log`:
+importing a GPX is step 1 of logging a patrol, not a screen of its own.
 
 The dashboard and the widget library are compositions on the shell's widget
 framework — see [what-it-stands-on.md](what-it-stands-on.md).
+
+## The one entry flow
+
+**Every patrol this module holds was written by one page.** There used to be two
+— import a GPX, or log a patrol by hand — and they were the same screen with one
+card missing. A patrol somebody walked with a handset and a patrol somebody
+walked with a flat battery are the same record; the only difference is whether
+step 1 was used. `patrol_log` at `/areas/{uuid}/modules/patrols/log` is that
+page: `GET` renders it, `POST` saves it, under the CSRF token `patrol_log`.
+
+| Step | What it is |
+|---|---|
+| 1 · The track | The platform's upload component in its **dropzone** presentation, target `patrol-track:{draft}`. May be skipped. |
+| 2 · Patrol details | Type and station as chip rows over the AREA's own records, lead, team, started / ended, distance. With a track the span, the route and the distance are the file's and are shown read-only; without one the distance is typed and the (deferred) route sketch is offered. |
+| 3 · Observations | Repeatable records. Kind and sub-category chips from the area's own observation kinds, a time, a position, a note, and an evidence grid — the same upload component in its **tile** presentation, target `observation:{draft}-{n}`. |
+
+### The draft, and why it is a row
+
+Files arrive through the upload component on the way IN, which means they arrive
+**before the patrol exists**. The page therefore opens a `patrol_draft` — a uuid
+v7 minted server-side, carried in a hidden field — and the two upload targets
+file against it.
+
+It is a ROW rather than a keyed prefix with nothing behind it, because a bare id
+answers neither question the seam has to answer:
+
+- **Who may.** The permission is `patrols.record` **on an area**, and an id with
+  no row behind it names no area. The target would have to trust the browser for
+  the one fact the decision rests on.
+- **What is abandoned.** Most drafts are never saved — a page opened and closed
+  is a normal event — and the storage publishes no listing to sweep. With a row
+  there is something to date, so `patrol:purge-discarded` collects abandoned
+  drafts on the same `discard_retention_days` window it collects discarded
+  patrols on.
+
+A draft also belongs to **one person**: two recorders working the same area at
+once cannot drop files into each other's form.
+
+### Saving re-homes every byte
+
+The storage has no rename. On save each key the draft holds is **read back,
+stored again** under the patrol's own prefix (`patrol/{uuid}/…`, the prefix the
+voter claims and the Files hub lists on) and only then **deleted** from the
+draft's — one file per transaction. An interrupted save leaves at most one
+duplicate under a draft the sweep will collect, which is recoverable; the other
+orderings lose bytes or leave a row pointing at a key that is not there.
+
+The GPX itself is kept as the patrol's **source file** (`patrol.track_file_key`)
+rather than discarded after parsing: it is the one artefact that can be handed to
+somebody who disputes a coverage figure.
+
+### "+ Add observation" is a submit, not a clone
+
+The repeater is **server-side**. The button posts, and the page comes back with
+one more grid; every file already received is on the draft, so the round trip
+loses nothing a person typed except what the form carries back anyway.
+
+The alternative — a `<template>` cloned by a Stimulus controller — was rejected
+because the thing being cloned is the upload component: a clone carries its
+sibling's `data-upl-target`, and a photograph would be filed against the wrong
+observation. Rewriting that attribute in JavaScript is exactly the bespoke upload
+code the storage module exists to abolish.
+
+### What is partial, and why
+
+- **The sub-category row is not narrowed to the chosen kind.** Every live
+  sub-category is offered, each carrying its kind on `data-patrol-under`. A
+  sub-category identifies its kind by itself, so the pair a person submits is
+  always coherent; narrowing the row as the kind changes needs either a reload
+  per chip or JavaScript of this module's own.
+- **The route sketch is deferred**, as it was before — but it is now drawn only
+  where the design offers it, which is where step 1 was skipped.
+- **"Move on the map" is deferred with it**: with a track the position is
+  prefilled from the fix nearest the time given, and without one the observation
+  is recorded with no position rather than dropped on the area's centre.
+- **The design's `PL·01` card indices do not ship.** They are the design
+  workspace's referencing system; see `NoWorkshopLabelsTest`. The card tab says
+  `step 1` instead.
 
 ## The module frame
 

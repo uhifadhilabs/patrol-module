@@ -379,7 +379,7 @@ final class PatrolDetailController
 
     /**
      * Whether THIS caller may append a correction — the module's one recording
-     * permission, the same one that gates the hold and the recording screens
+     * permission, the same one that gates the hold and the entry flow
      * ("anyone who may edit the patrol", PL·09).
      *
      * False wherever the host runs no security: there is nobody to sign an

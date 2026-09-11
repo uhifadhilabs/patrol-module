@@ -98,6 +98,10 @@ final class GpxParser
             endedAt: [] !== $recorded ? $recorded[\count($recorded) - 1] : null,
             distanceKm: $distanceKm,
             gapCount: $gapCount,
+            // Kept beside the points, not only summarised into a span: an
+            // observation asks the track where the patrol was at a given time,
+            // and a start and an end cannot answer that.
+            times: $times,
         );
     }
 }

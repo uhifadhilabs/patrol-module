@@ -17,6 +17,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\PatrolType;
 use Uhifadhi\Patrol\Entity\Station;
+use Uhifadhi\Patrol\Entity\TaxonomyKind;
+use Uhifadhi\Patrol\Entity\TaxonomySubcategory;
 
 /**
  * THE TWO WORDS EVERY PATROL FIXTURE NEEDS — a type and, sometimes, a station.
@@ -82,6 +84,36 @@ final class Vocabulary
         self::remember($area, $station);
 
         return $station;
+    }
+
+    /**
+     * An observation kind with its sub-categories — the words PL·03's two chip
+     * rows are drawn from.
+     *
+     * Codes are derived from the labels the way the taxonomy admin derives them,
+     * so a fixture and the screen agree on what a chip submits.
+     *
+     * @param list<string> $subcategories
+     */
+    public static function kind(
+        ?EntityManagerInterface $em,
+        AreaOfInterest $area,
+        string $label,
+        array $subcategories = [],
+    ): TaxonomyKind {
+        $kind = new TaxonomyKind($area, self::codeOf($label), $label);
+        $em?->persist($kind);
+
+        foreach ($subcategories as $sub) {
+            $em?->persist(new TaxonomySubcategory($kind, self::codeOf($sub), $sub));
+        }
+
+        return $kind;
+    }
+
+    private static function codeOf(string $label): string
+    {
+        return trim(strtolower((string) preg_replace('/[^A-Za-z0-9]+/', '-', $label)), '-');
     }
 
     /** @return array{types: array<string, PatrolType>, stations: array<string, Station>} */

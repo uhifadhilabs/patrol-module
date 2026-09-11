@@ -14,7 +14,10 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Security;
 
 use Symfony\Component\Security\Core\User\UserInterface;
+use Uhifadhi\Contracts\Entity\UserInterface as PersonInterface;
 use Uhifadhi\Patrol\Repository\ObservationPhotoRepository;
+use Uhifadhi\Patrol\Repository\PatrolDraftFileRepository;
+use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
 use Uhifadhi\Storage\Security\EvidenceAccessVoterInterface;
 
@@ -44,6 +47,8 @@ final class PatrolEvidenceVoter implements EvidenceAccessVoterInterface
 {
     public function __construct(
         private readonly ObservationPhotoRepository $photos,
+        private readonly PatrolDraftFileRepository $draftFiles,
+        private readonly PatrolRepository $patrols,
     ) {
     }
 
@@ -64,6 +69,29 @@ final class PatrolEvidenceVoter implements EvidenceAccessVoterInterface
 
         // Decided on the ORIGINAL, so a preview is never readable by someone who
         // may not read the photograph it was made from.
-        return null !== $this->photos->findOneByStoragePath(PhotoEvidenceKey::original($key));
+        $original = PhotoEvidenceKey::original($key);
+
+        /*
+         * A FILE ON A PATROL BEING WRITTEN IS ITS OWNER'S ALONE, and that is a
+         * STRICTER rule than the one below rather than an inconsistent one. A
+         * saved patrol is a record of the authority, readable by anybody who may
+         * open the page it appears on; a draft is one person's half-filled form
+         * and appears on nobody's page but theirs. The evidence tile the
+         * component draws while that form is open is the only reader there is.
+         */
+        if (PhotoEvidenceKey::isDraft($original)) {
+            $file = $this->draftFiles->findOneByStorageKey($original);
+            $owner = $file?->getDraft()->getOwner();
+
+            return $owner instanceof PersonInterface
+                && $user instanceof PersonInterface
+                && null !== $owner->getId()
+                && $owner->getId() === $user->getId();
+        }
+
+        // The source GPX a patrol was recorded from sits under the same prefix
+        // as its photographs and is read on the same rule.
+        return null !== $this->photos->findOneByStoragePath($original)
+            || null !== $this->patrols->findOneBy(['trackFileKey' => $original]);
     }
 }

@@ -244,6 +244,18 @@ class Patrol
     #[ORM\Column(options: ['default' => 0])]
     private int $gapCount = 0;
 
+    /**
+     * THE FILE THE ROUTE WAS READ OUT OF, as an evidence key — the one artefact
+     * that can be handed to somebody who disputes a coverage figure.
+     *
+     * Nullable, and null is the ordinary state: a patrol written up by hand
+     * never had a file, and every patrol recorded before the one entry flow
+     * existed had its track parsed and its bytes thrown away. A column that is
+     * only sometimes filled says exactly that.
+     */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $trackFileKey = null;
+
     /** @var Collection<int, Observation> */
     #[ORM\OneToMany(targetEntity: Observation::class, mappedBy: 'patrol', cascade: ['persist'], orphanRemoval: true)]
     #[ORM\OrderBy(['loggedAt' => 'ASC', 'id' => 'ASC'])]
@@ -507,6 +519,18 @@ class Patrol
     public function getGapCount(): int
     {
         return $this->gapCount;
+    }
+
+    public function getTrackFileKey(): ?string
+    {
+        return $this->trackFileKey;
+    }
+
+    public function setTrackFileKey(?string $trackFileKey): static
+    {
+        $this->trackFileKey = $trackFileKey;
+
+        return $this;
     }
 
     public function setGapCount(int $gapCount): static

@@ -444,19 +444,19 @@ final class DashboardPageTest extends WebTestCase
     /**
      * A DOOR THAT IS LOCKED IS NOT DRAWN.
      *
-     * "Import GPX" and "Log patrol" open the two screens that CREATE patrols,
-     * and both enforce `patrols.record` in code. Whether the SCREENS exist is a
-     * question about the installation (they need SecurityBundle); whether THIS
-     * PERSON may open one is a question about the viewer, and the dashboard was
-     * only ever asking the first. Somebody without the permission was handed two
-     * links that answered 403 — the fleet's own rule is that a control the viewer
-     * may not have is ABSENT rather than greyed out, and a link that fails when
-     * you follow it is worse than either.
+     * "Log patrol" opens the ONE screen that creates patrols, and it enforces
+     * `patrols.record` in code. Whether the SCREEN exists is a question about the
+     * installation (it needs SecurityBundle); whether THIS PERSON may open it is
+     * a question about the viewer, and the dashboard was only ever asking the
+     * first. Somebody without the permission was handed a link that answered
+     * 403 — the fleet's own rule is that a control the viewer may not have is
+     * ABSENT rather than greyed out, and a link that fails when you follow it is
+     * worse than either.
      *
      * Found in a browser, in a real installation, on a page every test called
      * successful.
      */
-    public function testSomebodyWhoMayNotRecordIsOfferedNeitherRecordingScreen(): void
+    public function testSomebodyWhoMayNotRecordIsNotOfferedTheEntryFlow(): void
     {
         $bystander = new User()->setPassword('x')->setEmail('bystander@example.test')
             ->setFirstName('Ben')->setLastName('Bystander');
@@ -471,13 +471,13 @@ final class DashboardPageTest extends WebTestCase
         self::assertStringNotContainsString('Import GPX', $actions);
         self::assertStringNotContainsString('Log patrol', $actions);
 
-        // And the routes agree, which is the half that already worked: the
+        // And the route agrees, which is the half that already worked: the
         // absence above is the page telling the same truth the screen enforces.
-        $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols/import');
+        $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols/log');
         self::assertResponseStatusCodeSame(403);
     }
 
-    public function testSomebodyWhoMayRecordIsOfferedBoth(): void
+    public function testSomebodyWhoMayRecordIsOfferedTheEntryFlow(): void
     {
         $recorder = new User()->setPassword('x')->setEmail(FixedRecordVoter::RECORDER_EMAIL)
             ->setFirstName('Rita')->setLastName('Recorder');
@@ -489,7 +489,9 @@ final class DashboardPageTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $actions = $crawler->filter('.pgact')->html();
-        self::assertStringContainsString('Import GPX', $actions);
+        // ONE entry flow, so one action: importing a GPX is step 1 of logging a
+        // patrol now, not a door of its own.
+        self::assertStringNotContainsString('Import GPX', $actions);
         self::assertStringContainsString('Log patrol', $actions);
         // Recording is not managing: the recorder may log a patrol but not name
         // the words everybody else must use, so the taxonomy door is not drawn.
@@ -503,7 +505,7 @@ final class DashboardPageTest extends WebTestCase
      * route of which enforces `patrols.manage`. The whole screen is built and
      * routed, but until this it had no entry point in the product — a
      * fully-implemented, ruled screen a user could not reach. It is offered on
-     * exactly the same terms as the recording screens: the route must exist (it
+     * exactly the same terms as the entry flow: the route must exist (it
      * needs SecurityBundle) AND the viewer must hold the permission.
      */
     /**

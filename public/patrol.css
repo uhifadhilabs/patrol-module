@@ -323,41 +323,82 @@
 /* ---- the verbatim note (PL·03 on the observation detail) ---------------- */
 .patrol-quote { font-size: 13px; line-height: 1.65; margin-top: 4px; color: rgb(var(--c-tx)); }
 
-/* ---- the recording screens (import GPX / log patrol) -------------------- */
-/* The design's left-hand stack: two cards in the wide column of a .g32 grid. */
+/* ---- the one entry flow (log a patrol) --------------------------------- */
+/* The design's left-hand stack: the cards in the wide column of a .g32 grid. */
 .patrol-formcol { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .patrol-formcol > .c { margin-bottom: 0; }
+/* The page is ONE form spanning every card, so it must introduce no box. */
+.patrol-log { display: block; }
 
-/* PL·01 on the import screen — the drop frame. It is a <label> around a real
-   file input, so the whole frame is clickable with no JavaScript at all. */
-.patrol-dropz {
-    border: 2px dashed var(--c-ln2);
+/* THE STEP RAIL. The number sits on the card's own tab rail so the three read as
+   a sequence rather than as three unrelated cards. There is no drop frame here
+   and no file input: PL·01's box is the platform's upload component, whose
+   .upl-* vocabulary is the shell's and is not restated anywhere below. */
+.patrol-pstep { display: flex; align-items: center; gap: 11px; margin: 0 0 12px; }
+.patrol-pstep .n {
+    width: 24px;
+    height: 24px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1.5px solid color-mix(in srgb, rgb(var(--c-acc)) 55%, transparent);
+    color: rgb(var(--c-acc));
+    font: 700 11px var(--font-mono);
+}
+.patrol-pstep .t { font-size: 15px; font-weight: 700; color: rgb(var(--c-tx)); }
+.patrol-pstep .sp { flex: 1; }
+.patrol-opt {
+    font: 600 9.5px var(--font-mono);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: rgb(var(--c-dim));
+    border: 1px dashed var(--c-ln2);
+    border-radius: 99px;
+    padding: 4px 10px 5px;
+    line-height: 1;
+}
+/* ONE OBSERVATION BEING RECORDED, inside step 3. The same box as a patrol card's
+   observation row, plus the evidence grid the storage component fills. */
+.patrol-pobs {
+    border: 1px solid var(--c-ln);
     border-radius: 12px;
-    padding: 28px 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
+    padding: 13px 15px 12px;
+    background: color-mix(in srgb, rgb(var(--c-fog)) 3%, transparent);
+    margin-bottom: 10px;
+}
+.patrol-pobs .hd { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
+.patrol-pobs .hd .n {
+    font: 700 10px var(--font-mono);
+    color: rgb(var(--c-acc));
+    border: 1.5px dashed rgb(var(--c-acc));
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    flex: none;
+}
+.patrol-pobs .hd b { font-size: 13px; }
+.patrol-pobs .hd .sp { flex: 1; }
+.patrol-pobs .frow { grid-template-columns: 96px 1fr; }
+.patrol-evh {
+    font: 600 9.5px var(--font-mono);
+    letter-spacing: .12em;
+    text-transform: uppercase;
     color: rgb(var(--c-fog));
-    text-align: center;
-    cursor: pointer;
+    margin: 12px 0 7px;
 }
-.patrol-dropz:hover { border-color: rgb(var(--c-acc)); }
-.patrol-dropz svg { width: 26px; height: 26px; }
-/* The native control stays in the flow (and keyboard reachable) but the frame
-   is the visible affordance the design draws. */
-.patrol-file { font: 500 11px var(--font-mono); color: rgb(var(--c-fog)); max-width: 100%; }
-.patrol-filechip {
-    display: inline-flex;
-    gap: 8px;
-    align-items: center;
-    background: rgb(var(--c-raised));
-    border: 1px solid var(--c-ln2);
-    border-radius: 8px;
-    padding: 6px 11px;
-    font: 600 11px var(--font-mono);
-    color: rgb(var(--c-tx));
-}
+/* Which kind a sub-category chip belongs under. Read by nothing today: the row
+   offers every live sub-category, because narrowing it to the chosen kind
+   without a reload would be this module's own JavaScript. */
+.patrol-chipset [data-patrol-under] { order: 0; }
+
+/* The design's inline pairs: a field beside the chip that explains it. */
+.patrol-inline { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.patrol-snum { max-width: 96px; }
+/* The flexible spacer that pushes a stored row's remove to its own edge. */
+.patrol-gap { flex: 1; }
 
 /* ---- form rows shared by both recording screens ------------------------ */
 .patrol-frow { display: grid; grid-template-columns: 130px 1fr; gap: 12px; align-items: center; padding: 7px 0; }

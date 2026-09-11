@@ -28,11 +28,12 @@
        here, because on a log page "export" means the log; the tracks bundle is
        the Export & reporting widget's second row. #}
     <a class="tgl patrol-act" href="{{ path('patrol_export', {uuid: area.uuid, _format: 'csv'}|merge(filter.toQuery)) }}">{{ ux_icon('patrol:download') }}Export</a>
-    {# The two recording screens exist only where the host runs SecurityBundle
-       (they enforce patrols.record — see UhifadhiPatrolBundle), so the
-       links are rendered only when their routes do. #}
+    {# ONE ENTRY FLOW, SO ONE ACTION. Dropping a GPX is step 1 of logging a
+       patrol now, not a screen of its own, and `patrol_import` is a permanent
+       redirect into this one. The screen exists only where the host runs
+       SecurityBundle (it enforces patrols.record — see UhifadhiPatrolBundle), so
+       the link is rendered only when its route is. #}
     {% if recordScreens %}
-        <a class="tgl patrol-act" href="{{ path('patrol_import', {uuid: area.uuid}) }}">{{ ux_icon('patrol:upload') }}Import GPX</a>
         <a class="cta" href="{{ path('patrol_log', {uuid: area.uuid}) }}">{{ ux_icon('patrol:pen-line') }}Log patrol</a>
     {% endif %}
 {% endblock %}

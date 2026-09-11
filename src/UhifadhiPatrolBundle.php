@@ -58,6 +58,7 @@ use Uhifadhi\Patrol\Repository\FlightRepository;
 use Uhifadhi\Patrol\Repository\LaunchPointRepository;
 use Uhifadhi\Patrol\Repository\ObservationPhotoRepository;
 use Uhifadhi\Patrol\Repository\ObservationRepository;
+use Uhifadhi\Patrol\Repository\PatrolDraftFileRepository;
 use Uhifadhi\Patrol\Repository\PatrolEventRepository;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
@@ -79,8 +80,11 @@ use Uhifadhi\Patrol\Service\Api\VocabularySyncService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
 use Uhifadhi\Patrol\Service\PhotoThumbnailBackfillService;
 use Uhifadhi\Patrol\Storage\PatrolFileSource;
+use Uhifadhi\Patrol\Upload\PatrolObservationPhotoTarget;
+use Uhifadhi\Patrol\Upload\PatrolTrackTarget;
 use Uhifadhi\Patrol\Widget\PatrolWidgets;
 use Uhifadhi\Storage\Registry\FileSourceInterface;
+use Uhifadhi\Storage\Upload\UploadTargetInterface;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
@@ -260,13 +264,15 @@ final class UhifadhiPatrolBundle extends AbstractBundle
         );
 
         /*
-         * The two RECORDING screens (import GPX, log patrol) are registered ONLY
-         * inside this guard. They are the only screens that create patrols, so
-         * they must never exist unprotected: without symfony/security there is no
-         * authorization checker to enforce "patrols.record", and a host in that
-         * state gets no recording controller at all (the routes fail loudly)
-         * rather than an open write endpoint. See PatrolRecordController for why
-         * the check is in code and not an #[IsGranted] attribute.
+         * THE ONE ENTRY FLOW is registered ONLY inside this guard. It is the only
+         * screen that creates patrols, so it must never exist unprotected:
+         * without symfony/security there is no authorization checker to enforce
+         * "patrols.record", and a host in that state gets no recording controller
+         * at all (the routes fail loudly) rather than an open write endpoint. The
+         * two upload targets sit under the same guard and for the same reason: a
+         * target registered where nothing can refuse would be a door with no
+         * lock. See PatrolRecordController for why the check is in code and not
+         * an #[IsGranted] attribute.
          *
          * The guard asks whether SecurityBundle is actually in the kernel, read
          * from the kernel.bundles parameter. Two other checks look right and are
@@ -344,7 +350,11 @@ final class UhifadhiPatrolBundle extends AbstractBundle
             ]);
 
         $services->set('patrol.evidence_voter', PatrolEvidenceVoter::class)
-            ->args([service(ObservationPhotoRepository::class)])
+            ->args([
+                service(ObservationPhotoRepository::class),
+                service(PatrolDraftFileRepository::class),
+                service(PatrolRepository::class),
+            ])
             ->tag('uhifadhi.evidence_access_voter');
 
         /*
@@ -365,15 +375,15 @@ final class UhifadhiPatrolBundle extends AbstractBundle
             ->args([service(ObservationPhotoRepository::class), service('router')])
             ->tag(FileSourceInterface::TAG);
 
-        // The dashboard offers "Import GPX" / "Log patrol" only where those
-        // routes exist, so a host without security shows no link into nowhere.
+        // The dashboard offers "Log patrol" only where that route exists, so a
+        // host without security shows no link into nowhere.
         $builder->setParameter('patrol.record_screens', $hasSecurity);
         // The widget library edits ONE PERSON's layout, so it needs a signed-in
         // user for the same reason and lives under the same guard; a host without
         // security simply renders the design's default layout for everyone.
         $builder->setParameter('patrol.widget_screens', $hasSecurity);
         // The observation-taxonomy admin enforces patrols.manage on every route,
-        // so like the recording screens it exists only where SecurityBundle can;
+        // so like the entry flow it exists only where SecurityBundle can;
         // the dashboard links it only where that route is, and only for a viewer
         // who holds the permission (PatrolController::mayManage()).
         $builder->setParameter('patrol.manage_screens', $hasSecurity);
@@ -429,18 +439,56 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service('doctrine.orm.entity_manager'),
                     service(PatrolTypeRepository::class),
                     service(StationRepository::class),
+                    service(TaxonomyKindRepository::class),
                     service('patrol.vocabulary'),
                     service('patrol.map'),
-                    service('patrol.track_ingest'),
+                    service('patrol.drafts'),
                     service('patrol.recording'),
                     service('security.authorization_checker'),
-                    param('patrol.gap_threshold_minutes'),
+                    service('security.token_storage'),
+                    service('security.csrf.token_manager'),
                 ])
                 ->public();
             $services->alias(PatrolRecordController::class, 'patrol.controller.record')->public();
 
+            /*
+             * THE TWO DOORS A FILE COMES THROUGH ON THE ENTRY FLOW — this
+             * module's half of the platform's one upload component.
+             *
+             * Tagged BY HAND with the interface's own constant, because a
+             * reusable bundle is not autoconfigured
+             * (https://symfony.com/doc/current/bundles/best_practices.html) and
+             * attributes are read off a definition's own class, never inherited
+             * from an implemented interface. A kind nobody claims is refused, so
+             * a missing tag here is not a warning — it is a dropzone that draws
+             * nothing.
+             *
+             * INSIDE THE SECURITY GUARD, like the screen they serve. Both ask
+             * "patrols.record" on an area, and a target registered where there
+             * is no authorization checker would be a target that cannot refuse.
+             * Where SecurityBundle is absent the storage simply finds no module
+             * claiming these kinds, which is the same honest outcome as the
+             * route not existing.
+             */
+            $services->set('patrol.upload.track', PatrolTrackTarget::class)
+                ->args([
+                    service('patrol.drafts'),
+                    service('security.authorization_checker'),
+                    service('patrol.track_ingest'),
+                    service('storage.evidence_constraints'),
+                ])
+                ->tag(UploadTargetInterface::TAG);
+
+            $services->set('patrol.upload.observation_photo', PatrolObservationPhotoTarget::class)
+                ->args([
+                    service('patrol.drafts'),
+                    service('security.authorization_checker'),
+                    service('storage.evidence_constraints'),
+                ])
+                ->tag(UploadTargetInterface::TAG);
+
             // Holding a discarded patrol for review — the detail screen's one
-            // write. Under this guard for the same reason the recording screens
+            // write. Under this guard for the same reason the entry flow
             // are: it changes a field record, so it must never exist where there
             // is no authorization checker to enforce "patrols.record".
             $services->set('patrol.controller.hold', PatrolHoldController::class)
@@ -472,7 +520,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
 
             /*
              * THE AREA-SCOPED OBSERVATION-TAXONOMY ADMIN. A writing screen: every
-             * route on it rides on "patrols.manage", so like the recording screens
+             * route on it rides on "patrols.manage", so like the entry flow
              * it exists only where SecurityBundle can enforce that. Its logic
              * (patrol.taxonomy_admin) is unconditional; only this door is guarded.
              */
@@ -515,7 +563,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
          * The FIELD-SYNC API (API-CONTRACT.md) — the mobile app's endpoints.
          *
          * Registered only where the host actually runs api-platform AND
-         * security, and for the same reason the recording screens are: these
+         * security, and for the same reason the entry flow is: these
          * routes CREATE patrols, so they must never exist unprotected. Without
          * security there is no authorization checker to enforce
          * "patrols.record"; without api-platform there is no /api to attach to.
@@ -634,6 +682,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 service('doctrine.orm.entity_manager'),
                 service(PatrolRepository::class),
                 service('storage.evidence_storage'),
+                service('patrol.drafts'),
                 param('patrol.discard_retention_days'),
             ])
             ->tag('console.command');

@@ -22,6 +22,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Service\PatrolDraftService;
 use Uhifadhi\Storage\Exception\InvalidEvidenceKeyException;
 use Uhifadhi\Storage\Service\EvidenceStorage;
 
@@ -76,6 +77,7 @@ final class PurgeDiscardedCommand extends Command
         private readonly EntityManagerInterface $entityManager,
         private readonly PatrolRepository $patrols,
         private readonly EvidenceStorage $evidence,
+        private readonly PatrolDraftService $drafts,
         private readonly int $retentionDays,
     ) {
         parent::__construct();
@@ -114,6 +116,32 @@ final class PurgeDiscardedCommand extends Command
         }
 
         $cutoff = new \DateTimeImmutable()->modify(\sprintf('-%d days', $days));
+
+        /*
+         * THE PATROLS NOBODY FINISHED WRITING, on the same window and in the
+         * same sweep.
+         *
+         * A draft is a patrol that was never saved — a page opened and closed,
+         * which is a normal event and by far the commonest one. Its files are
+         * already in the storage, under the draft's own prefix, and nothing else
+         * will ever ask about them. The window is the same
+         * `discard_retention_days` on purpose: the question "how long do we keep
+         * something nobody wants?" has one answer in this module, not two.
+         *
+         * Swept BEFORE the patrols, and reported separately, because the two
+         * counts mean different things — one is evidence deliberately discarded,
+         * the other is a form abandoned.
+         */
+        $abandoned = $this->drafts->purgeOlderThan($cutoff, $dryRun);
+        if ($abandoned['drafts'] > 0) {
+            $io->writeln(\sprintf(
+                '  <info>%d</info> abandoned draft%s, %d file%s',
+                $abandoned['drafts'],
+                1 === $abandoned['drafts'] ? '' : 's',
+                $abandoned['files'],
+                1 === $abandoned['files'] ? '' : 's',
+            ));
+        }
 
         $due = [];
         $undatable = 0;
@@ -269,6 +297,14 @@ final class PurgeDiscardedCommand extends Command
             foreach ($observation->getPhotos() as $photo) {
                 $keys[] = $photo->getStoragePath();
             }
+        }
+
+        // The GPX the route was read out of, where the patrol came in through
+        // the entry flow and the file was kept. It sits in the same folder as
+        // the photographs and goes with them.
+        $track = $patrol->getTrackFileKey();
+        if (null !== $track) {
+            $keys[] = $track;
         }
 
         return $keys;

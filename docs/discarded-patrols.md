@@ -3,6 +3,7 @@
 ## Contents
 
 - [What a discard is](#what-a-discard-is)
+- [The same sweep collects abandoned drafts](#the-same-sweep-collects-abandoned-drafts)
 - [The review hold](#the-review-hold)
 - [The event trail](#the-event-trail)
 
@@ -30,6 +31,23 @@ What the module then does with it:
 bin/console patrol:purge-discarded --dry-run   # name the sweep before trusting it
 bin/console patrol:purge-discarded             # idempotent; run it from cron
 ```
+
+## The same sweep collects abandoned drafts
+
+`patrol:purge-discarded` also deletes the patrols nobody finished writing. The
+entry flow opens a `patrol_draft` so a track or a photograph can arrive before
+the patrol it belongs to exists ([screens.md](screens.md#the-one-entry-flow)),
+and most drafts are never saved — a page opened and closed is a normal event, and
+by far the commonest one.
+
+The window is the same `discard_retention_days`, on purpose: "how long do we keep
+something nobody wants?" has one answer in this module, not two. The two counts
+are reported separately, because they mean different things — one is evidence
+deliberately discarded, the other is a form abandoned.
+
+Saving empties a draft by itself: every byte is re-homed under the patrol's own
+prefix and the draft's rows go with it, so the sweep only ever finds what nobody
+came back to.
 
 ## The review hold
 

@@ -19,7 +19,7 @@ use Uhifadhi\Patrol\Entity\Patrol;
 
 /**
  * Every sync endpoint WRITES field records, so every one demands the same
- * permission the module's two recording screens do — `patrols.record`. The
+ * permission the module's entry flow does — `patrols.record`. The
  * bundle only declares it; the host decides who holds it (here, a fixture
  * voter standing in for the host's).
  *

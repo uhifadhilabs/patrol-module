@@ -28,6 +28,8 @@ use Uhifadhi\Patrol\Repository\LaunchPointRepository;
 use Uhifadhi\Patrol\Repository\ObservationAmendmentRepository;
 use Uhifadhi\Patrol\Repository\ObservationPhotoRepository;
 use Uhifadhi\Patrol\Repository\ObservationRepository;
+use Uhifadhi\Patrol\Repository\PatrolDraftFileRepository;
+use Uhifadhi\Patrol\Repository\PatrolDraftRepository;
 use Uhifadhi\Patrol\Repository\PatrolEventRepository;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Repository\PatrolSettingsRepository;
@@ -43,6 +45,7 @@ use Uhifadhi\Patrol\Service\GpxWriter;
 use Uhifadhi\Patrol\Service\ObservationAmendmentService;
 use Uhifadhi\Patrol\Service\PatrolCoverageService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\PatrolDraftService;
 use Uhifadhi\Patrol\Service\PatrolHoldService;
 use Uhifadhi\Patrol\Service\PatrolKindsOverviewService;
 use Uhifadhi\Patrol\Service\PatrolKindsService;
@@ -151,14 +154,36 @@ return static function (ContainerConfigurator $container): void {
         ->args([service('doctrine.orm.entity_manager')]);
 
     /*
-     * The hand-written patrol's write path — the log screen's half of what
-     * 'patrol.track_ingest' is for the import screen. Registered beside it and
-     * unconditionally, for the reason 'patrol.taxonomy_admin' is: it is domain
-     * logic with no security of its own, and only the DOOR that fronts it lives
-     * inside the SecurityBundle guard.
+     * A PATROL BEING WRITTEN — opened when the entry flow renders, fed by the two
+     * upload targets, emptied on save and swept when nobody comes back.
+     *
+     * Unconditional beside the other writes and for the same reason
+     * 'patrol.taxonomy_admin' is: it is domain logic with no security of its
+     * own, and only the DOORS that front it — the screen and the platform's
+     * upload endpoint — live inside the SecurityBundle guard. The retention
+     * sweep is a console command and has no door at all.
+     */
+    $services->set('patrol.drafts', PatrolDraftService::class)
+        ->args([
+            service('doctrine.orm.entity_manager'),
+            service(PatrolDraftRepository::class),
+            service(PatrolDraftFileRepository::class),
+            service('storage.evidence_storage'),
+        ]);
+
+    /*
+     * THE WRITE PATH OF THE ONE ENTRY FLOW. It reaches for the ingest service
+     * where a track is held and for the draft where files are, so the whole of a
+     * submission — the patrol, its observations and their photographs — is one
+     * call and one place the rules live. Registered beside 'patrol.track_ingest'
+     * and unconditionally, for the reason above.
      */
     $services->set('patrol.recording', PatrolRecordingService::class)
-        ->args([service('doctrine.orm.entity_manager')]);
+        ->args([
+            service('doctrine.orm.entity_manager'),
+            service('patrol.drafts'),
+            service('patrol.track_ingest'),
+        ]);
 
     $services->set('patrol.track_ingest', TrackIngestService::class)
         ->args([
@@ -204,6 +229,15 @@ return static function (ContainerConfigurator $container): void {
         ->args([service('doctrine')])
         ->tag('doctrine.repository_service');
     $services->set(ObservationAmendmentRepository::class)
+        ->args([service('doctrine')])
+        ->tag('doctrine.repository_service');
+
+    // The patrols being written, and the files they have received so far.
+    // Registered with the rest and for the same reason.
+    $services->set(PatrolDraftRepository::class)
+        ->args([service('doctrine')])
+        ->tag('doctrine.repository_service');
+    $services->set(PatrolDraftFileRepository::class)
         ->args([service('doctrine')])
         ->tag('doctrine.repository_service');
 

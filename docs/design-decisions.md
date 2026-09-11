@@ -13,6 +13,8 @@ oversight.
 - [5 · Live tracking is v2, and it is a third door](#5--live-tracking-is-v2-and-it-is-a-third-door)
 - [6 · The maps are the atlas's, and the module writes no map JavaScript](#6--the-maps-are-the-atlass-and-the-module-writes-no-map-javascript)
 - [7 · The filter is a query, not a conversation](#7--the-filter-is-a-query-not-a-conversation)
+- [8 · A patrol being written is a row](#8--a-patrol-being-written-is-a-row)
+- [9 · Adding an observation is a submit, not a clone](#9--adding-an-observation-is-a-submit-not-a-clone)
 
 ## 1 · A station is a record the area keeps
 
@@ -197,3 +199,52 @@ time, closed by Escape or an outside click — which a link cannot express.
 tracking of §5 is the candidate), at which point the answer is a frame or a
 stream that re-renders the same server-computed view, never a second filter that
 only some widgets obey.
+
+
+## 8 · A patrol being written is a row
+
+**The decision.** The one entry flow carries a `patrol_draft` — a real table, one
+row per open form — rather than a bare uuid minted in the page and used as a key
+prefix with nothing behind it.
+
+**Why.** Files arrive through the platform's upload component on the way IN, so
+they arrive before the patrol exists, and the thing they file against has to
+answer two questions a bare id cannot:
+
+- **Who may.** `patrols.record` is a permission about an AREA. An id with no row
+  names no area, so the target would either trust the browser for the one fact
+  the decision rests on, or fall back to a global check that lets a recorder in
+  one area file evidence against another's.
+- **What is abandoned.** Most drafts are never saved. The storage publishes no
+  listing, so without a row there is nothing to date and nothing can say which
+  bytes are leftovers. With one, `patrol:purge-discarded` sweeps drafts on the
+  same `discard_retention_days` window it sweeps discarded patrols on — one
+  answer in this module to "how long do we keep something nobody wants?", not
+  two.
+
+**The cost, accepted.** Two thin tables and a migration, and a row per page view
+that is usually deleted minutes later. The alternative's cost is a permission
+decided from a value the browser supplied.
+
+**Reopen if:** the storage grows a listing API AND the permission model stops
+being per-area — both, not either. One without the other leaves one of the two
+questions unanswered.
+
+## 9 · Adding an observation is a submit, not a clone
+
+**The decision.** `+ Add observation` posts the form and the page comes back with
+one more grid. It is not a `<template>` cloned by a Stimulus controller.
+
+**Why.** The thing being repeated contains the upload component, and the
+component is addressed by `data-upl-target` — `observation:{draft}-{n}`. A clone
+carries its sibling's target, so a photograph dropped on the second grid would be
+filed against the first observation. Fixing that means rewriting the component's
+own attributes in JavaScript, which is exactly the bespoke upload code the
+storage module exists to abolish.
+
+The round trip costs nothing a person would notice losing: every file already
+received is on the draft, and everything typed is posted and rendered back.
+
+**Reopen if:** the storage module publishes a supported way to mint a component
+at a new target from the page — then the clone becomes the component's business
+rather than this module's, and the trip can go.

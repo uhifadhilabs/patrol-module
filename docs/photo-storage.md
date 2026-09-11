@@ -3,6 +3,7 @@
 ## Contents
 
 - [Photographs need the storage module](#photographs-need-the-storage-module)
+- [The two upload targets](#the-two-upload-targets)
 - [Patrol's photographs on the Files hub](#patrols-photographs-on-the-files-hub)
 
 ## Photographs need the storage module
@@ -47,6 +48,33 @@ not an operation a production console keeps standing by, so this module ships it
 as an inert `Devkit\CommandProviderInterface` descriptor and devkit materialises
 it — see `src/Devkit/PatrolCommandProvider.php`.
 
+## The two upload targets
+
+Every file that enters this module through a browser goes through the platform's
+one upload component, and this module's whole side of it is two implementations
+of `Uhifadhi\Storage\Upload\UploadTargetInterface` in `src/Upload/`. No
+controller, no route, no JavaScript, no stylesheet.
+
+| Class | Kind | Takes |
+|---|---|---|
+| `PatrolTrackTarget` | `patrol-track` | one GPX, no larger than the deployment accepts — the entry flow's step 1 |
+| `PatrolObservationPhotoTarget` | `observation` | the deployment's own evidence allowlist, unnarrowed — one observation's evidence grid |
+
+Both file against a `PatrolDraft`, because a file arrives before the patrol it
+belongs to exists; the shared half of the contract — which record, who may, who
+may take it back off — is `AbstractPatrolDraftTarget`, written once so two
+targets cannot drift apart on "who may". The permission is `patrols.record` **on
+the draft's area**, and the draft's own owner.
+
+**The kinds are separate from `patrol/` on purpose.** The prefix is a key's first
+segment and the thing a removal, a voter and the Files hub route on. A photograph
+on a SAVED patrol lives under `patrol/{uuid}/`, where the observation it belongs
+to can be found from the key; one on a draft cannot, because there is no
+observation yet. Two different facts, two different prefixes — and the save is
+precisely the move from one to the other. `PatrolEvidenceVoter` answers for all
+three: a saved patrol's evidence reads on the observation page's own rule, a
+draft's reads for its owner alone.
+
 ## Patrol's photographs on the Files hub
 
 Where an installation also mounts storage-module's cross-module hub at `/files`, patrol's
@@ -66,5 +94,8 @@ recorded — so it does not offer removal at all, rather than promising a record
 removal nothing records. `FileRemovalInterface` is deliberately not implemented;
 it arrives with an observation trail, not before it.
 
-A patrol's GPX export is **not** on the hub: it is generated on demand from the
-track column, so there is no stored object and no key to show.
+A patrol's GPX **export** is not on the hub: it is generated on demand from the
+track column, so there is no stored object and no key to show. The GPX a patrol
+was RECORDED from is a different file — it is kept, under the patrol's own
+prefix, and named by `patrol.track_file_key`; it is not listed either, because
+the hub lists photographs and a source track is not one.

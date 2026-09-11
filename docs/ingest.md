@@ -9,17 +9,46 @@
 
 ## One parsing path
 
-`TrackIngestService` is the single parsing/validation path. The upload screen
-feeds it today; a mobile tracker app POSTs to the same service via the API
+`TrackIngestService` is the single parsing/validation path. The entry flow's
+step 1 feeds it today; a mobile tracker app POSTs to the same service via the API
 endpoint later. Neither door re-implements parsing.
 
 ## What the upload does
 
-Upload a tracker's `.gpx` file and the bundle parses points, time span, distance
-and GPS gaps (flagged and stored, never smoothed), then a short form confirms
-type/station/lead — chosen from the AREA's own patrol types and stations, as
-chip rows. `gap_threshold_minutes` in
+A track is dropped on **the platform's upload component** — step 1 of the one
+entry flow, described in [screens.md](screens.md#the-one-entry-flow). This module
+writes no dropzone, no file input and no upload JavaScript; it implements
+`UploadTargetInterface` as `Upload\PatrolTrackTarget` (kind `patrol-track`) and
+answers the four things the storage cannot know.
+
+The bytes land, and the target parses them there and then: points, time span,
+distance and GPS gaps (flagged and stored, never smoothed). What comes back is
+the chip the design draws on a finished row — `parsed · 14.2 km · 2 h 05 ·
+3 gaps` — in the module's own words. `gap_threshold_minutes` in
 [configuration.md](configuration.md) is what counts as a gap.
+
+The file itself is **kept**, not discarded after parsing: a patrol's GPX is the
+source of a field record, and the receipt says `stored` rather than `parsed` for
+that reason. On save it is re-homed under the patrol's own prefix and named by
+`patrol.track_file_key`.
+
+**The deployment's allowlist has to accept it.** The storage validates every file
+against `storage.evidence.allowed_mime_types`, and a target may narrow that list
+but never widen past it. A GPX is detected from its BYTES, which on most
+platforms reads as generic XML, so an installation that wants step 1 to work adds
+the three spellings:
+
+```yaml
+# config/packages/storage.yaml
+storage:
+    evidence:
+        allowed_mime_types:
+            ['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'image/webp',
+             'application/gpx+xml', 'application/xml', 'text/xml']
+```
+
+The rest of the form confirms type/station/lead — chosen from the AREA's own
+patrol types and stations, as chip rows.
 
 ## The third door
 

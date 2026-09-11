@@ -57,18 +57,19 @@
     {{ render_map(map, {'role': 'img', 'aria-label': label}, caption) }}
 {% endmacro %}
 
-{# ── the recording screens' shared fields ───────────────────────────────────
-   Both settled designs ("import" and "log") open their details card with the
-   same three rows — type, station, lead — so they live here once and can never
-   drift apart. Everything is native HTML: a reusable bundle must not require a
-   Stimulus controller to be installed before a patrol can be recorded. #}
+{# ── the entry flow's fields ────────────────────────────────────────────────
+   PL·02 opens with the same three rows the settled design draws — type, station,
+   lead — and they live here rather than in the page so a second surface that
+   ever needs them cannot draw a different control. Everything is native HTML: a
+   reusable bundle must not require a Stimulus controller to be installed before
+   a patrol can be recorded. #}
 
 {# The design's type chips, as a radio group: one is always chosen, keyboard
    reachable, and submitted without a line of JavaScript (patrol.css styles the
    checked chip through :has()). The words are THIS AREA's own patrol types,
    the ones SET·01 renames and retires; a retired one is not offered. #}
 {% macro type_chips(types, selected) %}
-    <div class="patrol-chipset">
+    <div class="patrol-chipset" data-patrol-types>
         {% for type in types %}
             <label class="mchip patrol-chip-radio">
                 <input type="radio" name="type" value="{{ type.key }}"{{ (selected ?: types|first.key) == type.key ? ' checked' : '' }}>{{ type.label|lower }}
@@ -82,7 +83,7 @@
    "—" is first and is a real answer — plenty of patrols set off from nowhere in
    particular. #}
 {% macro station_chips(stations, selected) %}
-    <div class="patrol-chipset">
+    <div class="patrol-chipset" data-patrol-stations>
         <label class="mchip patrol-chip-radio">
             <input type="radio" name="station" value=""{{ selected ? '' : ' checked' }}>—
         </label>
@@ -105,4 +106,51 @@
             <option value="{{ user.id }}"{{ selected == user.id ? ' selected' : '' }}>{{ user.firstName }} {{ user.lastName }}</option>
         {% endfor %}
     </select>
+{% endmacro %}
+
+{# ── PL·03's two chip rows ──────────────────────────────────────────────────
+   The words are THIS AREA's own observation kinds, in the order they are
+   arranged there — the same chips, in the same order, the handset shows. A
+   retired kind is not offered; one already filed against keeps its place on
+   every screen that READS observations, which is a different question.
+
+   TWO ROWS REACH ONE STORED CODE: an observation keeps the sub-category's where
+   the person chose one and the kind's own where the kind has none. The second
+   row therefore offers every live sub-category of every kind — a sub-category
+   identifies its kind by itself, so the pair is always coherent — and each chip
+   carries the kind it sits under on `data-patrol-under`. Narrowing the row to
+   the chosen kind without a page reload would be this module writing JavaScript
+   of its own; the design's filtered row is recorded as a partial in
+   docs/screens.md rather than faked. #}
+{% macro kind_chips(kinds, n, selected) %}
+    <div class="patrol-chipset" data-patrol-kinds="{{ n }}">
+        {% for kind in kinds|filter(k => k.active) %}
+            <label class="mchip patrol-chip-radio">
+                <input type="radio" name="observations[{{ n }}][kind]" value="{{ kind.code }}"{{ (selected ?: kinds|first.code) == kind.code ? ' checked' : '' }}>{{ kind.label }}
+            </label>
+        {% endfor %}
+    </div>
+{% endmacro %}
+
+{% macro subcategory_chips(kinds, n, selected) %}
+    <div class="patrol-chipset" data-patrol-subcategories="{{ n }}">
+        {% for kind in kinds|filter(k => k.active) %}
+            {% for sub in kind.subcategories|filter(s => s.active) %}
+                <label class="mchip patrol-chip-radio" data-patrol-under="{{ kind.code }}">
+                    <input type="radio" name="observations[{{ n }}][subcategory]" value="{{ sub.code }}"{{ selected == sub.code ? ' checked' : '' }}>{{ sub.label }}
+                </label>
+            {% endfor %}
+        {% endfor %}
+    </div>
+{% endmacro %}
+
+{# The design's bold line on an observation's own header — "Wildlife · sighting"
+   — read back from the two codes the chips hold. #}
+{% macro observation_title(kinds, kindCode, subCode) %}
+    {%- set live = kinds|filter(k => k.active) -%}
+    {%- set code = kindCode ?: (live|first).code|default('') -%}
+    {%- set chosen = live|filter(k => k.code == code)|first|default(null) -%}
+    {%- set under = chosen ? chosen.subcategories|filter(s => s.active and s.code == subCode)|first|default(null) : null -%}
+    {{- chosen ? chosen.label : 'Observation' -}}
+    {{- under ? ' · ' ~ under.label : '' -}}
 {% endmacro %}

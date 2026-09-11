@@ -31,7 +31,7 @@ use Uhifadhi\Patrol\Repository\PatrolRepository;
  *
  * Answered in one place so no endpoint can quietly skip a step. Every one of
  * these routes WRITES field records, so every one requires the same permission
- * the two recording screens do — `patrols.record`, declared by this module and
+ * the entry flow does — `patrols.record`, declared by this module and
  * granted by the host. A module that authenticated its API differently from its
  * own UI would be two security models pretending to be one.
  */

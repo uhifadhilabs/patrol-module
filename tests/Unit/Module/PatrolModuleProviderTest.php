@@ -40,7 +40,7 @@ final class PatrolModuleProviderTest extends TestCase
         // a patrol, and managing this area's observation taxonomy.
         self::assertCount(2, $permissions);
 
-        // The exact attribute the recording screens check.
+        // The exact attribute the entry flow checks.
         self::assertSame(PatrolRecordController::RECORD_PERMISSION, $permissions[0]->value);
         self::assertSame('patrols.record', $permissions[0]->value);
         self::assertSame('Patrols', $permissions[0]->umbrella);

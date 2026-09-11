@@ -74,8 +74,7 @@ final class PatrolModuleProvider implements ModuleProviderInterface
     /**
      * Declared, never granted: the host folds this into its permission
      * catalogue for admins to assign, and it vanishes with the module on
-     * uninstall. The value is the exact attribute the two recording screens
-     * (import GPX, log patrol) check.
+     * uninstall. The value is the exact attribute the entry flow checks.
      *
      * THE SENTENCE IS THE ROW. "Patrols · Record" names the words this module
      * chose; the description says what ticking the box hands over, and it is

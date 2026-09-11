@@ -19,9 +19,14 @@ A [uhifadhi](https://github.com/uhifadhilabs) module bundle.
   each one of the AREA's own records, added, renamed and retired on the
   module's configure page — never hardcoded, and never deleted, because patrols
   are filed against them. `patrol.types` is the list a new area starts from.
-- **GPX ingest** — upload a tracker's `.gpx` file; the bundle parses points,
-  time span, distance and GPS gaps (flagged and stored, never smoothed), then
-  a short form confirms type/station/lead.
+- **One entry flow** — every patrol is written by one page, in three steps: drop
+  the track if there is one, confirm what the patrol was, record what was seen.
+  A patrol somebody walked with a handset and a patrol somebody walked with a
+  flat battery are the same record; the only difference is whether step 1 was
+  used.
+- **GPX ingest** — the track is dropped on the platform's upload component; the
+  bundle parses points, time span, distance and GPS gaps (flagged and stored,
+  never smoothed) and keeps the file as the patrol's source.
 - **Observations** — georeferenced field notes logged en route (category from
   `patrol.observation_categories`, note, photos), each with its own detail
   screen and an audit trail.
@@ -122,6 +127,24 @@ Uhifadhi\Storage\UhifadhiStorageBundle::class => ['all' => true],
 An installation that forgets says so at compile time, not on the first upload. Where the
 bytes go — and how a pre-storage-module deployment keeps the photographs it
 already has — is in [docs/photo-storage.md](docs/photo-storage.md).
+
+Every file this module takes through a browser — the track and every photograph —
+goes through that bundle's one upload component; the module's whole side of it is
+two `UploadTargetInterface` implementations in `src/Upload/`.
+
+**One line of storage configuration is not optional.** The deployment's own
+allowlist is what the storage validates against, and a GPX is detected from its
+bytes, which on most platforms reads as generic XML. An installation that wants
+step 1 to accept a track names the three spellings beside the photograph types:
+
+```yaml
+# config/packages/storage.yaml
+storage:
+    evidence:
+        allowed_mime_types:
+            ['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'image/webp',
+             'application/gpx+xml', 'application/xml', 'text/xml']
+```
 
 ### Stimulus controllers
 

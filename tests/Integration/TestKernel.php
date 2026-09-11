@@ -39,6 +39,7 @@ use Uhifadhi\Patrol\Tests\Integration\Fixtures\CollectedContentProviders;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 use Uhifadhi\Patrol\UhifadhiPatrolBundle;
 use Uhifadhi\Storage\Controller\EvidenceController;
+use Uhifadhi\Storage\Controller\UploadController;
 use Uhifadhi\Storage\UhifadhiStorageBundle;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -330,6 +331,21 @@ final class TestKernel extends Kernel
             'evidence' => [
                 'adapter' => 'local',
                 'directory' => sys_get_temp_dir().'/patrol-module-tests/evidence',
+                /*
+                 * A TRACK IS A FILE TOO, and the deployment's allowlist is what
+                 * the storage validates against on the way in — a target may
+                 * narrow it and may never widen past it. A GPX document is
+                 * detected from its BYTES, which makes it generic XML on most
+                 * platforms, so both spellings sit here beside the photographs.
+                 *
+                 * This is the one line an installation adds so the entry flow's
+                 * step 1 can accept anything at all; the module's README states
+                 * it for exactly that reason.
+                 */
+                'allowed_mime_types' => [
+                    'image/jpeg', 'image/png', 'image/heic', 'image/heif', 'image/webp',
+                    'application/gpx+xml', 'application/xml', 'text/xml',
+                ],
             ],
         ]);
 
@@ -370,6 +386,15 @@ final class TestKernel extends Kernel
         $evidence = (new \ReflectionClass(EvidenceController::class))->getFileName();
         if (\is_string($evidence)) {
             $routes->import($evidence, 'attribute');
+        }
+
+        // The ONE endpoint every upload in the product goes through, mounted the
+        // way a host mounts it. The entry flow's track and every evidence tile
+        // POST here, so a suite that never mounted it would be asserting a form
+        // whose files could not arrive.
+        $upload = (new \ReflectionClass(UploadController::class))->getFileName();
+        if (\is_string($upload)) {
+            $routes->import($upload, 'attribute');
         }
 
         // The /api entry point, mounted exactly as the host mounts it

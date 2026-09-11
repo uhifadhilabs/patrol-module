@@ -14,6 +14,9 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Service;
 
 use Uhifadhi\Patrol\Entity\Observation;
+use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Upload\PatrolObservationPhotoTarget;
+use Uhifadhi\Patrol\Upload\PatrolTrackTarget;
 use Uhifadhi\Storage\Service\EvidenceKey;
 
 /**
@@ -69,17 +72,47 @@ final class PhotoEvidenceKey
      */
     public static function prefixFor(Observation $observation): string
     {
-        $patrol = $observation->getPatrol();
+        return self::prefixForPatrol($observation->getPatrol());
+    }
 
+    /**
+     * The same prefix, addressed by the patrol itself — for the one file a
+     * patrol holds that hangs off no observation: the GPX it was recorded from.
+     *
+     * A patrol's evidence is one thing whether it is a photograph or the source
+     * track, so both sit in one folder and the sweep that takes a patrol away
+     * takes all of it.
+     */
+    public static function prefixForPatrol(Patrol $patrol): string
+    {
         return self::PREFIX.'/'.($patrol->getClientUuid()?->toRfc4122() ?? $patrol->getUuid()->toRfc4122());
     }
 
-    /** Is this key one of ours — either shape? */
+    /**
+     * Is this key one of ours — any of the three shapes?
+     *
+     * `patrol-track/…` is a DRAFT's, not a patrol's: a track that arrived before
+     * the patrol it describes. It already matches the legacy `patrol-` reading
+     * below, which is an accident of spelling rather than a decision, so it is
+     * named here explicitly — a key's owner should be readable from this method
+     * rather than inferred from a prefix that happens to overlap.
+     */
     public static function claims(string $key): bool
     {
         $root = EvidenceKey::rootSegment($key);
 
-        return self::PREFIX === $root || str_starts_with($root, self::LEGACY_PREFIX);
+        return self::PREFIX === $root
+            || PatrolTrackTarget::KIND === $root
+            || PatrolObservationPhotoTarget::KIND === $root
+            || str_starts_with($root, self::LEGACY_PREFIX);
+    }
+
+    /** Does this key belong to a patrol being written rather than to a saved one? */
+    public static function isDraft(string $key): bool
+    {
+        $root = EvidenceKey::rootSegment($key);
+
+        return PatrolTrackTarget::KIND === $root || PatrolObservationPhotoTarget::KIND === $root;
     }
 
     /**
