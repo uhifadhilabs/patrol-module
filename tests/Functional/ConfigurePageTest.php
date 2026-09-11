@@ -342,6 +342,62 @@ final class ConfigurePageTest extends WebTestCase
         );
     }
 
+    /**
+     * A CLEARED THRESHOLD IS TOLD WHAT TO TYPE, not handed a 400.
+     *
+     * Both rows are `<input type="number">`, and selecting one and pressing
+     * delete — the commonest way there is to change a number in one — posts an
+     * empty string. `InputBag::getInt()` throws a BadRequestException on that, so
+     * the form answered `400 Input value "gap_threshold_minutes" cannot be
+     * converted to "int"`: a stack trace in place of the one sentence that would
+     * have said what was wrong.
+     *
+     * NOTHING IS SAVED when either is unreadable. Writing one threshold because
+     * the other was blank would leave the area running on a number nobody chose.
+     *
+     * @param array<string, string> $posted
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('unreadableThresholds')]
+    public function testAnUnreadableThresholdIsRefusedWithASentenceAndSavesNothing(array $posted, string $says): void
+    {
+        $this->signInAsManager();
+        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
+        $token = (string) $crawler->filter('input[name="_token"]')->attr('value');
+
+        $this->client->request('POST', $this->configureUrl('settings'), ['_token' => $token, ...$posted]);
+
+        self::assertResponseRedirects($this->configureUrl('settings'));
+
+        $crawler = $this->client->followRedirect();
+        // THE FRAME SAYS IT, not this module: the sentence rides the shell's
+        // flash socket like every other refusal on the section.
+        self::assertSelectorTextContains('[data-shell-flash]', $says);
+        // And the area still runs on the installation's numbers, because the
+        // save was refused before anything was written.
+        self::assertStringContainsString('the installation', self::card($crawler, 'Thresholds')->text());
+    }
+
+    /** @return iterable<string, array{array<string, string>, string}> */
+    public static function unreadableThresholds(): iterable
+    {
+        yield 'the gap cleared' => [
+            ['gap_threshold_minutes' => '', 'discard_retention_days' => '30'],
+            'gps gap needs a whole number of minutes',
+        ];
+        yield 'the gap is not a number' => [
+            ['gap_threshold_minutes' => 'soon', 'discard_retention_days' => '30'],
+            'gps gap needs a whole number of minutes',
+        ];
+        yield 'retention cleared' => [
+            ['gap_threshold_minutes' => '12', 'discard_retention_days' => ''],
+            'Discard keeps needs a whole number of days',
+        ];
+        yield 'retention is a fraction' => [
+            ['gap_threshold_minutes' => '12', 'discard_retention_days' => '30.5'],
+            'Discard keeps needs a whole number of days',
+        ];
+    }
+
     /** Changing what an area runs on rides on `patrols.manage`. */
     public function testSomebodyWhoMayNotManageCannotSaveTheSettings(): void
     {

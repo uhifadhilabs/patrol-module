@@ -69,6 +69,14 @@ final readonly class PatrolSettingsController
     /** What a row's buttons may ask for. Anything else is not a button we drew. */
     private const array ACTIONS = ['rename', 'retire', 'reactivate'];
 
+    /**
+     * What a cleared threshold is told. Each names the row's own label as SET·04
+     * draws it — "gps gap", "discard keeps" — because a sentence that does not
+     * say which box it is about leaves a reader checking both.
+     */
+    private const string GAP_SENTENCE = 'The gps gap needs a whole number of minutes. Nothing was saved.';
+    private const string RETENTION_SENTENCE = 'Discard keeps needs a whole number of days. Nothing was saved.';
+
     public function __construct(
         private UrlGeneratorInterface $router,
         private PatrolSettingsService $settings,
@@ -92,13 +100,50 @@ final readonly class PatrolSettingsController
     ): RedirectResponse {
         $this->guard($request);
 
-        $this->settings->save(
-            $area,
-            $request->request->getInt('gap_threshold_minutes'),
-            $request->request->getInt('discard_retention_days'),
-        );
+        $gap = self::wholeNumber($request, 'gap_threshold_minutes');
+        $retention = self::wholeNumber($request, 'discard_retention_days');
+
+        // A CLEARED FIELD IS A SENTENCE, NOT A PROTOCOL ERROR. Both rows are
+        // <input type="number">, and somebody who selects one and presses delete
+        // posts an empty string — the commonest way there is to change a number
+        // in one. Each is named on its own so the reader is told WHICH box to go
+        // back to, and nothing is written: saving one threshold because the other
+        // was blank would leave an area running on a number nobody chose.
+        if (null === $gap) {
+            return $this->back($request, $area, 'error', self::GAP_SENTENCE);
+        }
+        if (null === $retention) {
+            return $this->back($request, $area, 'error', self::RETENTION_SENTENCE);
+        }
+
+        $this->settings->save($area, $gap, $retention);
 
         return $this->back($request, $area, 'success', 'Saved. This area runs on its own numbers now.');
+    }
+
+    /**
+     * A WHOLE NUMBER, OR NULL — AND NEVER A 400.
+     *
+     * `InputBag::getInt()` filters with FILTER_VALIDATE_INT and THROWS a
+     * BadRequestException on anything that is not one, an empty string included.
+     * So clearing either threshold answered `400 Input value
+     * "gap_threshold_minutes" cannot be converted to "int"` — a stack trace in
+     * place of the one sentence that would have said what to type.
+     *
+     * OUT OF RANGE IS STILL CLAMPED rather than refused, and that is a decision
+     * rather than an omission: a number outside the design's bounds is a
+     * hand-posted value the browser's own `min`/`max` would never send, and
+     * {@see PatrolSettingsService} has always answered one by clamping. Only a
+     * value that is not a number AT ALL is something a person can have typed into
+     * the field, and only that gets a sentence.
+     *
+     * @see vendor/symfony/http-foundation/InputBag.php — getInt()
+     */
+    private static function wholeNumber(Request $request, string $field): ?int
+    {
+        $value = filter_var($request->request->getString($field), \FILTER_VALIDATE_INT);
+
+        return false === $value ? null : $value;
     }
 
     // ── SET·01 · patrol types ─────────────────────────────────────────────────

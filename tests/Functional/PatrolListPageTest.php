@@ -176,6 +176,38 @@ final class PatrolListPageTest extends WebTestCase
     }
 
     /**
+     * AN UNREADABLE PAGE IS THE FIRST ONE, which is what the controller has
+     * always claimed and did not do.
+     *
+     * `InputBag::getInt()` throws a BadRequestException on anything that is not a
+     * whole number, so `?page=` — an emptied field, a hand-edited address, a link
+     * built by joining strings — answered 400 and the log was unreachable. A page
+     * number is navigation: the worst a bad one can mean is "start at the
+     * beginning".
+     *
+     * @param string $page what arrives in the query, verbatim
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('unreadablePages')]
+    public function testAnUnreadablePageNumberOpensTheFirstPage(string $page): void
+    {
+        $crawler = $this->client->request('GET', $this->url().'?page='.$page);
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('1–20 of '.(self::PATROL_COUNT + 1), $crawler->filter('.pgr .cnt')->text());
+        self::assertCount(PatrolListService::PER_PAGE, $crawler->filter('table.tbl tbody tr'));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function unreadablePages(): iterable
+    {
+        yield 'cleared' => [''];
+        yield 'not a number' => ['abc'];
+        yield 'a fraction' => ['2.5'];
+        yield 'below the first' => ['-3'];
+        yield 'zero' => ['0'];
+    }
+
+    /**
      * THE WORD "REGISTER" IS NOWHERE ON THE SURFACE — not in the address, not in
      * the title, not in a heading.
      */

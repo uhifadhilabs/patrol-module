@@ -92,8 +92,31 @@ final readonly class PatrolListController
                 $filter,
                 // Untrusted like every query field: an unreadable page is the
                 // first one, and the service clamps a page past the end.
-                max(1, $request->query->getInt('page', 1)),
+                self::requestedPage($request),
             ),
         ]));
+    }
+
+    /**
+     * WHICH PAGE OF THE LOG — AND NEVER A 400.
+     *
+     * The comment above has always said an unreadable page is the first one, and
+     * `InputBag::getInt()` does not keep that promise: it filters with
+     * FILTER_VALIDATE_INT and THROWS a BadRequestException on anything that is
+     * not a whole number. So `?page=` — which is what an emptied field, a
+     * hand-edited address or a link built by string-joining produces — answered
+     * `400 Input value "page" cannot be converted to "int"` instead of the log.
+     *
+     * A page number is navigation, not an instruction: the worst a bad one can
+     * mean is "start at the beginning", and that is what it now means. Above the
+     * end is the service's to clamp, as it already did.
+     *
+     * @see vendor/symfony/http-foundation/InputBag.php — getInt()
+     */
+    private static function requestedPage(Request $request): int
+    {
+        $page = filter_var($request->query->getString('page'), \FILTER_VALIDATE_INT);
+
+        return false === $page ? 1 : max(1, $page);
     }
 }
