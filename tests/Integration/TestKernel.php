@@ -386,7 +386,7 @@ final class TestKernel extends Kernel
         // module declares its configure sections through the contract, and
         // without the page behind them a declared section has no address and the
         // strip drops it.
-        $routes->import('@ShellBundle/config/routes/configure.php');
+        $routes->import(ShellBundle::CONFIGURE_ROUTES);
 
         // THE INCIDENTS MODULE'S FRONT DOOR, STUBBED — but only in the
         // `incident_contract` environment. The File-as-incident button exists
