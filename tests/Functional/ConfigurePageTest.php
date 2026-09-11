@@ -147,7 +147,7 @@ final class ConfigurePageTest extends WebTestCase
         self::assertSame('north-post', trim($row->filter('.cd')->text()));
         self::assertSame('1 patrol', trim($row->filter('.n')->text()));
         self::assertSame(
-            ['Rename', 'Retire'],
+            ['Rename', 'Save', 'Retire'],
             $row->filter('.acts .sact')->each(static fn (Crawler $b): string => trim($b->text())),
         );
         self::assertSame('+ New station', trim($stations->filter('.sadd')->text()));
@@ -165,6 +165,33 @@ final class ConfigurePageTest extends WebTestCase
         // The not-built notes are gone from both.
         self::assertStringNotContainsString('not built yet', $stations->text());
         self::assertStringNotContainsString('not built yet', $types->text());
+    }
+
+    /**
+     * THE FIELD IS NOT ON THE ROW UNTIL RENAME IS PRESSED. The design's row is
+     * text and two buttons; an input sitting open on every row turns a list of
+     * words into a page of form controls. It is disclosed by the row's own
+     * Rename control and by nothing else — HTML's own disclosure, so the page
+     * still needs no script of its own.
+     */
+    public function testTheRenameFieldIsDisclosedByTheRenameControl(): void
+    {
+        $this->signInAsManager();
+        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
+
+        $row = self::card($crawler, 'Stations')->filter('.srow')->first();
+
+        // Nothing on the row itself is a field.
+        self::assertCount(0, $row->filter('.acts > .fld'));
+
+        $rename = $row->filter('.acts details');
+        self::assertCount(1, $rename);
+        self::assertNull($rename->attr('open'), 'The row opens closed.');
+        self::assertSame('Rename', trim($rename->filter('summary')->text()));
+        self::assertCount(1, $rename->filter('input.fld[name="label"]'));
+
+        // And no script anywhere makes that work.
+        self::assertCount(0, $crawler->filter('.srow script'));
     }
 
     /** A new station, then renamed, then retired — and never deleted. */
@@ -201,7 +228,7 @@ final class ConfigurePageTest extends WebTestCase
         self::assertSame('Lake Post', trim($retired->filter('.nm')->text()));
         self::assertSame('retired', trim($retired->filter('.chip.idle')->text()));
         self::assertSame(
-            ['Rename', 'Reactivate'],
+            ['Rename', 'Save', 'Reactivate'],
             $retired->filter('.acts .sact')->each(static fn (Crawler $b): string => trim($b->text())),
         );
     }

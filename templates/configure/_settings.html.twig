@@ -41,9 +41,17 @@
             <span class="n">{{ n }} {{ n == 1 ? 'patrol' : 'patrols' }}</span>
             {% if typeAdd %}
                 <span class="acts">
-                    <input class="fld" style="width:150px" type="text" name="label" value="{{ type.label }}"
-                           form="patrol-type-rename-{{ type.uuid }}" aria-label="Rename {{ type.label }}" required>
-                    <button class="sact" type="submit" form="patrol-type-rename-{{ type.uuid }}">Rename</button>
+                    {# THE FIELD IS DISCLOSED BY THE ROW'S OWN RENAME CONTROL. The design's
+                       row is text and two buttons; a field open on every row turns a list
+                       of words into a page of form controls. HTML's own disclosure does
+                       it, so the configure page still ships no script.
+                       @see https://html.spec.whatwg.org/multipage/interactive-elements.html#the-details-element #}
+                    <details>
+                        <summary class="sact">Rename</summary>
+                        <input class="fld" style="width:150px" type="text" name="label" value="{{ type.label }}"
+                               form="patrol-type-rename-{{ type.uuid }}" aria-label="Rename {{ type.label }}" required>
+                        <button class="sact" type="submit" form="patrol-type-rename-{{ type.uuid }}">Save</button>
+                    </details>
                     {% if type.active %}
                         <button class="sact warn" type="submit" form="patrol-type-retire-{{ type.uuid }}">Retire</button>
                     {% else %}
@@ -100,9 +108,14 @@
             <span class="n">{{ n }} {{ n == 1 ? 'patrol' : 'patrols' }}</span>
             {% if stationAdd %}
                 <span class="acts">
-                    <input class="fld" style="width:150px" type="text" name="label" value="{{ station.label }}"
-                           form="patrol-station-rename-{{ station.uuid }}" aria-label="Rename {{ station.label }}" required>
-                    <button class="sact" type="submit" form="patrol-station-rename-{{ station.uuid }}">Rename</button>
+                    {# Disclosed the same way the patrol-type row's is, and for the same
+                       reason. #}
+                    <details>
+                        <summary class="sact">Rename</summary>
+                        <input class="fld" style="width:150px" type="text" name="label" value="{{ station.label }}"
+                               form="patrol-station-rename-{{ station.uuid }}" aria-label="Rename {{ station.label }}" required>
+                        <button class="sact" type="submit" form="patrol-station-rename-{{ station.uuid }}">Save</button>
+                    </details>
                     {% if station.active %}
                         <button class="sact warn" type="submit" form="patrol-station-retire-{{ station.uuid }}">Retire</button>
                     {% else %}
