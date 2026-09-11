@@ -22,6 +22,11 @@
 {% block shell_page_subtitle %}Every patrol logged in this area, newest first — the dashboard’s log widget without a cap on it. Search runs over the id, the lead, the station and the observation notes; the filter row is the same one query the map and the charts read.{% endblock %}
 
 {% block shell_page_actions %}
+    {# THE FILE ALWAYS CARRIES THE FILTER ON SCREEN — the design's Export action,
+       which has no screen of its own because there is nothing to choose. CSV
+       here, because on a log page "export" means the log; the tracks bundle is
+       the Export & reporting widget's second row. #}
+    <a class="tgl patrol-act" href="{{ path('patrol_export', {uuid: area.uuid, _format: 'csv'}|merge(filter.toQuery)) }}">{{ ux_icon('patrol:download') }}Export</a>
     {% if recordScreens|default(false) %}
         <a class="cta" href="{{ path('patrol_log', {uuid: area.uuid}) }}">{{ ux_icon('patrol:pen-line') }}Log patrol</a>
     {% endif %}

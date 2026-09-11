@@ -23,6 +23,11 @@
    there and a Widget library button somewhere else is what that ruling replaced.
    → Uhifadhi\Patrol\Shell\PatrolConfigurationSections #}
 {% block shell_page_actions %}
+    {# THE FILE ALWAYS CARRIES THE FILTER ON SCREEN — the design's Export action,
+       which has no screen of its own because there is nothing to choose. CSV
+       here, because on a log page "export" means the log; the tracks bundle is
+       the Export & reporting widget's second row. #}
+    <a class="tgl patrol-act" href="{{ path('patrol_export', {uuid: area.uuid, _format: 'csv'}|merge(filter.toQuery)) }}">{{ ux_icon('patrol:download') }}Export</a>
     {# The two recording screens exist only where the host runs SecurityBundle
        (they enforce patrols.record — see UhifadhiPatrolBundle), so the
        links are rendered only when their routes do. #}

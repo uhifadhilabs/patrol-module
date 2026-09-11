@@ -6,26 +6,26 @@
    strip shows (dashboard.monthCount / monthDistanceKm) — so nobody discovers at
    the printer that they exported a different month than the one they were reading.
 
-   HELD: the three delivery actions are not wired yet. This module ships a
-   per-patrol GPX export (the detail screen), but the BULK log-as-CSV, the
-   tracks-as-GPX and the queued monthly PDF report each need a route this module
-   has not built. The card describes exactly what each will contain, on real
-   counts, and marks the actions as pending rather than drawing a dead button. #}
+   TWO OF THE THREE DELIVERIES ARE REAL. The log as CSV and the tracks as GPX are
+   one route in two formats (patrol_export), and both links carry the filter this
+   card is describing. The queued monthly PDF needs a report pipeline this module
+   does not have, so it is still marked pending rather than drawn as a dead
+   button. #}
 <div class="c">
     <span class="tab">Export &amp; reporting<span class="src">· carries the current filter</span></span>
-    <div class="use patrol-ao-lead">Filter in force: <b>all types · every station · {{ (month|default(now))|date('F Y')|lower }}</b> — <b>{{ dashboard.monthCount|number_format }} {{ dashboard.monthCount == 1 ? 'patrol' : 'patrols' }}</b>.</div>
+    <div class="use patrol-ao-lead">Filter in force: <b>{{ filter.type ? types[filter.type].label|default(filter.type)|lower : 'all types' }} · {{ filter.station ? dashboard.stations[filter.station]|default(filter.station) : 'every station' }} · {{ (month|default(now))|date('F Y')|lower }}</b> — <b>{{ dashboard.monthCount|number_format }} {{ dashboard.monthCount == 1 ? 'patrol' : 'patrols' }}</b>.</div>
 
     <div class="patrol-exp">
         <span class="patrol-exp-t">Patrol log · CSV<em>{{ dashboard.monthCount|number_format }} rows · the log’s own columns, in the log’s own order</em></span>
-        <span class="chip idle patrol-exp-soon">not wired yet</span>
+        <a class="open-btn" href="{{ path('patrol_export', {uuid: area.uuid, _format: 'csv'}|merge(filter.toQuery)) }}">Download →</a>
     </div>
     <div class="patrol-exp">
         <span class="patrol-exp-t">Tracks · GPX<em>{{ dashboard.monthDistanceKm|number_format }} km · one &lt;trk&gt; per patrol, ids preserved</em></span>
-        <span class="chip idle patrol-exp-soon">not wired yet</span>
+        <a class="open-btn" href="{{ path('patrol_export', {uuid: area.uuid, _format: 'gpx'}|merge(filter.toQuery)) }}">Download →</a>
     </div>
     <div class="patrol-exp">
         <span class="patrol-exp-t">Monthly coverage report · PDF<em>the map, the two charts and the coverage table · queued, arrives by email</em></span>
         <span class="chip idle patrol-exp-soon">not wired yet</span>
     </div>
-    <div class="patrol-stamp">Bulk export and the monthly report are not built yet — a single patrol’s track can be exported as GPX from its own page.</div>
+    <div class="patrol-stamp">Both files carry the filter above, unchanged. The monthly report is not built yet.</div>
 </div>

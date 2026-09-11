@@ -56,21 +56,7 @@ final class GpxWriter
     ): string {
         $points = $this->geo->lineCoordinates($lineString);
 
-        $xml = new \XMLWriter();
-        $xml->openMemory();
-        $xml->setIndent(true);
-        $xml->setIndentString('  ');
-        $xml->startDocument('1.0', 'UTF-8');
-
-        $xml->startElement('gpx');
-        $xml->writeAttribute('version', '1.1');
-        $xml->writeAttribute('creator', self::CREATOR);
-        $xml->writeAttribute('xmlns', self::NAMESPACE_URI);
-        $xml->writeAttribute('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance');
-        $xml->writeAttribute(
-            'xsi:schemaLocation',
-            self::NAMESPACE_URI.' http://www.topografix.com/GPX/1/1/gpx.xsd',
-        );
+        $xml = $this->open();
 
         // GPX 1.1 fixes the order of a <gpx> body: metadata, wpt*, rte*, trk*.
         $xml->startElement('metadata');
@@ -99,6 +85,51 @@ final class GpxWriter
             $xml->endElement();
         }
 
+        $this->track($xml, $name, $points, $description);
+
+        $xml->endElement(); // gpx
+        $xml->endDocument();
+
+        return $xml->outputMemory();
+    }
+
+    /**
+     * MANY PATROLS IN ONE FILE — the dashboard's bulk Tracks · GPX export.
+     *
+     * The same document as {@see self::write()} with one <trk> per patrol
+     * instead of one, which is exactly what GPX 1.1 allows (`trk*`) and what a
+     * reader expects of a bundle: the tracks stay told apart by their names
+     * rather than melted into a single line.
+     *
+     * A patrol with no recorded route is not in the list the caller passes —
+     * there is nothing honest to write for it.
+     *
+     * @param list<array{name: string, lineString: string, description: ?string}> $tracks
+     */
+    public function writeTracks(string $name, array $tracks, ?\DateTimeImmutable $recordedAt = null): string
+    {
+        $xml = $this->open();
+
+        $xml->startElement('metadata');
+        $xml->writeElement('name', $name);
+        if (null !== $recordedAt) {
+            $xml->writeElement('time', self::stamp($recordedAt));
+        }
+        $xml->endElement();
+
+        foreach ($tracks as $track) {
+            $this->track($xml, $track['name'], $this->geo->lineCoordinates($track['lineString']), $track['description']);
+        }
+
+        $xml->endElement(); // gpx
+        $xml->endDocument();
+
+        return $xml->outputMemory();
+    }
+
+    /** @param list<array{0: float, 1: float}> $points */
+    private function track(\XMLWriter $xml, string $name, array $points, ?string $description): void
+    {
         $xml->startElement('trk');
         $xml->writeElement('name', $name);
         if (null !== $description) {
@@ -113,11 +144,28 @@ final class GpxWriter
         }
         $xml->endElement(); // trkseg
         $xml->endElement(); // trk
+    }
 
-        $xml->endElement(); // gpx
-        $xml->endDocument();
+    /** An open <gpx> with the version, creator and schema every document wears. */
+    private function open(): \XMLWriter
+    {
+        $xml = new \XMLWriter();
+        $xml->openMemory();
+        $xml->setIndent(true);
+        $xml->setIndentString('  ');
+        $xml->startDocument('1.0', 'UTF-8');
 
-        return $xml->outputMemory();
+        $xml->startElement('gpx');
+        $xml->writeAttribute('version', '1.1');
+        $xml->writeAttribute('creator', self::CREATOR);
+        $xml->writeAttribute('xmlns', self::NAMESPACE_URI);
+        $xml->writeAttribute('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance');
+        $xml->writeAttribute(
+            'xsi:schemaLocation',
+            self::NAMESPACE_URI.' http://www.topografix.com/GPX/1/1/gpx.xsd',
+        );
+
+        return $xml;
     }
 
     /** UTC, to the second — what every GPX consumer expects in a <time>. */
