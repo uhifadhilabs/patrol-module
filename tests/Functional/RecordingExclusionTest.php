@@ -24,6 +24,7 @@ use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 
 /**
@@ -207,8 +208,8 @@ final class RecordingExclusionTest extends WebTestCase
             ? '{"type":"LineString","coordinates":[[12.45,-5.55],[12.48,-5.52]]}'
             : '{"type":"LineString","coordinates":[[12.25,-5.75],[12.30,-5.70]]}';
 
-        $patrol = new Patrol($this->area, 'walk')
-            ->setStation($station)
+        $patrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, $station))
             ->setLead($lead)
             ->setSource(PatrolSourceEnum::Api)
             ->setStatus($status)

@@ -24,6 +24,7 @@ use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 
 /**
  * The calendar's month fragment (PL·11 ‹ ›): one month of REAL day cells served
@@ -76,8 +77,8 @@ final class CalendarFragmentTest extends WebTestCase
         $this->em->persist($lead);
 
         // The month's BOUNDARIES: its very first and very last day.
-        $this->firstDay = new Patrol($this->area, 'walk')
-            ->setStation('North post')
+        $this->firstDay = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, 'North post'))
             ->setLead($lead)
             ->setStartedAt(new \DateTimeImmutable('2019-08-01 06:10'))
             ->setEndedAt(new \DateTimeImmutable('2019-08-01 09:40'))
@@ -85,8 +86,8 @@ final class CalendarFragmentTest extends WebTestCase
         $this->em->persist($this->firstDay);
         $this->em->persist(new Observation($this->firstDay, 'maintenance'));
 
-        $this->lastDay = new Patrol($this->area, 'boat')
-            ->setStation('South landing')
+        $this->lastDay = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'boat'))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, 'South landing'))
             ->setLead($lead)
             ->setStartedAt(new \DateTimeImmutable('2019-08-31 18:30'))
             ->setEndedAt(new \DateTimeImmutable('2019-08-31 20:00'))
@@ -95,25 +96,25 @@ final class CalendarFragmentTest extends WebTestCase
 
         // A HAND-LOGGED patrol (no GPX, no track): it is an ordinary calendar
         // item — the month is patrol effort, not GPX files.
-        $this->manual = new Patrol($this->area, 'walk')
+        $this->manual = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
             ->setSource(PatrolSourceEnum::Manual)
-            ->setStation('North post')
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, 'North post'))
             ->setStartedAt(new \DateTimeImmutable('2019-08-14 07:00'))
             ->setEndedAt(new \DateTimeImmutable('2019-08-14 11:15'));
         $this->em->persist($this->manual);
 
         // September's first days FALL INSIDE August's grid, in the dimmed
         // trailing cells the design draws — they belong there.
-        $this->trailing = new Patrol($this->area, 'walk')
+        $this->trailing = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
             ->setStartedAt(new \DateTimeImmutable('2019-09-03 06:00'));
         $this->em->persist($this->trailing);
 
         // A month the grid cannot reach at all, and another area's patrol in the
         // same month — neither may appear in this area's August grid.
-        $this->far = new Patrol($this->area, 'walk')
+        $this->far = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
             ->setStartedAt(new \DateTimeImmutable('2019-10-05 06:00'));
         $this->em->persist($this->far);
-        $this->em->persist(new Patrol($this->otherArea, 'walk')
+        $this->em->persist(new Patrol($this->otherArea, Vocabulary::type($this->em, $this->otherArea, 'walk'))
             ->setStartedAt(new \DateTimeImmutable('2019-08-14 06:00')));
 
         $this->em->flush();
@@ -238,8 +239,8 @@ final class CalendarFragmentTest extends WebTestCase
     {
         // Five patrols on one ordinary August day — past the cell's three-chip cap.
         for ($i = 0; $i < 5; ++$i) {
-            $this->em->persist(new Patrol($this->area, 'walk')
-                ->setStation('North post')
+            $this->em->persist(new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
+                ->setStationRecord(Vocabulary::station($this->em, $this->area, 'North post'))
                 ->setStartedAt(new \DateTimeImmutable(\sprintf('2019-08-15 %02d:00', 6 + $i))));
         }
         $this->em->flush();

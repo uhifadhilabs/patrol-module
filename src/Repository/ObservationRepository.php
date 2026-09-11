@@ -103,7 +103,7 @@ final class ObservationRepository extends ServiceEntityRepository
      * WHICH HOST ZONE EACH OBSERVATION FELL IN, for a page of rows at a time.
      *
      * An observation carries a point and no zone, exactly as a patrol carries a
-     * free-text station and no zone (docs/design-decisions.md §1). Zones are the
+     * station and no zone (docs/design-decisions.md §1). Zones are the
      * HOST's spatial lens and an org with none is the normal state, so the
      * module asks the one generic question it is allowed to ask — which polygon
      * contains this point — and names no zone of its own.

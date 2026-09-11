@@ -24,6 +24,7 @@ use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Entity\PatrolEvent;
 use Uhifadhi\Patrol\Enum\PatrolEventKindEnum;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 
 /**
@@ -268,8 +269,8 @@ final class DiscardedPresentationTest extends WebTestCase
 
     private function patrol(string $station, float $km): Patrol
     {
-        $patrol = new Patrol($this->area, 'walk')
-            ->setStation($station)
+        $patrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, $station))
             ->setLead($this->recorder)
             ->setSource(PatrolSourceEnum::Api)
             ->setStartedAt(new \DateTimeImmutable('today 06:10'))

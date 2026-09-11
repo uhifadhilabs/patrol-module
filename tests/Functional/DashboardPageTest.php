@@ -24,6 +24,7 @@ use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Entity\TaxonomyKind;
 use Uhifadhi\Patrol\Entity\TaxonomySubcategory;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 
 /**
@@ -64,8 +65,8 @@ final class DashboardPageTest extends WebTestCase
         $this->em->persist($lead);
 
         // Today's patrol: a recorded track and two en-route observations.
-        $this->walkWithObservations = new Patrol($this->area, 'walk')
-            ->setStation('North post')
+        $this->walkWithObservations = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, 'North post'))
             ->setLead($lead)
             ->setStartedAt(new \DateTimeImmutable('today 06:10'))
             ->setEndedAt(new \DateTimeImmutable('today 12:30'))
@@ -78,8 +79,8 @@ final class DashboardPageTest extends WebTestCase
 
         // A second walk, same day, so the type count is 2 and the calendar cell
         // carries two pills.
-        $secondWalk = new Patrol($this->area, 'walk')
-            ->setStation('North post')
+        $secondWalk = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, 'North post'))
             ->setLead($lead)
             ->setStartedAt(new \DateTimeImmutable('today 05:55'))
             ->setEndedAt(new \DateTimeImmutable('today 11:35'))
@@ -87,8 +88,8 @@ final class DashboardPageTest extends WebTestCase
         $this->em->persist($secondWalk);
 
         // A different type, a different station.
-        $this->boat = new Patrol($this->area, 'boat')
-            ->setStation('South landing')
+        $this->boat = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'boat'))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, 'South landing'))
             ->setLead($lead)
             ->setStartedAt(new \DateTimeImmutable('today 07:20'))
             ->setEndedAt(new \DateTimeImmutable('today 11:30'))
@@ -282,8 +283,8 @@ final class DashboardPageTest extends WebTestCase
         // Push this month well past the cards' cap of eight (3 already exist).
         $monthStart = new \DateTimeImmutable('first day of this month')->setTime(8, 0);
         for ($i = 0; $i < 10; ++$i) {
-            $this->em->persist(new Patrol($this->area, 'walk')
-                ->setStation('North post')
+            $this->em->persist(new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
+                ->setStationRecord(Vocabulary::station($this->em, $this->area, 'North post'))
                 ->setStartedAt($monthStart->modify(\sprintf('+%d minutes', $i))));
         }
         $this->em->flush();
@@ -373,13 +374,13 @@ final class DashboardPageTest extends WebTestCase
         );
         $this->em->persist($area);
 
-        $this->em->persist(new Patrol($area, 'walk')
-            ->setStation('This Month Post')
+        $this->em->persist(new Patrol($area, Vocabulary::type($this->em, $area, 'walk'))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, 'This Month Post'))
             ->setStartedAt(new \DateTimeImmutable('first day of this month 08:00'))
             ->setEndedAt(new \DateTimeImmutable('first day of this month 10:00'))
             ->setDistanceKm(5.0));
-        $this->em->persist(new Patrol($area, 'walk')
-            ->setStation('Last Month Post')
+        $this->em->persist(new Patrol($area, Vocabulary::type($this->em, $area, 'walk'))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, 'Last Month Post'))
             ->setStartedAt(new \DateTimeImmutable('first day of last month 08:00'))
             ->setEndedAt(new \DateTimeImmutable('first day of last month 10:00'))
             ->setDistanceKm(6.0));
@@ -426,8 +427,8 @@ final class DashboardPageTest extends WebTestCase
             '{"type":"MultiPolygon","coordinates":[[[[12.2,-5.8],[12.5,-5.8],[12.5,-5.5],[12.2,-5.5],[12.2,-5.8]]]]}',
         );
         $this->em->persist($bare);
-        $this->em->persist(new Patrol($bare, 'walk')
-            ->setStation('North post')
+        $this->em->persist(new Patrol($bare, Vocabulary::type($this->em, $bare, 'walk'))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, 'North post'))
             ->setStartedAt(new \DateTimeImmutable('today 06:10'))
             ->setDistanceKm(9.4));
         $this->em->flush();

@@ -25,6 +25,7 @@ use Uhifadhi\Bundle\AreaBundle\Overview\NowTileProviderInterface;
 use Uhifadhi\Bundle\AreaBundle\Overview\OverviewContributorInterface;
 use Uhifadhi\Bundle\AreaBundle\Overview\OverviewCopyProviderInterface;
 use Uhifadhi\Bundle\AreaBundle\Overview\PulseProviderInterface;
+use Uhifadhi\Bundle\AreaBundle\Repository\AreaOfInterestRepository;
 use Uhifadhi\Bundle\ShellBundle\Widget\Registry\WidgetSurfaceInterface;
 use Uhifadhi\Patrol\Api\PatrolApiContext;
 use Uhifadhi\Patrol\Api\State\AppendEventsProcessor;
@@ -34,6 +35,7 @@ use Uhifadhi\Patrol\Api\State\AppendTrackProcessor;
 use Uhifadhi\Patrol\Api\State\CompletePatrolProcessor;
 use Uhifadhi\Patrol\Api\State\CreatePatrolProcessor;
 use Uhifadhi\Patrol\Api\State\UploadPhotoProcessor;
+use Uhifadhi\Patrol\Api\State\VocabularyProvider;
 use Uhifadhi\Patrol\Command\PurgeDiscardedCommand;
 use Uhifadhi\Patrol\Controller\ObservationAmendmentController;
 use Uhifadhi\Patrol\Controller\PatrolHoldController;
@@ -58,6 +60,8 @@ use Uhifadhi\Patrol\Repository\ObservationPhotoRepository;
 use Uhifadhi\Patrol\Repository\ObservationRepository;
 use Uhifadhi\Patrol\Repository\PatrolEventRepository;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
+use Uhifadhi\Patrol\Repository\StationRepository;
 use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;
 use Uhifadhi\Patrol\Repository\TaxonomySubcategoryRepository;
 use Uhifadhi\Patrol\Repository\TrackBatchRepository;
@@ -71,6 +75,7 @@ use Uhifadhi\Patrol\Service\Api\PatrolUpsertService;
 use Uhifadhi\Patrol\Service\Api\PhotoSyncService;
 use Uhifadhi\Patrol\Service\Api\RangerResolver;
 use Uhifadhi\Patrol\Service\Api\TrackBatchService;
+use Uhifadhi\Patrol\Service\Api\VocabularySyncService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
 use Uhifadhi\Patrol\Service\PhotoThumbnailBackfillService;
 use Uhifadhi\Patrol\Storage\PatrolFileSource;
@@ -411,7 +416,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service('shell.widget.endpoint'),
                     service(TaxonomyKindRepository::class),
                     service('patrol.observation_kinds'),
-                    param('patrol.types'),
+                    service(PatrolTypeRepository::class),
                     param('patrol.discard_retention_days'),
                 ])
                 ->public();
@@ -422,13 +427,13 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service('twig'),
                     service('router'),
                     service('doctrine.orm.entity_manager'),
-                    service(PatrolRepository::class),
-                    service('patrol.dashboard'),
+                    service(PatrolTypeRepository::class),
+                    service(StationRepository::class),
+                    service('patrol.vocabulary'),
                     service('patrol.map'),
                     service('patrol.track_ingest'),
                     service('patrol.recording'),
                     service('security.authorization_checker'),
-                    param('patrol.types'),
                     param('patrol.gap_threshold_minutes'),
                 ])
                 ->public();
@@ -496,6 +501,9 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 ->args([
                     service('router'),
                     service('patrol.settings'),
+                    service('patrol.vocabulary'),
+                    service(PatrolTypeRepository::class),
+                    service(StationRepository::class),
                     service('security.authorization_checker'),
                     service('security.csrf.token_manager'),
                 ])
@@ -548,6 +556,9 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service('doctrine.orm.entity_manager'),
                     service(PatrolRepository::class),
                     service('patrol.api.ranger_resolver'),
+                    // The handset still sends a type and a station as WORDS;
+                    // this is what turns each into one of the area's records.
+                    service('patrol.vocabulary'),
                 ]);
 
             $services->set('patrol.api.track_batch', TrackBatchService::class)
@@ -572,6 +583,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 ->args([
                     service('doctrine.orm.entity_manager'),
                     service(PatrolEventRepository::class),
+                    service('patrol.vocabulary'),
                 ]);
 
             foreach ([
@@ -587,6 +599,27 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     ->args([service('patrol.api.context'), service($collaborator)])
                     ->tag('api_platform.state_processor');
             }
+
+            /*
+             * THE SYNC'S ONE READ — what an area lets a handset say. A PROVIDER
+             * rather than a processor, so it carries its own tag; everything
+             * else about it is the same, the permission included.
+             */
+            $services->set('patrol.api.vocabulary', VocabularySyncService::class)
+                ->args([
+                    service(AreaOfInterestRepository::class),
+                    service(PatrolTypeRepository::class),
+                    service(StationRepository::class),
+                    service(TaxonomyKindRepository::class),
+                ]);
+
+            $services->set(VocabularyProvider::class)
+                ->args([
+                    service('patrol.api.context'),
+                    service('request_stack'),
+                    service('patrol.api.vocabulary'),
+                ])
+                ->tag('api_platform.state_provider');
         }
 
         /*
@@ -646,6 +679,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 service('patrol.api.observation_sync'),
                 service('patrol.api.photo_sync'),
                 service('patrol.taxonomy_admin'),
+                service('patrol.vocabulary'),
                 param('patrol.types'),
                 param('patrol.observation_categories'),
             ])
@@ -716,24 +750,24 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 service(TrackPointRepository::class),
                 service(ObservationRepository::class),
                 service('router'),
-                param('patrol.types'),
+                service(PatrolTypeRepository::class),
                 param('patrol.observation_categories'),
             ]);
 
         $services->set('patrol.overview.contributor', PatrolOverviewContributor::class)
-            ->args([service('patrol.overview'), param('patrol.types')])
+            ->args([service('patrol.overview'), service(PatrolTypeRepository::class)])
             ->tag(OverviewContributorInterface::TAG);
 
         $services->set('patrol.overview.now_tiles', PatrolNowTiles::class)
-            ->args([service('patrol.overview'), param('patrol.types')])
+            ->args([service('patrol.overview')])
             ->tag(NowTileProviderInterface::TAG);
 
         $services->set('patrol.overview.attention', PatrolAttention::class)
-            ->args([service('patrol.overview'), param('patrol.types')])
+            ->args([service('patrol.overview')])
             ->tag(AttentionProviderInterface::TAG);
 
         $services->set('patrol.overview.map_layers', PatrolMapLayers::class)
-            ->args([service('patrol.overview'), service(PatrolRepository::class), param('patrol.types')])
+            ->args([service('patrol.overview'), service(PatrolRepository::class), service(PatrolTypeRepository::class)])
             ->tag(MapLayerProviderInterface::TAG);
 
         // THE MODULE'S WORDS INSIDE THE HOST'S SENTENCES. Not a widget and not a
@@ -748,7 +782,6 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 service(PatrolRepository::class),
                 service(ObservationRepository::class),
                 service('patrol.overview'),
-                param('patrol.types'),
                 param('patrol.observation_categories'),
             ])
             ->tag(PulseProviderInterface::TAG);

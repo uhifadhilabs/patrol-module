@@ -22,6 +22,7 @@ use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 
 /**
  * "Export GPX" on the patrol detail page: the recorded track back out as a
@@ -62,8 +63,8 @@ final class PatrolExportGpxTest extends WebTestCase
         );
         $this->em->persist($this->otherArea);
 
-        $this->patrol = new Patrol($this->area, 'walk')
-            ->setStation('North post')
+        $this->patrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, 'North post'))
             ->setStartedAt(new \DateTimeImmutable('2026-03-01T06:10:00+00:00'))
             ->setEndedAt(new \DateTimeImmutable('2026-03-01T12:30:00+00:00'))
             ->setSource(PatrolSourceEnum::Gpx)
@@ -84,7 +85,7 @@ final class PatrolExportGpxTest extends WebTestCase
                 ->setLoggedAt(new \DateTimeImmutable('2026-03-01T08:15:00+00:00')),
         );
 
-        $this->manualPatrol = new Patrol($this->area, 'boat')
+        $this->manualPatrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'boat'))
             ->setSource(PatrolSourceEnum::Manual)
             ->setStartedAt(new \DateTimeImmutable('2026-03-01T07:20:00+00:00'));
         $this->em->persist($this->manualPatrol);

@@ -17,6 +17,7 @@ use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\AreaBundle\Overview\MapLayer;
 use Uhifadhi\Bundle\AreaBundle\Overview\MapLayerProviderInterface;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
 
@@ -53,8 +54,9 @@ final readonly class PatrolMapLayers implements MapLayerProviderInterface
     public function __construct(
         private PatrolOverviewService $overview,
         private PatrolRepository $patrols,
-        /** @var array<string, array{label: string}> the deployment's patrol.types map */
-        private array $types,
+        // THE AREA'S OWN WORDS — the same list the module's own map is drawn
+        // from, so a track is the same colour on both.
+        private PatrolTypeRepository $types,
     ) {
     }
 
@@ -65,7 +67,7 @@ final readonly class PatrolMapLayers implements MapLayerProviderInterface
 
     public function mapLayersFor(AreaOfInterest $area, \DateTimeImmutable $now): array
     {
-        $colors = PatrolDashboardService::typeColors($this->types);
+        $colors = PatrolDashboardService::typeColors($this->types->findVocabularyByArea($area));
         $accent = PatrolDashboardService::TRACK_COLORS[0];
 
         return [
@@ -96,7 +98,7 @@ final readonly class PatrolMapLayers implements MapLayerProviderInterface
                 'ref' => $patrol->getRef(),
                 'station' => $patrol->getStation(),
                 'type' => $patrol->getType(),
-                'typeLabel' => $this->types[$patrol->getType()]['label'] ?? $patrol->getType(),
+                'typeLabel' => $patrol->getTypeLabel(),
                 'color' => $colors[$patrol->getType()] ?? $accent,
                 'stale' => $row['stale'],
                 'lastPing' => $row['pingLabel'],
@@ -157,7 +159,7 @@ final readonly class PatrolMapLayers implements MapLayerProviderInterface
                 'ref' => $patrol->getRef(),
                 'station' => $patrol->getStation(),
                 'type' => $patrol->getType(),
-                'typeLabel' => $this->types[$patrol->getType()]['label'] ?? $patrol->getType(),
+                'typeLabel' => $patrol->getTypeLabel(),
                 'color' => $colors[$patrol->getType()] ?? PatrolDashboardService::TRACK_COLORS[0],
                 'url' => $this->overview->patrolUrl($area, $patrol),
             ]);

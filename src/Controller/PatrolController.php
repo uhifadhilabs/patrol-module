@@ -19,7 +19,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
@@ -30,12 +29,14 @@ use Uhifadhi\Patrol\Entity\TaxonomyKind;
 use Uhifadhi\Patrol\Model\PatrolFilter;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;
 use Uhifadhi\Patrol\Service\PatrolCoverageService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolKindsService;
 use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
+use Uhifadhi\Patrol\Service\PatrolScreenAccessService;
 use Uhifadhi\Patrol\Widget\PatrolWidgets;
 
 /**
@@ -60,13 +61,9 @@ use Uhifadhi\Patrol\Widget\PatrolWidgets;
 final class PatrolController
 {
     /**
-     * @param array<string, array{label: string}> $types         the deployment's patrol.types vocabulary
-     * @param bool                                $recordScreens whether the recording screens EXIST in this installation (they need SecurityBundle) — a question about the installation, not about the viewer
-     * @param bool                                $widgetScreens whether the widget library exists in this installation (it needs SecurityBundle)
-     * @param bool                                $manageScreens whether the observation-taxonomy admin EXISTS in this installation (it needs SecurityBundle) — the viewer question is asked separately, in {@see self::mayManage()}
-     * @param TokenStorageInterface|null          $tokenStorage  null without security — the layout is then the shipped composition for everyone
-     * @param AuthorizationCheckerInterface|null  $authorization null without security — see {@see self::mayRecord()}
-     * @param int                                 $retentionDays patrol.discard_retention_days — the register row states each discarded patrol's removal date from it
+     * @param bool                       $widgetScreens whether the widget library exists in this installation (it needs SecurityBundle)
+     * @param TokenStorageInterface|null $tokenStorage  null without security — the layout is then the shipped composition for everyone
+     * @param int                        $retentionDays patrol.discard_retention_days — the register row states each discarded patrol's removal date from it
      */
     public function __construct(
         private readonly Environment $twig,
@@ -87,13 +84,16 @@ final class PatrolController
         // are worked out — the read-only kinds card reads both.
         private readonly TaxonomyKindRepository $kinds,
         private readonly PatrolKindsService $observationKinds,
-        private readonly array $types,
-        private readonly bool $recordScreens = false,
+        // THE AREA'S OWN PATROL TYPES — SET·01's list, which is what every chip,
+        // colour, chart and filter on this page is drawn from.
+        private readonly PatrolTypeRepository $patrolTypes,
+        // WHETHER TO DRAW A DOOR, asked in the one place that answers it. The
+        // dashboard used to carry its own copy of the two-question policy; two
+        // copies is one too many, and this is the copy.
+        private readonly PatrolScreenAccessService $screens,
         private readonly bool $widgetScreens = false,
-        private readonly bool $manageScreens = false,
         private readonly ?TokenStorageInterface $tokenStorage = null,
         private readonly int $retentionDays = PatrolConfiguration::DEFAULT_DISCARD_RETENTION_DAYS,
-        private readonly ?AuthorizationCheckerInterface $authorization = null,
     ) {
     }
 
@@ -121,9 +121,11 @@ final class PatrolController
         [$loadFrom, $loadUntil] = PatrolDashboardService::loadRange($monthStart, $now);
         $patrols = $this->patrols->findByAreaStartedBetweenLatestFirst($area, $loadFrom, $loadUntil);
 
+        $types = $this->patrolTypes->findVocabularyByArea($area);
+
         $dashboard = $this->dashboard->build(
             $patrols,
-            $this->types,
+            $types,
             $now,
             // PL·03 is the one month figure the loaded rows cannot answer: it is
             // a PostGIS set operation over the month's tracks, asked for exactly
@@ -144,8 +146,8 @@ final class PatrolController
 
         return new Response($this->twig->render('@UhifadhiPatrol/dashboard/show.html.twig', [
             'area' => $area,
-            'types' => $this->types,
-            'typeColor' => PatrolDashboardService::typeColors($this->types),
+            'types' => $types,
+            'typeColor' => PatrolDashboardService::typeColors($types),
             'now' => $now,
             // The month on screen — the filter's choice, so the bar can name it
             // and mark the chosen option, and the page can read one month.
@@ -156,8 +158,8 @@ final class PatrolController
             // patrol id → zone name: the log rows name the zone each patrol set
             // out in, which is what the ZONE options are chosen from.
             'patrolZones' => $patrolZones,
-            'recordScreens' => $this->mayRecord(),
-            'manageScreens' => $this->mayManage(),
+            'recordScreens' => $this->screens->mayRecord(),
+            'manageScreens' => $this->screens->mayManage(),
             'retentionDays' => $this->retentionDays,
             // The read-only kinds card: what a ranger may log here, and how
             // often each was logged this month. Editing is one click away in
@@ -177,9 +179,9 @@ final class PatrolController
             // What the coverage map draws — boundary + every recorded track this
             // month, each tagged with the zone it set out in.
             'map' => $this->plates->coverage(
-                $this->dashboard->coveragePayload($area->getGeom(), $dashboard, $this->types, $patrolZones),
-                $this->types,
-                PatrolDashboardService::typeColors($this->types),
+                $this->dashboard->coveragePayload($area->getGeom(), $dashboard, $types, $patrolZones),
+                $types,
+                PatrolDashboardService::typeColors($types),
                 // The ground the MONTH's routes covered — PL·03's own set
                 // operation, drawn. Not narrowed by the chips, exactly as the
                 // KPI beside it is not: the shape and the number are the same
@@ -192,48 +194,6 @@ final class PatrolController
             // observation queue. A dashboard that shows none of these still pays
             // for them, which is cheap; a preset that shows them must have them.
         ] + $this->overview->dashboardReading($area, $now)));
-    }
-
-    /**
-     * WHETHER TO OFFER THE TWO RECORDING SCREENS — and it is TWO questions, not
-     * one, which is the bug this method exists to fix.
-     *
-     * The first is about the INSTALLATION: the screens that create patrols are
-     * registered only where SecurityBundle is, so where it is absent there is no
-     * route to link at. That is `$this->recordScreens`, decided at compile time.
-     *
-     * The second is about THE VIEWER: both screens enforce `patrols.record` in
-     * code, so somebody without it who follows either link gets a 403. Asking
-     * only the first question meant every signed-in person was handed two doors,
-     * and the ones who could not open them found out by being refused.
-     *
-     * A CONTROL THE VIEWER MAY NOT HAVE IS ABSENT, never greyed out — the fleet's
-     * rule, and the stronger reading here: a disabled button tells a ranger a
-     * screen exists and they are not trusted with it, and a live link that fails
-     * tells them nothing until they have lost the click.
-     */
-    private function mayRecord(): bool
-    {
-        return $this->recordScreens
-            && null !== $this->authorization
-            && $this->authorization->isGranted(PatrolRecordController::RECORD_PERMISSION);
-    }
-
-    /**
-     * WHETHER TO OFFER THE OBSERVATION-TAXONOMY ADMIN — the same two questions as
-     * {@see self::mayRecord()}, and for the same reason.
-     *
-     * The admin's every route enforces `patrols.manage`, and the screen exists
-     * only where SecurityBundle can enforce it. So the door is drawn only where
-     * the route exists (`$this->manageScreens`, compile-time) AND the viewer
-     * holds the permission — never as a greyed control a manager-less ranger
-     * would click into a 403.
-     */
-    private function mayManage(): bool
-    {
-        return $this->manageScreens
-            && null !== $this->authorization
-            && $this->authorization->isGranted(PatrolTaxonomyController::MANAGE_PERMISSION);
     }
 
     /**

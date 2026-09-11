@@ -24,6 +24,7 @@ use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Service\PatrolVocabularyService;
 
 /**
  * `POST /api/patrols` — API-CONTRACT.md §4. The first part of every upload, and
@@ -41,6 +42,7 @@ final class PatrolUpsertService
         private readonly EntityManagerInterface $entityManager,
         private readonly PatrolRepository $patrols,
         private readonly RangerResolver $rangers,
+        private readonly PatrolVocabularyService $vocabulary,
     ) {
     }
 
@@ -65,21 +67,28 @@ final class PatrolUpsertService
         $area = $this->resolveArea(Payload::requiredString($data, 'areaId'));
 
         /*
-         * The type is stored verbatim, NOT validated against the deployment's
-         * configured vocabulary. Deliberate: the contract names no error code
-         * for an unknown type (unlike `unsupported_category`, which it does
-         * name), and refusing here would throw away a real patrol because a
-         * config file and an app build disagreed about a word. A stray key
-         * shows as itself in the UI; a discarded patrol is gone.
+         * THE WIRE IS STILL STRINGS, and it stays that way — the handset sends
+         * `type` and `stationId` as words, exactly as the contract writes them.
+         * What changed is what happens on this side of the door: each word is
+         * resolved to one of the AREA's own records.
+         *
+         * NEITHER IS EVER REFUSED. The contract names no error code for an
+         * unknown type and none for an unknown station (unlike
+         * `unsupported_category`, which it does name), and refusing would throw
+         * away a real patrol because a settings screen and an app build
+         * disagreed about a word — a stray word shows as itself on the page, a
+         * discarded patrol is gone. So an unheard-of word becomes a RETIRED
+         * record: the patrol is kept, and the disagreement is visible on SET·01
+         * or SET·03 for somebody to rename or reactivate.
          */
-        $patrol = new Patrol($area, Payload::requiredString($data, 'type'))
+        $patrol = new Patrol($area, $this->vocabulary->resolveType($area, Payload::requiredString($data, 'type')))
             ->setClientUuid($clientUuid)
             // Recording, not Complete: the parts are still arriving, and until
             // `complete` the module must not draw this patrol anywhere.
             ->setStatus(PatrolStatusEnum::Recording)
             ->setSource(PatrolSourceEnum::Api)
             ->setLead($recorder)
-            ->setStation(Payload::string($data, 'stationId'))
+            ->setStationRecord($this->vocabulary->resolveStation($area, Payload::string($data, 'stationId')))
             ->setStartedAt(Payload::timestamp($data, 'startedAt'))
             // Null is legal and meaningful: a live upload of a patrol still
             // under way (§4). It is not backfilled with "now".

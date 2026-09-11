@@ -21,6 +21,7 @@ use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Entity\PatrolEvent;
 use Uhifadhi\Patrol\Enum\PatrolEventKindEnum;
 use Uhifadhi\Patrol\Repository\PatrolEventRepository;
+use Uhifadhi\Patrol\Service\PatrolVocabularyService;
 
 /**
  * `POST /api/patrols/{uuid}/events` — API-CONTRACT.md §9A.
@@ -58,6 +59,10 @@ final class PatrolEventService
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly PatrolEventRepository $events,
+        // A `type_changed` event names a WORD; this is what turns it into one
+        // of the area's records — creating a retired one where the handset
+        // knows a word this area does not, never refusing the event.
+        private readonly PatrolVocabularyService $vocabulary,
     ) {
     }
 
@@ -135,7 +140,7 @@ final class PatrolEventService
 
         match ($event->getKind()) {
             PatrolEventKindEnum::Renamed => null === $subject ? null : $patrol->setName($subject),
-            PatrolEventKindEnum::TypeChanged => null === $subject ? null : $patrol->setType($subject),
+            PatrolEventKindEnum::TypeChanged => null === $subject ? null : $patrol->setPatrolType($this->vocabulary->resolveType($patrol->getArea(), $subject)),
             // The one kind whose value is not optional. A discard with no reason
             // is refused for the same reason it is refused on §4 and §9 — see
             // PatrolApiException::discardReasonRequired().

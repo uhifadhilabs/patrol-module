@@ -21,6 +21,7 @@ use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 
 /**
  * THE FILE-AS-INCIDENT LINK CARRIES THE REAL PLACE.
@@ -77,8 +78,8 @@ final class ObservationFileAsIncidentTest extends WebTestCase
         );
         $this->em->persist($this->area);
 
-        $this->patrol = new Patrol($this->area, 'walk')
-            ->setStation('north gate')
+        $this->patrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, 'north gate'))
             ->setStartedAt(new \DateTimeImmutable('today 06:10'))
             ->setEndedAt(new \DateTimeImmutable('today 12:30'))
             ->setSource(PatrolSourceEnum::Manual);

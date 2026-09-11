@@ -14,9 +14,12 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Tests\Functional;
 
 use Symfony\Component\Routing\RouterInterface;
+use Uhifadhi\Patrol\Entity\Station;
+use Uhifadhi\Patrol\Repository\StationRepository;
+use Uhifadhi\Patrol\Service\PatrolVocabularyService;
 
 /**
- * THE WIRE IS FROZEN — the seven addresses, the four documents and the statuses,
+ * THE WIRE IS FROZEN — the eight addresses, the five documents and the statuses,
  * held as literals so nothing can change them by accident.
  *
  * There is a field application already built and already on handsets. It reads
@@ -44,7 +47,7 @@ final class FieldSyncWireContractTest extends FieldSyncTestCase
      * new endpoint and a route missing is one the app can no longer reach, so
      * the set is compared whole rather than searched.
      */
-    public function testTheSevenAddressesAreExactlyTheseWithTheseMethods(): void
+    public function testTheEightAddressesAreExactlyTheseWithTheseMethods(): void
     {
         $router = static::getContainer()->get('router');
         self::assertInstanceOf(RouterInterface::class, $router);
@@ -64,6 +67,9 @@ final class FieldSyncWireContractTest extends FieldSyncTestCase
         sort($found);
 
         self::assertSame([
+            // The sync's one READ: what an area lets a handset say. Everything
+            // else here is the handset handing work in.
+            'GET /api/patrols/vocabulary',
             'POST /api/observations/{uuid}/photos',
             'POST /api/patrols',
             'POST /api/patrols/{uuid}/complete',
@@ -72,6 +78,112 @@ final class FieldSyncWireContractTest extends FieldSyncTestCase
             'POST /api/patrols/{uuid}/observations',
             'POST /api/patrols/{uuid}/track',
         ], $found);
+    }
+
+    /**
+     * THE VOCABULARY DOCUMENT — the read the handset replaces its compiled-in
+     * lists with. Every row carries the five fields a delta sync needs: the
+     * stable key it sends back, the label it prints, whether the word is still
+     * offered, the order to draw it in, and when it last changed.
+     */
+    public function testTheVocabularyDocumentCarriesKeysLabelsActivePositionAndUpdatedAt(): void
+    {
+        $this->actingAs($this->recorder);
+        $this->vocabulary()->addStation($this->area, 'River Post');
+        $retired = $this->vocabulary()->addType($this->area, 'Horseback');
+        $this->vocabulary()->retireType($retired);
+
+        $this->client->request('GET', '/api/patrols/vocabulary?areaId='.$this->area->getUuidString(), server: $this->apiHeaders());
+
+        self::assertResponseIsSuccessful();
+        $document = $this->payload();
+        self::assertSame(
+            ['areaId', 'generatedAt', 'observationKinds', 'patrolTypes', 'stations'],
+            self::sortedKeys($document),
+        );
+        self::assertSame($this->area->getUuidString(), $document['areaId']);
+
+        self::assertIsArray($document['patrolTypes']);
+        $horseback = null;
+        foreach ($document['patrolTypes'] as $type) {
+            self::assertIsArray($type);
+            self::assertSame(['active', 'key', 'label', 'position', 'updatedAt'], self::sortedKeys($type));
+            if ('horseback' === $type['key']) {
+                $horseback = $type;
+            }
+        }
+        // A RETIRED WORD IS SENT, NOT WITHHELD: a handset holding a patrol filed
+        // under it still has to be able to print it.
+        self::assertIsArray($horseback);
+        self::assertFalse($horseback['active']);
+
+        self::assertIsArray($document['stations']);
+        self::assertNotSame([], $document['stations']);
+        $station = $document['stations'][0];
+        self::assertIsArray($station);
+        self::assertSame(['active', 'key', 'label', 'point', 'position', 'updatedAt'], self::sortedKeys($station));
+        self::assertSame('river-post', $station['key']);
+        self::assertSame('River Post', $station['label']);
+    }
+
+    /** Nothing has changed since a moment in the future, and the answer says so. */
+    public function testASinceInTheFutureAnswersAnEmptyDelta(): void
+    {
+        $this->actingAs($this->recorder);
+        $this->vocabulary()->addStation($this->area, 'River Post');
+
+        $this->client->request(
+            'GET',
+            '/api/patrols/vocabulary?areaId='.$this->area->getUuidString().'&since=2099-01-01T00:00:00Z',
+            server: $this->apiHeaders(),
+        );
+
+        self::assertResponseIsSuccessful();
+        $document = $this->payload();
+        self::assertSame([], $document['patrolTypes']);
+        self::assertSame([], $document['stations']);
+    }
+
+    /**
+     * AN UNKNOWN STATION IS NEVER A REFUSAL. The contract names no error code for
+     * one, so a word this area has not heard of becomes a RETIRED record and the
+     * patrol is kept — the disagreement between a settings screen and an app
+     * build is made visible on SET·03 rather than paid for with a lost patrol.
+     */
+    public function testAStationTheAreaHasNeverHeardOfIsAcceptedAndArrivesRetired(): void
+    {
+        $this->actingAs($this->recorder);
+
+        $this->createPatrol(['stationId' => 'somewhere-nobody-configured']);
+
+        self::assertResponseStatusCodeSame(201);
+
+        $stations = static::getContainer()->get('test_public.'.StationRepository::class);
+        self::assertInstanceOf(StationRepository::class, $stations);
+        $station = $stations->findOneByAreaAndKey($this->area, 'somewhere-nobody-configured');
+        self::assertInstanceOf(Station::class, $station);
+        self::assertFalse($station->isActive(), 'A word nobody configured arrives retired, so it is seen and settled.');
+    }
+
+    private function vocabulary(): PatrolVocabularyService
+    {
+        $vocabulary = static::getContainer()->get('test_public.'.PatrolVocabularyService::class);
+        self::assertInstanceOf(PatrolVocabularyService::class, $vocabulary);
+
+        return $vocabulary;
+    }
+
+    /**
+     * @param array<mixed> $document
+     *
+     * @return list<string>
+     */
+    private static function sortedKeys(array $document): array
+    {
+        $keys = array_map(static fn (int|string $key): string => (string) $key, array_keys($document));
+        sort($keys);
+
+        return $keys;
     }
 
     /**

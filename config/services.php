@@ -20,6 +20,7 @@ use Uhifadhi\Contracts\Shell\ModuleTabsInterface;
 use Uhifadhi\Patrol\Controller\PatrolCalendarController;
 use Uhifadhi\Patrol\Controller\PatrolController;
 use Uhifadhi\Patrol\Controller\PatrolDetailController;
+use Uhifadhi\Patrol\Controller\PatrolExportController;
 use Uhifadhi\Patrol\Controller\PatrolListController;
 use Uhifadhi\Patrol\Repository\FlightRepository;
 use Uhifadhi\Patrol\Repository\LaunchPointRepository;
@@ -29,6 +30,8 @@ use Uhifadhi\Patrol\Repository\ObservationRepository;
 use Uhifadhi\Patrol\Repository\PatrolEventRepository;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Repository\PatrolSettingsRepository;
+use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
+use Uhifadhi\Patrol\Repository\StationRepository;
 use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;
 use Uhifadhi\Patrol\Repository\TaxonomySubcategoryRepository;
 use Uhifadhi\Patrol\Repository\TrackBatchRepository;
@@ -46,6 +49,7 @@ use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolRecordingService;
 use Uhifadhi\Patrol\Service\PatrolScreenAccessService;
 use Uhifadhi\Patrol\Service\PatrolSettingsService;
+use Uhifadhi\Patrol\Service\PatrolVocabularyService;
 use Uhifadhi\Patrol\Service\PatrolWidgetUrls;
 use Uhifadhi\Patrol\Service\TaxonomyAdminService;
 use Uhifadhi\Patrol\Service\TrackIngestService;
@@ -217,6 +221,32 @@ return static function (ContainerConfigurator $container): void {
         ->args([service('doctrine')])
         ->tag('doctrine.repository_service');
 
+    // The two word-lists an area owns — SET·01 and SET·03.
+    $services->set(PatrolTypeRepository::class)
+        ->args([service('doctrine')])
+        ->tag('doctrine.repository_service');
+    $services->set(StationRepository::class)
+        ->args([service('doctrine')])
+        ->tag('doctrine.repository_service');
+
+    /*
+     * ADD, RENAME, RETIRE, REACTIVATE — for both of the area's word-lists.
+     * Unconditional for the reason 'patrol.taxonomy_admin' is: it is pure domain
+     * logic with no security of its own, and only the CONTROLLER that fronts it
+     * lives inside the SecurityBundle guard. The handset sync reaches it too,
+     * and that door has no firewall of this kind.
+     *
+     * The installation's `patrol.types` reaches it as the SEED a NEW area starts
+     * from, and as nothing else — see PatrolVocabularyService::seedTypes().
+     */
+    $services->set('patrol.vocabulary', PatrolVocabularyService::class)
+        ->args([
+            service('doctrine.orm.entity_manager'),
+            service(PatrolTypeRepository::class),
+            service(StationRepository::class),
+            param('patrol.types'),
+        ]);
+
     /*
      * THE AREA-SCOPED OBSERVATION-TAXONOMY ADMIN's logic. Registered
      * unconditionally — it is pure domain logic (create/rename/retire kinds and
@@ -254,6 +284,7 @@ return static function (ContainerConfigurator $container): void {
         ->args([
             param('patrol.record_screens'),
             service('security.authorization_checker')->nullOnInvalid(),
+            param('patrol.manage_screens'),
         ]);
 
     /*
@@ -287,10 +318,11 @@ return static function (ContainerConfigurator $container): void {
             service('request_stack'),
             service(AreaOfInterestRepository::class),
             service('patrol.settings'),
-            service(PatrolRepository::class),
+            service(PatrolTypeRepository::class),
+            service(StationRepository::class),
+            service('patrol.vocabulary'),
             service(TaxonomyKindRepository::class),
             service('security.csrf.token_manager')->nullOnInvalid(),
-            param('patrol.types'),
         ])
         ->tag(ConfigurationSectionsInterface::TAG);
 
@@ -331,25 +363,35 @@ return static function (ContainerConfigurator $container): void {
             service('shell.widget.service'),
             service(TaxonomyKindRepository::class),
             service('patrol.observation_kinds'),
-            param('patrol.types'),
-            param('patrol.record_screens'),
+            service(PatrolTypeRepository::class),
+            // Whether to draw a door — both questions, in the one place that
+            // answers them for every screen of this module.
+            service('patrol.screen_access'),
             param('patrol.widget_screens'),
-            param('patrol.manage_screens'),
             // Null where the installation runs no security: nobody is signed
             // in, so the dashboard renders the shipped composition for everyone.
             service('security.token_storage')->nullOnInvalid(),
             param('patrol.discard_retention_days'),
-            // Whether THIS VIEWER may record — a different question from whether
-            // the recording screens exist, and the dashboard has to ask both
-            // before it offers a door. Null under the same condition as the
-            // token storage, and the answer is then "no door", which is right:
-            // an installation with no authorization checker cannot enforce
-            // patrols.record either, so the recording routes do not exist.
-            service('security.authorization_checker')->nullOnInvalid(),
         ])
         ->public();
 
     $services->alias(PatrolController::class, 'patrol.controller.dashboard')->public();
+
+    /*
+     * THE DESIGN'S `Export` PAGE ACTION — the filtered log as CSV, the filtered
+     * tracks as GPX. Registered beside the dashboard and the list rather than
+     * behind the SecurityBundle guard, and for the same reason those two are: it
+     * READS what the page already shows, so it must exist wherever the page does.
+     */
+    $services->set('patrol.controller.export', PatrolExportController::class)
+        ->args([
+            service(PatrolRepository::class),
+            service('patrol.list'),
+            service('patrol.gpx_writer'),
+        ])
+        ->public();
+
+    $services->alias(PatrolExportController::class, 'patrol.controller.export')->public();
 
     $services->set('patrol.controller.list', PatrolListController::class)
         ->args([
@@ -357,7 +399,7 @@ return static function (ContainerConfigurator $container): void {
             service(PatrolRepository::class),
             service('patrol.list'),
             service('patrol.screen_access'),
-            param('patrol.types'),
+            service(PatrolTypeRepository::class),
             param('patrol.discard_retention_days'),
         ])
         ->public();
@@ -376,7 +418,7 @@ return static function (ContainerConfigurator $container): void {
             service('twig'),
             service(PatrolRepository::class),
             service('patrol.dashboard'),
-            param('patrol.types'),
+            service(PatrolTypeRepository::class),
         ])
         ->public();
 
@@ -395,7 +437,7 @@ return static function (ContainerConfigurator $container): void {
             // including on a host that runs no security and can therefore never
             // append one.
             service(ObservationAmendmentRepository::class),
-            param('patrol.types'),
+            service(PatrolTypeRepository::class),
             param('patrol.observation_categories'),
             param('patrol.discard_retention_days'),
             // Null where the host runs no security: the hold action then exists

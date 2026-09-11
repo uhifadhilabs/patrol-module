@@ -20,6 +20,7 @@ use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Storage\Service\EvidenceKey;
 
 /**
@@ -106,7 +107,7 @@ final class PhotoEvidenceKeyTest extends TestCase
     private function observation(?string $patrolClientUuid): Observation
     {
         $area = new AreaOfInterest()->setSource('test fixture')->setName('demo reserve');
-        $patrol = new Patrol($area, 'walk');
+        $patrol = new Patrol($area, Vocabulary::type(null, $area, 'walk'));
         if (null !== $patrolClientUuid) {
             $patrol->setClientUuid(Uuid::fromString($patrolClientUuid));
         }

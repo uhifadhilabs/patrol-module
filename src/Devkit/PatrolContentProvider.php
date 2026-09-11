@@ -29,6 +29,7 @@ use Uhifadhi\Patrol\Service\Api\ObservationSyncService;
 use Uhifadhi\Patrol\Service\Api\PhotoSyncService;
 use Uhifadhi\Patrol\Service\GeoService;
 use Uhifadhi\Patrol\Service\PatrolRecordingService;
+use Uhifadhi\Patrol\Service\PatrolVocabularyService;
 use Uhifadhi\Patrol\Service\TaxonomyAdminService;
 use Uhifadhi\Patrol\Service\TrackIngestService;
 
@@ -149,6 +150,7 @@ final readonly class PatrolContentProvider implements ContentProviderInterface
         private ObservationSyncService $observationSync,
         private PhotoSyncService $photoSync,
         private TaxonomyAdminService $taxonomy,
+        private PatrolVocabularyService $vocabulary,
         private array $types,
         private array $categories,
     ) {
@@ -204,10 +206,28 @@ final readonly class PatrolContentProvider implements ContentProviderInterface
             $this->geo,
             $this->boundaryRings($area),
             $this->samplePoints($area),
-            $this->vocabulary($this->types, 'foot'),
-            $this->vocabulary($this->categories, 'wildlife'),
+            $this->configuredWords($this->types, 'foot'),
+            $this->configuredWords($this->categories, 'wildlife'),
             new \DateTimeImmutable(),
         );
+
+        // THE DEMO'S WORDS BECOME THE AREA'S WORDS, seeded once: the
+        // installation's configured types, and the posts this month's patrols
+        // set out from. Both arrive ACTIVE — they are the area's vocabulary,
+        // not strays off a handset — and a second run finds them already there.
+        $this->vocabulary->seedTypes($area);
+        $stations = [];
+        foreach ($month->stations() as $post) {
+            $station = $this->vocabulary->seedStations($area, [$post['name']])[0];
+            // The demo knows where each post stands, so the coverage map draws
+            // its marker there rather than guessing from a patrol's first fix.
+            $station->setPoint(json_encode(
+                ['type' => 'Point', 'coordinates' => [$post['lon'], $post['lat']]],
+                \JSON_THROW_ON_ERROR,
+            ));
+            $stations[$post['name']] = $station;
+        }
+        $this->entityManager->flush();
 
         $roster = $this->roster();
         $recorder = $roster[0] ?? null;
@@ -220,10 +240,10 @@ final readonly class PatrolContentProvider implements ContentProviderInterface
                 $patrol = null === $plan['gpx']
                     ? $this->recording->record(
                         $area,
-                        $plan['type'],
+                        $this->vocabulary->resolveType($area, $plan['type']),
                         $plan['startedAt'],
                         $plan['endedAt'],
-                        $plan['station'],
+                        $stations[$plan['station']] ?? null,
                         $lead,
                         $plan['team'],
                         $plan['note'],
@@ -232,9 +252,9 @@ final readonly class PatrolContentProvider implements ContentProviderInterface
                     : $this->ingest->ingest(
                         $plan['gpx'],
                         $area,
-                        $plan['type'],
+                        $this->vocabulary->resolveType($area, $plan['type']),
                         PatrolSourceEnum::Gpx,
-                        $plan['station'],
+                        $stations[$plan['station']] ?? null,
                         $lead,
                         $plan['team'],
                         $plan['note'],
@@ -378,7 +398,7 @@ final readonly class PatrolContentProvider implements ContentProviderInterface
      *
      * @return non-empty-list<string>
      */
-    private function vocabulary(array $configured, string $fallback): array
+    private function configuredWords(array $configured, string $fallback): array
     {
         $keys = array_keys($configured);
 

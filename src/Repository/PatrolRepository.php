@@ -146,10 +146,11 @@ final class PatrolRepository extends ServiceEntityRepository
      * THE ZONE EACH PATROL SET OUT IN — the spatial join that gives the dashboard
      * its ZONE filter without a stored zone field on the patrol.
      *
-     * A patrol carries a free-text station and NO zone (docs/design-decisions.md
-     * §1); the host owns the zone polygons ({@see Zone}). So "which zone is this
-     * patrol in" is a spatial question, answered here against the geometry rather
-     * than guessed from the station name — the same reasoning
+     * A patrol names the station it set off from and NO zone
+     * (docs/design-decisions.md §1); the host owns the zone polygons
+     * ({@see Zone}). So "which zone is this patrol in" is a spatial question,
+     * answered here against the geometry rather than guessed from the station —
+     * the same reasoning
      * {@see self::zoneAbsenceForArea()} states for measuring absence from tracks
      * and not from station names.
      *
@@ -256,30 +257,6 @@ final class PatrolRepository extends ServiceEntityRepository
             ->getResult();
 
         return $patrols;
-    }
-
-    /**
-     * EVERY STATION THIS AREA HAS EVER SET OFF FROM, alphabetically. A station
-     * is still free text on a patrol rather than a record the area keeps, so the
-     * list of them is read back out of the patrols that named one — which is
-     * exactly what the Settings section has to show, and exactly what makes the
-     * case for giving a station a record of its own.
-     *
-     * @return list<string>
-     */
-    public function findStationNamesByArea(AreaOfInterest $area): array
-    {
-        /** @var list<array{station: string}> $rows */
-        $rows = $this->createQueryBuilder('p')
-            ->select('DISTINCT p.station AS station')
-            ->andWhere('p.area = :area')->setParameter('area', $area)
-            ->andWhere('p.station IS NOT NULL')
-            ->andWhere("p.station <> ''")
-            ->orderBy('p.station', 'ASC')
-            ->getQuery()
-            ->getResult();
-
-        return array_map(static fn (array $row): string => $row['station'], $rows);
     }
 
     /**
@@ -587,8 +564,8 @@ final class PatrolRepository extends ServiceEntityRepository
      *
      * ABSENCE, NOT ACTIVITY, and measured from the last track that entered the
      * zone rather than from the last patrol that NAMED one. A patrol carries a
-     * free-text station and no zone at all (docs/design-decisions.md §1), so a
-     * station's name is not evidence anybody crossed a particular polygon;
+     * station and no zone at all (docs/design-decisions.md §1), so a station's
+     * name is not evidence anybody crossed a particular polygon;
      * ST_Intersects against the host's zone geometry is. This is the module
      * asking the one generic spatial question it is allowed to ask of the host's
      * lens — it names no zone and stores none.

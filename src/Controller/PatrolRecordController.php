@@ -29,14 +29,17 @@ use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
 use Uhifadhi\Contracts\Entity\UserInterface;
+use Uhifadhi\Patrol\Entity\PatrolType;
+use Uhifadhi\Patrol\Entity\Station;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Exception\InvalidGpxException;
 use Uhifadhi\Patrol\Exception\InvalidPatrolTimesException;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
-use Uhifadhi\Patrol\Repository\PatrolRepository;
-use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
+use Uhifadhi\Patrol\Repository\StationRepository;
 use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolRecordingService;
+use Uhifadhi\Patrol\Service\PatrolVocabularyService;
 use Uhifadhi\Patrol\Service\TrackIngestService;
 
 /**
@@ -79,20 +82,17 @@ final class PatrolRecordController
      */
     public const string RECORD_PERMISSION = 'patrols.record';
 
-    /**
-     * @param array<string, array{label: string}> $types the deployment's patrol.types vocabulary
-     */
     public function __construct(
         private readonly Environment $twig,
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly EntityManagerInterface $entityManager,
-        private readonly PatrolRepository $patrols,
-        private readonly PatrolDashboardService $dashboard,
+        private readonly PatrolTypeRepository $types,
+        private readonly StationRepository $stations,
+        private readonly PatrolVocabularyService $vocabulary,
         private readonly PatrolMapService $plates,
         private readonly TrackIngestService $ingest,
         private readonly PatrolRecordingService $recording,
         private readonly AuthorizationCheckerInterface $authorizationChecker,
-        private readonly array $types,
         private readonly float $gapThresholdMinutes,
     ) {
     }
@@ -154,16 +154,17 @@ final class PatrolRecordController
             // A parsed track means the XML above is readable — confirming saves
             // exactly the bytes that were previewed.
             if (null !== $track && $request->request->has('confirm')) {
-                if (!isset($this->types[$form['type']])) {
+                $type = $this->chosenType($area, $form['type']);
+                if (!$type instanceof PatrolType) {
                     $error = 'Choose a patrol type.';
                     $status = Response::HTTP_UNPROCESSABLE_ENTITY;
                 } else {
                     $patrol = $this->ingest->ingest(
                         $gpxXml,
                         $area,
-                        $form['type'],
+                        $type,
                         PatrolSourceEnum::Gpx,
-                        $form['station'],
+                        $this->chosenStation($area, $form['station']),
                         $this->lead($form['lead']),
                         $form['team'],
                         $form['note'],
@@ -181,8 +182,8 @@ final class PatrolRecordController
         return new Response(
             $this->twig->render('@UhifadhiPatrol/import/show.html.twig', [
                 'area' => $area,
-                'types' => $this->types,
-                'stations' => $this->stations($area),
+                'types' => $this->offeredTypes($area),
+                'stations' => $this->stations->findByAreaActive($area),
                 'users' => $this->users(),
                 'form' => $form,
                 'track' => $track,
@@ -232,7 +233,8 @@ final class PatrolRecordController
             // What the FORM can answer for: a word the deployment does not use,
             // and a field left blank. Whether the two times make a patrol is the
             // record's own rule and is settled by the service.
-            if (!isset($this->types[$form['type']])) {
+            $type = $this->chosenType($area, $form['type']);
+            if (!$type instanceof PatrolType) {
                 $error = 'Choose a patrol type.';
             } elseif (null === $startedAt) {
                 $error = 'A patrol needs the time it started.';
@@ -243,10 +245,10 @@ final class PatrolRecordController
                 try {
                     $patrol = $this->recording->record(
                         $area,
-                        $form['type'],
+                        $type,
                         $startedAt,
                         $endedAt,
-                        $form['station'],
+                        $this->chosenStation($area, $form['station']),
                         $this->lead($form['lead']),
                         $form['team'],
                         $form['note'],
@@ -273,8 +275,8 @@ final class PatrolRecordController
                 // A sketched route is not recorded geometry, so the plate has
                 // the area and nothing else on it.
                 'map' => $this->plates->track(['boundary' => $area->getGeom(), 'track' => null]),
-                'types' => $this->types,
-                'stations' => $this->stations($area),
+                'types' => $this->offeredTypes($area),
+                'stations' => $this->stations->findByAreaActive($area),
                 'users' => $this->users(),
                 'form' => $form,
                 'error' => $error,
@@ -356,18 +358,42 @@ final class PatrolRecordController
     }
 
     /**
-     * The stations already recorded in this area, ranked — the same list the
-     * dashboard's station menu offers, computed the same way.
+     * The types this area offers a ranger — its own, retired ones left out.
      *
-     * @return list<string>
+     * An area nobody has configured yet is SEEDED from the installation's
+     * `patrol.types` on the way in, which is the one thing that configuration
+     * is still for: without it a brand-new area's log form would offer no type
+     * at all and a patrol could not be recorded until somebody visited Settings.
+     *
+     * @return list<PatrolType>
      */
-    private function stations(AreaOfInterest $area): array
+    private function offeredTypes(AreaOfInterest $area): array
     {
-        return $this->dashboard->build(
-            $this->patrols->findByAreaLatestFirst($area),
-            $this->types,
-            new \DateTimeImmutable(),
-        )->stations;
+        $this->vocabulary->seedTypes($area);
+
+        return $this->types->findByAreaActive($area);
+    }
+
+    /** The type the form chose, or null when it chose one this area does not offer. */
+    private function chosenType(AreaOfInterest $area, string $key): ?PatrolType
+    {
+        foreach ($this->offeredTypes($area) as $type) {
+            if ($type->getKey() === $key) {
+                return $type;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The station the form chose. A blank is a real answer, and a key this area
+     * does not offer is treated as one: the chips only ever submit a live key,
+     * so anything else is a stale form rather than somebody's intent.
+     */
+    private function chosenStation(AreaOfInterest $area, ?string $key): ?Station
+    {
+        return null === $key ? null : $this->stations->findOneByAreaAndKey($area, $key);
     }
 
     /** No-op when the request has no session (stateless calls). */

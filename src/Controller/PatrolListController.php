@@ -24,6 +24,7 @@ use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
 use Uhifadhi\Patrol\Model\PatrolFilter;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolListService;
 use Uhifadhi\Patrol\Service\PatrolScreenAccessService;
@@ -48,15 +49,12 @@ use Uhifadhi\Patrol\Service\PatrolScreenAccessService;
 #[Route(defaults: [RegistryBundle::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final readonly class PatrolListController
 {
-    /**
-     * @param array<string, array{label: string}> $types the deployment's patrol.types vocabulary
-     */
     public function __construct(
         private Environment $twig,
         private PatrolRepository $patrols,
         private PatrolListService $list,
         private PatrolScreenAccessService $screens,
-        private array $types,
+        private PatrolTypeRepository $types,
         private int $retentionDays,
     ) {
     }
@@ -69,11 +67,14 @@ final readonly class PatrolListController
         $now = new \DateTimeImmutable();
         $filter = PatrolFilter::fromRequest($request, $now);
         [$monthStart, $nextMonth] = $filter->window();
+        // THE AREA'S OWN WORDS, not the installation's — the list of types a
+        // filter menu offers and a row is labelled from is the one SET·01 edits.
+        $types = $this->types->findVocabularyByArea($area);
 
         return new Response($this->twig->render('@UhifadhiPatrol/list/show.html.twig', [
             'area' => $area,
-            'types' => $this->types,
-            'typeColor' => PatrolDashboardService::typeColors($this->types),
+            'types' => $types,
+            'typeColor' => PatrolDashboardService::typeColors($types),
             'now' => $now,
             'month' => $monthStart,
             'filter' => $filter,
@@ -87,7 +88,7 @@ final readonly class PatrolListController
                 // the dashboard reads, so the zone a row names here and the zone
                 // the map draws it under are one answer.
                 $this->patrols->zonesForPatrols($area, $monthStart, $nextMonth),
-                $this->types,
+                $types,
                 $filter,
                 // Untrusted like every query field: an unreadable page is the
                 // first one, and the service clamps a page past the end.

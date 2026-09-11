@@ -23,6 +23,7 @@ use Uhifadhi\Bundle\ShellBundle\Widget\Model\WidgetDom;
 use Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetEndpoint;
 use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Widget\PatrolWidgets;
 
 /**
@@ -69,8 +70,8 @@ final class WidgetLibraryFlowTest extends WebTestCase
         $this->em->persist($this->ranger);
 
         // One real patrol so the previews render live rows, not empty states.
-        $this->em->persist(new Patrol($this->area, 'walk')
-            ->setStation('North post')
+        $this->em->persist(new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, 'North post'))
             ->setLead($this->ranger)
             ->setStartedAt(new \DateTimeImmutable('today 06:10'))
             ->setEndedAt(new \DateTimeImmutable('today 12:30'))

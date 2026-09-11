@@ -32,6 +32,7 @@ use Uhifadhi\Patrol\Entity\TaxonomyKind;
 use Uhifadhi\Patrol\Model\PatrolFilter;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;
 use Uhifadhi\Patrol\Service\PatrolCoverageService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
@@ -69,8 +70,7 @@ use Uhifadhi\Patrol\Widget\PatrolWidgets;
 final class PatrolWidgetsController
 {
     /**
-     * @param array<string, array{label: string}> $types         the deployment's patrol.types vocabulary
-     * @param int                                 $retentionDays patrol.discard_retention_days — the previewed log widget is the REAL one, and states removal dates from the same number
+     * @param int $retentionDays patrol.discard_retention_days — the previewed log widget is the REAL one, and states removal dates from the same number
      */
     public function __construct(
         private readonly Environment $twig,
@@ -88,7 +88,7 @@ final class PatrolWidgetsController
         private readonly WidgetEndpoint $endpoint,
         private readonly TaxonomyKindRepository $kinds,
         private readonly PatrolKindsService $observationKinds,
-        private readonly array $types,
+        private readonly PatrolTypeRepository $types,
         private readonly int $retentionDays = PatrolConfiguration::DEFAULT_DISCARD_RETENTION_DAYS,
     ) {
     }
@@ -119,7 +119,7 @@ final class PatrolWidgetsController
 
         $dashboard = $this->dashboard->build(
             $this->patrols->findByAreaLatestFirst($area),
-            $this->types,
+            $types = $this->types->findVocabularyByArea($area),
             $now,
             // The library previews the REAL KPI strip, so PL·03 is queried here
             // exactly as the dashboard queries it.
@@ -148,17 +148,17 @@ final class PatrolWidgetsController
             // arrange is exactly what you get.
             'widgetContext' => [
                 'area' => $area,
-                'types' => $this->types,
-                'typeColor' => PatrolDashboardService::typeColors($this->types),
+                'types' => $types,
+                'typeColor' => PatrolDashboardService::typeColors($types),
                 'now' => $now,
                 'month' => $monthStart,
                 'filter' => $filter,
                 'patrolZones' => $patrolZones,
                 'dashboard' => $dashboard,
                 'map' => $this->plates->coverage(
-                    $this->dashboard->coveragePayload($area->getGeom(), $dashboard, $this->types, $patrolZones),
-                    $this->types,
-                    PatrolDashboardService::typeColors($this->types),
+                    $this->dashboard->coveragePayload($area->getGeom(), $dashboard, $types, $patrolZones),
+                    $types,
+                    PatrolDashboardService::typeColors($types),
                     // The real coverage layer, so the previewed plate is the plate.
                     $this->coverage->bufferFor($area, $monthStart, $nextMonth, $now),
                 ),

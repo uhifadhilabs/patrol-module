@@ -22,6 +22,7 @@ use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 
 /**
@@ -65,6 +66,9 @@ final class ImportFlowTest extends WebTestCase
             ->setFirstName('Sam')->setLastName('Staff');
         $this->em->persist($this->recorder);
         $this->em->persist($this->staff);
+        // The station chips offer the AREA's own stations, so one has to exist
+        // before a patrol can name it.
+        Vocabulary::station($this->em, $this->area, 'North post');
         $this->em->flush();
 
         $this->everyAreaRunsPatrols($this->em);
@@ -120,7 +124,7 @@ final class ImportFlowTest extends WebTestCase
 
         // The type chips are the deployment's patrol.types, as a real radio
         // group with the first one already chosen.
-        $chips = $crawler->filter('[data-patrol-details] .patrol-chip-radio input');
+        $chips = $crawler->filter('[data-patrol-details] .patrol-chip-radio input[name=type]');
         self::assertCount(2, $chips);
         self::assertSame('walk', $chips->eq(0)->attr('value'));
         self::assertNotNull($chips->eq(0)->attr('checked'));
@@ -168,7 +172,7 @@ final class ImportFlowTest extends WebTestCase
             $this->importUrl(),
             [
                 'type' => 'walk',
-                'station' => 'North post',
+                'station' => 'north-post',
                 'lead' => (string) $this->recorder->getId(),
                 'team' => 'B. Beta',
                 'note' => 'ridge circuit',

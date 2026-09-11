@@ -23,9 +23,11 @@ use Uhifadhi\Contracts\Shell\ConfigurationSectionsInterface;
 use Uhifadhi\Patrol\Controller\PatrolSettingsController;
 use Uhifadhi\Patrol\Entity\TaxonomyKind;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
-use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
+use Uhifadhi\Patrol\Repository\StationRepository;
 use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;
 use Uhifadhi\Patrol\Service\PatrolSettingsService;
+use Uhifadhi\Patrol\Service\PatrolVocabularyService;
 
 /**
  * WHAT IS ON THE PATROLS CONFIGURE PAGE — three sections, in the order the
@@ -62,7 +64,9 @@ final readonly class PatrolConfigurationSections implements ConfigurationSection
         private RequestStack $requests,
         private AreaOfInterestRepository $areas,
         private PatrolSettingsService $settings,
-        private PatrolRepository $patrols,
+        private PatrolTypeRepository $types,
+        private StationRepository $stations,
+        private PatrolVocabularyService $vocabulary,
         private TaxonomyKindRepository $kinds,
         /*
          * NULL WHERE THE INSTALLATION RUNS NO SECURITY — and there the Settings
@@ -70,8 +74,6 @@ final readonly class PatrolConfigurationSections implements ConfigurationSection
          * reading of what the area runs on rather than a form that cannot save.
          */
         private ?CsrfTokenManagerInterface $csrfTokenManager,
-        /** @var array<string, array{label: string}> */
-        private array $types,
     ) {
     }
 
@@ -140,11 +142,20 @@ final readonly class PatrolConfigurationSections implements ConfigurationSection
 
         $kinds = $this->kinds->forArea($area);
 
+        // AN AREA NOBODY HAS CONFIGURED YET OPENS ON THE INSTALLATION'S WORDS,
+        // written in as its own — the one thing `patrol.types` is still for.
+        // After this the two have nothing to do with each other: renaming a type
+        // here changes this area and no other, and a later config change never
+        // reaches back into a list somebody has curated.
+        $this->vocabulary->seedTypes($area);
+
         return [
             'area' => $area,
-            'types' => $this->types,
+            'types' => $this->types->findByArea($area),
+            'typeCounts' => $this->types->countPatrolsByArea($area),
             'settings' => $this->settings->forArea($area),
-            'stations' => $this->patrols->findStationNamesByArea($area),
+            'stations' => $this->stations->findByArea($area),
+            'stationCounts' => $this->stations->countPatrolsByArea($area),
             'kindCount' => \count($kinds),
             'subcategoryCount' => array_sum(array_map(
                 static fn (TaxonomyKind $kind): int => \count($kind->getSubcategories()),

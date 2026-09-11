@@ -15,6 +15,7 @@ namespace Uhifadhi\Patrol\Service;
 
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Uhifadhi\Patrol\Controller\PatrolRecordController;
+use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
 
 /**
  * WHETHER TO DRAW A DOOR — asked in one place, because it is TWO questions and
@@ -36,17 +37,34 @@ final readonly class PatrolScreenAccessService
     /**
      * @param bool                               $recordScreens whether the recording screens EXIST in this installation
      * @param AuthorizationCheckerInterface|null $authorization null where the installation runs no security, which is also where the screens do not exist
+     * @param bool                               $manageScreens whether the configuring screens EXIST in this installation
      */
     public function __construct(
         private bool $recordScreens = false,
         private ?AuthorizationCheckerInterface $authorization = null,
+        private bool $manageScreens = false,
     ) {
     }
 
     public function mayRecord(): bool
     {
-        return $this->recordScreens
+        return $this->granted($this->recordScreens, PatrolRecordController::RECORD_PERMISSION);
+    }
+
+    /**
+     * The same two questions for the screens that CHANGE what an area runs on —
+     * the observation kinds and the Settings section's two word-lists. They
+     * enforce `patrols.manage` in code and exist only where SecurityBundle can.
+     */
+    public function mayManage(): bool
+    {
+        return $this->granted($this->manageScreens, PatrolTaxonomyController::MANAGE_PERMISSION);
+    }
+
+    private function granted(bool $mounted, string $permission): bool
+    {
+        return $mounted
             && null !== $this->authorization
-            && $this->authorization->isGranted(PatrolRecordController::RECORD_PERMISSION);
+            && $this->authorization->isGranted($permission);
     }
 }

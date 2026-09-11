@@ -19,6 +19,7 @@ use Uhifadhi\Patrol\Entity\TrackBatch;
 use Uhifadhi\Patrol\Entity\TrackPoint;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 use Uhifadhi\Patrol\Repository\TrackPointRepository;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
@@ -50,7 +51,7 @@ final class TrackPointRepositoryTrailTest extends IntegrationTestCase
     {
         $area = new AreaOfInterest()->setSource('test fixture')->setName('Example square')->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.0],[-29.9,-3.0],[-29.9,-2.9],[-30.0,-2.9],[-30.0,-3.0]]]]}');
         $this->em->persist($area);
-        $patrol = new Patrol($area, 'walk')
+        $patrol = new Patrol($area, Vocabulary::type($this->em, $area, 'walk'))
             ->setStatus(PatrolStatusEnum::Recording)
             ->setStartedAt(new \DateTimeImmutable('2026-03-22T06:00:00Z'));
         $this->em->persist($patrol);

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\ApiResource;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
 use Uhifadhi\Patrol\Api\State\AppendEventsProcessor;
 use Uhifadhi\Patrol\Api\State\AppendFlightsProcessor;
@@ -21,6 +22,7 @@ use Uhifadhi\Patrol\Api\State\AppendObservationsProcessor;
 use Uhifadhi\Patrol\Api\State\AppendTrackProcessor;
 use Uhifadhi\Patrol\Api\State\CompletePatrolProcessor;
 use Uhifadhi\Patrol\Api\State\CreatePatrolProcessor;
+use Uhifadhi\Patrol\Api\State\VocabularyProvider;
 
 /**
  * The field app's patrol endpoints — API-CONTRACT.md §4, §5, §6, §7, §9, §9A.
@@ -56,6 +58,24 @@ use Uhifadhi\Patrol\Api\State\CreatePatrolProcessor;
 #[ApiResource(
     shortName: 'PatrolSync',
     operations: [
+        /*
+         * THE SYNC'S ONE READ. Everything else here is the handset handing work
+         * in; this is the handset asking what an area lets it say — the patrol
+         * types, the stations and the observation kinds an administrator writes
+         * on the module's Settings section, so a new station reaches the phones
+         * at the next sync rather than at the next store release.
+         *
+         * Declared BEFORE /patrols/{uuid}/… so `vocabulary` is never read as a
+         * patrol id; the two cannot collide on method either, since every other
+         * operation here is a POST.
+         */
+        new Get(
+            uriTemplate: '/patrols/vocabulary',
+            status: 200,
+            description: 'The words one area lets a handset use: patrol types, stations, and observation kinds with their sub-categories — each with a stable key, a label, active, position and updatedAt. Takes areaId, and an optional ISO-8601 "since" for a delta.',
+            read: true,
+            provider: VocabularyProvider::class,
+        ),
         new Post(
             uriTemplate: '/patrols',
             status: 201,

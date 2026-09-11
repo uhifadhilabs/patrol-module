@@ -60,7 +60,7 @@
         <span class="i-dd{{ filter.station ? ' patrol-dd-chosen' }}" data-patrol-dd>
             <button type="button" class="mchip i-ddt" data-patrol-dd-trigger aria-haspopup="listbox" aria-expanded="false"
                     {{ stimulus_action('@uhifadhi/patrol-module/filters', 'toggle') }}>
-                <span class="i-ddval">{{ filter.station ?: 'station' }}</span><span class="i-ddcaret">&#9662;</span>
+                <span class="i-ddval">{{ filter.station ? counts.stations[filter.station]|default(filter.station) : 'station' }}</span><span class="i-ddcaret">&#9662;</span>
             </button>
             <div class="i-ddmenu" data-patrol-dd-menu role="listbox" aria-label="Filter by station">
                 <span class="i-ddhead">station</span>
@@ -68,8 +68,8 @@
                     {{ _self.option(here, area, filter.withoutStation, 'All stations', null, filter.station is null) }}
                     <span class="i-ddsep"></span>
                 {% endif %}
-                {% for station in counts.stations %}
-                    {{ _self.option(here, area, filter.onlyStation(station), station, counts.stationCounts[station]|default(null), filter.station == station) }}
+                {% for key, label in counts.stations %}
+                    {{ _self.option(here, area, filter.onlyStation(key), label, counts.stationCounts[key]|default(null), filter.station == key) }}
                 {% else %}
                     <span class="i-ddopt is-empty" role="option"><span class="i-ddopt-l">no stations yet</span></span>
                 {% endfor %}

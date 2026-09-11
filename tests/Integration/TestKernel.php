@@ -260,6 +260,10 @@ final class TestKernel extends Kernel
             // The area-scoped observation-taxonomy admin's logic, reached directly
             // by its integration test.
             \Uhifadhi\Patrol\Service\TaxonomyAdminService::class => 'patrol.taxonomy_admin',
+            // The area's own patrol types and stations, reached directly by
+            // their integration test.
+            \Uhifadhi\Patrol\Service\PatrolVocabularyService::class => 'patrol.vocabulary',
+            \Uhifadhi\Patrol\Repository\StationRepository::class => \Uhifadhi\Patrol\Repository\StationRepository::class,
             // The inert descriptor devkit materialises into a command. Nothing
             // collects it here — devkit is not in this kernel — so a test holds
             // it and calls the handler devkit would have called.

@@ -20,6 +20,7 @@ use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Security\PatrolEvidenceVoter;
 use Uhifadhi\Patrol\Storage\PatrolFileSource;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 use Uhifadhi\Storage\Enum\GuardStateEnum;
 use Uhifadhi\Storage\Registry\FileRegistry;
@@ -213,7 +214,7 @@ final class PatrolFileSourceRegistrationTest extends IntegrationTestCase
         $area->setGeom('{"type":"MultiPolygon","coordinates":[[[[-29.0,-3.0],[-28.9,-3.0],[-28.9,-2.9],[-29.0,-2.9],[-29.0,-3.0]]]]}');
         $this->em->persist($area);
 
-        $patrol = new Patrol($area, 'walk');
+        $patrol = new Patrol($area, Vocabulary::type($this->em, $area, 'walk'));
         $patrol->setStartedAt(new \DateTimeImmutable('2026-08-19 05:30:00'));
         $this->em->persist($patrol);
 

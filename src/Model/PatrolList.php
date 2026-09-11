@@ -33,9 +33,9 @@ final readonly class PatrolList
      * @param int                   $totalCount    patrols matching every axis, across all pages
      * @param int                   $allCount      patrols matching every axis but the type — the "all" option's count
      * @param array<string, int>    $typeCounts    type key → what choosing it would show
-     * @param array<string, int>    $stationCounts station → what choosing it would show
+     * @param array<string, int>    $stationCounts station KEY → what choosing it would show
      * @param array<string, int>    $zoneCounts    zone → what choosing it would show
-     * @param list<string>          $stations      the stations the month's patrols set off from
+     * @param array<string, string> $stations      the stations the month's patrols set off from, key → label
      * @param list<string>          $zones         the zones the month's patrols set out in
      * @param array<string, string> $patrolZones   patrol uuid → the zone it set out in
      * @param int                   $page          the 1-based page on screen

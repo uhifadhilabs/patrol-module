@@ -47,7 +47,7 @@
         <div class="c" data-patrol-details>
             <span class="tab">Patrol details<span class="src">· step 2 · confirm</span></span>
             <div class="patrol-frow"><label>type</label>{{ ui.type_chips(types, form.type) }}</div>
-            <div class="patrol-frow"><label>station</label>{{ ui.station_field(stations, form.station) }}</div>
+            <div class="patrol-frow"><label>station</label>{{ ui.station_chips(stations, form.station) }}</div>
             <div class="patrol-frow"><label>lead</label>{{ ui.lead_select(users, form.lead) }}</div>
             <div class="patrol-frow"><label>team</label><input class="fld" type="text" name="team" value="{{ form.team ?: '' }}" placeholder="A. Example, B. Example"></div>
             <div class="patrol-frow"><label>notes</label><input class="fld" type="text" name="note" value="{{ form.note ?: '' }}" placeholder="optional patrol note"></div>

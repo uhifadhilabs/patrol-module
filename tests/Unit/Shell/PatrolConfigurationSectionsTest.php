@@ -22,10 +22,12 @@ use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\AreaBundle\Repository\AreaOfInterestRepository;
 use Uhifadhi\Contracts\Shell\ConfigurationSection;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
-use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Repository\PatrolSettingsRepository;
+use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
+use Uhifadhi\Patrol\Repository\StationRepository;
 use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;
 use Uhifadhi\Patrol\Service\PatrolSettingsService;
+use Uhifadhi\Patrol\Service\PatrolVocabularyService;
 use Uhifadhi\Patrol\Shell\PatrolConfigurationSections;
 
 /**
@@ -59,10 +61,16 @@ final class PatrolConfigurationSectionsTest extends TestCase
                 5.0,
                 90,
             ),
-            new PatrolRepository($registry),
+            $types = new PatrolTypeRepository($registry),
+            $stations = new StationRepository($registry),
+            new PatrolVocabularyService(
+                $this->createStub(EntityManagerInterface::class),
+                $types,
+                $stations,
+                ['walk' => ['label' => 'Walking round']],
+            ),
             new TaxonomyKindRepository($registry),
             null,
-            ['walk' => ['label' => 'Walking round']],
         );
     }
 

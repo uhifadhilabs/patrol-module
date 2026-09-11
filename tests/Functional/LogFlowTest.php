@@ -21,6 +21,7 @@ use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 
 /**
@@ -62,6 +63,9 @@ final class LogFlowTest extends WebTestCase
             ->setFirstName('Sam')->setLastName('Staff');
         $this->em->persist($this->recorder);
         $this->em->persist($this->staff);
+        // The station chips offer the AREA's own stations, so one has to exist
+        // before a patrol can name it.
+        Vocabulary::station($this->em, $this->area, 'North post');
         $this->em->flush();
 
         $this->everyAreaRunsPatrols($this->em);
@@ -185,7 +189,7 @@ final class LogFlowTest extends WebTestCase
     {
         return [
             'type' => 'boat',
-            'station' => 'North post',
+            'station' => 'north-post',
             'lead' => (string) $this->recorder->getId(),
             'team' => 'B. Beta, C. Gamma',
             'startedAt' => '2026-08-22T05:55',

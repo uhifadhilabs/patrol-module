@@ -19,6 +19,7 @@ use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Exception\PatrolNotDiscardedException;
 use Uhifadhi\Patrol\Service\PatrolHoldService;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 
 /**
  * THE BRAKE ON THE RETENTION CLOCK — and the one record it may be pulled on.
@@ -90,7 +91,9 @@ final class PatrolHoldServiceTest extends TestCase
 
     private function aLivePatrol(): Patrol
     {
-        return new Patrol(new AreaOfInterest()->setName('Sample Area'), 'foot');
+        $area = new AreaOfInterest()->setName('Sample Area');
+
+        return new Patrol($area, Vocabulary::type(null, $area, 'foot'));
     }
 
     private function aDiscardedPatrol(): Patrol

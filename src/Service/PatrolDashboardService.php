@@ -123,7 +123,7 @@ final class PatrolDashboardService
      * than none.
      *
      * The zone each track is drawn as belonging to (item: zone spatial-join) is
-     * NOT stored on the patrol — a patrol carries a free-text station and no zone
+     * NOT stored on the patrol — a patrol names a station and no zone
      * (docs/design-decisions.md §1). It is computed live by a PostGIS spatial
      * join in the controller ({@see \Uhifadhi\Patrol\Repository\PatrolRepository::zonesForPatrols()})
      * and handed in as an id→name map, so the ZONE filter drives the map exactly
@@ -157,7 +157,9 @@ final class PatrolDashboardService
             if (null === $track || '' === $track || !$patrol->getStatus()->countsTowardsStatistics()) {
                 continue;
             }
-            $station = $patrol->getStation() ?? '';
+            // The KEY drives the filter (it is what a saved filter holds); the
+            // LABEL is what the marker is drawn with.
+            $station = $patrol->getStationKey() ?? '';
             $tracks[] = [
                 'uuid' => $uuid,
                 'ref' => $patrol->getRef(),
@@ -171,13 +173,36 @@ final class PatrolDashboardService
             if ('' === $station || isset($stations[$station])) {
                 continue;
             }
-            $start = self::firstPoint($track);
+            $record = $patrol->getStationRecord();
+            // A station that says where it stands is drawn there. Otherwise the
+            // old evidence still holds: the first fix of a patrol that set out
+            // from it, which beats an invented coordinate.
+            $start = self::pointOf($record?->getPoint()) ?? self::firstPoint($track);
             if (null !== $start) {
-                $stations[$station] = ['name' => $station, 'lon' => $start[0], 'lat' => $start[1]];
+                $stations[$station] = ['name' => $record?->getLabel() ?? $station, 'lon' => $start[0], 'lat' => $start[1]];
             }
         }
 
         return ['boundary' => $boundary, 'patrols' => $tracks, 'stations' => array_values($stations)];
+    }
+
+    /**
+     * A GeoJSON Point as [lon, lat]; null for anything else or for nothing.
+     *
+     * @return array{0: float, 1: float}|null
+     */
+    private static function pointOf(?string $point): ?array
+    {
+        if (null === $point || '' === $point) {
+            return null;
+        }
+        $decoded = json_decode($point, true);
+        $coordinates = \is_array($decoded) ? ($decoded['coordinates'] ?? null) : null;
+        if (!\is_array($coordinates) || !is_numeric($coordinates[0] ?? null) || !is_numeric($coordinates[1] ?? null)) {
+            return null;
+        }
+
+        return [(float) $coordinates[0], (float) $coordinates[1]];
     }
 
     /**
@@ -270,6 +295,8 @@ final class PatrolDashboardService
         $typeCounts = array_fill_keys(array_keys($types), 0);
         /** @var array<string, int> $stationCounts */
         $stationCounts = [];
+        /** @var array<string, string> $stationLabels */
+        $stationLabels = [];
         // Patrol-hours per lead this month — the "Effort by ranger" widget. Keyed
         // by the lead entity so two patrols by the same person add up, and holding
         // the entity so the template formats the name the one way it formats every
@@ -295,7 +322,7 @@ final class PatrolDashboardService
         // you chose must not be the only station the menu still offers, or the
         // filter is a door that locks behind you. Read before the narrowing,
         // therefore — the counts below are read after it.
-        $menuStations = self::namesPresent($presented, $monthStart, $nextMonth, static fn (Patrol $patrol): string => $patrol->getStation() ?? '');
+        $menuStations = self::pairsPresent($presented, $monthStart, $nextMonth, static fn (Patrol $patrol): array => [$patrol->getStationKey() ?? '', $patrol->getStation() ?? '']);
         $menuZones = self::namesPresent($presented, $monthStart, $nextMonth, static fn (Patrol $patrol): string => $patrolZones[$patrol->getUuid()->toRfc4122()] ?? '');
 
         // ONE FILTER DRIVES EVERYTHING, and this is where it does it: the map,
@@ -305,7 +332,7 @@ final class PatrolDashboardService
             $presented,
             static fn (Patrol $patrol): bool => $filter->matches(
                 $patrol->getType(),
-                $patrol->getStation() ?? '',
+                $patrol->getStationKey() ?? '',
                 $patrolZones[$patrol->getUuid()->toRfc4122()] ?? '',
             ),
         ));
@@ -348,9 +375,10 @@ final class PatrolDashboardService
             ++$monthCount;
             $monthDistanceKm += $patrol->getDistanceKm() ?? 0.0;
             $monthTypeCounts[$patrol->getType()] = ($monthTypeCounts[$patrol->getType()] ?? 0) + 1;
-            $station = $patrol->getStation();
-            if (null !== $station && '' !== $station) {
-                $stationCounts[$station] = ($stationCounts[$station] ?? 0) + 1;
+            $stationKey = $patrol->getStationKey();
+            if (null !== $stationKey && '' !== $stationKey) {
+                $stationCounts[$stationKey] = ($stationCounts[$stationKey] ?? 0) + 1;
+                $stationLabels[$stationKey] = $patrol->getStation() ?? $stationKey;
             }
 
             // Hours on the track, credited to the committed lead. A patrol with no
@@ -370,7 +398,7 @@ final class PatrolDashboardService
         arsort($stationCounts);
         $stationSeries = [];
         foreach ($stationCounts as $station => $count) {
-            $stationSeries[] = ['station' => $station, 'count' => $count];
+            $stationSeries[] = ['station' => $station, 'label' => $stationLabels[$station] ?? $station, 'count' => $count];
         }
 
         // Ranked by hours, most first — the design's descending bars.
@@ -402,6 +430,34 @@ final class PatrolDashboardService
             // month through the same method (PatrolCalendarController).
             calendar: $this->calendarFor($presented, $filter->month, $now),
         );
+    }
+
+    /**
+     * The distinct key → label pairs a month's presented patrols carry on one
+     * axis, sorted by label for a filter menu. The KEY is what the filter
+     * carries in the query string; the label is what the menu prints.
+     *
+     * @param list<Patrol>                                  $patrols the presented patrols over the LOAD window
+     * @param \Closure(Patrol): array{0: string, 1: string} $pair    the axis to read, as [key, label]
+     *
+     * @return array<string, string>
+     */
+    private static function pairsPresent(array $patrols, \DateTimeImmutable $monthStart, \DateTimeImmutable $nextMonth, \Closure $pair): array
+    {
+        $pairs = [];
+        foreach ($patrols as $patrol) {
+            $started = $patrol->getStartedAt();
+            if (null === $started || $started < $monthStart || $started >= $nextMonth) {
+                continue;
+            }
+            [$key, $label] = $pair($patrol);
+            if ('' !== $key) {
+                $pairs[$key] = '' !== $label ? $label : $key;
+            }
+        }
+        asort($pairs);
+
+        return $pairs;
     }
 
     /**

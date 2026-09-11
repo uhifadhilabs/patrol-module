@@ -19,6 +19,7 @@ use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Repository\ObservationRepository;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Repository\TrackPointRepository;
 
 /**
@@ -72,7 +73,6 @@ final readonly class PatrolOverviewService
     public const int OBSERVATION_ROWS = 6;
 
     /**
-     * @param array<string, array{label: string}> $types      the deployment's patrol.types map
      * @param array<string, array{label: string}> $categories the deployment's patrol.observation_categories map
      */
     public function __construct(
@@ -80,7 +80,8 @@ final readonly class PatrolOverviewService
         private TrackPointRepository $trackPoints,
         private ObservationRepository $observations,
         private UrlGeneratorInterface $router,
-        private array $types,
+        // THE AREA'S OWN PATROL TYPES — SET·01's list.
+        private PatrolTypeRepository $types,
         private array $categories,
     ) {
     }
@@ -191,10 +192,10 @@ final readonly class PatrolOverviewService
         $closed = $this->counted($this->patrols->findByAreaEndedBetween($area, $dayStart, $dayStart->modify('+1 day')));
         $lastWeek = $this->counted($this->patrols->findByAreaEndedBetween($area, $lastWeekStart, $lastWeekStart->modify('+1 day')));
 
-        // Types are the deployment's vocabulary, so every configured type gets a
-        // count — including the ones that did nothing today. Here a 0 is a real
+        // Types are the AREA's vocabulary, so every type it keeps gets a count —
+        // including the ones that did nothing today. Here a 0 is a real
         // measurement ("no drone flew"), not a stand-in for an unknown.
-        $typeCounts = array_fill_keys(array_keys($this->types), 0);
+        $typeCounts = array_fill_keys(array_keys($this->types->findVocabularyByArea($area)), 0);
         $stations = [];
         foreach ($closed as $patrol) {
             $typeCounts[$patrol->getType()] = ($typeCounts[$patrol->getType()] ?? 0) + 1;

@@ -45,8 +45,6 @@ final readonly class PatrolNowTiles implements NowTileProviderInterface
 {
     public function __construct(
         private PatrolOverviewService $overview,
-        /** @var array<string, array{label: string}> the deployment's patrol.types map */
-        private array $types,
     ) {
     }
 
@@ -86,13 +84,15 @@ final readonly class PatrolNowTiles implements NowTileProviderInterface
         }
 
         $counts = [];
+        $labels = [];
         foreach ($out as $row) {
             $type = $row['patrol']->getType();
             $counts[$type] = ($counts[$type] ?? 0) + 1;
+            $labels[$type] = $row['patrol']->getTypeLabel();
         }
         $parts = [];
         foreach ($counts as $type => $count) {
-            $parts[] = \sprintf('%d %s', $count, mb_strtolower($this->types[$type]['label'] ?? $type));
+            $parts[] = \sprintf('%d %s', $count, mb_strtolower($labels[$type] ?? $type));
         }
 
         // The longest-silent of the silent ones — the same one the live card

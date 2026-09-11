@@ -17,6 +17,7 @@ use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
@@ -69,7 +70,7 @@ final class PatrolRepositoryCoverageTest extends IntegrationTestCase
 
     private function makePatrol(AreaOfInterest $area, string $startedAt, ?string $track): Patrol
     {
-        $patrol = new Patrol($area, 'walk')
+        $patrol = new Patrol($area, Vocabulary::type($this->em, $area, 'walk'))
             ->setSource(null === $track ? PatrolSourceEnum::Manual : PatrolSourceEnum::Gpx)
             ->setStartedAt(new \DateTimeImmutable($startedAt))
             ->setTrack($track);

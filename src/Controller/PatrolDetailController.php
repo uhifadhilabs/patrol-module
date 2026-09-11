@@ -33,6 +33,7 @@ use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\ObservationAmendmentKindEnum;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\ObservationAmendmentRepository;
+use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Service\GeoService;
 use Uhifadhi\Patrol\Service\GpxWriter;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
@@ -61,7 +62,6 @@ use Uhifadhi\Patrol\Storage\PatrolFileSource;
 final class PatrolDetailController
 {
     /**
-     * @param array<string, array{label: string}> $types                the deployment's patrol.types vocabulary
      * @param array<string, array{label: string}> $categories           the deployment's patrol.observation_categories vocabulary
      * @param int                                 $discardRetentionDays patrol.discard_retention_days — what the purge-window line states
      * @param AuthorizationCheckerInterface|null  $authorizationChecker null in a host with no security: the hold action is then offered to nobody
@@ -74,7 +74,7 @@ final class PatrolDetailController
         private readonly GpxWriter $gpx,
         private readonly PatrolMapService $plates,
         private readonly ObservationAmendmentRepository $amendments,
-        private readonly array $types,
+        private readonly PatrolTypeRepository $types,
         private readonly array $categories,
         private readonly int $discardRetentionDays = PatrolConfiguration::DEFAULT_DISCARD_RETENTION_DAYS,
         private readonly ?AuthorizationCheckerInterface $authorizationChecker = null,
@@ -99,7 +99,7 @@ final class PatrolDetailController
         return new Response($this->twig->render('@UhifadhiPatrol/patrol/show.html.twig', [
             'area' => $area,
             'patrol' => $patrol,
-            'types' => $this->types,
+            'types' => $this->types->findVocabularyByArea($area),
             'categories' => $this->categories,
             'observations' => $rows,
             'avgSpeedKmh' => $this->avgSpeedKmh($patrol),
@@ -185,7 +185,7 @@ final class PatrolDetailController
             ];
         }
 
-        $typeLabel = $this->types[$patrol->getType()]['label'] ?? $patrol->getType();
+        $typeLabel = $patrol->getTypeLabel();
         $description = mb_strtolower($typeLabel).' patrol'
             .(null !== $patrol->getStation() ? ' · '.$patrol->getStation() : '');
 
@@ -255,7 +255,7 @@ final class PatrolDetailController
             'patrol' => $patrol,
             'observation' => $observation,
             'fileAsIncidentUrl' => $this->fileAsIncidentUrl($area, $patrol, $observation, $row),
-            'types' => $this->types,
+            'types' => $this->types->findVocabularyByArea($area),
             'categories' => $this->categories,
             'n' => $row['n'],
             'total' => $total,
@@ -470,7 +470,7 @@ final class PatrolDetailController
      */
     private function trackColor(Patrol $patrol): string
     {
-        $colors = PatrolDashboardService::typeColors($this->types);
+        $colors = PatrolDashboardService::typeColors($this->types->findVocabularyByArea($patrol->getArea()));
 
         return $colors[$patrol->getType()] ?? PatrolDashboardService::TRACK_COLORS[0];
     }

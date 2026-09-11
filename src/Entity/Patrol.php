@@ -33,8 +33,10 @@ use Uhifadhi\Patrol\Repository\PatrolRepository;
  * gaps); manual patrols may carry a sketched route, clearly marked as such via
  * {@see PatrolSourceEnum}.
  *
- * The type is deployment vocabulary (patrol.types config), stored as its key —
- * never an enum in code.
+ * The type and the station are the AREA's own vocabulary — a {@see PatrolType}
+ * record and a {@see Station} record, each renamed and retired on the module's
+ * Settings section, never an enum in code. Both are retired rather than
+ * deleted, which is what lets a patrol keep the words that describe it.
  */
 #[ORM\Entity(repositoryClass: PatrolRepository::class)]
 #[ORM\Table(name: 'patrol_patrol')]
@@ -81,9 +83,37 @@ class Patrol
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private AreaOfInterest $area;
 
-    /** A patrol.types key ("foot", "boat", …) — deployment vocabulary. */
+    /**
+     * WHAT KIND OF PATROL THIS IS — one of the AREA's own {@see PatrolType}
+     * records, which is what SET·01 renames and retires.
+     *
+     * Not deleted with the type, and it cannot be: a type is retired, never
+     * removed, precisely so this key never dangles.
+     */
+    #[ORM\ManyToOne(targetEntity: PatrolType::class)]
+    #[ORM\JoinColumn(name: 'patrol_type_id', nullable: false, onDelete: 'RESTRICT')]
+    private PatrolType $patrolType;
+
+    /**
+     * WHERE IT SET OFF FROM — one of the area's own {@see Station} records.
+     * Null is a real state: plenty of patrols set off from nowhere in
+     * particular.
+     */
+    #[ORM\ManyToOne(targetEntity: Station::class)]
+    #[ORM\JoinColumn(name: 'station_id', nullable: true, onDelete: 'RESTRICT')]
+    private ?Station $stationRecord = null;
+
+    /**
+     * The type as a bare string, which is what this column held before the
+     * words became records.
+     *
+     * KEPT FOR ONE RELEASE and written from {@see $patrolType} on every save,
+     * so an installation that has to roll the code back still finds the value
+     * where the old code looked for it. The migration that drops it rides a
+     * later release and carries an `@destructive` marker.
+     */
     #[ORM\Column(length: 40)]
-    private string $type;
+    private string $type; // @phpstan-ignore property.onlyWritten (the shadow column a rollback reads, never this code)
 
     /**
      * What the RANGER calls this patrol ("River loop"), where they named it.
@@ -96,8 +126,9 @@ class Patrol
     #[ORM\Column(length: 120, nullable: true)]
     private ?string $name = null;
 
+    /** The station as a bare string — kept for one release, like {@see $type}. */
     #[ORM\Column(length: 80, nullable: true)]
-    private ?string $station = null;
+    private ?string $station = null; // @phpstan-ignore property.onlyWritten (the shadow column a rollback reads, never this code)
 
     #[ORM\ManyToOne(targetEntity: UserInterface::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
@@ -260,11 +291,11 @@ class Patrol
     #[ORM\OrderBy(['at' => 'ASC', 'id' => 'ASC'])]
     private Collection $events;
 
-    public function __construct(AreaOfInterest $area, string $type)
+    public function __construct(AreaOfInterest $area, PatrolType $type)
     {
         $this->uuid = Uuid::v7();
         $this->area = $area;
-        $this->type = $type;
+        $this->setPatrolType($type);
         $this->observations = new ArrayCollection();
         $this->trackBatches = new ArrayCollection();
         $this->trackPoints = new ArrayCollection();
@@ -290,16 +321,31 @@ class Patrol
         return $this->area;
     }
 
-    public function getType(): string
+    public function getPatrolType(): PatrolType
     {
-        return $this->type;
+        return $this->patrolType;
     }
 
-    public function setType(string $type): static
+    public function setPatrolType(PatrolType $type): static
     {
-        $this->type = $type;
+        $this->patrolType = $type;
+        // The shadow column stays true to the relation for the one release it
+        // still exists — see the property.
+        $this->type = $type->getKey();
 
         return $this;
+    }
+
+    /** The wire value — a saved filter, an export column and the handset's. */
+    public function getType(): string
+    {
+        return $this->patrolType->getKey();
+    }
+
+    /** What a screen prints, which a rename changes and the wire value does not. */
+    public function getTypeLabel(): string
+    {
+        return $this->patrolType->getLabel();
     }
 
     public function getName(): ?string
@@ -322,19 +368,32 @@ class Patrol
      */
     public function getDisplayName(): ?string
     {
-        return $this->name ?? $this->station;
+        return $this->name ?? $this->getStation();
     }
 
-    public function getStation(): ?string
+    public function getStationRecord(): ?Station
     {
-        return $this->station;
+        return $this->stationRecord;
     }
 
-    public function setStation(?string $station): static
+    public function setStationRecord(?Station $station): static
     {
-        $this->station = $station;
+        $this->stationRecord = $station;
+        $this->station = $station?->getLabel();
 
         return $this;
+    }
+
+    /** What a screen prints. */
+    public function getStation(): ?string
+    {
+        return $this->stationRecord?->getLabel();
+    }
+
+    /** The wire value — what a filter, an export and the handset hold. */
+    public function getStationKey(): ?string
+    {
+        return $this->stationRecord?->getKey();
     }
 
     public function getLead(): ?UserInterface
@@ -479,7 +538,7 @@ class Patrol
      */
     public function isDrone(): bool
     {
-        return self::DRONE_TYPE === $this->type;
+        return self::DRONE_TYPE === $this->getType();
     }
 
     public function getClientUuid(): ?Uuid

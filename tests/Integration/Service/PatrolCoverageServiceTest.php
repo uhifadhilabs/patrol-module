@@ -20,6 +20,7 @@ use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolCoverageService;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
@@ -153,7 +154,7 @@ final class PatrolCoverageServiceTest extends IntegrationTestCase
 
     private function makePatrol(AreaOfInterest $area, string $track): void
     {
-        $this->em->persist(new Patrol($area, 'walk')
+        $this->em->persist(new Patrol($area, Vocabulary::type($this->em, $area, 'walk'))
             ->setSource(PatrolSourceEnum::Gpx)
             ->setStartedAt(new \DateTimeImmutable('2026-03-10T06:00:00Z'))
             ->setStatus(PatrolStatusEnum::Complete)

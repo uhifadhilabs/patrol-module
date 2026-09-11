@@ -18,6 +18,7 @@ use Uhifadhi\Bundle\AreaBundle\Overview\ContributesStylesheetInterface;
 use Uhifadhi\Bundle\AreaBundle\Overview\OverviewContributorInterface;
 use Uhifadhi\Bundle\ShellBundle\Widget\Model\Widget;
 use Uhifadhi\Bundle\ShellBundle\Widget\Model\WidgetGroup;
+use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
 use Uhifadhi\Patrol\UhifadhiPatrolBundle;
@@ -60,8 +61,9 @@ final readonly class PatrolOverviewContributor implements ContributesStylesheetI
 
     public function __construct(
         private PatrolOverviewService $overview,
-        /** @var array<string, array{label: string}> the deployment's patrol.types map */
-        private array $types,
+        // THE AREA'S OWN WORDS, so a walking round reads the same here as on the
+        // module's own dashboard — one list, edited on SET·01.
+        private PatrolTypeRepository $types,
     ) {
     }
 
@@ -150,8 +152,8 @@ final readonly class PatrolOverviewContributor implements ContributesStylesheetI
             // The deployment's own vocabulary and the ONE colour map every
             // patrol surface reads, so a walking round is the same word and the
             // same green here as on the module's dashboard.
-            'types' => $this->types,
-            'typeColors' => PatrolDashboardService::typeColors($this->types),
+            'types' => $types = $this->types->findVocabularyByArea($area),
+            'typeColors' => PatrolDashboardService::typeColors($types),
             'stalePingMinutes' => intdiv(PatrolOverviewService::PING_STALE_AFTER_SECONDS, 60),
             'coverageBufferKm' => PatrolDashboardService::COVERAGE_BUFFER_M / 1000,
             'dashboardUrl' => $this->overview->dashboardUrl($area),

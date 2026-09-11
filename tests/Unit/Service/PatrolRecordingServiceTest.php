@@ -20,6 +20,7 @@ use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Exception\InvalidPatrolTimesException;
 use Uhifadhi\Patrol\Service\PatrolRecordingService;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 
 /**
  * THE HAND-WRITTEN PATROL, AS A WRITE — the second door into this module's
@@ -35,8 +36,8 @@ final class PatrolRecordingServiceTest extends TestCase
     public function testItStampsAHandWrittenPatrolAsManual(): void
     {
         $patrol = $this->service()->record(
-            $this->anArea(),
-            'foot',
+            $area = $this->anArea(),
+            Vocabulary::type(null, $area, 'foot'),
             new \DateTimeImmutable('2026-08-22 05:55'),
         );
 
@@ -52,8 +53,8 @@ final class PatrolRecordingServiceTest extends TestCase
     public function testAHandWrittenPatrolCarriesNoTrack(): void
     {
         $patrol = $this->service()->record(
-            $this->anArea(),
-            'foot',
+            $area = $this->anArea(),
+            Vocabulary::type(null, $area, 'foot'),
             new \DateTimeImmutable('2026-08-22 05:55'),
         );
 
@@ -65,11 +66,11 @@ final class PatrolRecordingServiceTest extends TestCase
     public function testItKeepsEverythingTheFormContributed(): void
     {
         $patrol = $this->service()->record(
-            $this->anArea(),
-            'vehicle',
+            $area = $this->anArea(),
+            Vocabulary::type(null, $area, 'vehicle'),
             new \DateTimeImmutable('2026-08-22 05:55'),
             new \DateTimeImmutable('2026-08-22 09:10'),
-            'North Gate',
+            Vocabulary::station(null, $area, 'North Gate'),
             null,
             'A. Alpha, B. Bravo',
             'Quiet shift.',
@@ -88,8 +89,8 @@ final class PatrolRecordingServiceTest extends TestCase
     public function testAPatrolMayHaveNoEnd(): void
     {
         $patrol = $this->service()->record(
-            $this->anArea(),
-            'foot',
+            $area = $this->anArea(),
+            Vocabulary::type(null, $area, 'foot'),
             new \DateTimeImmutable('2026-08-22 05:55'),
         );
 
@@ -101,8 +102,8 @@ final class PatrolRecordingServiceTest extends TestCase
         $this->expectException(InvalidPatrolTimesException::class);
 
         $this->service(writes: false)->record(
-            $this->anArea(),
-            'foot',
+            $area = $this->anArea(),
+            Vocabulary::type(null, $area, 'foot'),
             new \DateTimeImmutable('2026-08-22 09:10'),
             new \DateTimeImmutable('2026-08-22 05:55'),
         );
@@ -114,8 +115,8 @@ final class PatrolRecordingServiceTest extends TestCase
         $this->expectException(InvalidPatrolTimesException::class);
 
         $this->service(writes: false)->record(
-            $this->anArea(),
-            'foot',
+            $area = $this->anArea(),
+            Vocabulary::type(null, $area, 'foot'),
             new \DateTimeImmutable('2026-08-22 05:55'),
             new \DateTimeImmutable('2026-08-22 05:55'),
         );

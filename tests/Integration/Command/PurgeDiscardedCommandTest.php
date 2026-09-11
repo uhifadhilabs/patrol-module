@@ -27,6 +27,7 @@ use Uhifadhi\Patrol\Entity\TrackBatch;
 use Uhifadhi\Patrol\Entity\TrackPoint;
 use Uhifadhi\Patrol\Enum\PatrolEventKindEnum;
 use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 use Uhifadhi\Storage\Service\EvidenceKey;
 
@@ -100,7 +101,7 @@ final class PurgeDiscardedCommandTest extends IntegrationTestCase
     /** A patrol that was never discarded is not the sweep's business at all. */
     public function testACompletePatrolIsNeverTouchedHoweverOldItIs(): void
     {
-        $patrol = new Patrol($this->area, 'walk')
+        $patrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
             ->setStartedAt(new \DateTimeImmutable('2020-01-01T06:00:00Z'))
             ->setEndedAt(new \DateTimeImmutable('2020-01-01T09:00:00Z'));
         $this->em->persist($patrol);
@@ -147,7 +148,7 @@ final class PurgeDiscardedCommandTest extends IntegrationTestCase
     public function testTheClockRunsFromTheDiscardedEventNotTheEnd(): void
     {
         // Ended long ago, but only discarded yesterday: still inside the window.
-        $patrol = new Patrol($this->area, 'walk')
+        $patrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
             ->setStartedAt(new \DateTimeImmutable('2020-01-01T06:00:00Z'))
             ->setEndedAt(new \DateTimeImmutable('2020-01-01T09:00:00Z'))
             ->discard('Started by mistake');
@@ -222,7 +223,7 @@ final class PurgeDiscardedCommandTest extends IntegrationTestCase
      */
     public function testAPatrolDiscardedBeforeItEndedStillAges(): void
     {
-        $patrol = new Patrol($this->area, 'walk')
+        $patrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
             ->setStartedAt(new \DateTimeImmutable('2026-01-01T06:00:00Z'))
             ->setCreatedAt(new \DateTimeImmutable('2026-01-01T06:00:00Z'))
             ->discard('Started by mistake');
@@ -240,7 +241,7 @@ final class PurgeDiscardedCommandTest extends IntegrationTestCase
 
     private function discardedPatrol(string $endedAt): Patrol
     {
-        $patrol = new Patrol($this->area, 'walk')
+        $patrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
             ->setStartedAt(new \DateTimeImmutable($endedAt)->modify('-1 hour'))
             ->setEndedAt(new \DateTimeImmutable($endedAt))
             ->discard('Started by mistake');

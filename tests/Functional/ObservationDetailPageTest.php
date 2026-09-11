@@ -25,6 +25,7 @@ use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 
 /**
  * The observation detail screen: the location plate (this observation's point
@@ -73,8 +74,8 @@ final class ObservationDetailPageTest extends WebTestCase
         $recorder = new User()->setPassword('x')->setEmail('lead@example.test')->setFirstName('Ada')->setLastName('Alpha');
         $this->em->persist($recorder);
 
-        $this->patrol = new Patrol($this->area, 'walk')
-            ->setStation('North post')
+        $this->patrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, 'North post'))
             ->setLead($recorder)
             ->setStartedAt(new \DateTimeImmutable('today 06:10'))
             ->setEndedAt(new \DateTimeImmutable('today 12:30'))
@@ -95,7 +96,7 @@ final class ObservationDetailPageTest extends WebTestCase
         $this->em->persist($this->observation);
 
         // A patrol with exactly ONE observation: nothing to circle, so no arrows.
-        $this->lonePatrol = new Patrol($this->area, 'walk')
+        $this->lonePatrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
             ->setSource(PatrolSourceEnum::Manual)
             ->setStartedAt(new \DateTimeImmutable('today 05:00'));
         $this->em->persist($this->lonePatrol);
@@ -104,7 +105,7 @@ final class ObservationDetailPageTest extends WebTestCase
             ->setLoggedAt(new \DateTimeImmutable('today 05:20'));
         $this->em->persist($this->loneObservation);
 
-        $this->otherPatrol = new Patrol($this->area, 'boat')
+        $this->otherPatrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'boat'))
             ->setSource(PatrolSourceEnum::Manual)
             ->setStartedAt(new \DateTimeImmutable('today 07:20'));
         $this->em->persist($this->otherPatrol);

@@ -42,10 +42,7 @@ final readonly class PatrolListService
      */
     public function build(array $patrols, array $patrolZones, array $types, PatrolFilter $filter, int $page): PatrolList
     {
-        $matched = array_values(array_filter(
-            $patrols,
-            fn (Patrol $patrol): bool => $this->matches($patrol, $patrolZones, $filter),
-        ));
+        $matched = $this->filtered($patrols, $patrolZones, $filter);
 
         $total = \count($matched);
         $pageCount = max(1, (int) ceil($total / self::PER_PAGE));
@@ -70,7 +67,7 @@ final readonly class PatrolListService
                 $patrolZones,
             ),
             stationCounts: $this->countsBy(
-                $stations = $this->stationsOf($patrols),
+                array_keys($stations = $this->stationsOf($patrols)),
                 static fn (string $station): PatrolFilter => $filter->onlyStation($station),
                 $patrols,
                 $patrolZones,
@@ -89,6 +86,25 @@ final readonly class PatrolListService
             firstIndex: 0 === $total ? 0 : $offset + 1,
             lastIndex: $offset + \count($rows),
         );
+    }
+
+    /**
+     * THE ROWS ONE QUESTION SELECTS, unpaged — the same predicate the page is
+     * built from, exposed because the EXPORT has to hand over exactly what is on
+     * screen. A file that answered a slightly different question from the log
+     * above it would be the one bug nobody finds until a report is filed.
+     *
+     * @param list<Patrol>          $patrols
+     * @param array<string, string> $patrolZones
+     *
+     * @return list<Patrol>
+     */
+    public function filtered(array $patrols, array $patrolZones, PatrolFilter $filter): array
+    {
+        return array_values(array_filter(
+            $patrols,
+            fn (Patrol $patrol): bool => $this->matches($patrol, $patrolZones, $filter),
+        ));
     }
 
     /**
@@ -123,7 +139,7 @@ final readonly class PatrolListService
     {
         return $filter->matches(
             $patrol->getType(),
-            $patrol->getStation() ?? '',
+            $patrol->getStationKey() ?? '',
             $patrolZones[$patrol->getUuid()->toRfc4122()] ?? '',
         ) && $filter->matchesSearch(self::searchableFields($patrol));
     }
@@ -163,23 +179,26 @@ final readonly class PatrolListService
     }
 
     /**
+     * The stations the month set off from, as key → label: the key is what a
+     * filter link carries, the label what the menu prints.
+     *
      * @param list<Patrol> $patrols
      *
-     * @return list<string>
+     * @return array<string, string>
      */
     private function stationsOf(array $patrols): array
     {
         $stations = [];
         foreach ($patrols as $patrol) {
-            $station = $patrol->getStation();
-            if (null !== $station && '' !== $station) {
-                $stations[$station] = true;
+            $key = $patrol->getStationKey();
+            if (null !== $key && '' !== $key) {
+                $stations[$key] = $patrol->getStation() ?? $key;
             }
         }
 
-        ksort($stations);
+        asort($stations);
 
-        return array_keys($stations);
+        return $stations;
     }
 
     /**

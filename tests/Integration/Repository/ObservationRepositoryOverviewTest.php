@@ -18,6 +18,7 @@ use Uhifadhi\Bundle\AreaBundle\Entity\Zone;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Repository\ObservationRepository;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
@@ -45,7 +46,7 @@ final class ObservationRepositoryOverviewTest extends IntegrationTestCase
 
         $this->area = new AreaOfInterest()->setSource('test fixture')->setName('Example square')->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.0],[-29.9,-3.0],[-29.9,-2.9],[-30.0,-2.9],[-30.0,-3.0]]]]}');
         $this->em->persist($this->area);
-        $this->patrol = new Patrol($this->area, 'walk')
+        $this->patrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
             ->setStartedAt(new \DateTimeImmutable('2026-03-20T06:00:00Z'));
         $this->em->persist($this->patrol);
         $this->em->flush();
@@ -104,7 +105,7 @@ final class ObservationRepositoryOverviewTest extends IntegrationTestCase
     {
         $elsewhere = new AreaOfInterest()->setSource('test fixture')->setName('Elsewhere')->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.0],[-29.9,-3.0],[-29.9,-2.9],[-30.0,-2.9],[-30.0,-3.0]]]]}');
         $this->em->persist($elsewhere);
-        $otherPatrol = new Patrol($elsewhere, 'walk')->setStartedAt(new \DateTimeImmutable('2026-03-20T06:00:00Z'));
+        $otherPatrol = new Patrol($elsewhere, Vocabulary::type($this->em, $elsewhere, 'walk'))->setStartedAt(new \DateTimeImmutable('2026-03-20T06:00:00Z'));
         $this->em->persist($otherPatrol);
         $this->em->flush();
         $this->makeObservation('2026-03-21T08:00:00Z', null, $otherPatrol);

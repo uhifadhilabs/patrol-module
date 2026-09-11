@@ -22,6 +22,7 @@ use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Service\PatrolListService;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 
 /**
  * THE FULL LOG — every patrol the month holds, one page at a time, driven by one
@@ -60,8 +61,8 @@ final class PatrolListPageTest extends WebTestCase
 
         // A month with more patrols than one page holds, so the pager has work.
         for ($i = 0; $i < self::PATROL_COUNT; ++$i) {
-            $walk = new Patrol($this->area, 0 === $i % 5 ? 'boat' : 'walk')
-                ->setStation(0 === $i % 5 ? 'South landing' : 'North post')
+            $walk = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 0 === $i % 5 ? 'boat' : 'walk'))
+                ->setStationRecord(Vocabulary::station($this->em, $this->area, 0 === $i % 5 ? 'South landing' : 'North post'))
                 ->setLead($lead)
                 ->setStartedAt(new \DateTimeImmutable('today 06:10')->modify('-'.$i.' hours'))
                 ->setEndedAt(new \DateTimeImmutable('today 12:30')->modify('-'.$i.' hours'))
@@ -71,8 +72,8 @@ final class PatrolListPageTest extends WebTestCase
 
         // The one patrol a search can single out, by a word only its observation
         // note carries.
-        $searchable = new Patrol($this->area, 'walk')
-            ->setStation('North post')
+        $searchable = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, 'North post'))
             ->setLead($lead)
             ->setStartedAt(new \DateTimeImmutable('today 04:00'))
             ->setEndedAt(new \DateTimeImmutable('today 05:00'));

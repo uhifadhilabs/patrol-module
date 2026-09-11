@@ -15,6 +15,7 @@ namespace Uhifadhi\Patrol\Tests\Integration\Overview;
 
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 
 /**
  * The module's reading of one morning — the numbers all five contributions are
@@ -120,14 +121,17 @@ final class PatrolOverviewServiceTest extends PatrolOverviewTestCase
         self::assertSame(['A', 'B'], $today['stations']);
     }
 
-    public function testEveryConfiguredTypeIsCountedIncludingTheOnesThatDidNothing(): void
+    public function testEveryTypeTheAreaKeepsIsCountedIncludingTheOnesThatDidNothing(): void
     {
         $this->makePatrol('a', 'walk', '2026-03-21T06:00:00+00:00', '2026-03-21T09:00:00+00:00');
+        // A type this area keeps but nobody used today.
+        Vocabulary::type($this->em, $this->area, 'boat');
+        $this->em->flush();
 
         $today = $this->overview()->today($this->area, $this->now());
 
-        // A configured type that did nothing today really did nothing — this 0 is
-        // a measurement, not a stand-in for an unknown.
+        // A type the area keeps that did nothing today really did nothing — this
+        // 0 is a measurement, not a stand-in for an unknown.
         self::assertSame(0, $today['typeCounts']['boat']);
     }
 

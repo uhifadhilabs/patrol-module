@@ -21,6 +21,7 @@ use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\ObservationAmendmentKindEnum;
 use Uhifadhi\Patrol\Service\ObservationAmendmentService;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
@@ -130,7 +131,7 @@ final class ObservationAmendmentServiceTest extends IntegrationTestCase
         $area->setName('Example reserve')->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.0,-3.0],[-29.9,-3.0],[-29.9,-2.9],[-30.0,-2.9],[-30.0,-3.0]]]]}');
         $this->em->persist($area);
 
-        $patrol = new Patrol($area, 'walk')->setStartedAt(new \DateTimeImmutable('2026-03-01 06:00:00'));
+        $patrol = new Patrol($area, Vocabulary::type($this->em, $area, 'walk'))->setStartedAt(new \DateTimeImmutable('2026-03-01 06:00:00'));
         $this->em->persist($patrol);
 
         $observation = new Observation($patrol, 'wildlife')

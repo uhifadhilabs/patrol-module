@@ -18,6 +18,7 @@ use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Service\PatrolRecordingService;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
@@ -36,10 +37,10 @@ final class PatrolRecordingServiceTest extends IntegrationTestCase
 
         $patrol = $this->recording()->record(
             $area,
-            'walk',
+            Vocabulary::type($this->em, $area, 'walk'),
             new \DateTimeImmutable('2026-03-01 06:00:00'),
             new \DateTimeImmutable('2026-03-01 09:30:00'),
-            'North post',
+            Vocabulary::station($this->em, $area, 'North post'),
             $lead,
             'B. Example, C. Example',
             'Written up from the duty log.',
@@ -71,8 +72,8 @@ final class PatrolRecordingServiceTest extends IntegrationTestCase
     public function testTheStoredPatrolCarriesAReference(): void
     {
         $patrol = $this->recording()->record(
-            $this->makeArea(),
-            'walk',
+            $area = $this->makeArea(),
+            Vocabulary::type($this->em, $area, 'walk'),
             new \DateTimeImmutable('2026-03-01 06:00:00'),
         );
 

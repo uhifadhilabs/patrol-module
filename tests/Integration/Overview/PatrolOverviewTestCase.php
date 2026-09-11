@@ -21,6 +21,7 @@ use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Entity\TrackBatch;
 use Uhifadhi\Patrol\Entity\TrackPoint;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
@@ -104,9 +105,9 @@ abstract class PatrolOverviewTestCase extends IntegrationTestCase
 
     protected function makePatrol(string $key, string $type, ?string $startedAt, ?string $endedAt = null, PatrolStatusEnum $status = PatrolStatusEnum::Complete): Patrol
     {
-        $patrol = new Patrol($this->area, $type)
+        $patrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, $type))
             ->setStatus($status)
-            ->setStation(self::STATIONS[$key] ?? ucfirst($key))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, self::STATIONS[$key] ?? ucfirst($key)))
             ->setStartedAt(null === $startedAt ? null : new \DateTimeImmutable($startedAt))
             ->setEndedAt(null === $endedAt ? null : new \DateTimeImmutable($endedAt));
         $this->em->persist($patrol);

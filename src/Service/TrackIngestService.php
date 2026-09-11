@@ -17,6 +17,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Entity\PatrolType;
+use Uhifadhi\Patrol\Entity\Station;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Model\ParsedTrack;
 
@@ -51,9 +53,9 @@ final class TrackIngestService
     public function ingest(
         string $gpxXml,
         AreaOfInterest $area,
-        string $type,
+        PatrolType $type,
         PatrolSourceEnum $source = PatrolSourceEnum::Gpx,
-        ?string $station = null,
+        ?Station $station = null,
         ?UserInterface $lead = null,
         ?string $team = null,
         ?string $note = null,
@@ -62,7 +64,7 @@ final class TrackIngestService
 
         $patrol = new Patrol($area, $type)
             ->setSource($source)
-            ->setStation($station)
+            ->setStationRecord($station)
             ->setLead($lead)
             ->setTeam($team)
             ->setNote($note)

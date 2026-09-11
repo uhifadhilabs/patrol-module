@@ -22,6 +22,7 @@ use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\RecordingCommandIo;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 use Uhifadhi\Storage\Service\EvidenceKey;
@@ -51,7 +52,7 @@ final class PatrolCommandProviderTest extends IntegrationTestCase
         );
         $this->em->persist($area);
 
-        $patrol = new Patrol($area, 'walk')
+        $patrol = new Patrol($area, Vocabulary::type($this->em, $area, 'walk'))
             ->setClientUuid(Uuid::fromString('8f1f4e02-6b1a-4f34-8f8f-1a0f19a1c111'));
         $this->em->persist($patrol);
 

@@ -21,6 +21,7 @@ use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Model\PatrolFilter;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 
 /**
  * The dashboard's data contract — everything the widget screen binds, computed
@@ -41,9 +42,10 @@ final class PatrolDashboardServiceTest extends TestCase
 
     private function patrol(string $type, string $startedAt, float $km, ?string $station = null, int $observations = 0): Patrol
     {
-        $patrol = new Patrol(new AreaOfInterest()->setSource('test fixture'), $type)
+        $area = new AreaOfInterest()->setSource('test fixture');
+        $patrol = new Patrol($area, Vocabulary::type(null, $area, $type))
             ->setSource(PatrolSourceEnum::Gpx)
-            ->setStation($station)
+            ->setStationRecord(Vocabulary::station(null, $area, $station))
             ->setStartedAt(new \DateTimeImmutable($startedAt))
             ->setEndedAt(new \DateTimeImmutable($startedAt)->modify('+2 hours'))
             ->setDistanceKm($km);
@@ -137,7 +139,7 @@ final class PatrolDashboardServiceTest extends TestCase
             $dashboard->weeklySeries,
         )));
         self::assertSame(
-            [['station' => 'North post', 'count' => 1], ['station' => 'Jetty', 'count' => 1]],
+            [['station' => 'north-post', 'label' => 'North post', 'count' => 1], ['station' => 'jetty', 'label' => 'Jetty', 'count' => 1]],
             $dashboard->stationSeries,
         );
     }
@@ -158,7 +160,7 @@ final class PatrolDashboardServiceTest extends TestCase
             self::TYPES,
             $this->now,
             null,
-            new PatrolFilter($march, station: 'North post'),
+            new PatrolFilter($march, station: 'north-post'),
             $zones,
         );
         self::assertCount(1, $byStation->patrols);
@@ -200,11 +202,11 @@ final class PatrolDashboardServiceTest extends TestCase
             self::TYPES,
             $this->now,
             null,
-            new PatrolFilter(new \DateTimeImmutable('2026-03-01T00:00:00Z'), station: 'North post'),
+            new PatrolFilter(new \DateTimeImmutable('2026-03-01T00:00:00Z'), station: 'north-post'),
             $zones,
         );
 
-        self::assertSame(['Jetty', 'North post'], $dashboard->stations);
+        self::assertSame(['jetty' => 'Jetty', 'north-post' => 'North post'], $dashboard->stations);
         self::assertSame(['Basin floor', 'Highland'], $dashboard->zones);
     }
 
@@ -324,10 +326,10 @@ final class PatrolDashboardServiceTest extends TestCase
             $this->patrol('walk', '2026-03-16T06:00:00Z', 1.0, null), // no station — grouped as unassigned
         ], self::TYPES, $this->now);
 
-        self::assertSame([['station' => 'North post', 'count' => 2], ['station' => 'Jetty', 'count' => 1]], $dashboard->stationSeries);
+        self::assertSame([['station' => 'north-post', 'label' => 'North post', 'count' => 2], ['station' => 'jetty', 'label' => 'Jetty', 'count' => 1]], $dashboard->stationSeries);
         // The CHART is ranked; the MENU is sorted, because a list somebody has to
         // find a name in is read alphabetically, not by how busy the month was.
-        self::assertSame(['Jetty', 'North post'], $dashboard->stations);
+        self::assertSame(['jetty' => 'Jetty', 'north-post' => 'North post'], $dashboard->stations);
     }
 
     public function testCalendarPlacesPatrolsOnTheirDays(): void
@@ -520,7 +522,7 @@ final class PatrolDashboardServiceTest extends TestCase
         ], $payload['stations']);
         // Each track states its station too, so the station filter can drive the
         // map the same way the type chips do.
-        self::assertSame('North post', $payload['patrols'][0]['station']);
+        self::assertSame('north-post', $payload['patrols'][0]['station']);
         self::assertSame('', $payload['patrols'][3]['station']);
     }
 
@@ -549,7 +551,7 @@ final class PatrolDashboardServiceTest extends TestCase
         self::assertSame(['walk' => 1], $dashboard->monthTypeCounts);
         self::assertSame(['walk' => 1, 'boat' => 0], $dashboard->typeCounts);
         self::assertSame(1, $dashboard->totalCount);
-        self::assertSame([['station' => 'North post', 'count' => 1]], $dashboard->stationSeries);
+        self::assertSame([['station' => 'north-post', 'label' => 'North post', 'count' => 1]], $dashboard->stationSeries);
 
         // The last-patrol line names the last patrol that COUNTS, even though
         // the discarded one started later.

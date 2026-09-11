@@ -65,30 +65,33 @@
 
 {# The design's type chips, as a radio group: one is always chosen, keyboard
    reachable, and submitted without a line of JavaScript (patrol.css styles the
-   checked chip through :has()). The vocabulary is the deployment's
-   patrol.types, never a hardcoded list. #}
+   checked chip through :has()). The words are THIS AREA's own patrol types,
+   the ones SET·01 renames and retires; a retired one is not offered. #}
 {% macro type_chips(types, selected) %}
     <div class="patrol-chipset">
-        {% for key, type in types %}
+        {% for type in types %}
             <label class="mchip patrol-chip-radio">
-                <input type="radio" name="type" value="{{ key }}"{{ (selected ?: types|keys|first) == key ? ' checked' : '' }}>{{ type.label|default(key)|lower }}
+                <input type="radio" name="type" value="{{ type.key }}"{{ (selected ?: types|first.key) == type.key ? ' checked' : '' }}>{{ type.label|lower }}
             </label>
         {% endfor %}
     </div>
 {% endmacro %}
 
-{# The design shows the known stations as chips that fill this field when
-   clicked. A chip that writes into an input needs a JS controller, so the
-   native equivalent ships instead — a text input whose datalist offers exactly
-   those stations, still one keystroke away. Stations are free strings on the
-   patrol record, so the list is simply what this area has recorded.
-   TODO(station-chips): a Stimulus controller rendering them as clickable chips
-   as the design draws them. #}
-{% macro station_field(stations, value) %}
-    <input class="fld" type="text" name="station" list="patrol-stations" value="{{ value ?: '' }}" placeholder="station">
-    <datalist id="patrol-stations">
-        {% for station in stations %}<option value="{{ station }}"></option>{% endfor %}
-    </datalist>
+{# The design's station chips, as a radio group over this area's live stations —
+   the same control as the types, because a station is the same kind of thing.
+   "—" is first and is a real answer — plenty of patrols set off from nowhere in
+   particular. #}
+{% macro station_chips(stations, selected) %}
+    <div class="patrol-chipset">
+        <label class="mchip patrol-chip-radio">
+            <input type="radio" name="station" value=""{{ selected ? '' : ' checked' }}>—
+        </label>
+        {% for station in stations %}
+            <label class="mchip patrol-chip-radio">
+                <input type="radio" name="station" value="{{ station.key }}"{{ selected == station.key ? ' checked' : '' }}>{{ station.label|lower }}
+            </label>
+        {% endfor %}
+    </div>
 {% endmacro %}
 
 {# The design draws a text input here, but lead is a User relation on the

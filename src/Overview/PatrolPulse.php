@@ -52,8 +52,6 @@ final readonly class PatrolPulse implements PulseProviderInterface
         private PatrolRepository $patrols,
         private ObservationRepository $observations,
         private PatrolOverviewService $overview,
-        /** @var array<string, array{label: string}> the deployment's patrol.types map */
-        private array $types,
         /** @var array<string, array{label: string}> the deployment's patrol.observation_categories map */
         private array $categories,
     ) {
@@ -98,7 +96,7 @@ final readonly class PatrolPulse implements PulseProviderInterface
                 'patrol opened',
                 \sprintf(
                     '%s patrol out of %s%s',
-                    ucfirst(mb_strtolower($this->types[$patrol->getType()]['label'] ?? $patrol->getType())),
+                    ucfirst(mb_strtolower($patrol->getTypeLabel())),
                     $patrol->getStation() ?? 'an unrecorded station',
                     $patrol->isDiscarded() ? ' — since discarded' : '',
                 ),

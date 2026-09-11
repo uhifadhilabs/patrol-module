@@ -20,6 +20,7 @@ use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
@@ -262,7 +263,7 @@ final class PatrolRepositoryDepartmentCoverageTest extends IntegrationTestCase
 
     private function makeTrackedPatrol(AreaOfInterest $area, ?User $lead, ?string $track, string $startedAt = '2026-03-10T06:00:00Z'): Patrol
     {
-        $patrol = new Patrol($area, 'walk')
+        $patrol = new Patrol($area, Vocabulary::type($this->em, $area, 'walk'))
             ->setSource(null === $track ? PatrolSourceEnum::Manual : PatrolSourceEnum::Gpx)
             ->setLead($lead)
             ->setStartedAt(new \DateTimeImmutable($startedAt))

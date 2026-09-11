@@ -24,6 +24,7 @@ use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 
 /**
@@ -60,14 +61,11 @@ final class PatrolCalendarController
     /** The only month shape accepted: four-digit year, two-digit month. */
     private const string MONTH_PATTERN = '/^\d{4}-(0[1-9]|1[0-2])$/';
 
-    /**
-     * @param array<string, array{label: string}> $types the deployment's patrol.types vocabulary
-     */
     public function __construct(
         private readonly Environment $twig,
         private readonly PatrolRepository $patrols,
         private readonly PatrolDashboardService $dashboard,
-        private readonly array $types,
+        private readonly PatrolTypeRepository $types,
     ) {
     }
 
@@ -93,10 +91,14 @@ final class PatrolCalendarController
         // leading/trailing days, which carry pills too.
         [$from, $until] = PatrolDashboardService::calendarRange($month);
 
+        // The AREA's own words, so a pill on the grid is coloured and labelled
+        // exactly as the same patrol is on the map beside it.
+        $types = $this->types->findVocabularyByArea($area);
+
         $context = [
             'area' => $area,
-            'types' => $this->types,
-            'typeColor' => PatrolDashboardService::typeColors($this->types),
+            'types' => $types,
+            'typeColor' => PatrolDashboardService::typeColors($types),
             'month' => $month,
             'now' => $now,
             'cells' => $this->dashboard->calendarFor(

@@ -25,6 +25,7 @@ use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 use Uhifadhi\Patrol\Module\PatrolDepartmentKpiProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
@@ -442,7 +443,7 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
 
     private function patrol(AreaOfInterest $area, ?User $lead, float $km, string $startedAt = '2026-08-05 07:00:00'): Patrol
     {
-        $patrol = new Patrol($area, 'walk')
+        $patrol = new Patrol($area, Vocabulary::type($this->em, $area, 'walk'))
             ->setLead($lead)
             ->setDistanceKm($km)
             ->setStartedAt(new \DateTimeImmutable($startedAt));

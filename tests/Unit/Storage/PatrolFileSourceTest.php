@@ -22,6 +22,7 @@ use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
 use Uhifadhi\Patrol\Storage\PatrolFileSource;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Storage\Enum\FileKindEnum;
 use Uhifadhi\Storage\Enum\GuardStateEnum;
 use Uhifadhi\Storage\Enum\ThumbStateEnum;
@@ -183,7 +184,7 @@ final class PatrolFileSourceTest extends TestCase
     {
         $area = new AreaOfInterest()->setSource('test fixture');
         $area->setName('Kifaru Sector');
-        $patrol = new Patrol($area, 'walk');
+        $patrol = new Patrol($area, Vocabulary::type(null, $area, 'walk'));
         $observation = new Observation($patrol, 'maintenance');
 
         $photo = new ObservationPhoto(

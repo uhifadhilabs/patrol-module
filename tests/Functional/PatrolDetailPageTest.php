@@ -23,6 +23,7 @@ use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 
 /**
  * The patrol detail screen: the track plate and its payload, the meta rows,
@@ -68,8 +69,8 @@ final class PatrolDetailPageTest extends WebTestCase
 
         // A GPX-born patrol: a recorded track, honesty metadata, a roster and
         // two positioned observations.
-        $this->patrol = new Patrol($this->area, 'walk')
-            ->setStation('North post')
+        $this->patrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, 'North post'))
             ->setLead($lead)
             ->setTeam('B. Beta · C. Gamma')
             ->setStartedAt(new \DateTimeImmutable('today 06:10'))
@@ -98,7 +99,7 @@ final class PatrolDetailPageTest extends WebTestCase
 
         // A hand-logged patrol with no track and no observations: no Export GPX
         // action, no gps-points row, and the empty observations state.
-        $this->manualPatrol = new Patrol($this->area, 'boat')
+        $this->manualPatrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'boat'))
             ->setSource(PatrolSourceEnum::Manual)
             ->setStartedAt(new \DateTimeImmutable('today 07:20'));
         $this->em->persist($this->manualPatrol);

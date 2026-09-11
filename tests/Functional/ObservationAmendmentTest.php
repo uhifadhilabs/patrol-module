@@ -25,6 +25,7 @@ use Uhifadhi\Patrol\Entity\ObservationAmendment;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\ObservationAmendmentKindEnum;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 
 /**
@@ -81,8 +82,8 @@ final class ObservationAmendmentTest extends WebTestCase
         $this->em->persist($this->recorder);
         $this->em->persist($this->bystander);
 
-        $this->patrol = new Patrol($this->area, 'walk')
-            ->setStation('North post')
+        $this->patrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
+            ->setStationRecord(Vocabulary::station($this->em, $this->area, 'North post'))
             ->setLead($this->recorder)
             ->setSource(PatrolSourceEnum::Api)
             ->setStartedAt(new \DateTimeImmutable('today 06:10'))

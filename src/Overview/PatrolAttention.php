@@ -49,8 +49,6 @@ final readonly class PatrolAttention implements AttentionProviderInterface
 {
     public function __construct(
         private PatrolOverviewService $overview,
-        /** @var array<string, array{label: string}> the deployment's patrol.types map */
-        private array $types,
     ) {
     }
 
@@ -97,7 +95,7 @@ final readonly class PatrolAttention implements AttentionProviderInterface
 
             $detail = \sprintf(
                 '%s patrol out of %s%s%s.',
-                ucfirst(mb_strtolower($this->types[$patrol->getType()]['label'] ?? $patrol->getType())),
+                ucfirst(mb_strtolower($patrol->getTypeLabel())),
                 $patrol->getStation() ?? 'an unrecorded station',
                 null === $startedAt ? '' : ' since '.$startedAt->format('H:i'),
                 null === $lead ? '' : ', led by '.trim($lead->getFirstName().' '.$lead->getLastName()),

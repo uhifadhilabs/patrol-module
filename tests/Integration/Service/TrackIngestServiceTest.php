@@ -19,6 +19,7 @@ use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Service\TrackIngestService;
+use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 final class TrackIngestServiceTest extends IntegrationTestCase
@@ -58,8 +59,8 @@ final class TrackIngestServiceTest extends IntegrationTestCase
         $patrol = $this->ingest()->ingest(
             $this->gpx(),
             $area,
-            type: 'walk',
-            station: 'North post',
+            type: Vocabulary::type($this->em, $area, 'walk'),
+            station: Vocabulary::station($this->em, $area, 'North post'),
             lead: $lead,
             team: 'B. Example, C. Example',
         );
@@ -94,7 +95,7 @@ final class TrackIngestServiceTest extends IntegrationTestCase
     public function testObservationsPersistWithTheirPatrol(): void
     {
         $area = $this->makeArea();
-        $patrol = $this->ingest()->ingest($this->gpx(), $area, type: 'boat');
+        $patrol = $this->ingest()->ingest($this->gpx(), $area, type: Vocabulary::type($this->em, $area, 'boat'));
 
         $observation = new Observation($patrol, 'maintenance');
         $observation->setNote('Jetty ladder broken.')
