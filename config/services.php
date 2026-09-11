@@ -13,7 +13,9 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use Uhifadhi\Bundle\AreaBundle\Repository\AreaOfInterestRepository;
 use Uhifadhi\Bundle\AtlasBundle\Map\MapBuilderInterface;
+use Uhifadhi\Contracts\Shell\ConfigurationSectionsInterface;
 use Uhifadhi\Contracts\Shell\ModuleTabsInterface;
 use Uhifadhi\Patrol\Controller\PatrolCalendarController;
 use Uhifadhi\Patrol\Controller\PatrolController;
@@ -26,6 +28,7 @@ use Uhifadhi\Patrol\Repository\ObservationPhotoRepository;
 use Uhifadhi\Patrol\Repository\ObservationRepository;
 use Uhifadhi\Patrol\Repository\PatrolEventRepository;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Repository\PatrolSettingsRepository;
 use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;
 use Uhifadhi\Patrol\Repository\TaxonomySubcategoryRepository;
 use Uhifadhi\Patrol\Repository\TrackBatchRepository;
@@ -41,9 +44,11 @@ use Uhifadhi\Patrol\Service\PatrolListService;
 use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolRecordingService;
 use Uhifadhi\Patrol\Service\PatrolScreenAccessService;
+use Uhifadhi\Patrol\Service\PatrolSettingsService;
 use Uhifadhi\Patrol\Service\PatrolWidgetUrls;
 use Uhifadhi\Patrol\Service\TaxonomyAdminService;
 use Uhifadhi\Patrol\Service\TrackIngestService;
+use Uhifadhi\Patrol\Shell\PatrolConfigurationSections;
 use Uhifadhi\Patrol\Shell\PatrolModuleTabs;
 use Uhifadhi\Patrol\Twig\PatrolTrailExtension;
 
@@ -205,6 +210,12 @@ return static function (ContainerConfigurator $container): void {
         ->args([service('doctrine')])
         ->tag('doctrine.repository_service');
 
+    // What one area runs patrols on. Registered with the rest for the same
+    // reason: a repository is a query surface over a mapped entity.
+    $services->set(PatrolSettingsRepository::class)
+        ->args([service('doctrine')])
+        ->tag('doctrine.repository_service');
+
     /*
      * THE AREA-SCOPED OBSERVATION-TAXONOMY ADMIN's logic. Registered
      * unconditionally — it is pure domain logic (create/rename/retire kinds and
@@ -246,6 +257,35 @@ return static function (ContainerConfigurator $container): void {
      */
     $services->set('patrol.module_tabs', PatrolModuleTabs::class)
         ->tag(ModuleTabsInterface::TAG);
+
+    /*
+     * WHAT ONE AREA RUNS PATROLS ON. Unconditional: reading it is not a
+     * privilege, and the WRITE rides on a guarded controller.
+     */
+    $services->set('patrol.settings', PatrolSettingsService::class)
+        ->args([
+            service('doctrine.orm.entity_manager'),
+            service(PatrolSettingsRepository::class),
+            param('patrol.gap_threshold_minutes'),
+            param('patrol.discard_retention_days'),
+        ]);
+
+    /*
+     * WHAT IS ON THE MODULE'S ONE CONFIGURE PAGE. Tagged by hand, like the tabs
+     * and for the same reason; a module with no declaration has no Configure
+     * action at all.
+     */
+    $services->set('patrol.configuration_sections', PatrolConfigurationSections::class)
+        ->args([
+            service('request_stack'),
+            service(AreaOfInterestRepository::class),
+            service('patrol.settings'),
+            service(PatrolRepository::class),
+            service(TaxonomyKindRepository::class),
+            service('security.csrf.token_manager')->nullOnInvalid(),
+            param('patrol.types'),
+        ])
+        ->tag(ConfigurationSectionsInterface::TAG);
 
     /*
      * THE CRUMB'S ONE HELPER — `patrol_url()`, which answers null for a screen

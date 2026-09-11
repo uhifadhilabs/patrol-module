@@ -103,7 +103,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
         $crawler = $this->client->request('GET', $this->libraryUrl());
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1.pg', 'demo reserve — Patrols · widget library');
+        self::assertSelectorTextContains('h1.pg', 'demo reserve — Patrols · configure');
 
         $html = $crawler->html();
         // The shipped composition leads the strip under the design's own name,
@@ -125,16 +125,35 @@ final class WidgetLibraryFlowTest extends WebTestCase
         self::assertStringContainsString('North post', $html);
     }
 
-    public function testTheDashboardLinksToTheLibrary(): void
+    /**
+     * THE DASHBOARD LINKS TO NO LIBRARY. There is one configuration entry per
+     * surface — the shell's `Configure` action — and the library is a section
+     * behind it, so the module's own action row names it nowhere.
+     */
+    public function testTheDashboardDrawsNoWidgetLibraryButton(): void
     {
         $this->client->loginUser($this->ranger);
         $crawler = $this->client->request('GET', $this->dashboardUrl());
 
         self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('a:contains("Widget library")'));
+    }
+
+    /**
+     * AND THE LIBRARY IS REACHED FROM THE CONFIGURE PAGE'S STRIP, which is the
+     * shell drawing this module's declared sections.
+     */
+    public function testTheLibraryIsASectionOfTheConfigurePage(): void
+    {
+        $this->client->loginUser($this->ranger);
+        $crawler = $this->client->request('GET', $this->libraryUrl());
+
+        self::assertResponseIsSuccessful();
         self::assertSame(
-            $this->libraryUrl(),
-            $crawler->filter('a:contains("Widget library")')->attr('href'),
+            ['Widget library', 'Observation kinds', 'Settings'],
+            $crawler->filter('.atabs a')->each(static fn (Crawler $a): string => trim($a->text())),
         );
+        self::assertSame('Widget library', trim($crawler->filter('.atabs a.on')->text()));
     }
 
     /** A fresh person lands on the shipped composition — all seven, in catalogue order. */

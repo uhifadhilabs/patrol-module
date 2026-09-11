@@ -38,6 +38,7 @@ use Uhifadhi\Patrol\Command\PurgeDiscardedCommand;
 use Uhifadhi\Patrol\Controller\ObservationAmendmentController;
 use Uhifadhi\Patrol\Controller\PatrolHoldController;
 use Uhifadhi\Patrol\Controller\PatrolRecordController;
+use Uhifadhi\Patrol\Controller\PatrolSettingsController;
 use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
 use Uhifadhi\Patrol\Controller\PatrolWidgetsController;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
@@ -477,9 +478,27 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service(TaxonomySubcategoryRepository::class),
                     service('security.authorization_checker'),
                     service('security.csrf.token_manager'),
+                    service('patrol.screen_access'),
                 ])
                 ->public();
             $services->alias(PatrolTaxonomyController::class, 'patrol.controller.taxonomy')->public();
+
+            /*
+             * THE SETTINGS SECTION'S ONE POST. It changes what the area runs
+             * patrols on, so it rides on "patrols.manage" and exists only where
+             * SecurityBundle can enforce it. The SERVICE behind it is
+             * unconditional — reading what an area runs on is not a privilege —
+             * and only this door is guarded.
+             */
+            $services->set('patrol.controller.settings', PatrolSettingsController::class)
+                ->args([
+                    service('router'),
+                    service('patrol.settings'),
+                    service('security.authorization_checker'),
+                    service('security.csrf.token_manager'),
+                ])
+                ->public();
+            $services->alias(PatrolSettingsController::class, 'patrol.controller.settings')->public();
         }
 
         /*

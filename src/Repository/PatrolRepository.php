@@ -259,6 +259,30 @@ final class PatrolRepository extends ServiceEntityRepository
     }
 
     /**
+     * EVERY STATION THIS AREA HAS EVER SET OFF FROM, alphabetically. A station
+     * is still free text on a patrol rather than a record the area keeps, so the
+     * list of them is read back out of the patrols that named one — which is
+     * exactly what the Settings section has to show, and exactly what makes the
+     * case for giving a station a record of its own.
+     *
+     * @return list<string>
+     */
+    public function findStationNamesByArea(AreaOfInterest $area): array
+    {
+        /** @var list<array{station: string}> $rows */
+        $rows = $this->createQueryBuilder('p')
+            ->select('DISTINCT p.station AS station')
+            ->andWhere('p.area = :area')->setParameter('area', $area)
+            ->andWhere('p.station IS NOT NULL')
+            ->andWhere("p.station <> ''")
+            ->orderBy('p.station', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return array_map(static fn (array $row): string => $row['station'], $rows);
+    }
+
+    /**
      * The area's patrols that CLOSED inside a half-open window — "6 closed
      * today", by the only column that says when a patrol was closed.
      *

@@ -1,7 +1,7 @@
 {# The patrols module as a widget dashboard (settled design: the patrols screen,
    direction G "combined"). The dashboard itself stays CLEAN — no edit controls;
-   all editing (add/remove, width, drag order) happens in the widget library
-   reached via "Widget library".
+   all editing (add/remove, width, drag order) happens in the widget library,
+   which is a section of the one configure page.
 
    The widgets themselves live in _w_<id>.html.twig and are rendered by BOTH this
    screen and the library, so a preview can never drift from the real thing.
@@ -17,20 +17,12 @@
 
 {% block shell_page_subtitle %}Every patrol logged in this area — where they went, how far, how much of the area they reached, and what they saw. One filter drives the map, the log and the charts together.{% endblock %}
 
+{# THE MODULE DRAWS NO CONFIGURATION BUTTON. There is one configuration entry
+   per surface — the `Configure` action in the page head — and the SHELL renders
+   it from this module's declared sections. A Settings button here, a kinds link
+   there and a Widget library button somewhere else is what that ruling replaced.
+   → Uhifadhi\Patrol\Shell\PatrolConfigurationSections #}
 {% block shell_page_actions %}
-    {# The observation-taxonomy admin, first in the settled design's action row.
-       Its every route enforces patrols.manage, so the door is drawn only where
-       the route exists AND this viewer may open it (PatrolController::mayManage()) —
-       never a greyed control a ranger without the permission clicks into a 403.
-       → GET patrol_taxonomy — patrols.manage #}
-    {% if manageScreens %}
-        <a class="tgl patrol-act" href="{{ path('patrol_taxonomy', {uuid: area.uuid}) }}">{{ ux_icon('shell:layers') }}Observation kinds</a>
-    {% endif %}
-    {# The library edits ONE PERSON's layout, so the link exists only where the
-       route does (a host running SecurityBundle — see the bundle class). #}
-    {% if widgetScreens %}
-        <a class="tgl w-act" href="{{ path('patrol_widgets', {uuid: area.uuid}) }}">{{ ux_icon('shell:layout-grid') }} Widget library</a>
-    {% endif %}
     {# The two recording screens exist only where the host runs SecurityBundle
        (they enforce patrols.record — see UhifadhiPatrolBundle), so the
        links are rendered only when their routes do. #}
@@ -41,12 +33,6 @@
 {% endblock %}
 
 {% block patrol_page %}
-{# The way back out of the module, which is the AREA'S module grid and not this
-   module's page — so it is rendered only where the installation mounted that
-   screen. A back button to a route nobody registered is a 500 on the way home. #}
-{% set modules = patrol_url('area_modules', {uuid: area.uuid}) %}
-{% if modules %}<a class="backbtn" href="{{ modules }}">{{ ux_icon('shell:chevron-left') }}All modules</a>{% endif %}
-
 <div class="patrol-wgrid">
     {% for widget in widgets %}
         {% if widget.on %}

@@ -464,8 +464,9 @@ final class DashboardPageTest extends WebTestCase
         $crawler = $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols');
 
         self::assertResponseIsSuccessful();
-        self::assertStringNotContainsString('Import GPX', $crawler->filter('.pgact')->html());
-        self::assertStringNotContainsString('Log patrol', $crawler->filter('.pgact')->html());
+        $actions = $crawler->filter('.pgact')->count() ? $crawler->filter('.pgact')->html() : '';
+        self::assertStringNotContainsString('Import GPX', $actions);
+        self::assertStringNotContainsString('Log patrol', $actions);
 
         // And the routes agree, which is the half that already worked: the
         // absence above is the page telling the same truth the screen enforces.
@@ -502,7 +503,7 @@ final class DashboardPageTest extends WebTestCase
      * exactly the same terms as the recording screens: the route must exist (it
      * needs SecurityBundle) AND the viewer must hold the permission.
      */
-    public function testSomebodyWhoMayNotManageIsNotOfferedTheTaxonomyScreen(): void
+    public function testSomebodyWhoMayNotManageCannotOpenTheKindsScreen(): void
     {
         $recorder = new User()->setPassword('x')->setEmail(FixedRecordVoter::RECORDER_EMAIL)
             ->setFirstName('Rita')->setLastName('Recorder');
@@ -510,18 +511,17 @@ final class DashboardPageTest extends WebTestCase
         $this->em->flush();
         $this->client->loginUser($recorder);
 
-        $crawler = $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols');
-
-        self::assertResponseIsSuccessful();
-        self::assertStringNotContainsString('Observation kinds', $crawler->filter('.pgact')->html());
-
-        // And the route agrees: the absence above is the page telling the same
-        // truth the screen enforces.
-        $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols/taxonomy');
+        $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols/kinds');
         self::assertResponseStatusCodeSame(403);
     }
 
-    public function testSomebodyWhoMayManageIsOfferedTheTaxonomyScreen(): void
+    /**
+     * THE MODULE DRAWS NO CONFIGURATION BUTTON AT ALL. There is one
+     * configuration entry per surface and the shell renders it; a kinds link, a
+     * Settings button and a Widget library button in a module's own action row
+     * is what that ruling replaced.
+     */
+    public function testTheDashboardOffersNoConfigurationButtonOfItsOwn(): void
     {
         $manager = new User()->setPassword('x')->setEmail(FixedRecordVoter::MANAGER_EMAIL)
             ->setFirstName('Mara')->setLastName('Manager');
@@ -532,17 +532,41 @@ final class DashboardPageTest extends WebTestCase
         $crawler = $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols');
 
         self::assertResponseIsSuccessful();
-        $taxonomy = $crawler->filter('.pgact a')->reduce(
-            static fn ($node): bool => str_contains($node->text(), 'Observation kinds'),
-        );
-        self::assertCount(1, $taxonomy, 'a manager is offered the taxonomy screen');
-        self::assertSame(
-            '/areas/'.$this->area->getUuidString().'/modules/patrols/taxonomy',
-            $taxonomy->attr('href'),
-        );
+        $actions = $crawler->filter('.pgact')->count() ? $crawler->filter('.pgact')->html() : '';
+        self::assertStringNotContainsString('Observation kinds', $actions);
+        self::assertStringNotContainsString('Widget library', $actions);
+        self::assertStringNotContainsString('Settings', $actions);
+    }
 
-        // The door opens: the manager reaches the screen the link names.
+    /**
+     * THE OLD ADDRESS IS KEPT ALIVE. `…/taxonomy` was the screen's address
+     * before the word a person reads became "kinds"; a saved link must not
+     * become a 404 over a rename.
+     */
+    public function testTheOldTaxonomyAddressRedirectsToTheKindsScreen(): void
+    {
+        $manager = new User()->setPassword('x')->setEmail(FixedRecordVoter::MANAGER_EMAIL)
+            ->setFirstName('Mara')->setLastName('Manager');
+        $this->em->persist($manager);
+        $this->em->flush();
+        $this->client->loginUser($manager);
+
         $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols/taxonomy');
+
+        self::assertResponseStatusCodeSame(301);
+        self::assertResponseRedirects('/areas/'.$this->area->getUuidString().'/modules/patrols/kinds');
+    }
+
+    public function testSomebodyWhoMayManageOpensTheKindsScreen(): void
+    {
+        $manager = new User()->setPassword('x')->setEmail(FixedRecordVoter::MANAGER_EMAIL)
+            ->setFirstName('Mara')->setLastName('Manager');
+        $this->em->persist($manager);
+        $this->em->flush();
+        $this->client->loginUser($manager);
+
+        // The door opens: a manager reaches the kinds screen.
+        $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols/kinds');
         self::assertResponseIsSuccessful();
     }
 

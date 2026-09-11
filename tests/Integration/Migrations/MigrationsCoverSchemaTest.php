@@ -49,6 +49,7 @@ final class MigrationsCoverSchemaTest extends MigrationsTestCase
         'patrol_taxonomy_subcategory',
         'patrol_launch_point',
         'patrol_flight',
+        'patrol_settings',
     ];
 
     public function testMigrateBuildsEveryTableThisModuleOwns(): void

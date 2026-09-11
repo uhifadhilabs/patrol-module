@@ -72,7 +72,7 @@ final class TaxonomyAdminPageTest extends WebTestCase
         $area = $this->anArea('Southern Reserve');
         $this->client->loginUser($this->aManager());
 
-        $crawler = $this->client->request('GET', $this->taxonomyUrl($area));
+        $crawler = $this->client->request('GET', $this->kindsUrl($area));
 
         self::assertResponseIsSuccessful();
         // The empty condition, not the manager.
@@ -82,7 +82,7 @@ final class TaxonomyAdminPageTest extends WebTestCase
         self::assertCount(1, $crawler->filter('.tx-sketch'));
         self::assertStringContainsString('Southern Reserve has no observation kinds yet', $crawler->text());
         // One honest way in: a real form that writes the first kind.
-        self::assertCount(1, $crawler->filter('.tx-empty form[action$="/taxonomy/kinds"]'));
+        self::assertCount(1, $crawler->filter('.tx-empty form[action$="/patrols/kinds"]'));
     }
 
     /** The copy-from-area picker is deferred, so the empty start offers no such live control. */
@@ -91,7 +91,7 @@ final class TaxonomyAdminPageTest extends WebTestCase
         $area = $this->anArea();
         $this->client->loginUser($this->aManager());
 
-        $crawler = $this->client->request('GET', $this->taxonomyUrl($area));
+        $crawler = $this->client->request('GET', $this->kindsUrl($area));
 
         self::assertCount(0, $crawler->filter('.tx-copy'));
         self::assertCount(0, $crawler->filter('.tx-area'));
@@ -106,7 +106,7 @@ final class TaxonomyAdminPageTest extends WebTestCase
         // split the screen rests on.
         $this->client->loginUser($this->aRecorder());
 
-        $this->client->request('GET', $this->taxonomyUrl($area));
+        $this->client->request('GET', $this->kindsUrl($area));
 
         self::assertResponseStatusCodeSame(403);
     }
@@ -118,8 +118,8 @@ final class TaxonomyAdminPageTest extends WebTestCase
         $area = $this->anArea();
         $this->client->loginUser($this->aManager());
 
-        $html = $this->client->request('GET', $this->taxonomyUrl($area))->html();
-        $this->client->request('POST', $this->taxonomyUrl($area).'/kinds', [
+        $html = $this->client->request('GET', $this->kindsUrl($area))->html();
+        $this->client->request('POST', $this->kindsUrl($area), [
             '_token' => $this->tokenFrom($html),
             'label' => 'Wildlife',
         ]);
@@ -141,7 +141,7 @@ final class TaxonomyAdminPageTest extends WebTestCase
         $this->admin()->createSubcategory($kind, 'Sighting');
         $this->client->loginUser($this->aManager());
 
-        $crawler = $this->client->request('GET', $this->taxonomyUrl($area).'?kind='.$kind->getUuid()->toRfc4122());
+        $crawler = $this->client->request('GET', $this->kindsUrl($area).'?kind='.$kind->getUuid()->toRfc4122());
 
         self::assertStringContainsString('Sighting', $crawler->filter('.tx-sub')->text());
         // SHALLOW: no behaviour-block chips, no toggle editor anywhere.
@@ -157,8 +157,8 @@ final class TaxonomyAdminPageTest extends WebTestCase
         $kind = $this->admin()->createKind($area, 'Wildlife');
         $this->client->loginUser($this->aManager());
 
-        $html = $this->client->request('GET', $this->taxonomyUrl($area).'?kind='.$kind->getUuid()->toRfc4122())->html();
-        $this->client->request('POST', $this->taxonomyUrl($area).'/kinds/'.$kind->getUuid()->toRfc4122().'/subcategories', [
+        $html = $this->client->request('GET', $this->kindsUrl($area).'?kind='.$kind->getUuid()->toRfc4122())->html();
+        $this->client->request('POST', $this->kindsUrl($area).'/'.$kind->getUuid()->toRfc4122().'/subcategories', [
             '_token' => $this->tokenFrom($html),
             'label' => 'Spoor / Tracks',
         ]);
@@ -177,8 +177,8 @@ final class TaxonomyAdminPageTest extends WebTestCase
         $kind = $this->admin()->createKind($area, 'Fire Scar');
         $this->client->loginUser($this->aManager());
 
-        $html = $this->client->request('GET', $this->taxonomyUrl($area))->html();
-        $this->client->request('POST', $this->taxonomyUrl($area).'/kinds/'.$kind->getUuid()->toRfc4122().'/deactivate', [
+        $html = $this->client->request('GET', $this->kindsUrl($area))->html();
+        $this->client->request('POST', $this->kindsUrl($area).'/'.$kind->getUuid()->toRfc4122().'/deactivate', [
             '_token' => $this->tokenFrom($html),
         ]);
         $crawler = $this->client->followRedirect();
@@ -188,7 +188,7 @@ final class TaxonomyAdminPageTest extends WebTestCase
         self::assertSame(1, $this->kindCount($area));
 
         // And it reactivates in one click.
-        $this->client->request('POST', $this->taxonomyUrl($area).'/kinds/'.$kind->getUuid()->toRfc4122().'/reactivate', [
+        $this->client->request('POST', $this->kindsUrl($area).'/'.$kind->getUuid()->toRfc4122().'/reactivate', [
             '_token' => $this->tokenFrom($crawler->html()),
         ]);
         $back = $this->client->followRedirect();
@@ -203,7 +203,7 @@ final class TaxonomyAdminPageTest extends WebTestCase
         $this->admin()->createSubcategory($kind, 'Sighting');
         $this->client->loginUser($this->aManager());
 
-        $html = $this->client->request('GET', $this->taxonomyUrl($area))->html();
+        $html = $this->client->request('GET', $this->kindsUrl($area))->html();
 
         self::assertStringNotContainsStringIgnoringCase('/delete', $html);
         self::assertStringNotContainsStringIgnoringCase('>Delete<', $html);
@@ -219,7 +219,7 @@ final class TaxonomyAdminPageTest extends WebTestCase
         $this->client->loginUser($this->aManager());
 
         // The southern area sees its own (empty) list, not the northern one's kind.
-        $crawler = $this->client->request('GET', $this->taxonomyUrl($southern));
+        $crawler = $this->client->request('GET', $this->kindsUrl($southern));
         self::assertCount(1, $crawler->filter('.tx-empty'));
         self::assertStringNotContainsString('Wildlife', $crawler->filter('.tx-empty')->text());
     }
@@ -232,9 +232,9 @@ final class TaxonomyAdminPageTest extends WebTestCase
         $kind = $this->admin()->createKind($northern, 'Wildlife');
         $this->client->loginUser($this->aManager());
 
-        $html = $this->client->request('GET', $this->taxonomyUrl($southern))->html();
+        $html = $this->client->request('GET', $this->kindsUrl($southern))->html();
         // The northern area's kind uuid, posted at the southern area's URL.
-        $this->client->request('POST', $this->taxonomyUrl($southern).'/kinds/'.$kind->getUuid()->toRfc4122().'/deactivate', [
+        $this->client->request('POST', $this->kindsUrl($southern).'/'.$kind->getUuid()->toRfc4122().'/deactivate', [
             '_token' => $this->tokenFrom($html),
         ]);
 
@@ -249,8 +249,8 @@ final class TaxonomyAdminPageTest extends WebTestCase
         $this->admin()->createKind($area, 'Wildlife');
         $this->client->loginUser($this->aManager());
 
-        $html = $this->client->request('GET', $this->taxonomyUrl($area))->html();
-        $this->client->request('POST', $this->taxonomyUrl($area).'/kinds', [
+        $html = $this->client->request('GET', $this->kindsUrl($area))->html();
+        $this->client->request('POST', $this->kindsUrl($area), [
             '_token' => $this->tokenFrom($html),
             'label' => 'wildlife',
         ]);
@@ -269,7 +269,7 @@ final class TaxonomyAdminPageTest extends WebTestCase
         $area = $this->anArea();
         $this->client->loginUser($this->aManager());
 
-        $this->client->request('POST', $this->taxonomyUrl($area).'/kinds', [
+        $this->client->request('POST', $this->kindsUrl($area), [
             'label' => 'Wildlife',
         ]);
 
@@ -279,12 +279,12 @@ final class TaxonomyAdminPageTest extends WebTestCase
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
-    private function taxonomyUrl(AreaOfInterest $area): string
+    private function kindsUrl(AreaOfInterest $area): string
     {
         $uuid = $area->getUuidString();
         self::assertNotNull($uuid, 'A persisted area always has a uuid.');
 
-        return \sprintf('/areas/%s/modules/patrols/taxonomy', $uuid);
+        return \sprintf('/areas/%s/modules/patrols/kinds', $uuid);
     }
 
     private function admin(): TaxonomyAdminService

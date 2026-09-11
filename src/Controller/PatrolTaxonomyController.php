@@ -35,6 +35,7 @@ use Uhifadhi\Patrol\Exception\TaxonomyConflictException;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;
 use Uhifadhi\Patrol\Repository\TaxonomySubcategoryRepository;
+use Uhifadhi\Patrol\Service\PatrolScreenAccessService;
 use Uhifadhi\Patrol\Service\TaxonomyAdminService;
 
 /**
@@ -83,12 +84,13 @@ final class PatrolTaxonomyController
         private readonly TaxonomySubcategoryRepository $subcategories,
         private readonly AuthorizationCheckerInterface $authorization,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly PatrolScreenAccessService $screens,
     ) {
     }
 
     #[Route(
-        '/areas/{uuid}/modules/patrols/taxonomy',
-        name: 'patrol_taxonomy',
+        '/areas/{uuid}/modules/patrols/kinds',
+        name: 'patrol_kinds',
         requirements: ['uuid' => Requirement::UUID],
         methods: ['GET'],
         priority: 2,
@@ -102,17 +104,40 @@ final class PatrolTaxonomyController
         $kinds = $this->kinds->forArea($area);
         $selected = $this->selectedKind($kinds, $request->query->getString('kind'));
 
-        return new Response($this->twig->render('@UhifadhiPatrol/taxonomy/show.html.twig', [
+        return new Response($this->twig->render('@UhifadhiPatrol/kinds/show.html.twig', [
             'area' => $area,
             'kinds' => $kinds,
             'selected' => $selected,
+            // The one page action this screen draws. The way back is the strip,
+            // the lit Configure and the crumb — never a button of its own.
+            'recordScreens' => $this->screens->mayRecord(),
             'csrfToken' => $this->csrfTokenManager->getToken(self::CSRF_TOKEN_ID)->getValue(),
         ]));
     }
 
+    /**
+     * THE OLD ADDRESS, KEPT ALIVE. The screen was `…/taxonomy` before the word a
+     * person reads became "kinds"; a link somebody saved, or a bookmark, must
+     * not become a 404 over a rename. Permanent, because the move is.
+     */
+    #[Route(
+        '/areas/{uuid}/modules/patrols/taxonomy',
+        name: 'patrol_taxonomy',
+        requirements: ['uuid' => Requirement::UUID],
+        methods: ['GET'],
+        priority: 2,
+    )]
+    public function legacyTaxonomyAddress(#[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area): RedirectResponse
+    {
+        return new RedirectResponse(
+            $this->router->generate('patrol_kinds', ['uuid' => $area->getUuidString()]),
+            Response::HTTP_MOVED_PERMANENTLY,
+        );
+    }
+
     // ── kinds ────────────────────────────────────────────────────────────────
 
-    #[Route('/areas/{uuid}/modules/patrols/taxonomy/kinds', name: 'patrol_taxonomy_kind_create', requirements: ['uuid' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/areas/{uuid}/modules/patrols/kinds', name: 'patrol_kinds_kind_create', requirements: ['uuid' => Requirement::UUID], methods: ['POST'])]
     public function createKind(Request $request, #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area): Response
     {
         $this->guardWrite($request);
@@ -126,7 +151,7 @@ final class PatrolTaxonomyController
         }
     }
 
-    #[Route('/areas/{uuid}/modules/patrols/taxonomy/kinds/{kind}/rename', name: 'patrol_taxonomy_kind_rename', requirements: ['uuid' => Requirement::UUID, 'kind' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/areas/{uuid}/modules/patrols/kinds/{kind}/rename', name: 'patrol_kinds_kind_rename', requirements: ['uuid' => Requirement::UUID, 'kind' => Requirement::UUID], methods: ['POST'])]
     public function renameKind(Request $request, #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area, string $kind): Response
     {
         $this->guardWrite($request);
@@ -141,7 +166,7 @@ final class PatrolTaxonomyController
         return $this->backToManager($area, $entity);
     }
 
-    #[Route('/areas/{uuid}/modules/patrols/taxonomy/kinds/{kind}/deactivate', name: 'patrol_taxonomy_kind_deactivate', requirements: ['uuid' => Requirement::UUID, 'kind' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/areas/{uuid}/modules/patrols/kinds/{kind}/deactivate', name: 'patrol_kinds_kind_deactivate', requirements: ['uuid' => Requirement::UUID, 'kind' => Requirement::UUID], methods: ['POST'])]
     public function deactivateKind(Request $request, #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area, string $kind): Response
     {
         $this->guardWrite($request);
@@ -151,7 +176,7 @@ final class PatrolTaxonomyController
         return $this->backToManager($area, $entity);
     }
 
-    #[Route('/areas/{uuid}/modules/patrols/taxonomy/kinds/{kind}/reactivate', name: 'patrol_taxonomy_kind_reactivate', requirements: ['uuid' => Requirement::UUID, 'kind' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/areas/{uuid}/modules/patrols/kinds/{kind}/reactivate', name: 'patrol_kinds_kind_reactivate', requirements: ['uuid' => Requirement::UUID, 'kind' => Requirement::UUID], methods: ['POST'])]
     public function reactivateKind(Request $request, #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area, string $kind): Response
     {
         $this->guardWrite($request);
@@ -163,7 +188,7 @@ final class PatrolTaxonomyController
 
     // ── sub-categories ─────────────────────────────────────────────────────────
 
-    #[Route('/areas/{uuid}/modules/patrols/taxonomy/kinds/{kind}/subcategories', name: 'patrol_taxonomy_sub_create', requirements: ['uuid' => Requirement::UUID, 'kind' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/areas/{uuid}/modules/patrols/kinds/{kind}/subcategories', name: 'patrol_kinds_sub_create', requirements: ['uuid' => Requirement::UUID, 'kind' => Requirement::UUID], methods: ['POST'])]
     public function createSubcategory(Request $request, #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area, string $kind): Response
     {
         $this->guardWrite($request);
@@ -178,7 +203,7 @@ final class PatrolTaxonomyController
         return $this->backToManager($area, $entity);
     }
 
-    #[Route('/areas/{uuid}/modules/patrols/taxonomy/subcategories/{sub}/rename', name: 'patrol_taxonomy_sub_rename', requirements: ['uuid' => Requirement::UUID, 'sub' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/areas/{uuid}/modules/patrols/kinds/subcategories/{sub}/rename', name: 'patrol_kinds_sub_rename', requirements: ['uuid' => Requirement::UUID, 'sub' => Requirement::UUID], methods: ['POST'])]
     public function renameSubcategory(Request $request, #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area, string $sub): Response
     {
         $this->guardWrite($request);
@@ -193,7 +218,7 @@ final class PatrolTaxonomyController
         return $this->backToManager($area, $entity->getKind());
     }
 
-    #[Route('/areas/{uuid}/modules/patrols/taxonomy/subcategories/{sub}/deactivate', name: 'patrol_taxonomy_sub_deactivate', requirements: ['uuid' => Requirement::UUID, 'sub' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/areas/{uuid}/modules/patrols/kinds/subcategories/{sub}/deactivate', name: 'patrol_kinds_sub_deactivate', requirements: ['uuid' => Requirement::UUID, 'sub' => Requirement::UUID], methods: ['POST'])]
     public function deactivateSubcategory(Request $request, #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area, string $sub): Response
     {
         $this->guardWrite($request);
@@ -203,7 +228,7 @@ final class PatrolTaxonomyController
         return $this->backToManager($area, $entity->getKind());
     }
 
-    #[Route('/areas/{uuid}/modules/patrols/taxonomy/subcategories/{sub}/reactivate', name: 'patrol_taxonomy_sub_reactivate', requirements: ['uuid' => Requirement::UUID, 'sub' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/areas/{uuid}/modules/patrols/kinds/subcategories/{sub}/reactivate', name: 'patrol_kinds_sub_reactivate', requirements: ['uuid' => Requirement::UUID, 'sub' => Requirement::UUID], methods: ['POST'])]
     public function reactivateSubcategory(Request $request, #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area, string $sub): Response
     {
         $this->guardWrite($request);
@@ -289,7 +314,7 @@ final class PatrolTaxonomyController
             $parameters['kind'] = $selected->getUuid()->toRfc4122();
         }
 
-        return new RedirectResponse($this->router->generate('patrol_taxonomy', $parameters));
+        return new RedirectResponse($this->router->generate('patrol_kinds', $parameters));
     }
 
     /** A refused write flashes why, beside where it happened, and returns to the manager. */

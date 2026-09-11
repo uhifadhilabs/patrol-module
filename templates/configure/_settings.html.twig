@@ -1,0 +1,94 @@
+{# THE SETTINGS SECTION OF THE PATROLS CONFIGURE PAGE — body only.
+
+   NO HEAD, NO STRIP, NO CRUMB, NO WAY BACK. The shell draws all four; this file
+   writes the section's content and nothing around it, which is the whole of what
+   a rendered section is.
+
+   IT SPENDS ONLY THE PLATFORM'S VOCABULARY — .c, .srow, .sact, .sout, .frow,
+   .save-row — because the shell's stylesheet is the only one linked on the
+   configure page, and because those classes are the shell's to define. A module
+   that redefined one would be drift, and the conformance test says so.
+
+   ONE SCREEN, ONE POST. Every control below is a field of this area's settings
+   record; nothing here writes on change. #}
+
+{% set save = patrol_url('patrol_settings_save', {uuid: area.uuid}) %}
+
+{% if save %}<form method="post" action="{{ save }}">
+<input type="hidden" name="_token" value="{{ csrfToken }}">{% endif %}
+
+{# ── SET·01 · Patrol types ────────────────────────────────────────────────── #}
+<div class="c" style="margin-bottom:20px">
+    <span class="tab">Patrol types<span class="src">· the deployment's, for now</span></span>
+    {% for key, type in types %}
+        <div class="srow"><span class="nm">{{ type.label }}</span><span class="cd">{{ key }}</span></div>
+    {% else %}
+        <div class="srow"><span class="nm">No patrol types are configured.</span></div>
+    {% endfor %}
+    <div class="sout" style="margin-top:12px">
+        <span class="bd"><b>Editing these here is not built yet.</b> A patrol type is still one
+        installation's vocabulary, read from the <span class="mono">patrol.types</span> configuration, so adding,
+        renaming and retiring one per area needs a record of its own and a migration that carries every
+        patrol already filed under a type. Until then the list above is what this area picks from, and it is
+        the same list every area in this installation picks from.</span>
+    </div>
+</div>
+
+{# ── SET·02 · Observation kinds, which live on their own screen ───────────── #}
+<div class="c" style="margin-bottom:20px">
+    <span class="tab">Observation categories<span class="src">· its own section</span></span>
+    <div class="sout">
+        <span class="bd"><b>{{ kindCount }} {{ kindCount == 1 ? 'kind' : 'kinds' }}, {{ subcategoryCount }}
+        {{ subcategoryCount == 1 ? 'sub-category' : 'sub-categories' }}{% if retiredCount %},
+        {{ retiredCount }} retired{% endif %}.</b> The kinds a ranger picks from on the handset are managed in
+        their own section — the two-pane manager with the rename and the deactivation footprint note. They are
+        not duplicated here.</span>
+        {% set kinds = patrol_url('patrol_kinds', {uuid: area.uuid}) %}
+        {% if kinds %}<a class="cta" href="{{ kinds }}">Open Observation kinds →</a>{% endif %}
+    </div>
+</div>
+
+{# ── SET·03 · Stations ────────────────────────────────────────────────────── #}
+<div class="c" style="margin-bottom:20px">
+    <span class="tab">Stations<span class="src">· where a patrol sets off</span></span>
+    {% for station in stations %}
+        <div class="srow"><span class="nm">{{ station }}</span></div>
+    {% else %}
+        <div class="srow"><span class="nm">No patrol has named a station in this area yet.</span></div>
+    {% endfor %}
+    <div class="sout" style="margin-top:12px">
+        <span class="bd"><b>Editing these here is not built yet.</b> A station is still free text on a patrol
+        rather than a record this area keeps, so the list above is read back out of the patrols that named one.
+        Adding, renaming and retiring a station needs that record, a migration that turns every existing string
+        into one, and the patrol form, the import and the handset sync mapping the string to it.</span>
+    </div>
+</div>
+
+{# ── SET·04 · Thresholds — the two this area really does own ──────────────── #}
+<div class="c" style="margin-bottom:20px">
+    <span class="tab">Thresholds<span class="src">· {{ settings.areaChose ? 'this area’s own' : 'the installation’s, until this area saves' }}</span></span>
+    <div class="frow">
+        <label for="patrol-gap">gps gap</label>
+        <div style="display:flex;align-items:center;gap:9px">
+            <input class="fld snum" id="patrol-gap" type="number" name="gap_threshold_minutes"
+                   min="{{ minGapMinutes }}" max="{{ maxGapMinutes }}" value="{{ settings.gapThresholdMinutes }}"{{ save ? '' : ' disabled' }}>
+            <span class="use" style="margin:0">minutes without a fix before a track is drawn as broken and the patrol is flagged for review.</span>
+        </div>
+    </div>
+    <div class="frow">
+        <label for="patrol-retention">discard keeps</label>
+        <div style="display:flex;align-items:center;gap:9px">
+            <input class="fld snum" id="patrol-retention" type="number" name="discard_retention_days"
+                   min="{{ minRetentionDays }}" max="{{ maxRetentionDays }}" value="{{ settings.discardRetentionDays }}"{{ save ? '' : ' disabled' }}>
+            <span class="use" style="margin:0">days a discarded patrol stays recoverable before it is purged.</span>
+        </div>
+    </div>
+</div>
+
+{% if save %}
+    {# NO CANCEL LINK OUT OF THE MODULE. The section strip, the lit Configure and
+       the crumb are the ways back; a fourth would be the thing the frame
+       replaced. #}
+    <div class="save-row"><button class="cta" type="submit">Save settings</button></div>
+</form>
+{% endif %}

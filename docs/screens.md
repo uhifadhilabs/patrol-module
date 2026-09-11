@@ -4,23 +4,51 @@
 
 - [The routes](#the-routes)
 - [The dashboard's filter](#the-dashboards-filter)
-- [Observation taxonomy admin](#observation-taxonomy-admin)
+- [The module frame](#the-module-frame)
+- [Observation kinds](#observation-kinds)
+- [Settings](#settings)
 
 ## The routes
 
 | Screen | Route |
 |---|---|
-| Widget dashboard | `patrol_dashboard` |
-| Widget library (edit surface) | `patrol_widgets` |
+| Widget dashboard (Overview tab) | `patrol_dashboard` |
+| Every patrol (Patrols tab) | `patrol_list` |
+| Widget library (configure section) | `patrol_widgets` |
 | Patrol detail | `patrol_show` |
 | Observation detail | `patrol_observation_show` |
 | Export a recorded track as GPX | `patrol_export_gpx` |
 | Import GPX | `patrol_import` |
 | Log patrol (manual) | `patrol_log` |
-| Observation taxonomy admin | `patrol_taxonomy` |
+| Observation kinds (configure section) | `patrol_kinds` |
+| Save the module's settings | `patrol_settings_save` |
+
+`patrol_taxonomy` (`…/patrols/taxonomy`) still answers, permanently redirecting to
+`patrol_kinds` (`…/patrols/kinds`) — a saved link does not become a 404 over a
+rename.
 
 The dashboard and the widget library are compositions on the shell's widget
 framework — see [what-it-stands-on.md](what-it-stands-on.md).
+
+## The module frame
+
+This module draws no navigation of its own. It declares two lists and the shell
+draws both:
+
+- **Two data tabs** — `Overview` and `Patrols` — through `ModuleTabsInterface`
+  (`Uhifadhi\Patrol\Shell\PatrolModuleTabs`). A tab is a place where DATA lives;
+  the patrol and observation detail screens keep the `Patrols` tab lit, because
+  opening a record does not leave the place the record lives in.
+- **Three configure sections** — `Widget library`, `Observation kinds`,
+  `Settings` — through `ConfigurationSectionsInterface`
+  (`Uhifadhi\Patrol\Shell\PatrolConfigurationSections`). The first two keep an
+  address of their own, exactly as the settled design draws them; `Settings` is a
+  body the shell renders inside its own configure page.
+
+There is one configuration entry per surface — the shell's `Configure` action —
+and no `Settings`, `Observation kinds` or `Widget library` button anywhere else,
+and no "Back to dashboard": the first data tab, the lit `Configure` and the crumb
+are the three ways back.
 
 ## The dashboard's filter
 
@@ -45,12 +73,12 @@ and the coverage layer drawn under the tracks. Both are the whole month's, and
 both are the same measurement — the shape on the plate is the number in the
 strip.
 
-## Observation taxonomy admin
+## Observation kinds
 
-`patrol_taxonomy` (`/areas/{uuid}/modules/patrols/taxonomy`) is the area-scoped
-admin for the observation vocabulary a ranger logs against: **kinds** on top (the
+`patrol_kinds` (`/areas/{uuid}/modules/patrols/kinds`) is the area-scoped
+section for the observation vocabulary a ranger logs against: **kinds** on top (the
 chips on the handset) and a level of **sub-categories** under each. It rhymes with
-the incident taxonomy admin and shares a stylesheet vocabulary, but is **shallow**
+the incident module's own kinds section and shares a stylesheet vocabulary, but is **shallow**
 — sub-categories are labels only: no behaviour blocks, no colour per kind, no
 term, no money. The moment an observation needs a structured question, a clock or
 a fine, the right control is "File as incident".
@@ -72,8 +100,24 @@ a fine, the right control is "File as incident".
 
 **This is a parallel model.** `Observation::$category` still reads the flat
 `patrol.observation_categories` deployment config; wiring observation capture (the
-web module and the field app) onto this area-scoped taxonomy is a **follow-up**,
-not part of this admin.
+web module and the field app) onto this area-scoped list is a **follow-up**, not
+part of this section.
+
+## Settings
+
+The last section of the configure page, at the bare address
+`/areas/{uuid}/modules/patrols/configure`, saved by one POST to
+`patrol_settings_save`. It reads and writes one row per area
+(`patrol_settings`), and an area that has never saved runs on the installation's
+own `patrol:` configuration — so an untouched default and a chosen number stay
+distinguishable.
+
+| Card | State today |
+|---|---|
+| Patrol types | **Read-only.** A type is still the installation's `patrol.types` vocabulary; per-area types need a record of their own and a migration that carries every patrol already filed under one. |
+| Observation categories | A pointer into the `Observation kinds` section, with this area's counts. |
+| Stations | **Read-only.** A station is still free text on a patrol, so the list is read back out of the patrols that named one. |
+| Thresholds | **Editable.** The GPS-gap threshold and how long a discarded patrol stays recoverable, bounded as the design bounds them and clamped on the way in. |
 
 The **copy-from-another-area** first-setup gesture is **deferred**: it needs to
 enumerate areas and read their names, which requires an area-directory contract
