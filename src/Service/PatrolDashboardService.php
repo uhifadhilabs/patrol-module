@@ -174,9 +174,9 @@ final class PatrolDashboardService
                 continue;
             }
             $record = $patrol->getStationRecord();
-            // A station that says where it stands is drawn there. Otherwise the
-            // old evidence still holds: the first fix of a patrol that set out
-            // from it, which beats an invented coordinate.
+            // A station that says where it stands is drawn there; otherwise the
+            // first fix of a patrol that set out from it, which is the best
+            // evidence there is and beats an invented coordinate.
             $start = self::pointOf($record?->getPoint()) ?? self::firstPoint($track);
             if (null !== $start) {
                 $stations[$station] = ['name' => $record?->getLabel() ?? $station, 'lon' => $start[0], 'lat' => $start[1]];

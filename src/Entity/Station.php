@@ -23,20 +23,20 @@ use Uhifadhi\Patrol\Repository\StationRepository;
  * ONE PLACE A PATROL SETS OFF FROM, IN ONE AREA — a post, a camp, a gate. What
  * SET·03 draws a row for, with the count of patrols filed against it.
  *
- * A RECORD, NOT A STRING ANY MORE. It used to be free text on the patrol, which
- * meant the area could not rename a post without rewriting history, could not
- * retire one it had closed, and could not tell "River Post" from "river post"
- * in a chart. Every distinct string an area had ever recorded became one of
- * these; the string column survives one release for safety and is dropped next.
+ * A RECORD RATHER THAN A STRING, because the three things SET·03 asks for are
+ * the three a string cannot do: rename a post without rewriting every patrol
+ * filed against it, retire one the area has closed, and count what each
+ * carries. And it is the AREA's: one area closing a post is not a reason for
+ * another to lose it.
  *
  * THE KEY IS THE WIRE VALUE AND NEVER CHANGES — the handset sends it, a saved
  * filter holds it, an export column prints it. Unique WITHIN THE AREA.
  *
- * WHERE IT IS, WHERE THAT IS KNOWN. The coverage map wants a marker per station
- * and has always had to guess one from the first fix of a patrol that set out
- * there ({@see \Uhifadhi\Patrol\Service\PatrolDashboardService::coveragePayload()}).
- * A station may now simply say where it is; null keeps the old guess, which is
- * still better than an invented coordinate.
+ * WHERE IT IS, WHERE THAT IS KNOWN. The coverage map draws a marker per station.
+ * Null is a real state, and the marker is then placed at the first fix of a
+ * patrol that set out from here
+ * ({@see \Uhifadhi\Patrol\Service\PatrolDashboardService::coveragePayload()}) —
+ * the best evidence there is, and better than an invented coordinate.
  *
  * RETIRE, NEVER DELETE — patrols are filed against it.
  */
