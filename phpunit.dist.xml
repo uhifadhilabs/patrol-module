@@ -8,6 +8,16 @@
          failOnNotice="true"
          failOnWarning="true">
     <php>
+        <!--
+            The suite states the memory it needs rather than inheriting whatever
+            a developer's php.ini happens to say. Every functional test boots a
+            kernel with debug=true — which is what makes the container
+            self-invalidate — and a debug kernel collects every query of every
+            request, so one process running the whole suite accumulates. A suite
+            that passes on one machine and dies on another over an ini nobody set
+            is a worse signal than no signal.
+        -->
+        <ini name="memory_limit" value="-1"/>
         <env name="KERNEL_CLASS" value="Uhifadhi\Patrol\Tests\Integration\TestKernel"/>
         <!-- Real PostGIS for integration tests (fundi-postgis-test container). -->
         <env name="PATROL_TEST_DATABASE_URL"
