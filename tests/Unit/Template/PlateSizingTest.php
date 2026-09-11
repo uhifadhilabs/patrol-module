@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Tests\Unit\Template;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -41,37 +42,58 @@ final class PlateSizingTest extends TestCase
         );
     }
 
+    /** The height a record page's map states in the design. */
+    private const string RECORD_HEIGHT = '400px';
+
     /**
-     * THE RECORD PAGE'S PLATE IS AS TALL AS THE COLUMN BESIDE IT, with a floor
-     * under it — the design's `.recgrid > .c.plate-fill`, whose viewer flexes to
-     * the row's height and never drops below 360px.
+     * A RECORD PAGE'S PLATE IS 400px AND THE CARD ENDS WHERE THE MAP ENDS — the
+     * design's `.recgrid > .c.plate-fill`, whose viewer is `flex: none; height:
+     * 400px` and whose card is `align-self: start`. A map is a fixed-size plate
+     * of imagery, not a column of facts, so the facts beside it are free to run
+     * past it rather than dragging the imagery down with them.
      *
-     * It is said with the ONE property a plate is sized by: `100%` of the card,
-     * which the row has already stretched to its tallest column. A flex on the
-     * plate would be the very stretching {@see self::testThisSheetSizesNoPlateAnyOtherWay()}
-     * forbids.
+     * The height is said with the ONE property a plate is sized by; the card's
+     * refusal to stretch is the card's own, because the row above stretches its
+     * columns and a plate can no longer refuse for itself.
      */
-    public function testTheRecordPlateIsAsTallAsTheColumnBesideIt(): void
+    public function testTheRecordPlateIsTheHeightTheDesignStates(): void
     {
         $sheet = self::stylesheet();
 
         self::assertMatchesRegularExpression(
-            '/\.patrol-detail-row > \.patrol-plate-fill \{[^}]*--map-plate-height: 100%/',
+            '/\.patrol-detail-row > \.patrol-plate-fill \{[^}]*--map-plate-height: '.preg_quote(self::RECORD_HEIGHT, '/').'/',
             $sheet,
         );
         self::assertMatchesRegularExpression(
-            '/\.patrol-detail-row > \.patrol-plate-fill \{[^}]*min-height: 360px/',
+            '/\.patrol-detail-row > \.patrol-plate-fill \{[^}]*align-self: start/',
             $sheet,
+        );
+        self::assertDoesNotMatchRegularExpression(
+            '/\.patrol-detail-row > \.patrol-plate-fill \{[^}]*min-height/',
+            $sheet,
+            'A floor under a fixed height is a floor that can only fight it.',
         );
     }
 
-    /** And the record page wears the hook, or the rule above dresses nothing. */
-    public function testTheRecordPageWearsThatHook(): void
+    /**
+     * And BOTH record pages wear the hook, or the rule above dresses one screen
+     * and the design's other map is a different size from its own twin.
+     *
+     * @return iterable<string, array{string}>
+     */
+    public static function recordPages(): iterable
     {
-        $template = file_get_contents(\dirname(__DIR__, 3).'/templates/patrol/show.html.twig');
-        self::assertIsString($template);
+        yield 'patrol' => ['patrol/show.html.twig'];
+        yield 'observation' => ['observation/show.html.twig'];
+    }
 
-        self::assertStringContainsString('patrol-plate patrol-plate-fill', $template);
+    #[DataProvider('recordPages')]
+    public function testBothRecordPagesWearThatHook(string $template): void
+    {
+        $markup = file_get_contents(\dirname(__DIR__, 3).'/templates/'.$template);
+        self::assertIsString($markup);
+
+        self::assertStringContainsString('patrol-plate patrol-plate-fill', $markup);
     }
 
     /**

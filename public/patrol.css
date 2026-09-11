@@ -246,14 +246,14 @@
    keep the host card's default padding, as the design leaves them. */
 .patrol-plate:has(.map-plate) { padding: 14px 14px 16px; }
 
-/* THE RECORD PAGE'S PLATE IS THE HEIGHT OF THE COLUMN BESIDE IT — the design's
-   `.recgrid > .c.plate-fill`, whose viewer takes the row's height and never
-   drops below 360px. The row already stretches both columns to the taller one,
-   so the plate asks for all of the card it is in and the card carries the
-   floor. Said with the one property a plate is sized by: a flex or a min-height
-   on the plate itself would make it stretch, which is the thing a plate must
-   never do. */
-.patrol-detail-row > .patrol-plate-fill { --map-plate-height: 100%; min-height: 360px; }
+/* A RECORD PAGE'S MAP IS 400px AND THE CARD ENDS WHERE THE MAP ENDS — the
+   design's `.recgrid > .c.plate-fill`: the viewer is `flex: none; height: 400px`
+   and the card is `align-self: start`. Imagery is a fixed plate, not a column of
+   facts, so the facts beside it run as long as they need to and the map stays
+   the size it was drawn at. The height is said with the one property a plate is
+   sized by; the refusal to stretch belongs to the card, because the row above
+   stretches its columns and the plate is the full width of that card. */
+.patrol-detail-row > .patrol-plate-fill { --map-plate-height: 400px; align-self: start; }
 
 /* ---- observation rows (PL·04 on the patrol detail) ---------------------- */
 /* The design marks a populated row as clickable (its Open → is the affordance
