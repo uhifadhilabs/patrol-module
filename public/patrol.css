@@ -163,9 +163,13 @@
 
 /* THE CAPTION ROW a detail plate puts above its map — the design's two overlay
    labels, in the plate's own filter slot rather than floating on the imagery,
-   which the plate owns. */
+   which the plate owns.
+
+   Its LINE BOX IS STATED, because a record plate's height adds this row to the
+   imagery it is drawn above: a row as tall as whichever font the host resolved
+   makes that sum wrong by a pixel or two on every machine. */
 .patrol-cap {
-    font: 600 10px var(--font-mono); color: rgb(var(--c-fog)); letter-spacing: .04em;
+    font: 600 10px/14px var(--font-mono); color: rgb(var(--c-fog)); letter-spacing: .04em;
     border: 1px solid var(--c-ln2); border-radius: 6px; padding: 3px 8px;
 }
 .patrol-cap-id { color: rgb(var(--c-tx)); }
@@ -221,39 +225,53 @@
    min-height or a flex on the plate, which is how a map ends up as tall as the
    longest column beside it.
 
-   The coverage map states the design's own number for that screen. The patrol
-   detail plate states nothing: the design's height for it is min(58vh, 560px),
-   which is already the plate's default, and restating a default is a number
-   that silently stops matching. */
+   Every screen states the design's own number for its own map: the coverage map
+   here, a record page's plate under the record grid below. */
 .patrol-coverage-plate { --map-plate-height: min(56vh, 540px); }
 
-/* ---- detail screens: plate + sidebar ----------------------------------- */
-/* The settled layout for both detail screens: a plate card (flex 2) beside a
-   sidebar (flex 1.1) — history alone on the patrol, note THEN history on the
-   observation, the facts having moved up to the identity band above; the wide
-   bottom row matches the plate width with an empty spacer under the sidebar. */
-.patrol-detail-row { display: flex; gap: 16px; align-items: stretch; flex-wrap: wrap; }
-.patrol-detail-row-bottom { margin-top: 16px; }
-.patrol-plate { flex: 2; min-width: 420px; display: flex; flex-direction: column; }
-.patrol-side { flex: 1.1; min-width: 300px; display: flex; flex-direction: column; gap: 16px; }
-.patrol-side > .c { margin-bottom: 0; }
-.patrol-side-spacer { gap: 0; }
+/* ---- the card a plate lives in ----------------------------------------- */
+/* A RECORD PAGE IS ONE GRID and that grid is the shell's `.recgrid`: the two
+   columns, their ratio and their gap are stated there, once, for every record
+   page in the product, and nothing about them is restated here. What is this
+   module's is the card the plate sits in.
 
-/* A plate the map FILLS pulls up tight under the floating tab, exactly as the
-   design's .c.plate-fill does (padding:14px 14px 16px) — the host card's 24px top
-   is there to clear the tab on a text card, and reads as a gap over a map.
-   Scoped to cards that actually hold a plate, so the observation/photos cards
-   keep the host card's default padding, as the design leaves them. */
+   A card holding a plate is a column — the plate is its last row — and pulls up
+   tight under the floating tab, exactly as the design's `.c.plate-fill` does
+   (padding: 14px 14px 16px): the shell card's 24px top clears the tab on a text
+   card and reads as a gap over a map. The padding is scoped to cards that
+   actually hold a plate, so the observation and photo cards keep the shell
+   card's own padding, as the design leaves them. */
+.patrol-plate { display: flex; flex-direction: column; }
 .patrol-plate:has(.map-plate) { padding: 14px 14px 16px; }
 
-/* A RECORD PAGE'S MAP IS 400px AND THE CARD ENDS WHERE THE MAP ENDS — the
-   design's `.recgrid > .c.plate-fill`: the viewer is `flex: none; height: 400px`
-   and the card is `align-self: start`. Imagery is a fixed plate, not a column of
-   facts, so the facts beside it run as long as they need to and the map stays
-   the size it was drawn at. The height is said with the one property a plate is
-   sized by; the refusal to stretch belongs to the card, because the row above
-   stretches its columns and the plate is the full width of that card. */
-.patrol-detail-row > .patrol-plate-fill { --map-plate-height: 400px; align-self: start; }
+/* A RECORD PAGE'S IMAGERY IS 400px TALL — the design's `.recgrid >
+   .c.plate-fill`, whose viewer is `flex: none; height: 400px`, in a 748px column.
+   Imagery is a fixed plate rather than a column of facts, so the column beside it
+   runs as long as it needs to and the map stays the size it was drawn at.
+
+   `--map-plate-height` sizes the PLATE, and the plate is the imagery plus
+   everything stacked above it inside: this module's caption row, and the offset
+   the atlas sets the imagery frame at. So the height adds all three — a bare
+   400px here is 400px of plate and less than that of map — and each part is
+   named, so a reader can see what the sum is made of. The caption row's own
+   height is stated by .patrol-cap above rather than left to a font's default
+   line box, which is what makes the sum a number instead of a guess.
+
+   NO `align-self` HERE. The card stacks in a flex COLUMN, where align-self is a
+   cross-axis instruction: it would shrink the card to the width of its own
+   content instead of holding the column's width. The plate refuses to stretch on
+   its own account — the atlas gives it both a real height and an align-self of
+   its own — so the card needs to say nothing. */
+.recgrid .patrol-plate-fill {
+    --patrol-plate-imagery: 400px;
+    /* 14px line box + 3px padding + 1px border, top and bottom. */
+    --patrol-cap-row: 22px;
+    /* The atlas sets the imagery frame 8px below whatever precedes it. */
+    --patrol-plate-frame-offset: 8px;
+    --map-plate-height: calc(
+        var(--patrol-plate-imagery) + var(--patrol-cap-row) + var(--patrol-plate-frame-offset)
+    );
+}
 
 /* ---- observation rows (PL·04 on the patrol detail) ---------------------- */
 /* The design marks a populated row as clickable (its Open → is the affordance

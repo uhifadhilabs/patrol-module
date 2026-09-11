@@ -1,6 +1,6 @@
 {# One patrol (settled design: the patrols module, main-screen direction
-   "detail"): the track plate beside the meta + history sidebar, with the
-   observations logged en route across the bottom at plate width.
+   "detail"): one record grid — the track plate with the observations logged en
+   route stacked under it, and the meta + history column beside them.
 
    View-only — the design carries no edit controls here. Every
    binding comes from the Patrol/Observation entities and the deployment's
@@ -104,19 +104,54 @@
     </div>
 {% endif %}
 
-<div class="patrol-detail-row">
-    <div class="c patrol-plate patrol-plate-fill" data-patrol-track>
-        <span class="tab">Track plate<span class="src">· {{ patrol.ref }} · satellite · live</span></span>
-        <span class="lib">{{ patrol.source.value == 'gpx' ? 'gpx track' : (patrol.source.value == 'api' ? 'api track' : 'sketched route') }}</span>
-        {{ ui.plate(
-            map,
-            'Patrol ' ~ patrol.ref ~ ' track',
-            patrol.ref ~ ' · ' ~ (patrol.station ?: '—') ~ ' · ' ~ typeLabel|lower,
-            'satellite · live · numbered markers = observations'
-        ) }}
+{# THE RECORD IS ONE GRID — the shell's own .recgrid, the same two columns for
+   every row of every record page in the product. The plate card is first in the
+   left column and the observations logged en route sit directly under the map;
+   the patrol's own facts and its history run down the column beside them.
+
+   A map is a fixed plate of imagery rather than a column of facts, so the column
+   beside it is free to run past it, and the card under the map starts where the
+   map ends. #}
+<div class="recgrid">
+    <div class="col">
+        <div class="c patrol-plate patrol-plate-fill" data-patrol-track>
+            <span class="tab">Track plate<span class="src">· {{ patrol.ref }} · satellite · live</span></span>
+            <span class="lib">{{ patrol.source.value == 'gpx' ? 'gpx track' : (patrol.source.value == 'api' ? 'api track' : 'sketched route') }}</span>
+            {{ ui.plate(
+                map,
+                'Patrol ' ~ patrol.ref ~ ' track',
+                patrol.ref ~ ' · ' ~ (patrol.station ?: '—') ~ ' · ' ~ typeLabel|lower,
+                'satellite · live · numbered markers = observations'
+            ) }}
+        </div>
+
+        <div class="c" data-patrol-observations>
+            <span class="tab">Observations<span class="src">· {{ observations|length }} · logged en route</span></span>
+            {% for row in observations %}
+                <div class="patrol-obs-r">
+                    <span class="patrol-obs-n">{{ row.n }}</span>
+                    <span class="patrol-obs-t">{% if row.observation.loggedAt %}<time datetime="{{ row.observation.loggedAt|date('c') }}" data-localtime-format="time">{{ row.observation.loggedAt|date('H:i') }}</time>{% else %}—{% endif %}</span>
+                    <span class="patrol-obs-bd">
+                        <span class="chip warn patrol-obs-chip">{{ ui.category_label(row.observation.category, categories) }}</span>{{ row.observation.note }}
+                        {# The design's sub-line ends "· 2 photos". HELD photographs,
+                           never the number the phone promised: this row is read as a
+                           claim about what the patrol brought back. An observation
+                           with none says nothing at all rather than "0 photos",
+                           exactly as the design's rows do. #}
+                        {% set rowPhotos = row.observation.photos|length %}
+                        <em>{{ row.dms ?: 'no position recorded' }}{% if rowPhotos %} · {{ rowPhotos }} photo{{ rowPhotos == 1 ? '' : 's' }}{% endif %}</em>
+                    </span>
+                    <a class="open-btn patrol-obs-open" href="{{ path('patrol_observation_show', {uuid: area.uuid, patrol: patrol.uuid, observation: row.observation.uuid}) }}">Open →</a>
+                </div>
+            {% else %}
+                <div class="patrol-obs-r patrol-obs-empty">
+                    <span class="patrol-obs-bd">No observations were logged on this patrol.</span>
+                </div>
+            {% endfor %}
+        </div>
     </div>
 
-    <div class="patrol-side">
+    <div class="col">
         {# The patrol's own history, in the settled discard design's D4 grammar:
            NEWEST FIRST, each entry a title with "time · actor · detail" beneath
            it, and nothing on it editable or removable. "The web shows the same
@@ -208,35 +243,5 @@
             </div>
         </div>
     </div>
-</div>
-
-<div class="patrol-detail-row patrol-detail-row-bottom">
-    <div class="c patrol-plate" data-patrol-observations>
-        <span class="tab">Observations<span class="src">· {{ observations|length }} · logged en route</span></span>
-        {% for row in observations %}
-            <div class="patrol-obs-r">
-                <span class="patrol-obs-n">{{ row.n }}</span>
-                <span class="patrol-obs-t">{% if row.observation.loggedAt %}<time datetime="{{ row.observation.loggedAt|date('c') }}" data-localtime-format="time">{{ row.observation.loggedAt|date('H:i') }}</time>{% else %}—{% endif %}</span>
-                <span class="patrol-obs-bd">
-                    <span class="chip warn patrol-obs-chip">{{ ui.category_label(row.observation.category, categories) }}</span>{{ row.observation.note }}
-                    {# The design's sub-line ends "· 2 photos". HELD photographs,
-                       never the number the phone promised: this row is read as a
-                       claim about what the patrol brought back. An observation
-                       with none says nothing at all rather than "0 photos",
-                       exactly as the design's rows do. #}
-                    {% set rowPhotos = row.observation.photos|length %}
-                    <em>{{ row.dms ?: 'no position recorded' }}{% if rowPhotos %} · {{ rowPhotos }} photo{{ rowPhotos == 1 ? '' : 's' }}{% endif %}</em>
-                </span>
-                <a class="open-btn patrol-obs-open" href="{{ path('patrol_observation_show', {uuid: area.uuid, patrol: patrol.uuid, observation: row.observation.uuid}) }}">Open →</a>
-            </div>
-        {% else %}
-            <div class="patrol-obs-r patrol-obs-empty">
-                <span class="patrol-obs-bd">No observations were logged on this patrol.</span>
-            </div>
-        {% endfor %}
-    </div>
-    {# The design's empty right-hand column: the bottom row matches the plate
-       width, the sidebar column stays clear. #}
-    <div class="patrol-side patrol-side-spacer"></div>
 </div>
 {% endblock %}

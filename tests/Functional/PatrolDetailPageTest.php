@@ -219,6 +219,38 @@ final class PatrolDetailPageTest extends WebTestCase
     }
 
     /**
+     * ONE RECORD GRID, AND THE PLATE KEEPS ITS OWN COLUMN.
+     *
+     * The record is a single two-column grid: the plate card first in the left
+     * column and, directly beneath the map, what the record lists under it; the
+     * facts and the history beside them on the right. A second row below the
+     * first — the observations at plate width with an empty column beside them —
+     * starts the list under the FULL height of the facts column, which over a
+     * 400px map is a hole as tall as the facts are long.
+     */
+    public function testTheRecordIsOneGridWhoseLeftColumnStacksThePlateThenTheObservations(): void
+    {
+        $crawler = $this->client->request('GET', $this->url($this->area, $this->patrol));
+
+        self::assertResponseIsSuccessful();
+
+        self::assertCount(1, $crawler->filter('.recgrid'));
+
+        $columns = $crawler->filter('.recgrid > .col');
+        self::assertCount(2, $columns);
+
+        $left = $columns->eq(0)->children('.c');
+        self::assertCount(2, $left);
+        self::assertNotNull($left->eq(0)->attr('data-patrol-track'));
+        self::assertNotNull($left->eq(1)->attr('data-patrol-observations'));
+
+        $right = $columns->eq(1)->children('.c');
+        self::assertCount(2, $right);
+        self::assertNotNull($right->eq(0)->attr('data-patrol-facts'));
+        self::assertNotNull($right->eq(1)->attr('data-patrol-history'));
+    }
+
+    /**
      * PORTABLE, VIEWER-LOCAL TIMES (Route A: store UTC, format in the browser).
      * Every human timestamp renders as a machine `<time datetime="…">` carrying
      * the instant in ISO-8601, with the readable text as the no-JS fallback. The

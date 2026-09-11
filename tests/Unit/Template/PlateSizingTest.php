@@ -42,36 +42,72 @@ final class PlateSizingTest extends TestCase
         );
     }
 
-    /** The height a record page's map states in the design. */
+    /** The height of a record page's IMAGERY in the design — 748 × 400. */
     private const string RECORD_HEIGHT = '400px';
 
     /**
-     * A RECORD PAGE'S PLATE IS 400px AND THE CARD ENDS WHERE THE MAP ENDS — the
-     * design's `.recgrid > .c.plate-fill`, whose viewer is `flex: none; height:
-     * 400px` and whose card is `align-self: start`. A map is a fixed-size plate
-     * of imagery, not a column of facts, so the facts beside it are free to run
-     * past it rather than dragging the imagery down with them.
+     * A RECORD PAGE'S IMAGERY IS 400px TALL — the design's `.recgrid >
+     * .c.plate-fill`, whose viewer is `flex: none; height: 400px`. A map is a
+     * fixed-size plate of imagery, not a column of facts, so the facts beside it
+     * are free to run past it rather than dragging the imagery down with them.
      *
-     * The height is said with the ONE property a plate is sized by; the card's
-     * refusal to stretch is the card's own, because the row above stretches its
-     * columns and a plate can no longer refuse for itself.
+     * `--map-plate-height` sizes the PLATE, which is the imagery plus everything
+     * the plate stacks above it, so the design's one number is not the whole
+     * height: a bare 400px is 400px of plate and less than that of map. The
+     * height therefore adds the caption row this module puts in the plate's
+     * filter slot and the offset the atlas sets the imagery frame at — each a
+     * named part, so a reader can see what the sum is made of.
      */
     public function testTheRecordPlateIsTheHeightTheDesignStates(): void
     {
         $sheet = self::stylesheet();
 
         self::assertMatchesRegularExpression(
-            '/\.patrol-detail-row > \.patrol-plate-fill \{[^}]*--map-plate-height: '.preg_quote(self::RECORD_HEIGHT, '/').'/',
+            '/\.recgrid \.patrol-plate-fill \{[^}]*--patrol-plate-imagery: '.preg_quote(self::RECORD_HEIGHT, '/').'/',
             $sheet,
+            'the design\'s imagery height is stated, and by name.',
         );
         self::assertMatchesRegularExpression(
-            '/\.patrol-detail-row > \.patrol-plate-fill \{[^}]*align-self: start/',
+            '/\.recgrid \.patrol-plate-fill \{[^}]*--map-plate-height: calc\('
+            .'[^)]*var\(--patrol-plate-imagery\)'
+            .'[^;]*var\(--patrol-cap-row\)'
+            .'[^;]*var\(--patrol-plate-frame-offset\)/',
             $sheet,
+            'the plate is as tall as the imagery plus everything drawn above it.',
         );
         self::assertDoesNotMatchRegularExpression(
-            '/\.patrol-detail-row > \.patrol-plate-fill \{[^}]*min-height/',
+            '/\.recgrid \.patrol-plate-fill \{[^}]*min-height/',
             $sheet,
             'A floor under a fixed height is a floor that can only fight it.',
+        );
+    }
+
+    /**
+     * AND THE CARD NEVER ALIGNS ITSELF IN A COLUMN. The plate card stacks in the
+     * record's left column with whatever the record lists under its map, and
+     * that column is a flex COLUMN: `align-self: start` there is a cross-axis
+     * instruction, so it would shrink the card to the width of its own content
+     * instead of keeping it the column's width.
+     */
+    public function testTheRecordPlateCardDoesNotAlignItselfAcrossItsColumn(): void
+    {
+        self::assertDoesNotMatchRegularExpression(
+            '/\.patrol-plate-fill[^{]*\{[^}]*align-self/',
+            self::stylesheet(),
+        );
+    }
+
+    /**
+     * THE CAPTION ROW'S HEIGHT IS STATED, NEVER INHERITED from whichever font
+     * the host resolved: the plate height above adds that row, and a row whose
+     * height comes from a font's default line box makes the sum a guess that is
+     * wrong by a pixel or two on every machine.
+     */
+    public function testTheCaptionRowStatesItsOwnHeight(): void
+    {
+        self::assertMatchesRegularExpression(
+            '/\.patrol-cap \{[^}]*(line-height: *\d+px|font:[^;]*\d+px\/\d+px)/',
+            self::stylesheet(),
         );
     }
 

@@ -213,6 +213,44 @@ final class ObservationDetailPageTest extends WebTestCase
     }
 
     /**
+     * ONE RECORD GRID, AND THE PLATE KEEPS ITS OWN COLUMN.
+     *
+     * The record is a single two-column grid: the plate card first in the left
+     * column and the photographs directly beneath the map; the note and the
+     * history beside them on the right. A second row below the first starts the
+     * photos under the FULL height of the note-and-history column, which over a
+     * 400px map is a hole as tall as the history is long. The amendments trail is
+     * the record's own second grid and stays one.
+     */
+    public function testTheRecordIsOneGridWhoseLeftColumnStacksThePlateThenThePhotos(): void
+    {
+        $crawler = $this->client->request('GET', $this->url($this->area, $this->patrol, $this->observation));
+
+        self::assertResponseIsSuccessful();
+
+        $columns = $crawler->filter('.recgrid > .col');
+        self::assertCount(2, $columns);
+
+        $left = $columns->eq(0)->children('.c');
+        self::assertCount(2, $left);
+        self::assertNotNull($left->eq(0)->attr('data-patrol-location'));
+        self::assertNotNull($left->eq(1)->attr('data-patrol-photos'));
+
+        $right = $columns->eq(1)->children('.c');
+        self::assertCount(2, $right);
+        self::assertNotNull($right->eq(0)->attr('data-patrol-note'));
+        self::assertNotNull($right->eq(1)->attr('data-patrol-history'));
+
+        // The trail and the rules that govern it are the second grid, and the
+        // only other one: PL·06–PL·09 are one card in the state this record is
+        // actually in, beside the rules.
+        $grids = $crawler->filter('.recgrid');
+        self::assertCount(2, $grids);
+        self::assertCount(2, $grids->eq(1)->children('.c'));
+        self::assertNotNull($grids->eq(1)->children('.c')->eq(0)->attr('data-patrol-amendments'));
+    }
+
+    /**
      * The photographs the phone synced, on the page — thumbnails through the
      * evidence route, each one a trigger for the shared file preview.
      */

@@ -1,6 +1,7 @@
 {# One observation (settled design: the patrols module, main-screen direction
-   "observation"): the location plate beside the meta + note + history sidebar,
-   with the photos card across the bottom at plate width.
+   "observation"): one record grid — the location plate with the field
+   photographs stacked under it, and the note + history column beside them; then
+   the amendments trail and the rules that govern it in a second grid.
 
    View-only — the design carries no edit or upload controls here. #}
 {% extends '@UhifadhiPatrol/base.html.twig' %}
@@ -84,19 +85,112 @@
     <a class="more" href="{{ path('patrol_show', {uuid: area.uuid, patrol: patrol.uuid}) }}">The patrol &rarr;</a>
 </div>
 
-<div class="patrol-detail-row">
-    <div class="c patrol-plate patrol-plate-fill" data-patrol-location>
-        <span class="tab">Location<span class="src">· on the {{ patrol.ref }} track · satellite · live</span></span>
-        <span class="lib">observation</span>
-        {{ ui.plate(
-            map,
-            'Observation ' ~ n ~ ' on patrol ' ~ patrol.ref,
-            'obs ' ~ n ~ ' · ' ~ categoryLabel|lower ~ (observation.loggedAt ? ' · ' ~ observation.loggedAt|date('H:i') : ''),
-            'satellite · live · track shown for context'
-        ) }}
+{# THE RECORD IS ONE GRID — the shell's own .recgrid, the same two columns for
+   every row of every record page in the product. The plate card is first in the
+   left column and the field photographs sit directly under the map; the note as
+   it was typed and the observation's history run down the column beside them.
+
+   A map is a fixed plate of imagery rather than a column of facts, so the column
+   beside it is free to run past it, and the card under the map starts where the
+   map ends. #}
+<div class="recgrid">
+    <div class="col">
+        <div class="c patrol-plate patrol-plate-fill" data-patrol-location>
+            <span class="tab">Location<span class="src">· on the {{ patrol.ref }} track · satellite · live</span></span>
+            <span class="lib">observation</span>
+            {{ ui.plate(
+                map,
+                'Observation ' ~ n ~ ' on patrol ' ~ patrol.ref,
+                'obs ' ~ n ~ ' · ' ~ categoryLabel|lower ~ (observation.loggedAt ? ' · ' ~ observation.loggedAt|date('H:i') : ''),
+                'satellite · live · track shown for context'
+            ) }}
+        </div>
+
+        <div class="c" data-patrol-photos>
+            <span class="tab">Photos<span class="src">{% if photoCount %}· {{ photoCount }} {% endif %}· from the field</span></span>
+            {# The real photographs the field app synced. Every one of them comes
+               back out through storage-module's authenticated route and nowhere
+               else: there is no public URL and no document-root path, so knowing a
+               filename is not enough to read a snare or a carcass.
+
+               The TILE draws the ~400px preview and OPENS THE SHARED FILE PREVIEW —
+               the same overlay the Files hub opens its own tiles in, because a
+               photograph must look the same and say the same things wherever it is
+               opened from. The full-size original stays one click away, inside the
+               overlay ("Open the original"): a page that opened five full-size field
+               photographs to show five small squares is a page nobody on a field
+               connection would wait for. Where no preview could be made (HEIC
+               without libheif), displayKey falls back to the original, so the tile
+               is never a broken image.
+
+               This module draws NO overlay markup of its own. It fills the
+               component's contract from an ObservationPhoto and includes the
+               component's shell below — one component, every surface.
+
+               The file's own page is deliberately not offered: that page belongs to
+               the Files hub, which a host running this module need not install, and
+               a link to a route that may not exist is worse than none.
+
+               No add control: detail pages are view-only, and photographs arrive
+               from the handset. #}
+            {% if photoCount %}
+                <div class="patrol-phrow">
+                    {% for photo in photos %}
+                        <div class="patrol-ph" role="button" tabindex="0"
+                             title="Look at this photograph{% if photo.takenAt %}, taken at {{ photo.takenAt|date('H:i') }}{% endif %}"
+                             {{ preview.attrs({
+                                 name: photo.storagePath|split('/')|last,
+                                 key: photo.storagePath,
+                                 mime: photo.mimeType,
+                                 size: photo.byteSize ? photo.byteSize|storage_bytes : '—',
+                                 thumbUrl: path('storage_evidence_show', {key: photo.displayKey}),
+                                 originalUrl: path('storage_evidence_show', {key: photo.storagePath}),
+                                 detailUrl: '',
+                                 ownerLabel: observation.ref,
+                                 ownerUrl: path('patrol_observation_show', {uuid: area.uuid, patrol: patrol.uuid, observation: observation.uuid}),
+                                 moduleSlug: 'patrols',
+                                 moduleLabel: 'Patrols',
+                                 takenAt: photo.takenAt ? (photo.takenAt|date('D j M Y')|lower ~ ' · ' ~ photo.takenAt|date('H:i')) : '—',
+                                 arrivedAt: photo.createdAt|date('D j M Y')|lower ~ ' · ' ~ photo.createdAt|date('H:i'),
+                                 thumbState: photo.thumbKey ? 'made' : 'failed',
+                                 kind: 'photo',
+                                 area: area.name,
+                             }) }}>
+                            <img src="{{ path('storage_evidence_show', {key: photo.displayKey}) }}" alt="Photograph {{ loop.index }} of {{ photoCount }} from observation {{ n }}" loading="lazy">
+                            <i>photo {{ loop.index }}{% if photo.takenAt %} · <time datetime="{{ photo.takenAt|date('c') }}" data-localtime-format="time">{{ photo.takenAt|date('H:i') }}</time>{% endif %}</i>
+                            {# WHERE THE SHUTTER FIRED — the photograph's OWN place,
+                               which is not the observation's. A ranger stands where
+                               it is safe to stand and photographs what is over
+                               there, so a tile that borrowed the observation's
+                               coordinates would be quietly wrong about evidence.
+
+                               RENDERED HERE, IN THIS MODULE'S OWN MARKUP, and not
+                               through the shared preview overlay. The overlay's
+                               detail rows are a CLOSED list built in
+                               storage-module's preview_controller.js (Owner, Taken,
+                               Arrived, Size, Type, Its key, Small picture, Who can
+                               see it); an extra data-f-* attribute on the trigger is
+                               read by nobody and would be dead markup pretending to
+                               be a feature. Teaching the overlay a "Where" row is a
+                               change to the component's contract and belongs in
+                               storage-module, on its own terms — not smuggled in
+                               from a consumer.
+
+                               No fix is SAID, never blank: on a record that may be
+                               read back to somebody, "we do not know where this was
+                               taken" is a fact about the evidence. #}
+                            {% set photoWhere = photoDms[photo.clientUuid.toRfc4122]|default(null) %}
+                            <em class="patrol-phpos">{{ photoWhere ?: 'no position recorded' }}{% if photoWhere and photo.accuracyM %} · ±{{ photo.accuracyM|round }} m{% endif %}</em>
+                        </div>
+                    {% endfor %}
+                </div>
+                {{ include('@UhifadhiStorage/overlay/_preview.html.twig') }}
+            {% endif %}
+            <div class="use">{% if photoCount %}Photographs are stored on the observation and travel with it when it is filed as an incident.{% else %}Photos taken at an observation attach here and travel with it when it is filed as an incident.{% endif %}</div>
+        </div>
     </div>
 
-    <div class="patrol-side">
+    <div class="col">
         <div class="c" data-patrol-note>
             <span class="tab">Note<span class="src">· field record · verbatim</span></span>
             <div class="patrol-quote">{% if observation.note %}&ldquo;{{ observation.note }}&rdquo;{% else %}No note was recorded with this observation.{% endif %}</div>
@@ -134,92 +228,6 @@
     </div>
 </div>
 
-<div class="patrol-detail-row patrol-detail-row-bottom">
-    <div class="c patrol-plate" data-patrol-photos>
-        <span class="tab">Photos<span class="src">{% if photoCount %}· {{ photoCount }} {% endif %}· from the field</span></span>
-        {# The real photographs the field app synced. Every one of them comes
-           back out through storage-module's authenticated route and nowhere
-           else: there is no public URL and no document-root path, so knowing a
-           filename is not enough to read a snare or a carcass.
-
-           The TILE draws the ~400px preview and OPENS THE SHARED FILE PREVIEW —
-           the same overlay the Files hub opens its own tiles in, because a
-           photograph must look the same and say the same things wherever it is
-           opened from. The full-size original stays one click away, inside the
-           overlay ("Open the original"): a page that opened five full-size field
-           photographs to show five small squares is a page nobody on a field
-           connection would wait for. Where no preview could be made (HEIC
-           without libheif), displayKey falls back to the original, so the tile
-           is never a broken image.
-
-           This module draws NO overlay markup of its own. It fills the
-           component's contract from an ObservationPhoto and includes the
-           component's shell below — one component, every surface.
-
-           The file's own page is deliberately not offered: that page belongs to
-           the Files hub, which a host running this module need not install, and
-           a link to a route that may not exist is worse than none.
-
-           No add control: detail pages are view-only, and photographs arrive
-           from the handset. #}
-        {% if photoCount %}
-            <div class="patrol-phrow">
-                {% for photo in photos %}
-                    <div class="patrol-ph" role="button" tabindex="0"
-                         title="Look at this photograph{% if photo.takenAt %}, taken at {{ photo.takenAt|date('H:i') }}{% endif %}"
-                         {{ preview.attrs({
-                             name: photo.storagePath|split('/')|last,
-                             key: photo.storagePath,
-                             mime: photo.mimeType,
-                             size: photo.byteSize ? photo.byteSize|storage_bytes : '—',
-                             thumbUrl: path('storage_evidence_show', {key: photo.displayKey}),
-                             originalUrl: path('storage_evidence_show', {key: photo.storagePath}),
-                             detailUrl: '',
-                             ownerLabel: observation.ref,
-                             ownerUrl: path('patrol_observation_show', {uuid: area.uuid, patrol: patrol.uuid, observation: observation.uuid}),
-                             moduleSlug: 'patrols',
-                             moduleLabel: 'Patrols',
-                             takenAt: photo.takenAt ? (photo.takenAt|date('D j M Y')|lower ~ ' · ' ~ photo.takenAt|date('H:i')) : '—',
-                             arrivedAt: photo.createdAt|date('D j M Y')|lower ~ ' · ' ~ photo.createdAt|date('H:i'),
-                             thumbState: photo.thumbKey ? 'made' : 'failed',
-                             kind: 'photo',
-                             area: area.name,
-                         }) }}>
-                        <img src="{{ path('storage_evidence_show', {key: photo.displayKey}) }}" alt="Photograph {{ loop.index }} of {{ photoCount }} from observation {{ n }}" loading="lazy">
-                        <i>photo {{ loop.index }}{% if photo.takenAt %} · <time datetime="{{ photo.takenAt|date('c') }}" data-localtime-format="time">{{ photo.takenAt|date('H:i') }}</time>{% endif %}</i>
-                        {# WHERE THE SHUTTER FIRED — the photograph's OWN place,
-                           which is not the observation's. A ranger stands where
-                           it is safe to stand and photographs what is over
-                           there, so a tile that borrowed the observation's
-                           coordinates would be quietly wrong about evidence.
-
-                           RENDERED HERE, IN THIS MODULE'S OWN MARKUP, and not
-                           through the shared preview overlay. The overlay's
-                           detail rows are a CLOSED list built in
-                           storage-module's preview_controller.js (Owner, Taken,
-                           Arrived, Size, Type, Its key, Small picture, Who can
-                           see it); an extra data-f-* attribute on the trigger is
-                           read by nobody and would be dead markup pretending to
-                           be a feature. Teaching the overlay a "Where" row is a
-                           change to the component's contract and belongs in
-                           storage-module, on its own terms — not smuggled in
-                           from a consumer.
-
-                           No fix is SAID, never blank: on a record that may be
-                           read back to somebody, "we do not know where this was
-                           taken" is a fact about the evidence. #}
-                        {% set photoWhere = photoDms[photo.clientUuid.toRfc4122]|default(null) %}
-                        <em class="patrol-phpos">{{ photoWhere ?: 'no position recorded' }}{% if photoWhere and photo.accuracyM %} · ±{{ photo.accuracyM|round }} m{% endif %}</em>
-                    </div>
-                {% endfor %}
-            </div>
-            {{ include('@UhifadhiStorage/overlay/_preview.html.twig') }}
-        {% endif %}
-        <div class="use">{% if photoCount %}Photographs are stored on the observation and travel with it when it is filed as an incident.{% else %}Photos taken at an observation attach here and travel with it when it is filed as an incident.{% endif %}</div>
-    </div>
-    <div class="patrol-side patrol-side-spacer"></div>
-</div>
-
 {# ═══════════════════════════════════════════════════════════════════════════
    AMENDMENTS (PL·06–PL·09). A synced observation is closed: the field record is
    what the ranger typed, where they typed it, and it is never rewritten. A
@@ -235,7 +243,7 @@
    the page renders the state this record is actually in. Same for PL·08: the
    form is what the Amend button opens, not a second card that is always there.
    ═════════════════════════════════════════════════════════════════════════ #}
-<div class="patrol-detail-row patrol-detail-row-bottom">
+<div class="recgrid">
     <div class="c" id="patrol-amd" data-patrol-amendments>
         <span class="tab">Amendments<span class="src">{% if amendments|length %}· {{ amendments|length }} {% endif %}· append-only</span></span>
 
@@ -392,18 +400,16 @@
        than in a help article because somebody about to correct an evidence
        record should not have to go looking for what a correction can and cannot
        do. #}
-    <div class="patrol-side">
-        <div class="c">
-            <span class="tab">What an amendment may not do<span class="src">· the rules, plainly</span></span>
-            <div class="rln"><span>edit the original</span><span class="mono">never</span></div>
-            <div class="rln"><span>delete an amendment</span><span class="mono">never</span></div>
-            <div class="rln"><span>go in unsigned</span><span class="mono">never</span></div>
-            <div class="rln"><span>be back-dated</span><span class="mono">never</span></div>
-            <div class="rln"><span>amend an amendment</span><span class="mono acc">yes &mdash; a new entry</span></div>
-            <div class="rln"><span>who may amend</span><span class="mono">anyone who may edit the patrol</span></div>
-            <div class="use">A wrong amendment is corrected the same way everything else is: by another one. Nothing on this page has a delete.</div>
-            <div class="use"><b>Filing carries them.</b> An observation filed as an incident arrives with its original note <b>and</b> its amendments &mdash; the incident&rsquo;s timeline opens with the whole trail, not with the tidied version.</div>
-        </div>
+    <div class="c">
+        <span class="tab">What an amendment may not do<span class="src">· the rules, plainly</span></span>
+        <div class="rln"><span>edit the original</span><span class="mono">never</span></div>
+        <div class="rln"><span>delete an amendment</span><span class="mono">never</span></div>
+        <div class="rln"><span>go in unsigned</span><span class="mono">never</span></div>
+        <div class="rln"><span>be back-dated</span><span class="mono">never</span></div>
+        <div class="rln"><span>amend an amendment</span><span class="mono acc">yes &mdash; a new entry</span></div>
+        <div class="rln"><span>who may amend</span><span class="mono">anyone who may edit the patrol</span></div>
+        <div class="use">A wrong amendment is corrected the same way everything else is: by another one. Nothing on this page has a delete.</div>
+        <div class="use"><b>Filing carries them.</b> An observation filed as an incident arrives with its original note <b>and</b> its amendments &mdash; the incident&rsquo;s timeline opens with the whole trail, not with the tidied version.</div>
     </div>
 </div>
 {% endblock %}
