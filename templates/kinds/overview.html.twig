@@ -1,0 +1,83 @@
+{# ============================================================================
+   WHAT THIS AREA FILES UNDER — the design's observation-kinds.html, ported.
+
+   A TAB IS A PLACE WHERE DATA LIVES, and the words this area files under are
+   data. This page reads them; the Configure section writes them, one link away
+   on patrols.manage.
+
+   ALL THE KINDS AT ONCE ON THE LEFT, ONE KIND'S NUMBERS ON THE RIGHT. The left
+   pane answers "what does this area file"; the right answers "and how much of
+   each". Neither question is a click away from the other.
+
+   A KIND IS AN ADDRESS. The design switches panes in the browser because every
+   matrix is already in its page; here each kind has its own url, so the left
+   pane is links and the right pane is what the route rendered — which is also
+   why this page ships no script of its own.
+
+   NOTHING HERE WRITES. There is no form and no button on this page; the theme
+   toggle and the sidebar's menus are the shell's own chrome.
+   ========================================================================== #}
+{% extends '@UhifadhiPatrol/base.html.twig' %}
+
+{% block title %}Patrols · observation kinds{% endblock %}
+
+{% block patrol_trail_tail %} <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / observation kinds{% endblock %}
+
+{% block shell_page_title %}{{ area.name }} — Observation kinds{% endblock %}
+
+{% block shell_page_subtitle %}What a ranger can log on the way round <b>this area</b>, and what has been filed against each word. <b>This page changes nothing</b> — editing is one link away, on <span class="mono">patrols.manage</span>.{% endblock %}
+
+{% block patrol_page %}
+    {% if kinds is empty %}
+        <div class="c patrol-empty">{{ area.name }} has no observation kinds yet. They are written in Configure.</div>
+    {% else %}
+        <div class="kpane">
+            <div class="l">
+                <div class="kpane-hd">kinds<span class="n">{{ kinds|length }}{% set retired = kinds|filter(row => not row.kind.active)|length %}{% if retired %} &middot; {{ retired }} retired{% endif %}</span></div>
+                {% for row in kinds %}
+                    {% set open = selected is not null and selected.kind.uuid == row.kind.uuid %}
+                    <a class="krow{{ open ? ' on' }}{{ row.kind.active ? '' : ' gone' }}"
+                       href="{{ path('patrol_kinds_overview', {uuid: area.uuid, kind: row.kind.uuid}) }}"
+                       {{ open ? 'aria-current="page"' : '' }}>
+                        <i class="dot"></i>
+                        <span class="nm">{{ row.kind.label }}<em>{{ row.kind.code }}{{ row.kind.active ? '' : ' · retired' }}</em></span>
+                        <span class="n">{{ row.kind.active ? row.thisMonth : '—' }}<em>this month</em></span>
+                        <span class="n patrol-ksubs">{{ row.subCount }}<em>subs</em></span>
+                    </a>
+                {% endfor %}
+            </div>
+            <div class="r">
+                {% if selected is not null %}
+                    <table class="kmatrix">
+                        <tr><th>sub-category</th><th>this month</th><th>last month</th><th>all time</th></tr>
+                        {# The kind's own totals as the first row — "all of this kind" — rather
+                           than a second heading repeating what the left pane already says. #}
+                        <tr class="all">
+                            <td>all of {{ selected.kind.label }}</td>
+                            <td>{{ selected.thisMonth }}</td>
+                            <td>{{ selected.lastMonth }}</td>
+                            <td>{{ selected.allTime }}</td>
+                        </tr>
+                        {% for row in selected.rows %}
+                            <tr>
+                                <td>{{ row.sub.label }} <span class="kkey">{{ row.sub.code }}</span></td>
+                                {# The wash is measured against the busiest sub-category of the
+                                   kind on screen, so a quiet kind still reads as a distribution. #}
+                                <td>{% if row.thisMonth %}<span class="kheat" style="--w:{{ row.weight }}">{{ row.thisMonth }}</span>{% else %}<span class="d">—</span>{% endif %}</td>
+                                <td>{{ row.lastMonth ?: '—' }}</td>
+                                <td>{{ row.allTime ?: '—' }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="4" class="d patrol-knone">No sub-categories — a kind with none is perfectly normal.</td></tr>
+                        {% endfor %}
+                    </table>
+                {% endif %}
+            </div>
+        </div>
+        <div class="kp-foot">
+            <span class="use">Nothing on this page writes. A retired kind keeps every observation filed under it and stays in the filter, the legend and every export; it only leaves the handset.</span>
+            {% set editUrl = patrol_url('patrol_kinds', {uuid: area.uuid}) %}
+            {% if editUrl %}<a class="open-btn" href="{{ editUrl }}">Edit in Configure &rarr;</a>{% endif %}
+        </div>
+    {% endif %}
+{% endblock %}

@@ -162,16 +162,16 @@ final class PatrolListPageTest extends WebTestCase
     }
 
     /**
-     * THE SHELL DRAWS THE STRIP, from this module's declaration — two data
+     * THE SHELL DRAWS THE STRIP, from this module's declaration — three data
      * places, the list one lit. Nothing in this bundle draws a tab.
      */
-    public function testTheShellDrawsTheModulesTwoDataPlaces(): void
+    public function testTheShellDrawsTheModulesDataPlaces(): void
     {
         $crawler = $this->client->request('GET', $this->url());
 
         $tabs = $crawler->filter('.atabs a');
 
-        self::assertSame(['Overview', 'Patrols'], $tabs->each(static fn ($a) => trim($a->text())));
+        self::assertSame(['Overview', 'Patrols', 'Observation kinds'], $tabs->each(static fn ($a) => trim($a->text())));
         self::assertSame('Patrols', trim($crawler->filter('.atabs a.on')->text()));
     }
 

@@ -18,7 +18,7 @@ use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Shell\PatrolModuleTabs;
 
 /**
- * THE MODULE'S DATA PLACES — two, and neither of them configures anything.
+ * THE MODULE'S DATA PLACES — three, and none of them configures anything.
  */
 final class PatrolModuleTabsTest extends TestCase
 {
@@ -27,12 +27,22 @@ final class PatrolModuleTabsTest extends TestCase
         self::assertSame(PatrolModuleProvider::SLUG, new PatrolModuleTabs()->slug());
     }
 
-    public function testItDeclaresTheOverviewAndTheFullLog(): void
+    public function testItDeclaresTheOverviewTheFullLogAndTheObservationKinds(): void
     {
         $tabs = new PatrolModuleTabs()->tabs();
 
-        self::assertSame(['Overview', 'Patrols'], array_map(static fn ($tab) => $tab->label, $tabs));
-        self::assertSame(['patrol_dashboard', 'patrol_list'], array_map(static fn ($tab) => $tab->routeName, $tabs));
+        self::assertSame(['Overview', 'Patrols', 'Observation kinds'], array_map(static fn ($tab) => $tab->label, $tabs));
+        self::assertSame(['patrol_dashboard', 'patrol_list', 'patrol_kinds_overview'], array_map(static fn ($tab) => $tab->routeName, $tabs));
+    }
+
+    /** The read-only kinds page is lit by its own route, and by nothing else. */
+    public function testTheKindsTabLightsOnlyForItsOwnRoute(): void
+    {
+        [, , $kinds] = new PatrolModuleTabs()->tabs();
+
+        self::assertTrue($kinds->lightsFor('patrol_kinds_overview'));
+        self::assertFalse($kinds->lightsFor('patrol_kinds'));
+        self::assertFalse($kinds->lightsFor('patrol_dashboard'));
     }
 
     /**

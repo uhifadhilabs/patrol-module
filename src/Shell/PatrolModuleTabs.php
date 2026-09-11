@@ -22,10 +22,11 @@ use Uhifadhi\Patrol\Module\PatrolModuleProvider;
  * says about its own navigation.
  *
  * A TAB IS A PLACE WHERE DATA LIVES. The dashboard reads the month; the full
- * log is every patrol in it, uncapped. Nothing that CONFIGURES the module is
- * here — the kinds a ranger picks from, the widget library and the module's
- * settings are sections of the one configure page, reached from the one
- * Configure action the shell draws.
+ * log is every patrol in it, uncapped; the observation kinds are the words this
+ * area files under and what has been filed against each, read-only. Nothing
+ * that CONFIGURES the module is here — writing those words, the widget library
+ * and the module's settings are sections of the one configure page, reached
+ * from the one Configure action the shell draws.
  *
  * THE SHELL DRAWS BOTH RENDERINGS. The strip under the page head and the
  * module's children in the sidebar's tree come from this one list, so the two
@@ -54,6 +55,11 @@ final readonly class PatrolModuleTabs implements ModuleTabsInterface
                 'patrol_show',
                 'patrol_observation_show',
             ]),
+            /*
+             * THE WORDS ARE DATA, so the counts against them are a place and not
+             * a setting. Writing them is a Configure section and stays one.
+             */
+            new ModuleTab('Observation kinds', 'patrol_kinds_overview'),
         ];
     }
 }

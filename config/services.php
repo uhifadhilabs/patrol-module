@@ -21,6 +21,7 @@ use Uhifadhi\Patrol\Controller\PatrolCalendarController;
 use Uhifadhi\Patrol\Controller\PatrolController;
 use Uhifadhi\Patrol\Controller\PatrolDetailController;
 use Uhifadhi\Patrol\Controller\PatrolExportController;
+use Uhifadhi\Patrol\Controller\PatrolKindsOverviewController;
 use Uhifadhi\Patrol\Controller\PatrolListController;
 use Uhifadhi\Patrol\Repository\FlightRepository;
 use Uhifadhi\Patrol\Repository\LaunchPointRepository;
@@ -43,6 +44,7 @@ use Uhifadhi\Patrol\Service\ObservationAmendmentService;
 use Uhifadhi\Patrol\Service\PatrolCoverageService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolHoldService;
+use Uhifadhi\Patrol\Service\PatrolKindsOverviewService;
 use Uhifadhi\Patrol\Service\PatrolKindsService;
 use Uhifadhi\Patrol\Service\PatrolListService;
 use Uhifadhi\Patrol\Service\PatrolMapService;
@@ -276,6 +278,18 @@ return static function (ContainerConfigurator $container): void {
     $services->set('patrol.observation_kinds', PatrolKindsService::class);
 
     /*
+     * WHAT THIS AREA FILES UNDER, AND HOW MUCH OF EACH — the read-only kinds
+     * tab's whole reading. Registered unconditionally, like the screen it
+     * serves: the words are data, so an operator with no authority over them
+     * still has an address where the counts are.
+     */
+    $services->set('patrol.kinds_overview', PatrolKindsOverviewService::class)
+        ->args([
+            service(TaxonomyKindRepository::class),
+            service(ObservationRepository::class),
+        ]);
+
+    /*
      * WHETHER TO DRAW A DOOR. Two questions — does the screen exist in this
      * installation, and may this viewer open it — asked in one place so no
      * screen answers only half of them.
@@ -448,4 +462,19 @@ return static function (ContainerConfigurator $container): void {
         ->public();
 
     $services->alias(PatrolDetailController::class, 'patrol.controller.detail')->public();
+
+    /*
+     * THE READ-ONLY KINDS TAB. Registered beside the dashboard rather than
+     * inside the bundle's SecurityBundle guard, for the reason the dashboard is:
+     * it reads, it writes nothing, and it must exist wherever the module's other
+     * data places do — including a host that runs no security.
+     */
+    $services->set('patrol.controller.kinds_overview', PatrolKindsOverviewController::class)
+        ->args([
+            service('twig'),
+            service('patrol.kinds_overview'),
+        ])
+        ->public();
+
+    $services->alias(PatrolKindsOverviewController::class, 'patrol.controller.kinds_overview')->public();
 };

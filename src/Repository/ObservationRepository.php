@@ -100,6 +100,48 @@ final class ObservationRepository extends ServiceEntityRepository
     }
 
     /**
+     * HOW MANY OBSERVATIONS THE AREA HOLDS UNDER EACH WIRE-CODE, optionally
+     * inside a half-open window.
+     *
+     * An aggregate, not a page of rows: the kinds overview states three numbers
+     * for every word an area files under, and loading the observations to count
+     * them would read a year of rows to print one figure.
+     *
+     * By `loggedAt` for the same reason {@see self::findByAreaLoggedBetween()}
+     * is — when the ranger saw the thing, not when the handset found signal —
+     * so an observation with no logged time sits in no month and reaches only
+     * the all-time figure.
+     *
+     * @return array<string, int> wire-code => how many
+     */
+    public function countByArea(AreaOfInterest $area, ?\DateTimeImmutable $from = null, ?\DateTimeImmutable $until = null): array
+    {
+        $qb = $this->createQueryBuilder('o')
+            ->select('o.category AS category, COUNT(o.id) AS tally')
+            ->innerJoin('o.patrol', 'p')
+            ->andWhere('p.area = :area')
+            ->setParameter('area', $area)
+            ->groupBy('o.category');
+
+        if (null !== $from && null !== $until) {
+            $qb->andWhere('o.loggedAt >= :from')
+                ->andWhere('o.loggedAt < :until')
+                ->setParameter('from', $from)
+                ->setParameter('until', $until);
+        }
+
+        /** @var list<array{category: string, tally: int|string}> $rows */
+        $rows = $qb->getQuery()->getResult();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[$row['category']] = (int) $row['tally'];
+        }
+
+        return $counts;
+    }
+
+    /**
      * WHICH HOST ZONE EACH OBSERVATION FELL IN, for a page of rows at a time.
      *
      * An observation carries a point and no zone, exactly as a patrol carries a
