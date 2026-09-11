@@ -391,6 +391,66 @@ final class LogFlowTest extends WebTestCase
     }
 
     /**
+     * THE LEAD ROW'S DEFAULT IS "—", AND IT SAVES.
+     *
+     * The design draws the row with nobody chosen, which posts an empty string,
+     * and a patrol with no lead is an ordinary record — plenty of shifts are
+     * written up without one and the column has always been nullable.
+     *
+     * It answered `400 Input value "lead" cannot be converted to "int"` instead:
+     * `InputBag::getInt()` refuses anything that is not a whole number, so the
+     * one state the form ships in was the one state it could not save. The pair
+     * below asserts the FIELD rather than the request, because an optional
+     * relation has two real answers and both have to be exercised.
+     */
+    public function testAPatrolIsLoggedWithNoLeadWhenTheRowIsLeftOnTheDash(): void
+    {
+        $this->client->loginUser($this->recorder);
+        $draft = $this->openDraft();
+
+        $this->client->request('POST', $this->logUrl(), [
+            ...$this->validSubmission($draft),
+            'lead' => '',
+        ]);
+
+        $patrol = $this->onlyPatrol();
+        self::assertResponseRedirects(
+            '/areas/'.$this->area->getUuidString().'/modules/patrols/'.$patrol->getUuid()->toRfc4122(),
+        );
+        self::assertNull($patrol->getLead());
+    }
+
+    public function testAPatrolKeepsTheLeadThatWasChosen(): void
+    {
+        $this->client->loginUser($this->recorder);
+        $draft = $this->openDraft();
+
+        $this->client->request('POST', $this->logUrl(), $this->validSubmission($draft));
+
+        self::assertSame($this->recorder->getId(), $this->onlyPatrol()->getLead()?->getId());
+    }
+
+    /**
+     * A person the deployment does not have is the same fact as none. The select
+     * only ever offers live people, so anything else is a stale form rather than
+     * somebody's intent — the reading the station chips already take, and never a
+     * protocol error thrown at a reader.
+     */
+    public function testALeadTheDeploymentDoesNotHaveRecordsNoLead(): void
+    {
+        $this->client->loginUser($this->recorder);
+        $draft = $this->openDraft();
+
+        $this->client->request('POST', $this->logUrl(), [
+            ...$this->validSubmission($draft),
+            'lead' => 'nobody',
+        ]);
+
+        self::assertResponseStatusCodeSame(302);
+        self::assertNull($this->onlyPatrol()->getLead());
+    }
+
+    /**
      * A key the form posts is the browser's word about what it uploaded, and the
      * draft's own rows are the evidence. One draft's key attaches nothing to
      * another draft's patrol.

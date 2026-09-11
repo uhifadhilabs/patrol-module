@@ -408,13 +408,12 @@ final class PatrolRecordController
      */
     private static function submittedDetails(Request $request): array
     {
-        $lead = $request->request->getInt('lead');
         $distance = trim($request->request->getString('distanceKm'));
 
         return [
             'type' => $request->request->getString('type'),
             'station' => self::trimmedOrNull($request->request->getString('station')),
-            'lead' => $lead > 0 ? $lead : null,
+            'lead' => self::optionalId($request->request->getString('lead')),
             'team' => self::trimmedOrNull($request->request->getString('team')),
             'note' => self::trimmedOrNull($request->request->getString('note')),
             'startedAt' => self::trimmedOrNull($request->request->getString('startedAt')),
@@ -483,6 +482,34 @@ final class PatrolRecordController
         $trimmed = trim($value);
 
         return '' !== $trimmed ? $trimmed : null;
+    }
+
+    /**
+     * AN OPTIONAL RELATION'S ID, OR NULL — AND NEVER A 400.
+     *
+     * `lead` is a select whose first option is the design's own "—", which posts
+     * an EMPTY STRING. `InputBag::getInt()` cannot read one: it filters with
+     * FILTER_VALIDATE_INT and throws a BadRequestException on anything that is
+     * not a whole number, so the one row the design draws as the default answered
+     * `400 Input value "lead" cannot be converted to "int"` instead of recording
+     * a patrol with no lead. The entity has always allowed null; the reading had
+     * not.
+     *
+     * So the value is read as the TEXT it is and converted only where it really
+     * is an id. Everything else — an empty option, a blank, a word, a negative,
+     * a stale option from a page held open — is the same fact as "nobody was
+     * named", which is exactly the reading the station chips already take: the
+     * control only ever submits a live value, so anything else is a stale form
+     * rather than somebody's intent, and a screen must not answer a person's
+     * choice with a protocol error.
+     *
+     * @see vendor/symfony/http-foundation/InputBag.php — getInt()
+     */
+    private static function optionalId(string $value): ?int
+    {
+        $trimmed = trim($value);
+
+        return ctype_digit($trimmed) && (int) $trimmed > 0 ? (int) $trimmed : null;
     }
 
     /** A datetime-local value ("2026-08-22T05:55"), or null when absent/unreadable. */
