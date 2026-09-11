@@ -42,6 +42,39 @@ final class PlateSizingTest extends TestCase
     }
 
     /**
+     * THE RECORD PAGE'S PLATE IS AS TALL AS THE COLUMN BESIDE IT, with a floor
+     * under it — the design's `.recgrid > .c.plate-fill`, whose viewer flexes to
+     * the row's height and never drops below 360px.
+     *
+     * It is said with the ONE property a plate is sized by: `100%` of the card,
+     * which the row has already stretched to its tallest column. A flex on the
+     * plate would be the very stretching {@see self::testThisSheetSizesNoPlateAnyOtherWay()}
+     * forbids.
+     */
+    public function testTheRecordPlateIsAsTallAsTheColumnBesideIt(): void
+    {
+        $sheet = self::stylesheet();
+
+        self::assertMatchesRegularExpression(
+            '/\.patrol-detail-row > \.patrol-plate-fill \{[^}]*--map-plate-height: 100%/',
+            $sheet,
+        );
+        self::assertMatchesRegularExpression(
+            '/\.patrol-detail-row > \.patrol-plate-fill \{[^}]*min-height: 360px/',
+            $sheet,
+        );
+    }
+
+    /** And the record page wears the hook, or the rule above dresses nothing. */
+    public function testTheRecordPageWearsThatHook(): void
+    {
+        $template = file_get_contents(\dirname(__DIR__, 3).'/templates/patrol/show.html.twig');
+        self::assertIsString($template);
+
+        self::assertStringContainsString('patrol-plate patrol-plate-fill', $template);
+    }
+
+    /**
      * THE PLATE'S OWN LAYOUT IS THE ATLAS'S. A module that sizes it any other
      * way is the module whose map reads differently from every other one — and
      * with a real height on the plate, a min-height or a flex here does nothing

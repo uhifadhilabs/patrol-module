@@ -105,7 +105,7 @@
 {% endif %}
 
 <div class="patrol-detail-row">
-    <div class="c patrol-plate" data-patrol-track>
+    <div class="c patrol-plate patrol-plate-fill" data-patrol-track>
         <span class="tab">Track plate<span class="src">· {{ patrol.ref }} · satellite · live</span></span>
         <span class="lib">{{ patrol.source.value == 'gpx' ? 'gpx track' : (patrol.source.value == 'api' ? 'api track' : 'sketched route') }}</span>
         {{ ui.plate(

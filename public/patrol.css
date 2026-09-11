@@ -246,6 +246,15 @@
    keep the host card's default padding, as the design leaves them. */
 .patrol-plate:has(.map-plate) { padding: 14px 14px 16px; }
 
+/* THE RECORD PAGE'S PLATE IS THE HEIGHT OF THE COLUMN BESIDE IT — the design's
+   `.recgrid > .c.plate-fill`, whose viewer takes the row's height and never
+   drops below 360px. The row already stretches both columns to the taller one,
+   so the plate asks for all of the card it is in and the card carries the
+   floor. Said with the one property a plate is sized by: a flex or a min-height
+   on the plate itself would make it stretch, which is the thing a plate must
+   never do. */
+.patrol-detail-row > .patrol-plate-fill { --map-plate-height: 100%; min-height: 360px; }
+
 /* ---- observation rows (PL·04 on the patrol detail) ---------------------- */
 /* The design marks a populated row as clickable (its Open → is the affordance
    that acts); the empty-state row is not. */
