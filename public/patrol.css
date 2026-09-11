@@ -799,3 +799,24 @@
 .patrol-exp-t em { display: block; font: 500 9.5px var(--font-mono); color: rgb(var(--c-dim)); font-style: normal; margin-top: 2px; }
 .patrol-exp-soon { flex: none; }
 .patrol-stamp { margin-top: 10px; font: 500 9.5px var(--font-mono); color: rgb(var(--c-dim)); line-height: 1.5; }
+
+/* THE READ-ONLY KINDS CARD (the dashboard's kinds widget) — one tile per kind
+   with this month's count, its sub-categories on a second line, and a single
+   link out to the section that does the editing. */
+.kx { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 2px; }
+.kx-k {
+    flex: 1 1 210px; min-width: 0; border: 1px solid var(--c-ln); border-radius: 11px;
+    padding: 10px 12px 9px; background: color-mix(in srgb, rgb(var(--c-fog)) 3%, transparent);
+}
+.kx-h { display: flex; align-items: center; gap: 8px; }
+.kx-h .dot { width: 9px; height: 9px; border-radius: 3px; flex: none; background: rgb(var(--c-acc)); }
+.kx-h b { font-size: 12.5px; font-weight: 600; color: rgb(var(--c-tx)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kx-h .n {
+    margin-left: auto; flex: none; font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    color: rgb(var(--c-acc)); font-variant-numeric: tabular-nums;
+}
+.kx-h .n em { font-style: normal; font-size: 8.5px; color: rgb(var(--c-dim)); margin-left: 3px; }
+.kx-s { margin-top: 6px; font-family: var(--font-mono); font-size: 9.5px; font-weight: 500; line-height: 1.7; color: rgb(var(--c-dim)); }
+.kx-s i { font-style: normal; }
+.kx-foot { display: flex; align-items: center; gap: 8px; margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--c-ln); }
+.kx-foot .use { margin: 0; flex: 1; }

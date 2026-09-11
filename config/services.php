@@ -40,6 +40,7 @@ use Uhifadhi\Patrol\Service\ObservationAmendmentService;
 use Uhifadhi\Patrol\Service\PatrolCoverageService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolHoldService;
+use Uhifadhi\Patrol\Service\PatrolKindsService;
 use Uhifadhi\Patrol\Service\PatrolListService;
 use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolRecordingService;
@@ -239,6 +240,12 @@ return static function (ContainerConfigurator $container): void {
     $services->set('patrol.list', PatrolListService::class);
 
     /*
+     * HOW OFTEN EACH OBSERVATION KIND WAS LOGGED — the read-only kinds card's
+     * one number, counted by the wire-code the two vocabulary models share.
+     */
+    $services->set('patrol.observation_kinds', PatrolKindsService::class);
+
+    /*
      * WHETHER TO DRAW A DOOR. Two questions — does the screen exist in this
      * installation, and may this viewer open it — asked in one place so no
      * screen answers only half of them.
@@ -322,6 +329,8 @@ return static function (ContainerConfigurator $container): void {
             // The id is that bundle's public surface (its service reference),
             // which is what a reusable bundle names another one by.
             service('shell.widget.service'),
+            service(TaxonomyKindRepository::class),
+            service('patrol.observation_kinds'),
             param('patrol.types'),
             param('patrol.record_screens'),
             param('patrol.widget_screens'),

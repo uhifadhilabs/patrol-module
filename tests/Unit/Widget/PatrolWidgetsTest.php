@@ -46,14 +46,14 @@ final class PatrolWidgetsTest extends TestCase
     }
 
     /**
-     * The sixteen widgets, in the design's declaration order: the seven the
+     * The seventeen widgets, in the design's declaration order: the seven the
      * module has always drawn (catalogue order IS the shipped composition),
      * then the nine added for the directions.
      */
-    public function testItShipsTheSixteenWidgetsInDeclarationOrder(): void
+    public function testItShipsTheSeventeenWidgetsInDeclarationOrder(): void
     {
         self::assertSame(
-            ['kpis', 'map', 'log', 'feed', 'chweek', 'chstation', 'cal', 'maplog', 'now', 'obsq', 'handover', 'gaps', 'effort', 'export', 'plan', 'roster'],
+            ['kpis', 'map', 'log', 'feed', 'chweek', 'chstation', 'kinds', 'cal', 'maplog', 'now', 'obsq', 'handover', 'gaps', 'effort', 'export', 'plan', 'roster'],
             PatrolWidgets::declaration()->ids(),
         );
     }
@@ -65,7 +65,7 @@ final class PatrolWidgetsTest extends TestCase
 
         $expected = [
             'kpis' => 'b', 'map' => 'a', 'log' => 'b', 'feed' => 'c',
-            'chweek' => 'd', 'chstation' => 'd', 'cal' => 'e',
+            'chweek' => 'd', 'chstation' => 'd', 'kinds' => 'b', 'cal' => 'e',
             'maplog' => 'a', 'now' => 'a', 'obsq' => 'c', 'handover' => 'c',
             'gaps' => 'd', 'effort' => 'd', 'export' => 'd', 'plan' => 'e', 'roster' => 'e',
         ];
@@ -99,10 +99,10 @@ final class PatrolWidgetsTest extends TestCase
 
     /** The shipped composition is the original six — the feed came off it (owner
      * ruling 2026-09-08) and nothing added is on by default. */
-    public function testTheShippedCompositionIsTheOriginalSixWidgets(): void
+    public function testTheShippedCompositionIsTheDesignsOwn(): void
     {
         self::assertSame(
-            ['kpis' => 12, 'map' => 12, 'log' => 12, 'chweek' => 6, 'chstation' => 6, 'cal' => 12],
+            ['kpis' => 12, 'map' => 12, 'log' => 12, 'chweek' => 6, 'chstation' => 6, 'kinds' => 12, 'cal' => 12],
             PatrolWidgets::declaration()->defaultLayout(),
         );
     }

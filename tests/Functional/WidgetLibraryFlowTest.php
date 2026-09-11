@@ -40,7 +40,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
 
     /** The shipped composition, in the design's own order — the feed is off the
      * default (owner ruling 2026-09-08), so it is not among the rendered widgets. */
-    private const array WIDGET_IDS = ['kpis', 'map', 'log', 'chweek', 'chstation', 'cal'];
+    private const array WIDGET_IDS = ['kpis', 'map', 'log', 'chweek', 'chstation', 'kinds', 'cal'];
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;

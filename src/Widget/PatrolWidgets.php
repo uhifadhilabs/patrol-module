@@ -134,6 +134,10 @@ final class PatrolWidgets implements WidgetSurfaceInterface
             // Offers the full row as well as the half: "The patrol log" direction
             // draws it full-width under the log, and "Coverage & effort" at six.
             new Widget('chstation', 'By station', 'd', 6, [12, 9, 6, 3], on: true, note: 'Patrols by the station that logged them.'),
+            // THE READ-ONLY VOCABULARY CARD. It shows what a ranger may log here
+            // and how often each has been logged this month; editing is one click
+            // away in Configure, and never here.
+            new Widget('kinds', 'Observation kinds', 'b', 12, [12, 9, 6], on: true, note: 'The kinds a ranger can log here, with this month\'s count under each. Read only — editing is a click away in Configure.'),
             new Widget('cal', 'Patrol calendar', 'e', 12, [12, 9, 6, 3], on: true, note: 'The month as a calendar, one mark per patrol.'),
             // ---- the nine widgets the five directions needed, all off by default ----
             new Widget('maplog', 'Coverage + log', 'a', 12, [12, 9], on: false, note: 'The coverage map at full height with the matching patrols docked beside it — one filter, one viewport, one list.'),

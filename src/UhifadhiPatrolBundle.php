@@ -409,6 +409,8 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service('shell.widget.service'),
                     service('patrol.widget_urls'),
                     service('shell.widget.endpoint'),
+                    service(TaxonomyKindRepository::class),
+                    service('patrol.observation_kinds'),
                     param('patrol.types'),
                     param('patrol.discard_retention_days'),
                 ])

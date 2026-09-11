@@ -1,0 +1,32 @@
+{# Widget "kinds" — the observation kinds a ranger can log here, read only.
+
+   READ ONLY, AND SAYING SO. Editing a kind is a click away in Configure; a card
+   that let you rename one here would be a second place the vocabulary is owned,
+   and the two would eventually disagree.
+
+   THE COUNT IS BY WIRE-CODE. An observation still carries the flat configured
+   category while the area-scoped kinds are a parallel model, and the code is the
+   one value both hold — see PatrolKindsService. #}
+<div class="c" data-patrol-kinds>
+    <span class="tab">Observation kinds<span class="src">· {{ kinds|length }} {{ kinds|length == 1 ? 'kind' : 'kinds' }} · {{ kindSubcategoryCount }} {{ kindSubcategoryCount == 1 ? 'sub-category' : 'sub-categories' }}</span></span>
+    <div class="kx">
+        {% for kind in kinds %}
+            <div class="kx-k">
+                <div class="kx-h"><i class="dot"></i><b>{{ kind.label }}</b><span class="n">{{ kindCounts[kind.code]|default(0) }}<em>this month</em></span></div>
+                <div class="kx-s">
+                    {%- for sub in kind.subcategories -%}
+                        {% if not loop.first %} · {% endif %}<i>{{ sub.label|lower }}</i>
+                    {%- endfor -%}
+                </div>
+            </div>
+        {% else %}
+            <div class="kx-k"><div class="kx-h"><b>No observation kinds yet</b></div>
+                <div class="kx-s">this area has not written its own vocabulary</div></div>
+        {% endfor %}
+    </div>
+    <div class="kx-foot">
+        <span class="use">Read only. The order here is the order of the chips on the handset.</span>
+        {% set kindsUrl = patrol_url('patrol_kinds', {uuid: area.uuid}) %}
+        {% if kindsUrl %}<a class="open-btn" href="{{ kindsUrl }}">Edit in Configure →</a>{% endif %}
+    </div>
+</div>

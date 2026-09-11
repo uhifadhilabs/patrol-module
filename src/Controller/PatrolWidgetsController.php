@@ -28,11 +28,14 @@ use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
 use Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetEndpoint;
 use Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetService;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
+use Uhifadhi\Patrol\Entity\TaxonomyKind;
 use Uhifadhi\Patrol\Model\PatrolFilter;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;
 use Uhifadhi\Patrol\Service\PatrolCoverageService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\PatrolKindsService;
 use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
 use Uhifadhi\Patrol\Service\PatrolWidgetUrls;
@@ -83,6 +86,8 @@ final class PatrolWidgetsController
         private readonly WidgetService $widgets,
         private readonly PatrolWidgetUrls $widgetUrls,
         private readonly WidgetEndpoint $endpoint,
+        private readonly TaxonomyKindRepository $kinds,
+        private readonly PatrolKindsService $observationKinds,
         private readonly array $types,
         private readonly int $retentionDays = PatrolConfiguration::DEFAULT_DISCARD_RETENTION_DAYS,
     ) {
@@ -157,6 +162,15 @@ final class PatrolWidgetsController
                     // The real coverage layer, so the previewed plate is the plate.
                     $this->coverage->bufferFor($area, $monthStart, $nextMonth, $now),
                 ),
+                // The read-only kinds card: what a ranger may log here, and how
+                // often each was logged this month. Editing is one click away in
+                // Configure and never on a dashboard.
+                'kinds' => $kinds = $this->kinds->forArea($area),
+                'kindCounts' => $this->observationKinds->countsByCode($dashboard->patrols),
+                'kindSubcategoryCount' => array_sum(array_map(
+                    static fn (TaxonomyKind $kind): int => \count($kind->getSubcategories()),
+                    $kinds,
+                )),
                 'retentionDays' => $this->retentionDays,
                 // The live reading the direction widgets bind, exactly as the
                 // dashboard hands it in — so a widget previewed here IS the widget

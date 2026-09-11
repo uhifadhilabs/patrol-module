@@ -22,6 +22,8 @@ use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Entity\TaxonomyKind;
+use Uhifadhi\Patrol\Entity\TaxonomySubcategory;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 
 /**
@@ -503,6 +505,29 @@ final class DashboardPageTest extends WebTestCase
      * exactly the same terms as the recording screens: the route must exist (it
      * needs SecurityBundle) AND the viewer must hold the permission.
      */
+    /**
+     * THE READ-ONLY KINDS CARD — what a ranger may log here, with this month's
+     * count under each, and one link out to the section that edits them.
+     */
+    public function testTheDashboardShowsTheKindsARangerCanLog(): void
+    {
+        $kind = new TaxonomyKind($this->area, 'maintenance', 'Maintenance');
+        $this->em->persist($kind);
+        $this->em->persist(new TaxonomySubcategory($kind, 'fence', 'Fence'));
+        $this->em->flush();
+
+        $crawler = $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols');
+
+        self::assertResponseIsSuccessful();
+        $card = $crawler->filter('[data-w="kinds"]');
+        self::assertCount(1, $card);
+        self::assertStringContainsString('Maintenance', $card->filter('.kx-h b')->text());
+        // Two observations were filed under this wire-code in the fixture.
+        self::assertStringContainsString('2', $card->filter('.kx-h .n')->text());
+        self::assertStringContainsString('fence', $card->filter('.kx-s')->text());
+        self::assertStringContainsString('Edit in Configure', $card->filter('.kx-foot')->text());
+    }
+
     public function testSomebodyWhoMayNotManageCannotOpenTheKindsScreen(): void
     {
         $recorder = new User()->setPassword('x')->setEmail(FixedRecordVoter::RECORDER_EMAIL)

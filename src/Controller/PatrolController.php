@@ -26,11 +26,14 @@ use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
 use Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetService;
 use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
+use Uhifadhi\Patrol\Entity\TaxonomyKind;
 use Uhifadhi\Patrol\Model\PatrolFilter;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;
 use Uhifadhi\Patrol\Service\PatrolCoverageService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\PatrolKindsService;
 use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
 use Uhifadhi\Patrol\Widget\PatrolWidgets;
@@ -80,6 +83,10 @@ final class PatrolController
         // so the two surfaces can never disagree about the same morning.
         private readonly PatrolOverviewService $overview,
         private readonly WidgetService $widgets,
+        // The area's own observation vocabulary, and the one place its counts
+        // are worked out — the read-only kinds card reads both.
+        private readonly TaxonomyKindRepository $kinds,
+        private readonly PatrolKindsService $observationKinds,
         private readonly array $types,
         private readonly bool $recordScreens = false,
         private readonly bool $widgetScreens = false,
@@ -152,6 +159,15 @@ final class PatrolController
             'recordScreens' => $this->mayRecord(),
             'manageScreens' => $this->mayManage(),
             'retentionDays' => $this->retentionDays,
+            // The read-only kinds card: what a ranger may log here, and how
+            // often each was logged this month. Editing is one click away in
+            // Configure and never on a dashboard.
+            'kinds' => $kinds = $this->kinds->forArea($area),
+            'kindCounts' => $this->observationKinds->countsByCode($dashboard->patrols),
+            'kindSubcategoryCount' => array_sum(array_map(
+                static fn (TaxonomyKind $kind): int => \count($kind->getSubcategories()),
+                $kinds,
+            )),
             'widgetScreens' => $this->widgetScreens,
             // Which widgets this person keeps, how wide, in what order — the
             // HOST's widget framework resolving this surface's catalogue: the
