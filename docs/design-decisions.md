@@ -6,7 +6,7 @@ oversight.
 
 ## Contents
 
-- [1 · Station is a string, not an entity](#1--station-is-a-string-not-an-entity)
+- [1 · A station is a record the area keeps](#1--a-station-is-a-record-the-area-keeps)
 - [2 · Team is free text](#2--team-is-free-text)
 - [3 · Observation photos are deferred — SETTLED](#3--observation-photos-are-deferred--settled-this-decision-has-fallen)
 - [4 · Sources are honest: sketch ≠ track](#4--sources-are-honest-sketch--track)
@@ -14,26 +14,42 @@ oversight.
 - [6 · The maps are the atlas's, and the module writes no map JavaScript](#6--the-maps-are-the-atlass-and-the-module-writes-no-map-javascript)
 - [7 · The filter is a query, not a conversation](#7--the-filter-is-a-query-not-a-conversation)
 
-## 1 · Station is a string, not an entity
+## 1 · A station is a record the area keeps
 
-`Patrol.station` is a free string ("North post"), not a foreign key.
+`Patrol.stationRecord` is a `ManyToOne` to `Station`, and `Patrol.patrolType` a
+`ManyToOne` to `PatrolType`. Both are the AREA's own lists, and both are edited
+on the module's Settings section (SET·01 and SET·03).
 
-**Why:** stations are a concept the platform will eventually own (a
-stations module exists in its catalogue roadmap); this bundle must not invent
-a competing `Station` entity the platform would later have to reconcile.
-A string ships the screens now and loses nothing that matters yet.
+**Why records and not strings:** the three things the configure design asks for
+are the three a string cannot do — rename a post without rewriting every patrol
+filed against it, retire one the area has closed, and count how many patrols
+each carries. And they are the AREA's: one area closing a post is not a reason
+for another to lose it.
 
-**Revisit when:** a stations module exists. Migration path: add a
-nullable FK, backfill by name-matching, keep the string as a fallback label
-until every deployment has migrated.
+**What a word is:** a stable `key` — the wire value a saved filter, an export
+column and an offline handset hold, derived once from the first label and never
+touched by a rename — plus a `label`, `active`, `position` and `updatedAt`. The
+handset reads all of it through `GET /api/patrols/vocabulary`.
 
-**Consequence on the map:** a station therefore has no coordinates of its own,
-but the settled coverage design labels each station on the map. The marker is
-placed at the FIRST recorded point of a patrol that set out from that station
+**Retire, never delete.** Patrols are filed against both, so neither has a
+delete control: retiring dims the row on Settings, takes the word off the
+handset at the next sync, and leaves every record intact.
+
+**`patrol.types` is a SEED, not a source.** An area with no types yet is given
+the installation's configured list the first time its Settings section or its
+log form is opened. After that the two are unrelated, and a config change never
+reaches back into a list somebody has curated.
+
+**On the map:** a station may say where it stands (`Station::$point`), and the
+coverage marker is drawn there. Where nobody has said, the marker is placed at
+the FIRST recorded point of a patrol that set out from it
 (`PatrolDashboardService::coveragePayload`) — the best evidence the bundle
-holds, and never an invented position: a station whose patrols were all
-hand-logged (no track) gets no marker at all. When the stations module lands
-with real geometry, that derivation goes away.
+holds, and never an invented position; a station whose patrols were all
+hand-logged gets no marker at all.
+
+**Revisit when:** a platform-wide stations module exists. That is a change of
+owner rather than of shape: these rows already carry the key, the label and the
+geometry such a module would want.
 
 ## 2 · Team is free text
 

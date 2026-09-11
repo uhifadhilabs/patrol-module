@@ -15,9 +15,10 @@ A [uhifadhi](https://github.com/uhifadhilabs) module bundle.
 ## What it is
 
 - **Patrols** — a patrol is a typed, timed record (who led it, which station,
-  when, how far) with an optional geometry track. Types are deployment
-  vocabulary (`patrol.types`), never hardcoded: one deployment walks and
-  drives, another patrols by boat.
+  when, how far) with an optional geometry track. The type and the station are
+  each one of the AREA's own records, added, renamed and retired on the
+  module's configure page — never hardcoded, and never deleted, because patrols
+  are filed against them. `patrol.types` is the list a new area starts from.
 - **GPX ingest** — upload a tracker's `.gpx` file; the bundle parses points,
   time span, distance and GPS gaps (flagged and stored, never smoothed), then
   a short form confirms type/station/lead.
@@ -26,6 +27,8 @@ A [uhifadhi](https://github.com/uhifadhilabs) module bundle.
   screen and an audit trail.
 - **Coverage** — every track drawn over the area boundary; the dashboard is a
   per-user widget composition (KPIs, map, log, feed, charts, calendar).
+- **Export** — the filtered log as CSV and its recorded tracks as GPX, at one
+  address in two formats; the file always carries the filter on screen.
 
 ## Installation
 
@@ -137,7 +140,9 @@ atlas's plate — the module states what is on it in PHP and the template calls
 
 Name the patrol types and observation categories this deployment uses in
 `config/packages/patrol.yaml`; the full key list is in
-[docs/configuration.md](docs/configuration.md).
+[docs/configuration.md](docs/configuration.md). `types` is the SEED a NEW area
+starts from — after that each area owns its own list, edited on its configure
+page.
 
 ```yaml
 patrol:
@@ -191,6 +196,21 @@ Then run `doctrine:migrations:diff --namespace=DoctrineMigrations` and delete
 whatever version of yours creates a `patrol_*` table — those tables are this
 module's, and from here on it is the module that changes them.
 
+**The versions this module ships**, in the order they run:
+
+| Class | What it does |
+|---|---|
+| `Uhifadhi\Patrol\Migrations\Version20260910044923` | The module's eleven tables. |
+| `Uhifadhi\Patrol\Migrations\Version20260911090000` | `patrol_settings` — what one area runs patrols on. |
+| `Uhifadhi\Patrol\Migrations\Version20260911120000` | `patrol_type` and `patrol_station`, with every existing patrol carried onto them. |
+
+The last one is the only one an existing installation has to think about, and
+the answer is still `doctrine:migrations:migrate`: it reads each area's patrol
+types and stations out of the strings that area's own patrols already carry, so
+every row matches and nothing is left behind. `patrol_patrol.type` and
+`patrol_patrol.station` stay in place for this release; the version that drops
+them rides a later one. See [docs/development.md](docs/development.md).
+
 ## Learn more
 
 - [docs/what-it-stands-on.md](docs/what-it-stands-on.md) — the frame, the widget
@@ -206,9 +226,9 @@ module's, and from here on it is the module that changes them.
   patrols fills on an area's overview page, and the one thing it cannot tell
   that page.
 - [docs/design-decisions.md](docs/design-decisions.md) — deliberate modeling
-  choices (station as string, free-text team, how photos are stored, honest
-  sources, live tracking as a v2 third door) recorded with their revisit
-  triggers. **Read it before changing the model** — none of them is an
+  choices (per-area type and station records, free-text team, how photos are
+  stored, honest sources, live tracking as a v2 third door) recorded with their
+  revisit triggers. **Read it before changing the model** — none of them is an
   oversight.
 - [docs/development.md](docs/development.md) — `composer check`, the PostGIS
   test container, and the rules a shipped migration obeys.

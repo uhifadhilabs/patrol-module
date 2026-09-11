@@ -7,6 +7,7 @@
 - [The module frame](#the-module-frame)
 - [Observation kinds](#observation-kinds)
 - [Settings](#settings)
+- [Export](#export)
 
 ## The routes
 
@@ -18,10 +19,13 @@
 | Patrol detail | `patrol_show` |
 | Observation detail | `patrol_observation_show` |
 | Export a recorded track as GPX | `patrol_export_gpx` |
+| Export the filtered log (`csv`) or its tracks (`gpx`) | `patrol_export` |
 | Import GPX | `patrol_import` |
 | Log patrol (manual) | `patrol_log` |
 | Observation kinds (configure section) | `patrol_kinds` |
 | Save the module's settings | `patrol_settings_save` |
+| Add / rename / retire a patrol type | `patrol_settings_type_add`, `patrol_settings_type_act` |
+| Add / rename / retire a station | `patrol_settings_station_add`, `patrol_settings_station_act` |
 
 `patrol_taxonomy` (`…/patrols/taxonomy`) still answers, permanently redirecting to
 `patrol_kinds` (`…/patrols/kinds`) — a saved link does not become a 404 over a
@@ -58,7 +62,7 @@ reads the one answer they select:
 | Parameter | Value | Absent means |
 |---|---|---|
 | `type` | one configured patrol type key | every type |
-| `station` | one station's name | every station |
+| `station` | one station's key | every station |
 | `zone` | one zone's name, as the spatial join reports it | every zone |
 | `month` | `YYYY-MM` | the month containing today |
 
@@ -112,14 +116,55 @@ The last section of the configure page, at the bare address
 own `patrol:` configuration — so an untouched default and a chosen number stay
 distinguishable.
 
-| Card | State today |
+| Card | What it does |
 |---|---|
-| Patrol types | **Read-only.** A type is still the installation's `patrol.types` vocabulary; per-area types need a record of their own and a migration that carries every patrol already filed under one. |
-| Observation categories | A pointer into the `Observation kinds` section, with this area's counts. |
-| Stations | **Read-only.** A station is still free text on a patrol, so the list is read back out of the patrols that named one. |
-| Thresholds | **Editable.** The GPS-gap threshold and how long a discarded patrol stays recoverable, bounded as the design bounds them and clamped on the way in. |
+| Patrol types (SET·01) | **Editable.** One row per type the area keeps: its label, its wire key, how many patrols are filed under it, and Rename / Retire — or Reactivate on a retired one, drawn dimmed with a `retired` chip. `+ New patrol type` adds one. |
+| Observation categories (SET·02) | A pointer into the `Observation kinds` section, with this area's counts. |
+| Stations (SET·03) | **Editable.** Exactly the same row, for the places a patrol sets off from. |
+| Thresholds (SET·04) | **Editable.** The GPS-gap threshold and how long a discarded patrol stays recoverable, bounded as the design bounds them and clamped on the way in. |
+
+The two word-lists write a row at a time, at the addresses the design names:
+
+| Route | Method | Path |
+|---|---|---|
+| `patrol_settings_save` | POST | `…/configure/settings` |
+| `patrol_settings_type_add` | POST | `…/configure/settings/types` |
+| `patrol_settings_type_act` | POST | `…/configure/settings/types/{uuid}/{rename\|retire\|reactivate}` |
+| `patrol_settings_station_add` | POST | `…/configure/settings/stations` |
+| `patrol_settings_station_act` | POST | `…/configure/settings/stations/{uuid}/{rename\|retire\|reactivate}` |
+
+All five ride on `patrols.manage` and a CSRF token, and all five exist only
+where SecurityBundle can enforce the permission. **Nothing is ever deleted:**
+retiring flips a flag, and the patrols filed under a retired word keep it.
+
+**The installation's `patrol.types` is the SEED for a NEW area and nothing
+else.** An area with no types yet is given the configured list the first time
+its Settings section or its log form is opened; from then on the area's list is
+its own, and a config change never reaches back into it.
 
 The **copy-from-another-area** first-setup gesture is **deferred**: it needs to
 enumerate areas and read their names, which requires an area-directory contract
 that is not yet ruled. The empty-state template marks where it will attach; the
 first-kind start is complete without it.
+
+## Export
+
+`patrol_export` at `/areas/{uuid}/modules/patrols/export.{_format}` —
+`_format` is `csv` or `gpx`, and nothing else is an address.
+
+**The file always carries the filter on screen.** It reads the same four query
+parameters the dashboard and the log read (`type`, `station`, `zone`, `month`,
+plus `q`) and narrows through the same predicate the log page is built from
+(`PatrolListService::filtered()`), so the file and the table above it can never
+be answering different questions. That is why there is no export screen: there
+is nothing to choose.
+
+| Format | What it holds |
+|---|---|
+| `csv` | The log's own columns in the log's own order: `ref, name, type, type_label, station, station_label, zone, lead, team, started_at, ended_at, distance_km, observations, source, status, note`. Both the wire KEY and the label are present, because they are different things — a key is what a saved filter holds, a label what a person reads. |
+| `gpx` | One `<trk>` per patrol that actually RECORDED a route, written by the same `GpxWriter` the per-patrol export uses. A hand-logged patrol has no geometry and is absent: a sketch handed out as a `.gpx` would re-enter the world as a recording ([design-decisions.md §4](design-decisions.md#4--sources-are-honest-sketch--track)). A month with no recorded track is an empty document, never a 404. |
+
+The design's `Export` page action sits beside `Configure` on the dashboard and
+on the log, and links the CSV; the dashboard's `Export & reporting` widget
+(PL·18) links both files. The monthly PDF report the same widget describes is
+not built.

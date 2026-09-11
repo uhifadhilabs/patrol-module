@@ -6,6 +6,7 @@ Every key `config/packages/patrol.yaml` accepts, and what each one decides.
 
 - [The file](#the-file)
 - [Deployment vocabulary](#deployment-vocabulary)
+- [`types` is a seed, not a source](#types-is-a-seed-not-a-source)
 - [Retention](#retention)
 
 ## The file
@@ -28,6 +29,20 @@ patrol:
 
 Types and observation categories are deployment vocabulary, never hardcoded: one
 deployment walks and drives, another patrols by boat.
+
+## `types` is a seed, not a source
+
+`patrol.types` is the list a **new area** starts from, and nothing else. An area
+with no patrol types yet is given a copy of it — as its own records — the first
+time somebody opens that area's Settings section or its log form. From then on
+the area owns its list: renaming, retiring and adding a type happens on SET·01
+of the module's configure page, per area, and changing this file never reaches
+back into an area somebody has curated.
+
+Stations have no configuration key at all. They are written on SET·03, or
+created retired by the handset sync when a phone reports a word the area has not
+heard of — see [design-decisions.md
+§1](design-decisions.md#1--a-station-is-a-record-the-area-keeps).
 
 ## Retention
 
