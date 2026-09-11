@@ -176,20 +176,18 @@ final class PatrolDetailPageTest extends WebTestCase
         // The caption rides in the plate's filter slot, one row above the map.
         self::assertStringContainsString($this->patrol->getRef().' · North post · walking round', $crawler->filter('.map-plate .map-filters')->text());
 
-        // The identity band — the patrol's own facts in the platform's shared
-        // .factband below the tabs (PL·02 in the settled design is this band, not
-        // a sidebar card): the computed duration and average speed (14.2 km over
-        // 6 h 20 = 2.24… km/h), the source and the GPS honesty facts, the team as
-        // the lead's secondary line, and the started stamp as a machine <time>.
-        $facts = $crawler->filter('.factband')->text();
+        // THE FACTS CARD (the settled design's PL·02), above the history rather
+        // than a band across the top: the computed duration and average speed
+        // (14.2 km over 6 h 20 = 2.24… km/h), the source and the GPS honesty
+        // facts, the team, and the started stamp as a machine <time>.
+        $facts = $crawler->filter('[data-patrol-facts]')->text();
         self::assertStringContainsString('North post', $facts);
         self::assertStringContainsString('6 h 20', $facts);
         self::assertStringContainsString('2.2', $facts);
         self::assertStringContainsString('km/h', $facts);
-        self::assertStringContainsString('GPX', $facts);
-        self::assertStringContainsString('imported', $facts);
+        self::assertStringContainsString('GPX import', $facts);
         self::assertStringContainsString('1,482', $facts);
-        self::assertStringContainsString('2 gaps', $facts);
+        self::assertStringContainsString('Gaps', $facts);
         self::assertStringContainsString('B. Beta · C. Gamma', $facts);
         self::assertStringContainsString(
             strtolower(new \DateTimeImmutable('today 06:10')->format('D j M')).' · 06:10',
@@ -239,8 +237,8 @@ final class PatrolDetailPageTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
 
-        // The started and ended identity-band facts are machine <time> elements.
-        $times = $crawler->filter('.factband time');
+        // The started and ended facts are machine <time> elements.
+        $times = $crawler->filter('[data-patrol-facts] time');
         self::assertGreaterThanOrEqual(2, $times->count(), 'started and ended render as machine <time> elements.');
 
         // The datetime attribute is the STORED INSTANT — unambiguous across
@@ -277,8 +275,8 @@ final class PatrolDetailPageTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertStringNotContainsString('Export GPX', $crawler->filter('.pghead')->text());
-        self::assertStringContainsString('manual entry', $crawler->filter('.factband')->text());
-        self::assertStringNotContainsString('GPS points', $crawler->filter('.factband')->text());
+        self::assertStringContainsString('manual', $crawler->filter('[data-patrol-facts]')->text());
+        self::assertStringNotContainsString('GPS points', $crawler->filter('[data-patrol-facts]')->text());
         self::assertStringContainsString('Logged manually', $crawler->filter('[data-patrol-history]')->text());
         self::assertCount(1, $crawler->filter('[data-patrol-observations] .patrol-obs-empty'));
     }

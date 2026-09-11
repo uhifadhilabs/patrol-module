@@ -104,33 +104,6 @@
     </div>
 {% endif %}
 
-{# THE IDENTITY BAND — the patrol's own facts, in the platform's shared
-   .factband, below the tabs. This is the settled design's PL·02: the meta
-   moved out of a sidebar card and onto the band every entity-detail screen in
-   the installation wears (the area overview, an observation, a station). A
-   segment with no data is OMITTED, never rendered empty — the same rule the
-   area band follows for IUCN and boundary. #}
-<div class="factband">
-    <span class="f"><span class="k">Id</span><span class="v">{{ patrol.ref }}</span></span>
-    <span class="f"><span class="k">Type</span><span class="v">{{ typeLabel|lower }}</span></span>
-    <span class="f"><span class="k">Station</span><span class="v">{{ patrol.station ?: '—' }}</span></span>
-    <span class="f"><span class="k">Lead</span><span class="v">{{ ui.person_name(patrol.lead) }}{% if patrol.team %}<em>+ {{ patrol.team }}</em>{% endif %}</span></span>
-    {% if patrol.startedAt %}<span class="f"><span class="k">Started</span><span class="v">{{ ui.stamp(patrol.startedAt) }}</span></span>{% endif %}
-    {% if patrol.endedAt %}<span class="f"><span class="k">Ended</span><span class="v">{{ ui.stamp(patrol.endedAt) }}</span></span>{% endif %}
-    {% if patrol.startedAt and patrol.endedAt %}<span class="f"><span class="k">Duration</span><span class="v">{{ ui.duration(patrol) }}</span></span>{% endif %}
-    {% if patrol.distanceKm is not null %}<span class="f"><span class="k">Distance</span><span class="v">{{ patrol.distanceKm|number_format(1) }}<em>km</em></span></span>{% endif %}
-    {% if avgSpeedKmh is not null %}<span class="f"><span class="k">Avg speed</span><span class="v">{{ avgSpeedKmh|number_format(1) }}<em>km/h</em></span></span>{% endif %}
-    {# The design names the tracker device ("GPX · tracker T-04"); the bundle
-       stores no device identity, so the fact states the source honestly. #}
-    <span class="f"><span class="k">Source</span><span class="v">
-        {%- if patrol.source.value == 'gpx' -%}GPX<em>imported</em>
-        {%- elseif patrol.source.value == 'api' -%}API<em>synced</em>
-        {%- else -%}manual entry
-        {%- endif -%}
-    </span></span>
-    {% if patrol.pointCount is not null %}<span class="f"><span class="k">GPS points</span><span class="v">{{ patrol.pointCount|number_format }}<em>{{ patrol.gapCount }} {{ patrol.gapCount == 1 ? 'gap' : 'gaps' }}</em></span></span>{% endif %}
-</div>
-
 <div class="patrol-detail-row">
     <div class="c patrol-plate" data-patrol-track>
         <span class="tab">Track plate<span class="src">· {{ patrol.ref }} · satellite · live</span></span>
@@ -160,6 +133,47 @@
            STILL PARTIAL, and honestly so: imports, transcriptions and incident
            links are not events yet. What is rendered is what actually happened
            and is actually stored — never a placeholder for what is not. #}
+        {# THE PATROL'S OWN FACTS (the settled design's PL·02), in a card above
+           the history rather than in a band across the top. A band is for facts
+           that never change; half of these are counts of what this patrol
+           BROUGHT BACK, and they belong beside the story of it. A row with no
+           value is omitted, never rendered empty. #}
+        <div class="c" data-patrol-facts>
+            <span class="tab">The patrol<span class="src">· what it was, and what it brought back</span></span>
+            <div class="rln"><span>Type</span><span class="mono d">{{ typeLabel|lower }}</span></div>
+            {% if patrol.station %}<div class="rln"><span>Station</span><span class="mono d">{{ patrol.station }}</span></div>{% endif %}
+            <div class="rln"><span>Lead</span><span class="mono d">{{ ui.person_name(patrol.lead) }}</span></div>
+            {% if patrol.team %}<div class="rln"><span>Team</span><span class="mono d">{{ patrol.team }}</span></div>{% endif %}
+            {% if patrol.startedAt %}<div class="rln"><span>Started</span><span class="mono d">{{ ui.stamp(patrol.startedAt) }}</span></div>{% endif %}
+            {% if patrol.endedAt %}<div class="rln"><span>Ended</span><span class="mono d">{{ ui.stamp(patrol.endedAt) }}</span></div>{% endif %}
+            {% if patrol.startedAt and patrol.endedAt %}<div class="rln"><span>Duration</span><span class="mono d">{{ ui.duration(patrol) }}</span></div>{% endif %}
+            {% if patrol.distanceKm is not null %}
+                <div class="rln"><span>Distance</span><span class="mono d">{{ patrol.distanceKm|number_format(1) }} km{% if avgSpeedKmh is not null %} · {{ avgSpeedKmh|number_format(1) }} km/h{% endif %}</span></div>
+            {% endif %}
+            {# The design names each gap's length; this module counts gaps but
+               does not store their durations, so the row states the count it
+               actually has rather than a number it would have to invent. #}
+            <div class="rln"><span>Gaps</span><span class="mono {{ patrol.gapCount ? 'w' : 'd' }}">{{ patrol.gapCount }}</span></div>
+            <div class="rln"><span>Source</span><span class="mono d">
+                {%- if patrol.source.value == 'gpx' -%}GPX import
+                {%- elseif patrol.source.value == 'api' -%}handset sync
+                {%- else -%}manual
+                {%- endif -%}
+            </span></div>
+            {% if patrol.pointCount is not null %}<div class="rln"><span>GPS points</span><span class="mono d">{{ patrol.pointCount|number_format }}</span></div>{% endif %}
+            <div class="rln"><span>Photos</span><span class="mono d">{{ photoCount }}</span></div>
+
+            <div class="use" style="margin:12px 2px 2px">A gap is minutes with no fix, drawn broken on the plate and never smoothed over. <b>Source</b> is one of three — <span class="mono">handset sync</span>, <span class="mono">GPX import</span> or <span class="mono">manual</span> — and a manually logged patrol never claims a measured distance.</div>
+
+            <div class="rln" style="margin-top:6px"><span>Observations</span><span class="mono d">{{ observations|length }}</span></div>
+            {% for row in observations %}
+                <div class="rln">
+                    <span class="mono d">{{ row.n }} · {% if row.observation.loggedAt %}{{ row.observation.loggedAt|date('H:i') }}{% else %}—{% endif %} · {{ ui.category_label(row.observation.category, categories)|lower }}</span>
+                    <a class="open-btn" href="{{ path('patrol_observation_show', {uuid: area.uuid, patrol: patrol.uuid, observation: row.observation.uuid}) }}">Open →</a>
+                </div>
+            {% endfor %}
+        </div>
+
         <div class="c" data-patrol-history>
             <span class="tab">History<span class="src">· {{ patrol.events|length + (patrol.held ? 2 : 1) }} · append-only</span></span>
 

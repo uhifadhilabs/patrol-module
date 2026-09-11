@@ -103,6 +103,12 @@ final class PatrolDetailController
             'categories' => $this->categories,
             'observations' => $rows,
             'avgSpeedKmh' => $this->avgSpeedKmh($patrol),
+            // What the patrol brought back, counted once: the facts card states
+            // it and the observation rows each state their own share.
+            'photoCount' => array_sum(array_map(
+                static fn (Observation $observation): int => \count($observation->getPhotos()),
+                $patrol->getObservations()->toArray(),
+            )),
             // What the page says will happen to a discarded patrol, and when.
             // Null while it is held: the clock is stopped, and printing a date
             // would promise a deletion that is not scheduled.
