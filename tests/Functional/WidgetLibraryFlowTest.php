@@ -127,6 +127,33 @@ final class WidgetLibraryFlowTest extends WebTestCase
     }
 
     /**
+     * THE ONE LINE THAT MAKES THE CARDS DO SOMETHING.
+     *
+     * The page renders whole without JavaScript — every action on it is a plain
+     * form post — but PREVIEW, the picker's live filtering and optimistic
+     * editing are the script's, and without it a card draws correctly and does
+     * nothing when clicked. That failure is invisible to every other test here,
+     * because each of them asserts what a POST DID.
+     *
+     * The specifier is bare, and that is the contract: the core publishes
+     * `uhifadhi/widgets` and Flex writes it into an installation's
+     * importmap.php, so this module names no path and no version.
+     *
+     * @see vendor/uhifadhi/uhifadhi/src/Uhifadhi/Bundle/ShellBundle/docs/widget/declaring-a-surface.md
+     */
+    public function testTheLibraryPageImportsTheShellsWidgetScript(): void
+    {
+        $this->client->loginUser($this->ranger);
+        $crawler = $this->client->request('GET', $this->libraryUrl());
+
+        self::assertResponseIsSuccessful();
+        $modules = $crawler->filter('script[type="module"]')->each(
+            static fn (Crawler $script): string => trim($script->text()),
+        );
+        self::assertContains("import 'uhifadhi/widgets';", $modules);
+    }
+
+    /**
      * THE DASHBOARD LINKS TO NO LIBRARY. There is one configuration entry per
      * surface — the shell's `Configure` action — and the library is a section
      * behind it, so the module's own action row names it nowhere.
@@ -274,6 +301,36 @@ final class WidgetLibraryFlowTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-w="now"]'));
         self::assertCount(1, $crawler->filter('[data-w="maplog"] .patrol-maplog-split'));
         self::assertCount(0, $crawler->filter('[data-w="log"]'));
+    }
+
+    /**
+     * WHAT THE LIBRARY PAGE ITSELF SAYS AFTERWARDS — one card wearing Active,
+     * and every other card offering the preview the script performs. A switch
+     * the dashboard obeyed while the strip still marked the old card would be
+     * two answers to "which layout am I on", and no POST assertion catches it.
+     */
+    public function testTheStripMarksExactlyOneCardActiveAndOffersPreviewOnTheRest(): void
+    {
+        $this->client->loginUser($this->ranger);
+
+        $this->client->request('POST', $this->libraryUrl().'/preset/a', [
+            '_token' => $this->csrfToken(),
+        ]);
+
+        $crawler = $this->client->request('GET', $this->libraryUrl());
+        $active = $crawler->filter('.w-preset-active');
+        self::assertCount(1, $active, 'Exactly one card is on the dashboard.');
+        self::assertStringContainsString('Active', $active->filter('.w-presetflag-active')->text());
+        self::assertSame('On your dashboard', trim($active->filter('.w-presetgo')->text()));
+        self::assertSame('true', $active->attr('aria-pressed'));
+
+        // Every other card is a preview, which is the script's job and is why
+        // the page has to load it.
+        $others = $crawler->filter('.w-preset:not(.w-preset-active):not(.w-preset-new)');
+        self::assertGreaterThan(0, $others->count());
+        foreach ($others->filter('.w-presetgo') as $go) {
+            self::assertSame('Preview', trim(new Crawler($go)->text()));
+        }
     }
 
     /** A design this surface does not ship is refused, not silently ignored. */

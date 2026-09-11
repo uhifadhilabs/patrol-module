@@ -34,22 +34,21 @@
             data-confirm-modal-danger-value="true">{{ ux_icon('shell:rotate-ccw') }}Reset to defaults</button>
 {% endblock %}
 
-{# NO SCRIPT TAG HERE, and that is deliberate rather than an omission. The page
-   renders server-side and every action on it is a plain form post, so it is
-   whole without JavaScript; what the script adds is PREVIEW and the picker's
-   live filtering. It lives in ShellBundle under the AssetMapper namespace
-   `@uhifadhi/shell-bundle`, and naming that namespace belongs to importmap.php
-   — the one file a bundle may not write. An installation that wants the
-   enhancement adds it once, for every surface at once:
-
-     // assets/app.js
-     import '@uhifadhi/shell-bundle/widgets';
-
-   The module arms itself on import, so there is no call to write. A hard
-   `import` typed here instead would be this module deciding an installation's
-   importmap on its behalf, and would take the whole page down wherever that
-   entry is absent. #}
 {% block patrol_page %}
+{# WHAT THE SCRIPT ADDS. The page renders server-side and every action on it is
+   a plain form post, so it is whole without JavaScript; the script adds PREVIEW
+   — re-composing the canvas for a preset nobody has applied — the picker's live
+   filtering, and optimistic editing. Without it the cards draw correctly and do
+   nothing when clicked.
+
+   ONE LINE, AND A BARE SPECIFIER. `uhifadhi/widgets` is published by the core's
+   own package and written into an installation's importmap.php by Flex, so this
+   module names no path and no version, and the module arms itself on import —
+   there is no init call to write and no Stimulus controller to register.
+
+   @see vendor/uhifadhi/uhifadhi/src/Uhifadhi/Bundle/ShellBundle/docs/widget/declaring-a-surface.md #}
+<script type="module">import 'uhifadhi/widgets';</script>
+
 {{ include('@Shell/widget/_library.html.twig', {
     catalog: catalog,
     builtins: builtins,
