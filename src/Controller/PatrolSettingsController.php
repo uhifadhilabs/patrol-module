@@ -28,6 +28,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
 use Uhifadhi\Bundle\ShellBundle\Frame\Controller\ConfigureController;
+use Uhifadhi\Contracts\Shell\ConfigurationSection;
 use Uhifadhi\Patrol\Entity\PatrolType;
 use Uhifadhi\Patrol\Entity\Station;
 use Uhifadhi\Patrol\Exception\VocabularyConflictException;
@@ -230,9 +231,19 @@ final readonly class PatrolSettingsController
             $session->getFlashBag()->add($type, $message);
         }
 
+        /*
+         * BACK TO THE SETTINGS SECTION, NAMED. The bare configure address
+         * belongs to the surface's FIRST section, and this module's first is the
+         * widget library — a screen of its own, so the shell redirects the bare
+         * address to it. A save that returned there would land somebody on a
+         * different page than the one they saved.
+         *
+         * @see vendor/uhifadhi/uhifadhi/src/Uhifadhi/Bundle/ShellBundle/Frame/Service/ModuleFrameService.php
+         */
         return new RedirectResponse($this->router->generate(ConfigureController::MODULE_ROUTE, [
             'uuid' => $area->getUuidString(),
             'slug' => PatrolModuleProvider::SLUG,
+            'section' => ConfigurationSection::SETTINGS,
         ]));
     }
 }

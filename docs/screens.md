@@ -109,9 +109,11 @@ part of this section.
 
 ## Settings
 
-The last section of the configure page, at the bare address
-`/areas/{uuid}/modules/patrols/configure`, saved by one POST to
-`patrol_settings_save`. It reads and writes one row per area
+The last section of the configure page, at
+`/areas/{uuid}/modules/patrols/configure/settings`, saved by one POST to
+`patrol_settings_save`. The BARE configure address belongs to the surface's
+first section — the widget library, which keeps a screen of its own — so the
+shell redirects it there rather than drawing a second-choice section. It reads and writes one row per area
 (`patrol_settings`), and an area that has never saved runs on the installation's
 own `patrol:` configuration — so an untouched default and a chosen number stay
 distinguishable.

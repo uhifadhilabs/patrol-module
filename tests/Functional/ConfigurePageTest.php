@@ -88,13 +88,23 @@ final class ConfigurePageTest extends WebTestCase
     }
 
     /**
-     * THE BARE ADDRESS IS THE SURFACE'S SETTINGS, by the platform's ruled
-     * order — Widget library first, Settings last.
+     * THE BARE ADDRESS BELONGS TO THE FIRST SECTION, and this module's first is
+     * the widget library — a screen of its own, so the shell redirects there
+     * rather than drawing a second-choice section.
      */
-    public function testTheConfigurePageOpensOnSettingsAndNamesThisModule(): void
+    public function testTheBareConfigureAddressGoesToTheFirstSection(): void
     {
         $this->signInAsManager();
-        $crawler = $this->client->request('GET', $this->configureUrl());
+        $this->client->request('GET', $this->configureUrl());
+
+        self::assertResponseRedirects('/areas/'.$this->area->getUuidString().'/modules/patrols/widgets');
+    }
+
+    /** Settings is addressed by name, and the strip says which section is lit. */
+    public function testTheSettingsSectionNamesThisModuleAndLightsItsOwnTab(): void
+    {
+        $this->signInAsManager();
+        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('demo reserve — Patrols · configure', $crawler->filter('h1.pg')->text());
@@ -109,7 +119,7 @@ final class ConfigurePageTest extends WebTestCase
     public function testTheSettingsBodyDrawsTheDesignsFourCards(): void
     {
         $this->signInAsManager();
-        $crawler = $this->client->request('GET', $this->configureUrl());
+        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
 
         self::assertSame(
             ['Patrol types', 'Observation categories', 'Stations', 'Thresholds'],
@@ -129,7 +139,7 @@ final class ConfigurePageTest extends WebTestCase
     public function testTheTwoWordListsDrawARowPerWordWithItsCountAndItsActions(): void
     {
         $this->signInAsManager();
-        $crawler = $this->client->request('GET', $this->configureUrl());
+        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
 
         $stations = self::card($crawler, 'Stations');
         $row = $stations->filter('.srow')->first();
@@ -164,7 +174,7 @@ final class ConfigurePageTest extends WebTestCase
         $token = $this->token();
 
         $this->client->request('POST', $this->configureUrl('settings/stations'), ['_token' => $token, 'label' => 'Ridge Camp']);
-        self::assertResponseRedirects($this->configureUrl());
+        self::assertResponseRedirects($this->configureUrl('settings'));
 
         $station = $this->stations()->findOneByAreaAndKey($this->area, 'ridge-camp');
         self::assertInstanceOf(Station::class, $station);
@@ -186,7 +196,7 @@ final class ConfigurePageTest extends WebTestCase
         self::assertFalse($station->isActive());
 
         // Dimmed and pilled on the page, never gone.
-        $crawler = $this->client->request('GET', $this->configureUrl());
+        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
         $retired = self::card($crawler, 'Stations')->filter('.srow.gone');
         self::assertSame('Lake Post', trim($retired->filter('.nm')->text()));
         self::assertSame('retired', trim($retired->filter('.chip.idle')->text()));
@@ -203,7 +213,7 @@ final class ConfigurePageTest extends WebTestCase
 
         $this->client->request('POST', $this->configureUrl('settings/types'), ['_token' => $this->token(), 'label' => 'Drone sortie']);
 
-        $crawler = $this->client->request('GET', $this->configureUrl());
+        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
         $rows = self::card($crawler, 'Patrol types')->filter('.srow');
         $last = $rows->eq($rows->count() - 1);
         self::assertSame('Drone sortie', trim($last->filter('.nm')->text()));
@@ -218,7 +228,7 @@ final class ConfigurePageTest extends WebTestCase
 
         $this->client->request('POST', $this->configureUrl('settings/stations'), ['_token' => $this->token(), 'label' => 'north POST']);
 
-        self::assertResponseRedirects($this->configureUrl());
+        self::assertResponseRedirects($this->configureUrl('settings'));
         self::assertCount(1, $this->stations()->findByArea($this->area));
     }
 
@@ -238,7 +248,7 @@ final class ConfigurePageTest extends WebTestCase
 
     private function token(): string
     {
-        $crawler = $this->client->request('GET', $this->configureUrl());
+        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
 
         return (string) $crawler->filter('input[name="_token"]')->attr('value');
     }
@@ -255,7 +265,7 @@ final class ConfigurePageTest extends WebTestCase
     public function testAnAreaThatHasNeverSavedShowsTheInstallationsNumbers(): void
     {
         $this->signInAsManager();
-        $crawler = $this->client->request('GET', $this->configureUrl());
+        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
 
         self::assertStringContainsString('the installation', self::card($crawler, 'Thresholds')->text());
     }
@@ -264,7 +274,7 @@ final class ConfigurePageTest extends WebTestCase
     public function testSavingTheSettingsWritesTheAreasOwnNumbers(): void
     {
         $this->signInAsManager();
-        $crawler = $this->client->request('GET', $this->configureUrl());
+        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
         $token = (string) $crawler->filter('input[name="_token"]')->attr('value');
 
         $this->client->request('POST', $this->configureUrl('settings'), [
@@ -273,9 +283,9 @@ final class ConfigurePageTest extends WebTestCase
             'discard_retention_days' => '30',
         ]);
 
-        self::assertResponseRedirects($this->configureUrl());
+        self::assertResponseRedirects($this->configureUrl('settings'));
 
-        $crawler = $this->client->request('GET', $this->configureUrl());
+        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
         self::assertSame('12', $crawler->filter('input[name="gap_threshold_minutes"]')->attr('value'));
         self::assertSame('30', $crawler->filter('input[name="discard_retention_days"]')->attr('value'));
         self::assertStringContainsString('this area’s own', self::card($crawler, 'Thresholds')->text());
@@ -285,7 +295,7 @@ final class ConfigurePageTest extends WebTestCase
     public function testAPostedNumberOutsideTheDesignsBoundsIsClamped(): void
     {
         $this->signInAsManager();
-        $crawler = $this->client->request('GET', $this->configureUrl());
+        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
         $token = (string) $crawler->filter('input[name="_token"]')->attr('value');
 
         $this->client->request('POST', $this->configureUrl('settings'), [
@@ -294,7 +304,7 @@ final class ConfigurePageTest extends WebTestCase
             'discard_retention_days' => '0',
         ]);
 
-        $crawler = $this->client->request('GET', $this->configureUrl());
+        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
         self::assertSame(
             (string) PatrolSettingsService::MAX_GAP_MINUTES,
             $crawler->filter('input[name="gap_threshold_minutes"]')->attr('value'),
@@ -326,7 +336,7 @@ final class ConfigurePageTest extends WebTestCase
     public function testNothingOnTheConfigurePageSaysRegister(): void
     {
         $this->signInAsManager();
-        $this->client->request('GET', $this->configureUrl());
+        $this->client->request('GET', $this->configureUrl('settings'));
 
         self::assertStringNotContainsStringIgnoringCase(
             'register',
