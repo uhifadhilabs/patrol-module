@@ -34,7 +34,7 @@ final class StationRepository extends ServiceEntityRepository
     }
 
     /**
-     * This area's stations in their own order, retired ones INCLUDED — SET·03
+     * This area's stations in their own order, retired ones INCLUDED — the Stations section
      * dims a retired row rather than hiding it.
      *
      * @return list<Station>
@@ -76,7 +76,7 @@ final class StationRepository extends ServiceEntityRepository
     }
 
     /**
-     * The "46 patrols" on every SET·03 row — one query, LEFT so a station
+     * The "46 patrols" on every Stations row — one query, LEFT so a station
      * nobody has set out from yet answers 0 rather than going missing.
      *
      * @return array<string, int> station key → patrols filed against it

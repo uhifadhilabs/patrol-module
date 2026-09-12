@@ -84,7 +84,7 @@ final class PatrolController
         // are worked out — the read-only kinds card reads both.
         private readonly TaxonomyKindRepository $kinds,
         private readonly PatrolKindsService $observationKinds,
-        // THE AREA'S OWN PATROL TYPES — SET·01's list, which is what every chip,
+        // THE AREA'S OWN PATROL TYPES — the Patrol types section's list, which is what every chip,
         // colour, chart and filter on this page is drawn from.
         private readonly PatrolTypeRepository $patrolTypes,
         // WHETHER TO DRAW A DOOR, asked in the one place that answers it. The

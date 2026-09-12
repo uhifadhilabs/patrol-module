@@ -16,9 +16,16 @@ A [uhifadhi](https://github.com/uhifadhilabs) module bundle.
 
 - **Patrols** — a patrol is a typed, timed record (who led it, which station,
   when, how far) with an optional geometry track. The type and the station are
-  each one of the AREA's own records, added, renamed and retired on the
-  module's configure page — never hardcoded, and never deleted, because patrols
-  are filed against them. `patrol.types` is the list a new area starts from.
+  each one of the AREA's own records, added, renamed and retired on the module's
+  configure page — never hardcoded, and never deleted, because patrols are filed
+  against them. `patrol.types` is the list a new area starts from.
+- **A type says what it records** — `surface`, where the recorder's own position
+  IS the track, or `aerial`, a flight log where it is not. The base prefills the
+  pace band the patrol is expected to keep, how wide its track counts as covered
+  and where an observation goes, each then the type's own; all of it travels on
+  the vocabulary read, so a field client builds its screen from the base instead
+  of guessing at the name. A **station** carries a point, picked on the area's own
+  map plate, which is what a track is measured against.
 - **One entry flow** — every patrol is written by one page, in three steps: drop
   the track if there is one, confirm what the patrol was, record what was seen.
   A patrol somebody walked with a handset and a patrol somebody walked with a
@@ -164,8 +171,8 @@ atlas's plate — the module states what is on it in PHP and the template calls
 Name the patrol types and observation categories this deployment uses in
 `config/packages/patrol.yaml`; the full key list is in
 [docs/configuration.md](docs/configuration.md). `types` is the SEED a NEW area
-starts from — after that each area owns its own list, edited on its configure
-page.
+starts from — after that each area owns its own list, edited on the configure
+page's own `Patrol types` and `Stations` sections.
 
 ```yaml
 patrol:

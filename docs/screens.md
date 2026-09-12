@@ -6,6 +6,8 @@
 - [The one entry flow](#the-one-entry-flow)
 - [The dashboard's filter](#the-dashboards-filter)
 - [The module frame](#the-module-frame)
+- [Patrol types](#patrol-types)
+- [Stations](#stations)
 - [Observation kinds](#observation-kinds)
 - [Settings](#settings)
 - [Export](#export)
@@ -23,9 +25,15 @@
 | Export the filtered log (`csv`) or its tracks (`gpx`) | `patrol_export` |
 | Log a patrol — the one entry flow | `patrol_log` |
 | Observation kinds (configure section) | `patrol_kinds` |
-| Save the module's settings | `patrol_settings_save` |
-| Add / rename / retire a patrol type | `patrol_settings_type_add`, `patrol_settings_type_act` |
-| Add / rename / retire a station | `patrol_settings_station_add`, `patrol_settings_station_act` |
+| Save the Patrol types section | `patrol_types_save` |
+| Rename / retire / reactivate one patrol type | `patrol_type_act` |
+| Save the Stations section | `patrol_stations_save` |
+| Rename / retire / reactivate one station | `patrol_station_act` |
+| Save the module's thresholds | `patrol_settings_save` |
+
+The Patrol types and Stations sections are drawn by the SHELL, at
+`…/configure/types` and `…/configure/stations`; the routes above are the POSTs
+behind them.
 
 `patrol_taxonomy` (`…/patrols/taxonomy`) still answers, permanently redirecting to
 `patrol_kinds` (`…/patrols/kinds`) — a saved link does not become a 404 over a
@@ -122,14 +130,22 @@ draws both:
   (`Uhifadhi\Patrol\Shell\PatrolModuleTabs`). A tab is a place where DATA lives;
   the patrol and observation detail screens keep the `Patrols` tab lit, because
   opening a record does not leave the place the record lives in.
-- **Three configure sections** — `Widget library`, `Observation kinds`,
-  `Settings` — through `ConfigurationSectionsInterface`
-  (`Uhifadhi\Patrol\Shell\PatrolConfigurationSections`). The first two keep an
-  address of their own, exactly as the settled design draws them; `Settings` is a
-  body the shell renders inside its own configure page.
+- **Five configure sections** — `Widget library`, `Patrol types`, `Stations`,
+  `Observation kinds`, `Settings` — through `ConfigurationSectionsInterface`
+  (`Uhifadhi\Patrol\Shell\PatrolConfigurationSections`). `Widget library` and
+  `Observation kinds` keep an address of their own, exactly as the settled design
+  draws them; the other three are bodies the shell renders inside its own
+  configure page, at `…/configure/{section}`. The order is the platform's: the
+  library opens every configure page and the settings close it, and what a module
+  files between them keeps the order it declared.
+
+  The section ids are `types` and `stations` — not `patrol_types`: the shell's
+  configure route requires a section matching `[a-z][a-z0-9-]*`, so an underscore
+  is a section with no address.
 
 There is one configuration entry per surface — the shell's `Configure` action —
-and no `Settings`, `Observation kinds` or `Widget library` button anywhere else,
+and no `Settings`, `Patrol types`, `Stations`, `Observation kinds` or
+`Widget library` button anywhere else,
 and no "Back to dashboard": the first data tab, the lit `Configure` and the crumb
 are the three ways back.
 
@@ -152,9 +168,80 @@ somebody else. The reasoning is [design-decisions.md
 §7](design-decisions.md#7--the-filter-is-a-query-not-a-conversation).
 
 Two things are deliberately NOT narrowed by it: the KPI strip's coverage figure
-and the coverage layer drawn under the tracks. Both are the whole month's, and
-both are the same measurement — the shape on the plate is the number in the
-strip.
+and the coverage layer drawn under the tracks. Both are the whole month's.
+
+The layer is buffered **per type** — each track by the width its own type carries
+(`coverageBufferM`), falling back on the module's 2 km where a type carries none —
+and its legend row says the width the shape was measured at rather than a fixed
+number. The KPI beside it still reads the module's one distance, so on an area
+whose types carry their own the two are no longer the same measurement. PL·03's
+caption needs a verdict before that is closed.
+
+## Patrol types
+
+`…/configure/types`, saved by one POST to `patrol_types_save`. One row per type
+the area keeps: its label, its wire key, what it RECORDS, how many patrols are
+filed under it, and Rename / Retire — or Reactivate on a retired one, drawn
+dimmed with a `retired` chip. A retired type stays listed.
+
+**A type carries a base, and the base is a fixed key.** `surface` means the
+recorder's own position IS the track, whether they walk, ride or drive, and an
+observation is filed where they stand; `aerial` means a flight log, where the
+operator's position is not the coverage and a sighting is marked on the map.
+There are two, and a new vehicle never makes a third — a motorbike patrol is a
+NAME with the surface base.
+
+**The base prefills three numbers and a glyph, and the type then owns them.**
+Choosing a base seeds the pace band the patrol is expected to keep, how wide its
+track counts as covered, and where an observation goes; each is then editable per
+type behind the row's own `Tunables` disclosure, and re-saving the section never
+writes a default back over one somebody tuned. Which is why they are columns on
+the type and not a lookup: an installation that tunes a default later never
+re-tunes an area that had already chosen.
+
+| Base | Pace | Coverage buffer | Observations | Glyph |
+|---|---|---|---|---|
+| `surface` | 2–45 km/h | 150 m | at the recorder's position | `route` |
+| `aerial` | 15–70 km/h | 400 m | marked on the map | `aerial` |
+
+**A type with no base is a valid state the section draws.** Its row asks for one
+(`choose base`) and nothing is blocked while it has none — which is where every
+type carried over from before bases existed starts. Nothing guesses `surface` on
+its behalf: that would tell a handset that a drone sortie records the operator's
+own position as its coverage.
+
+The pace bounds are 0–120 km/h and the buffer 5–2 000 m, as the design bounds
+them; a hand-posted value outside either is clamped rather than refused, and a
+glyph name outside the five the strip offers is ignored rather than written.
+
+**The section saves in one POST** — every base, glyph and tunable on it is a
+field of the section, and the add panel's own button submits the same form. A
+row's rename, retire and reactivate are each their own POST (`patrol_type_act`),
+because each is a decision on its own.
+
+## Stations
+
+`…/configure/stations`, saved by one POST to `patrol_stations_save`. The same row
+for the places a patrol sets off from, plus the one thing a station has that a
+type does not: a **point**.
+
+**A point is a geometry, not a label.** A rename does not move it, it is what a
+track is measured against, and it is what draws the station on every map the area
+shows. A station with none asks for one on its row (`set point`); nothing is
+blocked while it has none, and nothing is ever cleared — the section draws no
+control that takes a point back off.
+
+**One plate serves the whole section, whichever row asked.** The picker is the
+atlas's plate inside the add panel: the area's boundary under it, the stations
+that already have a point drawn quietly for bearings, and ONE marker to drag —
+the only accented thing on it, because it is the only thing being changed. A
+row's control links to `?point={uuid}`, and the plate comes back bound to that
+station. The marker is made draggable by one controller of this module's, which
+listens for the markers UX Map hands over once it has created them; nothing here
+builds a map.
+
+A pair off the world (|lat| > 90, |lon| > 180) is refused with a sentence rather
+than clamped: a station filed at the pole would read as placed.
 
 ## Observation kinds
 
@@ -197,31 +284,30 @@ shell redirects it there rather than drawing a second-choice section. It reads a
 own `patrol:` configuration — so an untouched default and a chosen number stay
 distinguishable.
 
-| Card | What it does |
-|---|---|
-| Patrol types (SET·01) | **Editable.** One row per type the area keeps: its label, its wire key, how many patrols are filed under it, and Rename / Retire — or Reactivate on a retired one, drawn dimmed with a `retired` chip. `+ New patrol type` adds one. |
-| Observation categories (SET·02) | A pointer into the `Observation kinds` section, with this area's counts. |
-| Stations (SET·03) | **Editable.** Exactly the same row, for the places a patrol sets off from. |
-| Thresholds (SET·04) | **Editable.** The GPS-gap threshold and how long a discarded patrol stays recoverable, bounded as the design bounds them and clamped on the way in. |
+**It is the two thresholds and nothing else**: the GPS-gap threshold and how long
+a discarded patrol stays recoverable, bounded as the design bounds them and
+clamped on the way in. The words a ranger picks from — the types, the stations,
+the observation kinds — each keep a section of their own in the strip, so none of
+them is restated here and nothing here links out to them: the strip is the way.
 
-The two word-lists write a row at a time, at the addresses the design names:
+Every POST behind every section rides on `patrols.manage` and a CSRF token, and
+each exists only where SecurityBundle can enforce the permission:
 
 | Route | Method | Path |
 |---|---|---|
+| `patrol_types_save` | POST | `…/configure/types` |
+| `patrol_type_act` | POST | `…/configure/types/{uuid}/{rename\|retire\|reactivate}` |
+| `patrol_stations_save` | POST | `…/configure/stations` |
+| `patrol_station_act` | POST | `…/configure/stations/{uuid}/{rename\|retire\|reactivate}` |
 | `patrol_settings_save` | POST | `…/configure/settings` |
-| `patrol_settings_type_add` | POST | `…/configure/settings/types` |
-| `patrol_settings_type_act` | POST | `…/configure/settings/types/{uuid}/{rename\|retire\|reactivate}` |
-| `patrol_settings_station_add` | POST | `…/configure/settings/stations` |
-| `patrol_settings_station_act` | POST | `…/configure/settings/stations/{uuid}/{rename\|retire\|reactivate}` |
 
-All five ride on `patrols.manage` and a CSRF token, and all five exist only
-where SecurityBundle can enforce the permission. **Nothing is ever deleted:**
-retiring flips a flag, and the patrols filed under a retired word keep it.
+**Nothing is ever deleted:** retiring flips a flag, and the patrols filed under a
+retired word keep it.
 
 **The installation's `patrol.types` is the SEED for a NEW area and nothing
 else.** An area with no types yet is given the configured list the first time
-its Settings section or its log form is opened; from then on the area's list is
-its own, and a config change never reaches back into it.
+its Patrol types section or its log form is opened; from then on the area's list
+is its own, and a config change never reaches back into it.
 
 The **copy-from-another-area** first-setup gesture is **deferred**: it needs to
 enumerate areas and read their names, which requires an area-directory contract

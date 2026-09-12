@@ -79,8 +79,8 @@ final class PatrolUpsertService
          * discarded patrol is gone. An observation's category and sub-category
          * are read the same way, for the same reason
          * ({@see ObservationSyncService}). So an unheard-of word becomes a RETIRED
-         * record: the patrol is kept, and the disagreement is visible on SET·01
-         * or SET·03 for somebody to rename or reactivate.
+         * record: the patrol is kept, and the disagreement is visible on the
+         * Patrol types or Stations section for somebody to rename or reactivate.
          */
         $patrol = new Patrol($area, $this->vocabulary->resolveType($area, Payload::requiredString($data, 'type')))
             ->setClientUuid($clientUuid)

@@ -68,7 +68,7 @@ final readonly class PatrolListController
         $filter = PatrolFilter::fromRequest($request, $now);
         [$monthStart, $nextMonth] = $filter->window();
         // THE AREA'S OWN WORDS, not the installation's — the list of types a
-        // filter menu offers and a row is labelled from is the one SET·01 edits.
+        // filter menu offers and a row is labelled from is the one the types section edits.
         $types = $this->types->findVocabularyByArea($area);
 
         return new Response($this->twig->render('@UhifadhiPatrol/list/show.html.twig', [

@@ -23,7 +23,7 @@ use Uhifadhi\Patrol\Service\PatrolVocabularyService;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
- * THE TWO WORD-LISTS SET·01 AND SET·03 EDIT, PROVEN AGAINST THE REAL DATABASE:
+ * THE TWO WORD-LISTS THE TYPES AND STATIONS SECTIONS EDIT, PROVEN AGAINST THE REAL DATABASE:
  * add, rename, retire, reactivate — and never delete, because patrols are filed
  * against both.
  */

@@ -62,7 +62,7 @@ final readonly class PatrolOverviewContributor implements ContributesStylesheetI
     public function __construct(
         private PatrolOverviewService $overview,
         // THE AREA'S OWN WORDS, so a walking round reads the same here as on the
-        // module's own dashboard — one list, edited on SET·01.
+        // module's own dashboard — one list, edited on the Patrol types section.
         private PatrolTypeRepository $types,
     ) {
     }

@@ -35,7 +35,7 @@ final class PatrolTypeRepository extends ServiceEntityRepository
     }
 
     /**
-     * This area's types in their own order, retired ones INCLUDED — SET·01 dims
+     * This area's types in their own order, retired ones INCLUDED — the Patrol types section dims
      * a retired row, it does not hide it.
      *
      * @return list<PatrolType>
@@ -115,7 +115,7 @@ final class PatrolTypeRepository extends ServiceEntityRepository
 
     /**
      * HOW MANY PATROLS ARE FILED UNDER EACH TYPE — the "78 patrols" the design
-     * prints on every SET·01 row, and the reason retiring can never delete.
+     * prints on every Patrol types row, and the reason retiring can never delete.
      *
      * Counted in one query rather than per row, and LEFT so a type nobody has
      * used yet answers 0 instead of being missing from the map.

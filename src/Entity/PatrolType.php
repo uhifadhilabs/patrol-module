@@ -27,7 +27,7 @@ use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
  * sortie". The words a ranger picks from when they open a patrol, and the axis
  * every colour, chart and filter in this module groups by.
  *
- * PER AREA, because that is what SET·01 draws: a row with the count of patrols
+ * PER AREA, because that is what the Patrol types section draws: a row with the count of patrols
  * filed under it and its own rename and retire. An installation-wide list could
  * show neither — one area's count is not another's, and retiring a type for
  * everybody because one area stopped walking is not a thing an area

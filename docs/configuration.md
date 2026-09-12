@@ -34,14 +34,18 @@ deployment walks and drives, another patrols by boat.
 
 `patrol.types` is the list a **new area** starts from, and nothing else. An area
 with no patrol types yet is given a copy of it — as its own records — the first
-time somebody opens that area's Settings section or its log form. From then on
-the area owns its list: renaming, retiring and adding a type happens on SET·01
-of the module's configure page, per area, and changing this file never reaches
+time somebody opens that area's `Patrol types` section or its log form. From then
+on the area owns its list: renaming, retiring, adding a type and choosing what it
+records all happen on that section, per area, and changing this file never reaches
 back into an area somebody has curated.
 
-Stations have no configuration key at all. They are written on SET·03, or
-created retired by the handset sync when a phone reports a word the area has not
-heard of — see [design-decisions.md
+A type's BASE and its tunables have no configuration key either, and deliberately:
+what a type records is a question only somebody who knows the area can answer, and
+a default written here would answer it for every area at once.
+
+Stations have no configuration key at all. They are written on the `Stations`
+section, or created retired by the handset sync when a phone reports a word the
+area has not heard of — see [design-decisions.md
 §1](design-decisions.md#1--a-station-is-a-record-the-area-keeps).
 
 ## Retention

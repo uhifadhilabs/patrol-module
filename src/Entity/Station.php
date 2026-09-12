@@ -21,9 +21,9 @@ use Uhifadhi\Patrol\Repository\StationRepository;
 
 /**
  * ONE PLACE A PATROL SETS OFF FROM, IN ONE AREA — a post, a camp, a gate. What
- * SET·03 draws a row for, with the count of patrols filed against it.
+ * the Stations section draws a row for, with the count of patrols filed against it.
  *
- * A RECORD RATHER THAN A STRING, because the three things SET·03 asks for are
+ * A RECORD RATHER THAN A STRING, because the three things that section asks for are
  * the three a string cannot do: rename a post without rewriting every patrol
  * filed against it, retire one the area has closed, and count what each
  * carries. And it is the AREA's: one area closing a post is not a reason for

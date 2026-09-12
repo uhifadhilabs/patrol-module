@@ -56,7 +56,7 @@ final readonly class PatrolSettingsController
     public const string CSRF_TOKEN_ID = 'patrol_settings';
 
     /**
-     * What a cleared threshold is told. Each names the row's own label as SET·04
+     * What a cleared threshold is told. Each names the row's own label as the section
      * draws it — "gps gap", "discard keeps" — because a sentence that does not
      * say which box it is about leaves a reader checking both.
      */

@@ -85,7 +85,7 @@ class Patrol
 
     /**
      * WHAT KIND OF PATROL THIS IS — one of the AREA's own {@see PatrolType}
-     * records, which is what SET·01 renames and retires.
+     * records, which is what the Patrol types section renames and retires.
      *
      * Not deleted with the type, and it cannot be: a type is retired, never
      * removed, precisely so this key never dangles.

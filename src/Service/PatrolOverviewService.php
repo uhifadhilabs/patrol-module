@@ -80,7 +80,7 @@ final readonly class PatrolOverviewService
         private TrackPointRepository $trackPoints,
         private ObservationRepository $observations,
         private UrlGeneratorInterface $router,
-        // THE AREA'S OWN PATROL TYPES — SET·01's list.
+        // THE AREA'S OWN PATROL TYPES — the Patrol types section's list.
         private PatrolTypeRepository $types,
         private array $categories,
     ) {

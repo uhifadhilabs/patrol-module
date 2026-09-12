@@ -173,7 +173,7 @@ final class FieldSyncWireContractTest extends FieldSyncTestCase
      * AN UNKNOWN STATION IS NEVER A REFUSAL. The contract names no error code for
      * one, so a word this area has not heard of becomes a RETIRED record and the
      * patrol is kept — the disagreement between a settings screen and an app
-     * build is made visible on SET·03 rather than paid for with a lost patrol.
+     * build is made visible on the Stations section rather than paid for with a lost patrol.
      */
     public function testAStationTheAreaHasNeverHeardOfIsAcceptedAndArrivesRetired(): void
     {

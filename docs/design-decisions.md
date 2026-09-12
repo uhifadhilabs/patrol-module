@@ -20,7 +20,7 @@ oversight.
 
 `Patrol.stationRecord` is a `ManyToOne` to `Station`, and `Patrol.patrolType` a
 `ManyToOne` to `PatrolType`. Both are the AREA's own lists, and both are edited
-on the module's Settings section (SET·01 and SET·03).
+on the configure page's Patrol types and Stations sections.
 
 **Why records and not strings:** the three things the configure design asks for
 are the three a string cannot do — rename a post without rewriting every patrol

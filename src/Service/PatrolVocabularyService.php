@@ -25,8 +25,8 @@ use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Repository\StationRepository;
 
 /**
- * THE TWO WORD-LISTS AN AREA OWNS — its patrol types (SET·01) and its stations
- * (SET·03) — and every write either of them takes.
+ * THE TWO WORD-LISTS AN AREA OWNS — its patrol types and its stations, a
+ * configure section each — and every write either of them takes.
  *
  * ONE SERVICE FOR BOTH, and the reason is that they are one thing twice. Both
  * are a per-area list of {key, label, active, position}; both take exactly add,
@@ -53,7 +53,7 @@ use Uhifadhi\Patrol\Repository\StationRepository;
  * {@see Api\PatrolUpsertService} states for an unknown
  * TYPE applies unchanged: refusing would throw away a real patrol because a
  * settings screen and an app build disagreed about a word, and a discarded
- * patrol is gone. Retired-on-arrival makes the disagreement VISIBLE on SET·03 —
+ * patrol is gone. Retired-on-arrival makes the disagreement VISIBLE on the Stations section —
  * dimmed, with its count — where an administrator either renames it into an
  * existing post or reactivates it.
  *
