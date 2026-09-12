@@ -97,7 +97,7 @@ use Uhifadhi\Patrol\Api\State\VocabularyProvider;
         new Post(
             uriTemplate: '/patrols/{uuid}/observations',
             status: 200,
-            description: 'Append the patrol\'s observations. Each is idempotent by its own clientUuid, so a re-sent part adds only what is missing.',
+            description: 'Append the patrol\'s observations. Each is idempotent by its own clientUuid, so a re-sent part adds only what is missing. "category" is a kind key from this area\'s vocabulary (a deployment-wide observation_categories word is also accepted), "subcategory" an optional sub-category key under it; a word the area has never heard of is kept as a retired one, never refused.',
             deserialize: false,
             validate: false,
             read: false,

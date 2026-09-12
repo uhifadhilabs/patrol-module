@@ -61,6 +61,15 @@ final class TaxonomyKindRepository extends ServiceEntityRepository
         return null !== $this->findOneBy(['area' => $area]);
     }
 
+    /**
+     * The kind behind a wire-code — what a handset's `category` actually holds,
+     * and the one lookup the sync's write side does per observation.
+     */
+    public function findOneByAreaAndCode(AreaOfInterest $area, string $code): ?TaxonomyKind
+    {
+        return $this->findOneBy(['area' => $area, 'code' => $code]);
+    }
+
     public function findOneByAreaAndUuid(AreaOfInterest $area, string $uuid): ?TaxonomyKind
     {
         if (!Uuid::isValid($uuid)) {

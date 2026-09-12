@@ -73,11 +73,12 @@ final class PatrolUpsertService
          * resolved to one of the AREA's own records.
          *
          * NEITHER IS EVER REFUSED. The contract names no error code for an
-         * unknown type and none for an unknown station (unlike
-         * `unsupported_category`, which it does name), and refusing would throw
+         * unknown type and none for an unknown station, and refusing would throw
          * away a real patrol because a settings screen and an app build
          * disagreed about a word — a stray word shows as itself on the page, a
-         * discarded patrol is gone. So an unheard-of word becomes a RETIRED
+         * discarded patrol is gone. An observation's category and sub-category
+         * are read the same way, for the same reason
+         * ({@see ObservationSyncService}). So an unheard-of word becomes a RETIRED
          * record: the patrol is kept, and the disagreement is visible on SET·01
          * or SET·03 for somebody to rename or reactivate.
          */

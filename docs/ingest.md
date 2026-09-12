@@ -6,6 +6,7 @@
 - [What the upload does](#what-the-upload-does)
 - [The third door](#the-third-door)
 - [What the handset is allowed to say](#what-the-handset-is-allowed-to-say)
+- [What an observation is filed under](#what-an-observation-is-filed-under)
 
 ## One parsing path
 
@@ -95,3 +96,43 @@ and an app build disagreed about a word. The sync creates the word as a
 **retired** record instead: the patrol is kept, and the disagreement shows up
 dimmed on the module's Settings section for somebody to rename into an existing
 post or reactivate.
+
+## What an observation is filed under
+
+`POST /api/patrols/{uuid}/observations` reads the same two levels the vocabulary
+endpoint publishes — an observation kind, and optionally one of its
+sub-categories — by **key**:
+
+```json
+{
+  "observations": [
+    {
+      "clientUuid": "e1000000-0000-4000-8000-000000000001",
+      "category": "carcass",
+      "subcategory": "poached-carcass",
+      "note": "open water, no landmark",
+      "position": { "lat": -3.1966, "lon": -29.5661, "accuracyM": 4.0, "satellites": 9 },
+      "positionSource": "gps",
+      "loggedAt": "2026-08-23T07:02:00Z",
+      "photoCount": 1
+    }
+  ]
+}
+```
+
+- **`category` is resolved against THIS AREA's observation kinds first** — the
+  list the client was handed — by wire-code, then by label.
+- **A deployment-wide `patrol.observation_categories` word is still accepted.**
+  That flat list is a parallel model still in service, and a handset built
+  against it keeps working; such a word is stored as it arrived and is *not*
+  copied into the area's taxonomy.
+- **A key neither model knows is kept, never refused** — created as a **retired**
+  kind in the area, the same rule an unknown station gets, for the same reason: a
+  422 here would strand a real patrol on a handset over a disagreement about a
+  word.
+- **`subcategory` is optional** and is resolved *under the kind the category
+  landed on*, by wire-code then label; an unknown one arrives **retired** under
+  that kind. Omitted means null, and null is never backfilled with the kind
+  itself — a kind with no sub-categories offers the ranger no second chip.
+- **Both obey the clientUuid rule (§1).** A re-sent observation adds nothing and
+  changes nothing, whatever words the second copy carries.

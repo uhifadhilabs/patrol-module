@@ -39,6 +39,12 @@ use Uhifadhi\Patrol\Repository\TaxonomySubcategoryRepository;
  *  · NOTHING IS DELETED. Retirement flips a flag; the row, its code and every
  *    observation filed under it are kept, and one click brings it back.
  *
+ *  · A WORD FROM THE FIELD THAT NOBODY CONFIGURED IS CREATED RETIRED, never
+ *    refused ({@see self::resolveKind()}, {@see self::resolveSubcategory()}).
+ *    The manager screen's writes and the handset sync's writes meet here, and
+ *    only the screen's may fail: an observation refused for a word is an
+ *    observation lost.
+ *
  * SHALLOW BY DESIGN. Unlike the incident taxonomy admin, there is no behaviour
  * block to compose, no colour to clamp and no money direction to carry: a patrol
  * sub-category is a label and nothing more. The service is the poorer for it on
@@ -51,6 +57,9 @@ use Uhifadhi\Patrol\Repository\TaxonomySubcategoryRepository;
  */
 final class TaxonomyAdminService
 {
+    /** The width of both levels' label column. */
+    private const int LABEL_LIMIT = 80;
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly TaxonomyKindRepository $kinds,
@@ -120,6 +129,63 @@ final class TaxonomyAdminService
         return $kind;
     }
 
+    /**
+     * The kind one of this area's words names — its wire-code first, then its
+     * label — or null where the area has never heard the word.
+     *
+     * The read is the same one {@see Api\VocabularySyncService} publishes from,
+     * so a handset filing against what it was handed matches here by
+     * construction.
+     */
+    public function findKindByWord(AreaOfInterest $area, string $word): ?TaxonomyKind
+    {
+        $word = $this->cleanLabel($word);
+        if ('' === $word) {
+            return null;
+        }
+
+        $found = $this->kinds->findOneByAreaAndCode($area, $word);
+        if ($found instanceof TaxonomyKind) {
+            return $found;
+        }
+
+        foreach ($this->kinds->forArea($area) as $kind) {
+            if (mb_strtolower($kind->getLabel()) === mb_strtolower($word)) {
+                return $kind;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The kind behind a word from the field — found, or CREATED RETIRED. Never
+     * null and never a refusal, which is the same rule an unknown station gets
+     * ({@see PatrolVocabularyService::resolveStation()}) and for the same
+     * reason: refusing would throw away a real observation because a settings
+     * screen and an app build disagreed about a word, and the observation is
+     * gone where the disagreement is merely dimmed on the Settings section.
+     *
+     * Uniqueness is not re-argued here — the label may well already exist in
+     * some form, and the wire-code is made free before the row is written.
+     */
+    public function resolveKind(AreaOfInterest $area, string $word): TaxonomyKind
+    {
+        $found = $this->findKindByWord($area, $word);
+        if ($found instanceof TaxonomyKind) {
+            return $found;
+        }
+
+        $label = $this->arrivedLabel($word);
+        $kind = new TaxonomyKind($area, $this->resolveKindCode($area, $label), $label);
+        $kind->setPosition($this->kinds->maxPositionForArea($area) + 1)->deactivate();
+
+        $this->em->persist($kind);
+        $this->em->flush();
+
+        return $kind;
+    }
+
     // ── sub-categories ─────────────────────────────────────────────────────────
 
     /** @throws TaxonomyConflictException on a duplicate label or wire-code */
@@ -156,6 +222,32 @@ final class TaxonomyAdminService
         }
 
         $subcategory->setLabel($label);
+        $this->em->flush();
+
+        return $subcategory;
+    }
+
+    /**
+     * The sub-category behind a word from the field, UNDER THE KIND IT CAME
+     * WITH — found by wire-code then by label, and otherwise created retired,
+     * exactly as {@see self::resolveKind()} does one level up. A sub-category
+     * means nothing without its kind, so nothing here searches outside it.
+     */
+    public function resolveSubcategory(TaxonomyKind $kind, string $word): TaxonomySubcategory
+    {
+        $wanted = $this->cleanLabel($word);
+
+        foreach ($kind->getSubcategories() as $subcategory) {
+            if ($subcategory->getCode() === $wanted || mb_strtolower($subcategory->getLabel()) === mb_strtolower($wanted)) {
+                return $subcategory;
+            }
+        }
+
+        $label = $this->arrivedLabel($word);
+        $subcategory = new TaxonomySubcategory($kind, $this->resolveSubCode($kind->getArea(), $label), $label);
+        $subcategory->setPosition($this->subcategories->maxPositionForKind($kind) + 1)->deactivate();
+
+        $this->em->persist($subcategory);
         $this->em->flush();
 
         return $subcategory;
@@ -220,5 +312,17 @@ final class TaxonomyAdminService
     private function cleanLabel(string $label): string
     {
         return trim(preg_replace('/\s+/', ' ', $label) ?? '');
+    }
+
+    /**
+     * A label for a word that arrived from a handset rather than from the
+     * manager screen: cut to the column's width, and never empty, because this
+     * path has no refusal to fall back on.
+     */
+    private function arrivedLabel(string $word): string
+    {
+        $label = mb_substr($this->cleanLabel($word), 0, self::LABEL_LIMIT);
+
+        return '' !== $label ? $label : 'unspecified';
     }
 }

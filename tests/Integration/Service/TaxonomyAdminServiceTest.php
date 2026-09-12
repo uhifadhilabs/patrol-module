@@ -218,6 +218,60 @@ final class TaxonomyAdminServiceTest extends IntegrationTestCase
         self::assertTrue($this->kinds()->forArea($area)[0]->isActive());
     }
 
+    // ── words arriving from the field ────────────────────────────────────────────
+
+    /**
+     * The wire-code is what a handset holds, so it is tried first; the label is
+     * the fallback, because a client that only ever saw the printed word must not
+     * mint a second kind meaning the same thing.
+     */
+    public function testAnArrivedWordMatchesAKindByCodeThenByLabel(): void
+    {
+        $area = $this->anArea();
+        $kind = $this->admin()->createKind($area, 'Fire Scar');
+
+        self::assertSame($kind, $this->admin()->resolveKind($area, $kind->getCode()));
+        self::assertSame($kind, $this->admin()->resolveKind($area, 'fire scar'));
+        self::assertCount(1, $this->kinds()->forArea($area));
+    }
+
+    /**
+     * A word nobody configured is kept, retired, and given a FREE wire-code —
+     * the label may collide with one an administrator retired earlier, and two
+     * rows sharing a code is the one thing a saved filter could never separate.
+     */
+    public function testAWordNobodyConfiguredArrivesRetiredUnderAFreeCode(): void
+    {
+        $area = $this->anArea();
+        $configured = $this->admin()->createKind($area, 'Snare', 'snare-line');
+
+        $arrived = $this->admin()->resolveKind($area, 'Snare line');
+
+        self::assertNotSame($configured, $arrived);
+        self::assertFalse($arrived->isActive());
+        self::assertSame('Snare line', $arrived->getLabel());
+        self::assertNotSame('snare-line', $arrived->getCode());
+        self::assertCount(2, $this->kinds()->forArea($area));
+    }
+
+    /** A sub-category is resolved under its kind and nowhere else. */
+    public function testAnArrivedSubcategoryIsResolvedOnlyUnderItsOwnKind(): void
+    {
+        $area = $this->anArea();
+        $wildlife = $this->admin()->createKind($area, 'Wildlife');
+        $fire = $this->admin()->createKind($area, 'Fire Scar');
+        $spoor = $this->admin()->createSubcategory($wildlife, 'Spoor');
+
+        self::assertSame($spoor, $this->admin()->resolveSubcategory($wildlife, 'spoor'));
+
+        // The same word under a different kind is a different sub-category.
+        $arrived = $this->admin()->resolveSubcategory($fire, 'Spoor');
+        self::assertNotSame($spoor, $arrived);
+        self::assertSame($fire, $arrived->getKind());
+        self::assertFalse($arrived->isActive());
+        self::assertNotSame($spoor->getCode(), $arrived->getCode(), 'A wire-code is unique within the whole area.');
+    }
+
     /** A retired sub-category keeps its wire-code — nothing is ever deleted. */
     public function testRenamingASubKeepsItsWireCode(): void
     {

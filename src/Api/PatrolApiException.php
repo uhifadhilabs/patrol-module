@@ -176,17 +176,6 @@ final class PatrolApiException extends \RuntimeException
         );
     }
 
-    /** A category outside the deployment's configured vocabulary. */
-    public static function unsupportedCategory(string $category, string $clientUuid): self
-    {
-        return new self(
-            Response::HTTP_UNPROCESSABLE_ENTITY,
-            'unsupported_category',
-            \sprintf('"%s" is not an observation category this deployment records.', $category),
-            details: ['clientUuid' => $clientUuid, 'category' => $category],
-        );
-    }
-
     /**
      * A malformed body — a missing uuid, an unparseable timestamp.
      *

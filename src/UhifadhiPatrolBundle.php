@@ -339,6 +339,11 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 service(ObservationRepository::class),
                 service(LaunchPointRepository::class),
                 service(FlightRepository::class),
+                // The area's own observation vocabulary, which is what the
+                // handset was handed by the vocabulary endpoint. The
+                // deployment-wide list below stays beside it while the two
+                // models coexist.
+                service('patrol.taxonomy_admin'),
                 param('patrol.observation_categories'),
             ]);
 

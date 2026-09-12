@@ -19,10 +19,12 @@ use Uhifadhi\Patrol\Api\PatrolApiException;
 use Uhifadhi\Patrol\Api\Payload;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Entity\TaxonomyKind;
 use Uhifadhi\Patrol\Enum\PositionSourceEnum;
 use Uhifadhi\Patrol\Repository\FlightRepository;
 use Uhifadhi\Patrol\Repository\LaunchPointRepository;
 use Uhifadhi\Patrol\Repository\ObservationRepository;
+use Uhifadhi\Patrol\Service\TaxonomyAdminService;
 
 /**
  * `POST /api/patrols/{uuid}/observations` — API-CONTRACT.md §6.
@@ -42,6 +44,9 @@ use Uhifadhi\Patrol\Repository\ObservationRepository;
  */
 final class ObservationSyncService
 {
+    /** The width of {@see Observation::$subcategory}. */
+    private const int SUBCATEGORY_LIMIT = 60;
+
     /**
      * @param array<string, array{label: string}> $categories the deployment's
      *                                                        patrol.observation_categories vocabulary
@@ -51,6 +56,7 @@ final class ObservationSyncService
         private readonly ObservationRepository $observations,
         private readonly LaunchPointRepository $launchPoints,
         private readonly FlightRepository $flights,
+        private readonly TaxonomyAdminService $taxonomy,
         private readonly array $categories,
     ) {
     }
@@ -80,15 +86,11 @@ final class ObservationSyncService
                 continue;
             }
 
-            $category = Payload::requiredString($row, 'category');
-            if ([] !== $this->categories && !isset($this->categories[$category])) {
-                // The contract names this code, so the vocabulary IS enforced
-                // here — unlike patrol types, where it names none.
-                throw PatrolApiException::unsupportedCategory($category, $clientUuid->toRfc4122());
-            }
+            [$category, $subcategory] = $this->words($patrol, $row);
 
             $observation = new Observation($patrol, $category)
                 ->setClientUuid($clientUuid)
+                ->setSubcategory($subcategory)
                 ->setNote(Payload::string($row, 'note'))
                 ->setLoggedAt(Payload::timestamp($row, 'loggedAt'))
                 ->setRecordedBy($recorder)
@@ -113,6 +115,54 @@ final class ObservationSyncService
         // "duplicate" describes the PART: true only when the whole re-sent part
         // was already held, which is what the phone is asking about.
         return [$accepted, [] !== $rows && 0 === $created];
+    }
+
+    /**
+     * THE TWO WORDS AN OBSERVATION ARRIVES UNDER, resolved against what
+     * `GET /api/patrols/vocabulary` published — the area's observation kinds and
+     * their sub-categories, by key.
+     *
+     * `category` is looked for in THIS AREA'S TAXONOMY first, because that is
+     * the list the handset was handed. Failing that it is looked for in the
+     * deployment-wide `patrol.observation_categories`, which is a parallel model
+     * still in service and whose words older handsets still send. Failing both,
+     * it is a word nobody here configured — and that is CREATED RETIRED in the
+     * area, never refused, for the reason
+     * {@see \Uhifadhi\Patrol\Service\PatrolVocabularyService} states for an
+     * unknown station: the observation is gone where the disagreement is merely
+     * dimmed on a settings screen.
+     *
+     * `subcategory` is optional, and it is resolved UNDER the kind the category
+     * landed on — unknown likewise arriving retired. Where the category was a
+     * deployment-wide word the area has no kind for, there is no second level to
+     * resolve against and the word is stored as the handset sent it.
+     *
+     * @param array<string, mixed> $row
+     *
+     * @return array{0: string, 1: ?string} [category, subcategory]
+     *
+     * @throws PatrolApiException
+     */
+    private function words(Patrol $patrol, array $row): array
+    {
+        $area = $patrol->getArea();
+        $word = Payload::requiredString($row, 'category');
+
+        $kind = $this->taxonomy->findKindByWord($area, $word);
+        if (!$kind instanceof TaxonomyKind && !isset($this->categories[$word])) {
+            $kind = $this->taxonomy->resolveKind($area, $word);
+        }
+
+        $subcategory = Payload::string($row, 'subcategory');
+        if (null !== $subcategory) {
+            $subcategory = $kind instanceof TaxonomyKind
+                ? $this->taxonomy->resolveSubcategory($kind, $subcategory)->getCode()
+                // Cut to the column's width. A taxonomy code is already within
+                // it; a word from nowhere has nothing else keeping it honest.
+                : mb_substr($subcategory, 0, self::SUBCATEGORY_LIMIT);
+        }
+
+        return [$kind?->getCode() ?? $word, $subcategory];
     }
 
     /**

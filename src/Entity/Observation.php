@@ -23,11 +23,12 @@ use Uhifadhi\Patrol\Enum\PositionSourceEnum;
 use Uhifadhi\Patrol\Repository\ObservationRepository;
 
 /**
- * A georeferenced field note logged en route — the patrol's eyes: a category
- * (deployment vocabulary, patrol.observation_categories), a verbatim note and
- * an optional position. Observations are the raw material other modules refine
- * (an observation can later be filed as an incident); they are records, never
- * silently edited — corrections append.
+ * A georeferenced field note logged en route — the patrol's eyes: a category and
+ * an optional sub-category (this area's observation taxonomy, or the
+ * deployment-wide patrol.observation_categories list it coexists with), a
+ * verbatim note and an optional position. Observations are the raw material
+ * other modules refine (an observation can later be filed as an incident); they
+ * are records, never silently edited — corrections append.
  */
 #[ORM\Entity(repositoryClass: ObservationRepository::class)]
 #[ORM\Table(name: 'patrol_observation')]
@@ -56,9 +57,27 @@ class Observation
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private Patrol $patrol;
 
-    /** A patrol.observation_categories key — deployment vocabulary. */
+    /**
+     * THE WORD THIS OBSERVATION IS FILED UNDER — a {@see TaxonomyKind} wire-code
+     * from THIS PATROL'S AREA, or a `patrol.observation_categories` key from the
+     * deployment-wide list the taxonomy still coexists with.
+     *
+     * A code, never a label: it is what an export column, a saved filter and an
+     * offline handset hold, and a rename must not reach it.
+     */
     #[ORM\Column(length: 40)]
     private string $category;
+
+    /**
+     * The finer word under {@see $category} — a {@see TaxonomySubcategory}
+     * wire-code — where the field client recorded one.
+     *
+     * Null is the ordinary state and means the ranger was offered no second
+     * chip: a kind with no sub-categories is normal, and the column is not
+     * backfilled with the kind itself to pretend otherwise.
+     */
+    #[ORM\Column(length: 60, nullable: true)]
+    private ?string $subcategory = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $note = null;
@@ -185,6 +204,18 @@ class Observation
     public function setCategory(string $category): static
     {
         $this->category = $category;
+
+        return $this;
+    }
+
+    public function getSubcategory(): ?string
+    {
+        return $this->subcategory;
+    }
+
+    public function setSubcategory(?string $subcategory): static
+    {
+        $this->subcategory = $subcategory;
 
         return $this;
     }

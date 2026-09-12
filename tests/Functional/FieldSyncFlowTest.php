@@ -346,8 +346,14 @@ final class FieldSyncFlowTest extends FieldSyncTestCase
         );
     }
 
+    /**
+     * A word nobody configured is NOT a refusal. Where the observation lands —
+     * retired in the area's taxonomy, for an administrator to rename or
+     * reactivate — is FieldSyncObservationVocabularyTest's subject; what this
+     * pins is the status code, because a 422 here would strand the patrol.
+     */
     #[Test]
-    public function anUnsupportedObservationCategoryIsRefused(): void
+    public function anObservationCategoryNobodyConfiguredIsStillKept(): void
     {
         $this->actingAs($this->recorder);
         $patrolUuid = $this->createPatrol();
@@ -355,13 +361,18 @@ final class FieldSyncFlowTest extends FieldSyncTestCase
         $this->postJson("/api/patrols/{$patrolUuid}/observations", [
             'observations' => [[
                 'clientUuid' => 'b23f0e77-0000-4000-8000-000000000005',
-                'category' => 'unicorn',
+                'category' => 'nobody-configured-this',
                 'loggedAt' => '2026-08-23T08:31:02Z',
             ]],
         ]);
 
-        self::assertResponseStatusCodeSame(422);
-        self::assertSame('unsupported_category', $this->payload()['code']);
+        self::assertResponseIsSuccessful();
+        self::assertSame(['b23f0e77-0000-4000-8000-000000000005'], $this->payload()['acceptedUuids']);
+
+        $this->em->clear();
+        $observation = $this->reloadPatrol($patrolUuid)->getObservations()->first();
+        self::assertNotFalse($observation);
+        self::assertSame('nobody-configured-this', $observation->getCategory());
     }
 
     #[Test]
