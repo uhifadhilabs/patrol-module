@@ -27,6 +27,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
+use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
@@ -185,16 +186,12 @@ final class PatrolDetailController
             ];
         }
 
-        $typeLabel = $patrol->getTypeLabel();
-        $description = mb_strtolower($typeLabel).' patrol'
-            .(null !== $patrol->getStation() ? ' · '.$patrol->getStation() : '');
-
         $document = $this->gpx->write(
             'Patrol '.$patrol->getRef(),
             $track,
             $waypoints,
             $patrol->getStartedAt(),
-            $description,
+            self::patrolDescription($patrol),
         );
 
         $response = new StreamedResponse(static function () use ($document): void {
@@ -314,7 +311,8 @@ final class PatrolDetailController
     /**
      * The File-as-incident contract, from this side: the incidents module (when the
      * host installs one) exposes `incident_new` accepting a prefill query
-     * string (record/label/back/source/at/lat/lng/note — its IncidentPrefill).
+     * string (record/label/back/source/at/lat/lng/note/patrol/ranger — its
+     * IncidentPrefill).
      * The ROUTE NAME + QUERY KEYS are the whole contract; neither bundle names
      * the other's classes, and without the module the button simply isn't
      * rendered — the same graceful absence the design draws.
@@ -329,7 +327,16 @@ final class PatrolDetailController
             'label' => \sprintf('OBS-%02d · %s', $row['n'], $this->categoryLabel($observation->getCategory())),
             'back' => $this->observationUrl($area, $patrol, $observation),
             'source' => PatrolFileSource::SOURCE_TOKEN,
+            // WHICH PATROL AND WHOSE EYES — prose, in the words the observation's
+            // own page prints, because the receiving module states the record
+            // being filed about and only this one knows how to describe it.
+            'patrol' => $patrol->getRef().' · '.self::patrolDescription($patrol),
         ];
+        $recordedBy = $observation->getRecordedBy();
+        $ranger = null === $recordedBy ? null : self::shortName($recordedBy);
+        if (null !== $ranger) {
+            $params['ranger'] = $ranger;
+        }
         if (null !== $observation->getLoggedAt()) {
             $params['at'] = $observation->getLoggedAt()->format(\DateTimeInterface::ATOM);
         }
@@ -350,6 +357,31 @@ final class PatrolDetailController
         } catch (\Symfony\Component\Routing\Exception\RouteNotFoundException) {
             return null;
         }
+    }
+
+    /**
+     * A patrol in a phrase — "walking round patrol · north gate" — the words the
+     * pages print under a patrol's reference. Stated once, so the export's
+     * description and anything handed to another module agree.
+     */
+    private static function patrolDescription(Patrol $patrol): string
+    {
+        return mb_strtolower($patrol->getTypeLabel()).' patrol'
+            .(null !== $patrol->getStation() ? ' · '.$patrol->getStation() : '');
+    }
+
+    /**
+     * A person as the screens name them — "S. Laizer". Nothing beyond the name
+     * the observation's own page already prints travels with the hand-off, and a
+     * record whose person has no name at all yields nothing rather than a stub.
+     */
+    private static function shortName(UserInterface $user): ?string
+    {
+        $initial = mb_substr($user->getFirstName() ?? '', 0, 1);
+        $family = $user->getLastName() ?? '';
+        $name = trim(('' === $initial ? '' : $initial.'.').' '.$family);
+
+        return '' === $name ? null : $name;
     }
 
     /**
