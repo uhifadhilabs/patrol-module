@@ -156,6 +156,47 @@ final class PatrolMapServiceTest extends TestCase
     }
 
     /**
+     * THE ROW SAYS THE DISTANCE THE SHAPE WAS ACTUALLY MEASURED AT.
+     *
+     * A type now carries its own coverage buffer, so the ground a month covered is
+     * not one distance around every track: it is each type's width around its own.
+     * A row that went on saying "2 km" would be a legend a reader cannot rely on —
+     * which is the one thing the legend contract is for — so where the types in
+     * play disagree the row says the range instead, and where they agree it says
+     * the one number.
+     */
+    public function testTheCoverageRowNamesTheWidthsTheTypesActuallyCarry(): void
+    {
+        $narrow = self::map()->coverage(
+            self::coveragePayload(),
+            ['foot' => ['label' => 'Foot', 'bufferM' => 150], 'vehicle' => ['label' => 'Vehicle', 'bufferM' => 150]],
+            self::colors(),
+            self::BUFFER,
+        );
+        self::assertSame('150 m coverage buffer', self::legendRow($narrow, '150 m coverage buffer')->label);
+
+        $mixed = self::map()->coverage(
+            self::coveragePayload(),
+            ['foot' => ['label' => 'Foot', 'bufferM' => 150], 'vehicle' => ['label' => 'Vehicle', 'bufferM' => 400]],
+            self::colors(),
+            self::BUFFER,
+        );
+        self::assertSame('150–400 m coverage buffer', self::legendRow($mixed, '150–400 m coverage buffer')->label);
+    }
+
+    /**
+     * A TYPE THAT CARRIES NO BUFFER FALLS BACK ON THE MODULE'S, and the row then
+     * says the module's distance — which is what every area reads today, and what
+     * the design's own row says.
+     */
+    public function testATypeWithNoBufferOfItsOwnKeepsTheModulesDistanceInTheRow(): void
+    {
+        $map = self::map()->coverage(self::coveragePayload(), self::types(), self::colors(), self::BUFFER);
+
+        self::assertSame(PatrolMapService::COVERAGE_LABEL, self::legendRow($map, PatrolMapService::COVERAGE_LABEL)->label);
+    }
+
+    /**
      * A month in which nothing was recorded has no covered ground, and the
      * honest form of that is a layer with nothing in it — never a missing legend
      * row, which would leave a reader unable to tell "none" from "not measured".

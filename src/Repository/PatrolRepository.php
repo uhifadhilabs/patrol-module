@@ -20,6 +20,7 @@ use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\AreaBundle\Entity\Zone;
 use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Entity\PatrolType;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 
 /**
@@ -709,13 +710,26 @@ final class PatrolRepository extends ServiceEntityRepository
         $patrol = $this->getClassMetadata();
         $areaMeta = $entityManager->getClassMetadata(AreaOfInterest::class);
 
+        $typeMeta = $entityManager->getClassMetadata(PatrolType::class);
+
+        /*
+         * EACH TRACK AT ITS OWN TYPE'S WIDTH. How wide a patrol's track counts as
+         * covered is a property of the TYPE — a walk sees a hundred and fifty metres
+         * either side, a flight four hundred — so the distance is read per row and
+         * the handed-in figure is what a type carrying none falls back on. One
+         * union, still, so overlapping patrols of different widths are not
+         * double-drawn.
+         */
+        $width = \sprintf('COALESCE(t.%s, :buffer)', $typeMeta->getColumnName('coverageBufferM'));
+
         $covered = \sprintf(
             'CASE WHEN a.%2$s IS NULL'
-            ."\n     THEN ST_Union(ST_Buffer(p.%1\$s::geography, :buffer)::geometry)"
-            ."\n     ELSE ST_Intersection(ST_Union(ST_Buffer(p.%1\$s::geography, :buffer)::geometry), a.%2\$s)"
+            ."\n     THEN ST_Union(ST_Buffer(p.%1\$s::geography, %3\$s)::geometry)"
+            ."\n     ELSE ST_Intersection(ST_Union(ST_Buffer(p.%1\$s::geography, %3\$s)::geometry), a.%2\$s)"
             ."\nEND",
             $patrol->getColumnName('track'),
             $areaMeta->getColumnName('geom'),
+            $width,
         );
 
         $sql = \sprintf(
@@ -723,6 +737,7 @@ final class PatrolRepository extends ServiceEntityRepository
                 SELECT ST_AsGeoJSON(%9$s) AS geojson
                 FROM %3$s a
                 INNER JOIN %4$s p ON p.%5$s = a.%6$s
+                LEFT JOIN %10$s t ON t.%11$s = p.%12$s
                 WHERE a.%6$s = :area
                   AND p.%1$s IS NOT NULL
                   AND p.%7$s = :counted
@@ -739,6 +754,9 @@ final class PatrolRepository extends ServiceEntityRepository
             $patrol->getColumnName('status'),
             $patrol->getColumnName('startedAt'),
             $simplify ? \sprintf('ST_SimplifyPreserveTopology(%s, %s)', $covered, self::SIMPLIFY_DEGREES) : $covered,
+            $typeMeta->getTableName(),
+            $typeMeta->getSingleIdentifierColumnName(),
+            $patrol->getSingleAssociationJoinColumnName('patrolType'),
         );
 
         $geoJson = $entityManager->getConnection()->fetchOne($sql, [

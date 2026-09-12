@@ -85,6 +85,59 @@ final class PatrolRepositoryCoverageTest extends IntegrationTestCase
         return $this->repository()->coverageFractionWithin($area, self::BUFFER_M, $this->monthStart, $this->nextMonth);
     }
 
+    /**
+     * A TYPE'S OWN COVERAGE BUFFER IS WHAT ITS TRACKS ARE BUFFERED BY.
+     *
+     * The ground a month covered is not one distance around every track: how wide a
+     * patrol's track counts as covered is a property of the TYPE — a walk sees a
+     * hundred and fifty metres either side, a flight sees four hundred — so the
+     * shape is each type's width around its own tracks, unioned.
+     *
+     * The default is what a type carrying none falls back on, which is every type
+     * in every area that has not chosen, and so is what the shape has always been.
+     */
+    public function testATypesOwnBufferIsWhatItsTracksAreDrawnWith(): void
+    {
+        $area = $this->makeArea();
+        $narrow = Vocabulary::type($this->em, $area, 'walk');
+        $narrow->setCoverageBufferM(150);
+        $patrol = $this->makePatrol($area, '2026-03-10T06:00:00Z', '{"type":"LineString","coordinates":[[-30.0,-2.95],[-29.9,-2.95]]}');
+        $patrol->setPatrolType($narrow);
+        $this->em->flush();
+
+        $tight = $this->repository()->coverageBufferGeoJson($area, self::BUFFER_M, $this->monthStart, $this->nextMonth, false);
+        self::assertIsString($tight);
+
+        // The same track with no width of its own is buffered by the module's own
+        // distance, which is more than thirteen times as wide — so the two shapes
+        // cannot be confused for one another.
+        $narrow->setCoverageBufferM(null);
+        $this->em->flush();
+        $this->em->clear();
+
+        $wide = $this->repository()->coverageBufferGeoJson($area, self::BUFFER_M, $this->monthStart, $this->nextMonth, false);
+        self::assertIsString($wide);
+        self::assertNotSame($tight, $wide);
+        self::assertGreaterThan(
+            $this->areaOf($tight) * 5,
+            $this->areaOf($wide),
+            'the module\'s 2 km buffer covers many times the ground a 150 m one does',
+        );
+    }
+
+    /** The square degrees a GeoJSON polygon covers — enough to tell two apart. */
+    private function areaOf(string $geoJson): float
+    {
+        $area = $this->em->getConnection()->fetchOne(
+            'SELECT ST_Area(ST_GeomFromGeoJSON(:geometry))',
+            ['geometry' => $geoJson],
+        );
+
+        self::assertIsNumeric($area);
+
+        return (float) $area;
+    }
+
     public function testATrackAcrossTheSquareCoversAboutAThird(): void
     {
         $area = $this->makeArea();

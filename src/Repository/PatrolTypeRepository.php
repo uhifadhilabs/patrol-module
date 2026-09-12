@@ -67,13 +67,21 @@ final class PatrolTypeRepository extends ServiceEntityRepository
      * for a NEW patrol is the log form's business, and it asks for the active
      * ones ({@see self::findByAreaActive()}).
      *
-     * @return array<string, array{label: string}>
+     * IT CARRIES THE COVERAGE WIDTH BESIDE THE WORD, because the coverage layer's
+     * legend row has to say the distance the shape was actually measured at and
+     * that distance is now each type's own. Null where a type carries none, which
+     * is a type falling back on the module's.
+     *
+     * @return array<string, array{label: string, bufferM: int|null}>
      */
     public function findVocabularyByArea(AreaOfInterest $area): array
     {
         $vocabulary = [];
         foreach ($this->findByArea($area) as $type) {
-            $vocabulary[$type->getKey()] = ['label' => $type->getLabel()];
+            $vocabulary[$type->getKey()] = [
+                'label' => $type->getLabel(),
+                'bufferM' => $type->getCoverageBufferM(),
+            ];
         }
 
         return $vocabulary;

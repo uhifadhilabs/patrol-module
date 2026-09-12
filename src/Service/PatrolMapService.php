@@ -75,7 +75,17 @@ final readonly class PatrolMapService
     /** The covered-ground layer's id, and what its legend row switches. */
     public const string COVERAGE_LAYER = 'patrol.coverage';
 
-    /** What that row says; the distance is PL·03's own, in the KPI's words. */
+    /**
+     * What that row says where no type carries a width of its own: the module's
+     * distance, in PL·03's own words.
+     *
+     * IT IS A DEFAULT AND NOT THE ANSWER. A patrol type carries its own coverage
+     * buffer now, so the ground a month covered is each type's width around its
+     * own tracks rather than one distance around all of them — and a row that went
+     * on saying "2 km" regardless would be a legend a reader cannot rely on, which
+     * is the one thing the legend contract exists to prevent. The row is composed
+     * by {@see self::coverageLabel()} from the widths actually in play.
+     */
     public const string COVERAGE_LABEL = '2 km coverage buffer';
 
     /** The quiet green the covered ground is drawn in — the atlas's own line colour. */
@@ -105,7 +115,7 @@ final readonly class PatrolMapService
      * grouped by the type it was patrolled as.
      *
      * @param array{boundary: string|null, patrols: list<array{uuid: string, ref: string, type: string, station: string, zone: string, color: string, track: string}>, stations: list<array{name: string, lon: float, lat: float}>} $payload
-     * @param array<string, array{label: string}>                                                                                                                                                                                   $types
+     * @param array<string, array{label: string, bufferM?: int|null}>                                                                                                                                                               $types     key → the word the legend prints, and the coverage width that type carries (null where it carries none)
      * @param array<string, string>                                                                                                                                                                                                 $typeColor
      * @param string|null                                                                                                                                                                                                           $coverage  the covered ground as GeoJSON text, from {@see \Uhifadhi\Patrol\Repository\PatrolRepository::coverageBufferGeoJson()}; null where the month recorded no track
      */
@@ -113,7 +123,7 @@ final readonly class PatrolMapService
     {
         $map = $this->maps->createMap();
         $this->drawBoundary($map, $payload['boundary'], scrim: true);
-        $this->drawCoverage($map, $coverage);
+        $this->drawCoverage($map, $coverage, self::coverageLabel($types));
 
         // Grouped before anything is drawn, so a type the deployment configured
         // but nobody patrolled still reaches the legend and still says zero.
@@ -421,13 +431,13 @@ final readonly class PatrolMapService
      * row, holding nothing: that is how "no coverage recorded" is said without
      * it being mistaken for "not measured".
      */
-    private function drawCoverage(AtlasMap $map, ?string $coverage): void
+    private function drawCoverage(AtlasMap $map, ?string $coverage, string $label): void
     {
         $geometry = self::decode($coverage);
 
         $map->addLayer(new GeoJsonLayer(
             id: self::COVERAGE_LAYER,
-            label: self::COVERAGE_LABEL,
+            label: $label,
             features: self::collection(null === $geometry ? [] : [self::feature($geometry)]),
             swatch: self::COVERAGE_SWATCH,
             shape: LayerShape::Fill,
@@ -437,6 +447,54 @@ final readonly class PatrolMapService
             group: self::PATROLS_GROUP,
             style: new LayerStyle(weight: 0.0, fillOpacity: 0.16, zIndex: self::COVERAGE_Z_INDEX),
         ));
+    }
+
+    /**
+     * THE ROW'S WORDS, FROM THE WIDTHS THE TYPES ACTUALLY CARRY — one number where
+     * they agree, the range where they do not, and the module's own distance where
+     * none of them says anything.
+     *
+     * Metres below a kilometre and kilometres above it, because that is how a width
+     * of 150 and a width of 2 000 are each read out loud.
+     *
+     * @param array<string, array{label: string, bufferM?: int|null}> $types
+     */
+    private static function coverageLabel(array $types): string
+    {
+        $widths = [];
+        foreach ($types as $type) {
+            $width = $type['bufferM'] ?? null;
+            if (null !== $width) {
+                $widths[$width] = $width;
+            }
+        }
+
+        if ([] === $widths) {
+            return self::COVERAGE_LABEL;
+        }
+
+        [$low, $high] = [self::distance(min($widths)), self::distance(max($widths))];
+
+        // ONE UNIT WHERE BOTH ENDS SHARE IT — "150–400 m", never "150 m–400 m",
+        // which is how a range is written everywhere else a number is printed here.
+        $range = 1 === \count($widths)
+            ? $low[0].' '.$low[1]
+            : $low[0].($low[1] === $high[1] ? '' : ' '.$low[1]).'–'.$high[0].' '.$high[1];
+
+        return $range.' coverage buffer';
+    }
+
+    /**
+     * A width as the number and its unit, read out the way each size is: metres
+     * under a kilometre, kilometres over it.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private static function distance(int $metres): array
+    {
+        return $metres < 1000
+            ? [(string) $metres, 'm']
+            : [rtrim(rtrim(number_format($metres / 1000, 1, '.', ''), '0'), '.'), 'km'];
     }
 
     private function drawBoundary(AtlasMap $map, ?string $boundary, bool $scrim): void
