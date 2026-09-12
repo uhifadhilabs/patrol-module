@@ -7,7 +7,7 @@
        x=60; the axis maximum rounds up to a multiple of three so the three
        gridlines land on whole numbers. #}
     {% set weekMax = types|length ? max(dashboard.weeklySeries|map(week => week.counts|length ? max(week.counts) : 0)) : 0 %}
-    {% set weekAxis = weekMax > 0 ? ((weekMax + 2) // 3) * 3 : 3 %}
+    {% set weekAxis = max(3, (weekMax / 3)|round(0, 'ceil') * 3) %}
     {% set barW = min(16, max(4, (60 // (types|length ?: 1)) - 4)) %}
     {% set pitch = barW + 4 %}
     <svg class="ch" viewBox="0 0 470 176" xmlns="http://www.w3.org/2000/svg">

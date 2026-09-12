@@ -12,9 +12,12 @@
     <span class="tab">Effort by ranger<span class="src">· patrol-hours · this month</span></span>
     {% set rows = dashboard.effortSeries|slice(0, 6) %}
     {% if rows|length %}
-        {# The plot runs x=118..433; the axis maximum rounds up to a multiple of three. #}
+        {# The plot runs x=118..433; the axis maximum rounds UP to the smallest
+           multiple of three that covers the tallest bar, and never below three.
+           Hours are a fraction, so a month whose longest patrol is under an hour
+           still gets a three-hour axis to measure the bars against. #}
         {% set effortMax = max(rows|map(row => row.hours)) %}
-        {% set effortAxis = effortMax > 0 ? ((effortMax + 2) // 3) * 3 : 3 %}
+        {% set effortAxis = max(3, (effortMax / 3)|round(0, 'ceil') * 3) %}
         <svg class="ch" viewBox="0 0 470 176" xmlns="http://www.w3.org/2000/svg">
             {% for i in 0..3 %}
                 <line class="grid" x1="{{ 118 + i * 105 }}" y1="8" x2="{{ 118 + i * 105 }}" y2="166"/>

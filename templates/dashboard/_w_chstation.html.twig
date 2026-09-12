@@ -5,7 +5,7 @@
        x=118..433 and the axis maximum rounds up to a multiple of three. #}
     {% set stationRows = dashboard.stationSeries|slice(0, 5) %}
     {% set stationMax = stationRows|length ? max(stationRows|map(row => row.count)) : 0 %}
-    {% set stationAxis = stationMax > 0 ? ((stationMax + 2) // 3) * 3 : 3 %}
+    {% set stationAxis = max(3, (stationMax / 3)|round(0, 'ceil') * 3) %}
     <svg class="ch" viewBox="0 0 470 176" xmlns="http://www.w3.org/2000/svg">
         {% for i in 0..3 %}
             <line class="grid" x1="{{ 118 + i * 105 }}" y1="8" x2="{{ 118 + i * 105 }}" y2="166"/>
