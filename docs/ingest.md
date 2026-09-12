@@ -68,7 +68,16 @@ release:
   "areaId": "…",
   "generatedAt": "2026-09-11T09:00:00+00:00",
   "patrolTypes": [
-    { "key": "walk", "label": "Walking round", "active": true, "position": 0, "updatedAt": "…" }
+    {
+      "key": "drone", "label": "Drone sortie", "active": true, "position": 2, "updatedAt": "…",
+      "base": "aerial", "paceMinKmh": 15, "paceMaxKmh": 70, "coverageBufferM": 400,
+      "observationPlacement": "on_map", "glyph": "truck"
+    },
+    {
+      "key": "walk", "label": "Walking round", "active": true, "position": 0, "updatedAt": "…",
+      "base": null, "paceMinKmh": null, "paceMaxKmh": null, "coverageBufferM": null,
+      "observationPlacement": null, "glyph": null
+    }
   ],
   "stations": [
     { "key": "river-post", "label": "River Post", "active": true, "position": 0, "updatedAt": "…", "point": null }
@@ -81,6 +90,26 @@ release:
 
 - **The `key` is the wire value** the client sends back on every write, and a
   rename never changes it. Only `label` changes.
+- **A patrol type's `base` is what a client builds its screen from**, and it is a
+  fixed key rather than a word somebody chose. `surface` means the recorder's own
+  position IS the track — walking, riding or driving — and an observation is
+  filed where they stand. `aerial` means a flight log, where the operator's
+  position is not the coverage and a sighting has to be marked on the map. There
+  are two and a new vehicle never makes a third: a motorbike patrol is a NAME
+  with the surface base.
+- **The four beside it are this area's numbers for that type.** `paceMinKmh` /
+  `paceMaxKmh` are the band a patrol of it is expected to keep, `coverageBufferM`
+  how wide its track counts as covered ground, `observationPlacement` where an
+  observation goes (`at_position` or `on_map`), and `glyph` the mark it wears.
+  Each is seeded from the base when the base is chosen and is the type's own
+  afterwards, so an installation tuning a default never re-tunes an area that had
+  already chosen.
+- **All six are nullable, and null means "nobody has said".** A type carried over
+  from before bases existed has none, and a client reading null falls back to
+  whatever it did before — for the app that shipped these lists compiled in, to
+  reading the name. A guessed `surface` would be worse than a null: it would tell
+  a handset that a drone sortie records the operator's own position as its
+  coverage.
 - **`active: false` means "stop offering it, keep what you already hold".** A
   retired word is SENT, not withheld: a handset holding a patrol filed under one
   still has to be able to print it.
@@ -94,7 +123,7 @@ refusal.** The contract names no error code for an unknown type or an unknown
 station, and refusing would throw away a real patrol because a settings screen
 and an app build disagreed about a word. The sync creates the word as a
 **retired** record instead: the patrol is kept, and the disagreement shows up
-dimmed on the module's Settings section for somebody to rename into an existing
+dimmed on the module's Stations section for somebody to rename into an existing
 post or reactivate.
 
 ## What an observation is filed under

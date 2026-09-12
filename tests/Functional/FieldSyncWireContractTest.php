@@ -15,6 +15,7 @@ namespace Uhifadhi\Patrol\Tests\Functional;
 
 use Symfony\Component\Routing\RouterInterface;
 use Uhifadhi\Patrol\Entity\Station;
+use Uhifadhi\Patrol\Enum\PatrolBaseEnum;
 use Uhifadhi\Patrol\Repository\StationRepository;
 use Uhifadhi\Patrol\Service\PatrolVocabularyService;
 
@@ -92,6 +93,7 @@ final class FieldSyncWireContractTest extends FieldSyncTestCase
         $this->vocabulary()->addStation($this->area, 'River Post');
         $retired = $this->vocabulary()->addType($this->area, 'Horseback');
         $this->vocabulary()->retireType($retired);
+        $this->vocabulary()->addType($this->area, 'Drone sortie', base: PatrolBaseEnum::Aerial, glyph: 'truck');
 
         $this->client->request('GET', '/api/patrols/vocabulary?areaId='.$this->area->getUuidString(), server: $this->apiHeaders());
 
@@ -104,18 +106,41 @@ final class FieldSyncWireContractTest extends FieldSyncTestCase
         self::assertSame($this->area->getUuidString(), $document['areaId']);
 
         self::assertIsArray($document['patrolTypes']);
-        $horseback = null;
+        $rows = [];
         foreach ($document['patrolTypes'] as $type) {
             self::assertIsArray($type);
-            self::assertSame(['active', 'key', 'label', 'position', 'updatedAt'], self::sortedKeys($type));
-            if ('horseback' === $type['key']) {
-                $horseback = $type;
-            }
+            // WHAT IT RECORDS AND WHAT FOLLOWS FROM THAT ride with every row, so a
+            // handset builds its screen from the base rather than guessing at the
+            // name it happens to have been given.
+            self::assertSame([
+                'active', 'base', 'coverageBufferM', 'glyph', 'key', 'label',
+                'observationPlacement', 'paceMaxKmh', 'paceMinKmh', 'position', 'updatedAt',
+            ], self::sortedKeys($type));
+            self::assertIsString($type['key']);
+            $rows[$type['key']] = $type;
         }
+
         // A RETIRED WORD IS SENT, NOT WITHHELD: a handset holding a patrol filed
         // under it still has to be able to print it.
-        self::assertIsArray($horseback);
-        self::assertFalse($horseback['active']);
+        self::assertIsArray($rows['horseback'] ?? null);
+        self::assertFalse($rows['horseback']['active']);
+
+        // A TYPE NOBODY HAS GIVEN A BASE SENDS NULL rather than a guess, and its
+        // tunables are null with it: the handset falls back to reading the name,
+        // which is what it did before bases existed.
+        self::assertNull($rows['walk']['base']);
+        self::assertNull($rows['walk']['paceMinKmh']);
+        self::assertNull($rows['walk']['coverageBufferM']);
+        self::assertNull($rows['walk']['observationPlacement']);
+
+        // One that HAS a base sends the base's own numbers, in the wire values the
+        // handset switches on.
+        self::assertSame('aerial', $rows['drone-sortie']['base']);
+        self::assertSame(15, $rows['drone-sortie']['paceMinKmh']);
+        self::assertSame(70, $rows['drone-sortie']['paceMaxKmh']);
+        self::assertSame(400, $rows['drone-sortie']['coverageBufferM']);
+        self::assertSame('on_map', $rows['drone-sortie']['observationPlacement']);
+        self::assertSame('truck', $rows['drone-sortie']['glyph']);
 
         self::assertIsArray($document['stations']);
         self::assertNotSame([], $document['stations']);

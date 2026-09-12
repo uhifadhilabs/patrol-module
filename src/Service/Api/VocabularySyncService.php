@@ -31,8 +31,14 @@ use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;
  *
  * This is the read side of every word the sync's WRITE side resolves. The app
  * used to ship these lists compiled in; now an administrator writes them on the
- * module's Settings section and the handset pulls them, so a new station is on
+ * configure page's own sections and the handset pulls them, so a new station is on
  * the phones at the next sync rather than at the next store release.
+ *
+ * A PATROL TYPE CARRIES MORE THAN ITS WORD, and that is the point of it: its
+ * BASE — `surface` or `aerial` — is what a field client builds its screen from,
+ * and the pace band, coverage buffer, observation placement and glyph beside it
+ * are this area's numbers for that type. A client that reads the base stops
+ * guessing what a type means from the name somebody gave it.
  *
  * EVERY ROW CARRIES ITS KEY, ITS LABEL, WHETHER IT IS STILL OFFERED, ITS
  * POSITION AND WHEN IT LAST CHANGED. The key is the wire value the app sends
@@ -80,6 +86,29 @@ final readonly class VocabularySyncService
                     'active' => $type->isActive(),
                     'position' => $type->getPosition(),
                     'updatedAt' => self::stamp($type->getUpdatedAt()),
+                    /*
+                     * WHAT IT RECORDS, AND WHAT FOLLOWS FROM THAT. `base` is the
+                     * fixed key a field client builds its screen from — `surface`,
+                     * where the recorder's own position is the track, or `aerial`,
+                     * a flight log where it is not — and the four beside it are
+                     * this area's numbers for that type: the pace band a patrol of
+                     * it is expected to keep, how wide its track counts as covered,
+                     * where an observation is put, and the mark it wears.
+                     *
+                     * ALL FIVE ARE NULLABLE, AND NULL MEANS "NOBODY HAS SAID". A
+                     * type carried over from before bases existed has no base, and
+                     * a client reading null falls back to whatever it did before —
+                     * which for the app that shipped these lists compiled in is
+                     * reading the name. A guessed `surface` would be worse than a
+                     * null: it would tell a handset that a drone sortie records the
+                     * operator's own position as its coverage.
+                     */
+                    'base' => $type->getBase()?->value,
+                    'paceMinKmh' => $type->getPaceMinKmh(),
+                    'paceMaxKmh' => $type->getPaceMaxKmh(),
+                    'coverageBufferM' => $type->getCoverageBufferM(),
+                    'observationPlacement' => $type->getObservationPlacement()?->value,
+                    'glyph' => $type->getGlyph(),
                 ],
             ),
             'stations' => $this->rows(
