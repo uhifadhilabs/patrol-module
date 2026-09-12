@@ -239,7 +239,10 @@ final readonly class PatrolMapService
             shape: LayerShape::Point,
             visible: [] !== $stations,
             count: \count($stations),
-            group: self::AREA_GROUP,
+            // BOTH POINT ROWS UNDER ONE HEADING, as the design's own legend groups
+            // them: what is being placed and what is already placed are the same
+            // kind of thing, and reading them apart is the whole job of the plate.
+            group: self::PATROLS_GROUP,
             style: new LayerStyle(fillOpacity: 0.55),
         ));
 
