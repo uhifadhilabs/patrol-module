@@ -17,6 +17,9 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Trait\TimestampableTrait;
+use Uhifadhi\Patrol\Enum\ObservationPlacementEnum;
+use Uhifadhi\Patrol\Enum\PatrolBaseEnum;
+use Uhifadhi\Patrol\Model\PatrolBaseDefaults;
 use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 
 /**
@@ -75,6 +78,47 @@ class PatrolType
     /** A retired type is DIMMED on the settings row, never hidden. */
     #[ORM\Column(options: ['default' => true])]
     private bool $active = true;
+
+    /**
+     * WHAT IT RECORDS — the one thing about a type that is a fixed key rather
+     * than a word somebody chose, and what a handset builds its screen from.
+     *
+     * NULL IS A STATE THE SECTION DRAWS: a type carried over from before bases
+     * existed has none, its row asks for one, and nothing is blocked while it
+     * has none.
+     */
+    #[ORM\Column(length: 12, nullable: true, enumType: PatrolBaseEnum::class)]
+    private ?PatrolBaseEnum $base = null;
+
+    /**
+     * THE FOUR THE BASE PREFILLS AND THE TYPE THEN OWNS. Seeded from
+     * {@see PatrolBaseDefaults} the moment a base is chosen and editable per type
+     * afterwards, which is why they are columns here and not a lookup at read
+     * time: an installation that tunes a default later never re-tunes an area
+     * that had already chosen.
+     *
+     * The pace band is what gap detection and the stopped rule are read against;
+     * the buffer is how wide this type's track counts as covered ground; the
+     * placement is where an observation of this type of patrol is put.
+     */
+    #[ORM\Column(nullable: true)]
+    private ?int $paceMinKmh = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $paceMaxKmh = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $coverageBufferM = null;
+
+    #[ORM\Column(length: 16, nullable: true, enumType: ObservationPlacementEnum::class)]
+    private ?ObservationPlacementEnum $observationPlacement = null;
+
+    /**
+     * The mark this type wears, from the house set the section's strip offers.
+     * Null falls back to the base's own, so a row always draws a mark.
+     */
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $glyph = null;
 
     public function __construct(AreaOfInterest $area, string $key, string $label)
     {
@@ -144,6 +188,78 @@ class PatrolType
     public function reactivate(): static
     {
         $this->active = true;
+
+        return $this;
+    }
+
+    public function getBase(): ?PatrolBaseEnum
+    {
+        return $this->base;
+    }
+
+    public function setBase(?PatrolBaseEnum $base): static
+    {
+        $this->base = $base;
+
+        return $this;
+    }
+
+    public function getPaceMinKmh(): ?int
+    {
+        return $this->paceMinKmh;
+    }
+
+    public function setPaceMinKmh(?int $paceMinKmh): static
+    {
+        $this->paceMinKmh = $paceMinKmh;
+
+        return $this;
+    }
+
+    public function getPaceMaxKmh(): ?int
+    {
+        return $this->paceMaxKmh;
+    }
+
+    public function setPaceMaxKmh(?int $paceMaxKmh): static
+    {
+        $this->paceMaxKmh = $paceMaxKmh;
+
+        return $this;
+    }
+
+    public function getCoverageBufferM(): ?int
+    {
+        return $this->coverageBufferM;
+    }
+
+    public function setCoverageBufferM(?int $coverageBufferM): static
+    {
+        $this->coverageBufferM = $coverageBufferM;
+
+        return $this;
+    }
+
+    public function getObservationPlacement(): ?ObservationPlacementEnum
+    {
+        return $this->observationPlacement;
+    }
+
+    public function setObservationPlacement(?ObservationPlacementEnum $placement): static
+    {
+        $this->observationPlacement = $placement;
+
+        return $this;
+    }
+
+    public function getGlyph(): ?string
+    {
+        return $this->glyph;
+    }
+
+    public function setGlyph(?string $glyph): static
+    {
+        $this->glyph = $glyph;
 
         return $this;
     }
