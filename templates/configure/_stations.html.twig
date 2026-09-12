@@ -6,7 +6,23 @@
    ONE SECTION, ONE POST, and a row's own decisions each their own — exactly as
    the Patrol types section beside it, and for the same reasons.
    → POST …/configure/stations (patrol_stations_save)
-   @see https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fae-form #}
+   @see https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fae-form
+
+   ONE PLATE, WHICHEVER ROW ASKED. The design draws the picker inside the add panel
+   with a marker whose own title names an EXISTING station, because a point is a
+   point whichever row asked for it. So a row's control is a LINK naming itself in
+   `?point=`, and what comes back is this plate bound to that station: one map on
+   the page rather than one per row, and the state the design drew rather than a
+   component it did not.
+
+   THE PLATE IS THE ATLAS'S. This module states what is on it in PHP and calls
+   render_map(); the height is the plate's own custom property, handed over at the
+   call because a module's stylesheet does not size the atlas's frame. The marker
+   becomes DRAGGABLE in one controller of this module's, which listens for the
+   markers UX Map hands over when it has created them — there is no map here for
+   this module to have built.
+   @see vendor/symfony/ux-map/assets/dist/abstract_map_controller.js — the connect
+        event carries `markers` #}
 
 {% set save = patrol_url('patrol_stations_save', {uuid: area.uuid}) %}
 
@@ -27,6 +43,19 @@
             <span class="nm">{{ station.label }}</span>
             <span class="cd">{{ station.key }}</span>
             {% if not station.active %}<span class="chip idle">retired</span>{% endif %}
+            {% set dms = stationPoints[station.uuid]|default(null) %}
+            {% if save %}
+                {# `.ask` is a station nobody has said where is — a control, because
+                   the row is asking, and never an error. Nothing is blocked while it
+                   has none. #}
+                <a class="spoint{{ dms ? '' : ' ask' }}" href="?point={{ station.uuid }}"
+                   title="{{ dms ? 'Move this station’s point' : 'Put a point on this station' }}">
+                    {{- ux_icon('patrol:map-pin', {width: 13, height: 13}) -}}
+                    {{ dms ?: 'set point' }}
+                </a>
+            {% elseif dms %}
+                <span class="spoint">{{ ux_icon('patrol:map-pin', {width: 13, height: 13}) }}{{ dms }}</span>
+            {% endif %}
             <span class="n">{{ n }} {{ n == 1 ? 'patrol' : 'patrols' }}</span>
             {% if save %}
                 <span class="acts">
@@ -54,6 +83,26 @@
             <div class="saddrow">
                 <input class="fld" type="text" name="label" placeholder="Name of the new station" aria-label="New station">
                 <button class="sadd" type="submit">+ Add station</button>
+            </div>
+            <div class="sppick" {{ stimulus_controller('@uhifadhi/patrol-module/point') }}>
+                {# WHOSE point this is. Empty for the station the panel above creates;
+                   a uuid where a row asked, which is what binds the plate to it. #}
+                <input type="hidden" name="point" value="{{ placing ? placing.uuid : '' }}">
+                <input type="hidden" name="point_lat" value="{{ plateLat }}"
+                       data-uhifadhi--patrol-module--point-target="lat">
+                <input type="hidden" name="point_lng" value="{{ plateLng }}"
+                       data-uhifadhi--patrol-module--point-target="lng">
+                {{ render_map(plate, {
+                    'role': 'application',
+                    'aria-label': 'Where ' ~ placingLabel ~ ' sets off from',
+                    '--map-plate-height': 'min(42vh, 340px)',
+                }) }}
+                <div class="ft">
+                    <span class="co" data-uhifadhi--patrol-module--point-target="readout">{{ plateCoordinate }}</span>
+                    <span>Drag the marker to where <b>{{ placingLabel }}</b>&rsquo;s patrols set off, or click the plate
+                        to put it there. <b>The point is what a track is measured against</b> — a patrol that starts far
+                        from it is flagged for review, and the stations draw on the area map from it.</span>
+                </div>
             </div>
         </div>
     {% endif %}

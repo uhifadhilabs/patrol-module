@@ -573,6 +573,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 ->args([
                     service('router'),
                     service('patrol.vocabulary'),
+                    service('patrol.geo'),
                     service(PatrolTypeRepository::class),
                     service(StationRepository::class),
                     service('security.authorization_checker'),

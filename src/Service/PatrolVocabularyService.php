@@ -294,7 +294,7 @@ final class PatrolVocabularyService
     // ── stations ──────────────────────────────────────────────────────────────
 
     /** @throws VocabularyConflictException on a blank or duplicate label */
-    public function addStation(AreaOfInterest $area, string $label, string $key = ''): Station
+    public function addStation(AreaOfInterest $area, string $label, string $key = '', ?string $point = null): Station
     {
         $label = $this->cleanLabel($label);
         if ('' === $label) {
@@ -306,8 +306,27 @@ final class PatrolVocabularyService
 
         $station = new Station($area, $this->freeStationKey($area, '' !== $key ? $key : $label), $label);
         $station->setPosition($this->stations->maxPositionByArea($area) + 1);
+        $station->setPoint($point);
 
         $this->entityManager->persist($station);
+        $this->entityManager->flush();
+
+        return $station;
+    }
+
+    /**
+     * WHERE A STATION STANDS — the place its patrols set off from, as the section's
+     * plate placed it.
+     *
+     * A GEOMETRY AND NEVER A LABEL: a rename does not move it, it is what a track
+     * is measured against, and it is what draws the station on every map this area
+     * shows. Which is also why it is only ever MOVED and never cleared: the design
+     * draws a row that asks for a point and a row that carries one, and no control
+     * that takes one back off.
+     */
+    public function setStationPoint(Station $station, string $point): Station
+    {
+        $station->setPoint($point);
         $this->entityManager->flush();
 
         return $station;

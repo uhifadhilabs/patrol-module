@@ -31,6 +31,14 @@ final class PatrolStationsSectionTest extends ConfigureSectionTestCase
         return 'stations';
     }
 
+    private function northPost(): Station
+    {
+        $station = $this->stations()->findOneByAreaAndKey($this->area, 'north-post');
+        self::assertInstanceOf(Station::class, $station);
+
+        return $station;
+    }
+
     /** The section is lit in the strip and its body is a body. */
     public function testTheSectionIsLitAndDrawsOneCard(): void
     {
@@ -133,6 +141,152 @@ final class PatrolStationsSectionTest extends ConfigureSectionTestCase
 
         self::assertResponseRedirects($this->configureUrl('stations'));
         self::assertCount(1, $this->stations()->findByArea($this->area));
+    }
+
+    /**
+     * A STATION WITH NO POINT ASKS FOR ONE ON ITS ROW, and nothing is blocked
+     * while it has none — which is the state every station carried over from
+     * before points existed is in.
+     */
+    public function testAStationWithNoPointAsksForOneOnItsRow(): void
+    {
+        $this->signInAsManager();
+        $crawler = $this->client->request('GET', $this->configureUrl('stations'));
+
+        $asking = $crawler->filter('.srow .spoint.ask');
+        self::assertCount(1, $asking);
+        self::assertSame('set point', trim($asking->text()));
+        self::assertStringContainsString('point=', (string) $asking->attr('href'));
+    }
+
+    /**
+     * A POINT SAVED ON THE SECTION IS THE STATION'S, AND THE ROW READS IT BACK in
+     * the degrees-minutes-seconds every other coordinate in this module is printed
+     * in.
+     */
+    public function testAPointPickedOnThePlateIsStoredAndReadBackOnTheRow(): void
+    {
+        $this->signInAsManager();
+        $station = $this->northPost();
+
+        $this->post($this->configureUrl('stations'), [
+            'point' => $station->getUuid()->toRfc4122(),
+            'point_lat' => '-5.65',
+            'point_lng' => '12.35',
+        ]);
+        self::assertResponseRedirects($this->configureUrl('stations'));
+
+        $this->em->clear();
+        $stored = $this->northPost()->getPoint();
+        self::assertIsString($stored);
+        self::assertStringContainsString('"type":"Point"', $stored);
+        self::assertStringContainsString('12.35', $stored);
+
+        $crawler = $this->client->request('GET', $this->configureUrl('stations'));
+        $pill = $crawler->filter('.srow .spoint')->first();
+        self::assertStringNotContainsString('ask', (string) $pill->attr('class'));
+        self::assertSame('5°39\'00"S 12°21\'00"E', trim($pill->text()));
+    }
+
+    /** A coordinate outside the world is not a place, so nothing is written. */
+    public function testACoordinateOffTheWorldIsRefusedAndWritesNothing(): void
+    {
+        $this->signInAsManager();
+        $station = $this->northPost();
+
+        $this->post($this->configureUrl('stations'), [
+            'point' => $station->getUuid()->toRfc4122(),
+            'point_lat' => '-91.4',
+            'point_lng' => '12.35',
+        ]);
+
+        $this->em->clear();
+        self::assertNull($this->northPost()->getPoint());
+    }
+
+    /** The point the add panel carries belongs to the station it creates. */
+    public function testANewStationIsCreatedWithThePointOnThePlate(): void
+    {
+        $this->signInAsManager();
+
+        $this->post($this->configureUrl('stations'), [
+            'label' => 'Ridge Camp',
+            'point_lat' => '-5.7',
+            'point_lng' => '12.4',
+        ]);
+
+        $this->em->clear();
+        $created = $this->stations()->findOneByAreaAndKey($this->area, 'ridge-camp');
+        self::assertInstanceOf(Station::class, $created);
+        self::assertIsString($created->getPoint());
+    }
+
+    /**
+     * THE PLATE IS THE HOUSE PLATE, and one marker on it is the only thing being
+     * changed. The area's boundary is under it and the stations that already have
+     * a point are drawn quietly for bearings.
+     */
+    public function testTheAddPanelCarriesTheHousePlateWithOneMarkerOnIt(): void
+    {
+        $this->signInAsManager();
+        $crawler = $this->client->request('GET', $this->configureUrl('stations'));
+
+        $picker = $crawler->filter('.sppick');
+        self::assertCount(1, $picker);
+
+        // The atlas's plate, not a map of this module's own.
+        $plate = $picker->filter('.map-plate');
+        self::assertCount(1, $plate);
+        self::assertStringContainsString('atlas-bundle--map-plate', (string) $plate->attr('data-controller'));
+
+        // ONE marker, and it is the one the picker drags. The value is read off
+        // whichever attribute the configured UX Map bridge named it with, because
+        // the bridge is a deployment's choice and this assertion is about the map
+        // carrying exactly one marker.
+        $canvas = $picker->filter('.map-canvas')->getNode(0);
+        self::assertInstanceOf(\DOMElement::class, $canvas);
+
+        $markers = null;
+        foreach ($canvas->attributes as $attribute) {
+            if (str_ends_with($attribute->name, '-markers-value')) {
+                $markers = json_decode($attribute->value, true, 512, \JSON_THROW_ON_ERROR);
+            }
+        }
+
+        self::assertIsArray($markers);
+        self::assertCount(1, $markers);
+        self::assertStringContainsString('drag to place', json_encode($markers, \JSON_THROW_ON_ERROR));
+
+        // The legend says what the two point layers mean, as every plate must.
+        self::assertStringContainsString('stations with a point', $picker->filter('.map-legend')->text());
+        self::assertStringContainsString('the point being placed', $picker->filter('.map-legend')->text());
+
+        // The coordinate it reads out, and the two fields it travels in.
+        self::assertCount(1, $picker->filter('.ft .co'));
+        self::assertCount(1, $crawler->filter('input[name="point_lat"]'));
+        self::assertCount(1, $crawler->filter('input[name="point_lng"]'));
+    }
+
+    /**
+     * A ROW THAT ASKED IS WHAT THE PLATE IS THEN PLACING, named on it — the state
+     * the design draws, where the marker's own title says whose point it is.
+     */
+    public function testARowThatAskedBindsThePlateToThatStation(): void
+    {
+        $this->signInAsManager();
+        $station = $this->northPost();
+
+        $crawler = $this->client->request(
+            'GET',
+            $this->configureUrl('stations').'?point='.$station->getUuid()->toRfc4122(),
+        );
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(
+            $station->getUuid()->toRfc4122(),
+            $crawler->filter('input[name="point"]')->attr('value'),
+        );
+        self::assertStringContainsString('North post', $crawler->filter('.sppick .ft')->text());
     }
 
     /** Editing the words rides on the same authority the numbers do. */

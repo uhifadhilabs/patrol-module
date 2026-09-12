@@ -87,6 +87,91 @@ final class GeoService
     }
 
     /**
+     * The MIDDLE OF A GEOMETRY'S BOUNDING BOX, as [lon, lat] — or null where the
+     * text carries no coordinate at all.
+     *
+     * The bbox centre and not a centroid, and the difference matters less than it
+     * sounds: what asks for this is a picker opening a plate on an area, where the
+     * question is "somewhere inside the frame" and not "the balance point of the
+     * polygon". A true centroid needs the geometry engine, which means a database
+     * round trip for a marker's starting position.
+     *
+     * EVERY GEOMETRY, WITHOUT KNOWING WHICH. A Point's coordinates, a Polygon's
+     * rings and a MultiPolygon's polygons are the same numbers at different depths,
+     * so the pairs are gathered by walking the nesting rather than by branching on
+     * `type` — which is also what makes it answer for a shape this module has not
+     * met yet.
+     *
+     * @return array{0: float, 1: float}|null
+     */
+    public function centre(string $geoJson): ?array
+    {
+        $decoded = json_decode($geoJson, true);
+        $coordinates = \is_array($decoded) ? ($decoded['coordinates'] ?? null) : null;
+        if (!\is_array($coordinates)) {
+            return null;
+        }
+
+        $box = [];
+        self::gather($coordinates, $box);
+
+        if ([] === $box) {
+            return null;
+        }
+
+        $lons = array_column($box, 0);
+        $lats = array_column($box, 1);
+
+        return [(min($lons) + max($lons)) / 2, (min($lats) + max($lats)) / 2];
+    }
+
+    /**
+     * Every [lon, lat] pair anywhere inside a coordinates member, however deeply
+     * the geometry nests them.
+     *
+     * @param array<array-key, mixed>         $coordinates
+     * @param list<array{0: float, 1: float}> $found
+     */
+    private static function gather(array $coordinates, array &$found): void
+    {
+        $first = $coordinates[0] ?? null;
+        if (is_numeric($first) && is_numeric($coordinates[1] ?? null)) {
+            $found[] = [(float) $first, (float) $coordinates[1]];
+
+            return;
+        }
+
+        foreach ($coordinates as $nested) {
+            if (\is_array($nested)) {
+                self::gather($nested, $found);
+            }
+        }
+    }
+
+    /**
+     * A GeoJSON Point from a latitude and a longitude, or NULL where the pair is
+     * not a place on Earth.
+     *
+     * OFF THE WORLD IS NOT A COORDINATE. Latitude runs to ±90 and longitude to
+     * ±180, and a pair outside that is not a point somebody nudged too far — it is
+     * a value nothing on a map could have produced. So it is refused rather than
+     * clamped: clamping would file a station at the pole and call it placed.
+     *
+     * Written in the axis order GeoJSON states — longitude first — which is the
+     * order {@see self::coordinates()} reads back and the order the column stores.
+     *
+     * @see https://datatracker.ietf.org/doc/html/rfc7946#section-3.1.1
+     */
+    public function pointGeoJson(float $lat, float $lon): ?string
+    {
+        if (abs($lat) > 90.0 || abs($lon) > 180.0) {
+            return null;
+        }
+
+        return json_encode(['type' => 'Point', 'coordinates' => [$lon, $lat]], \JSON_THROW_ON_ERROR);
+    }
+
+    /**
      * A position the way a field record prints it — degrees, minutes, seconds
      * with hemisphere letters, latitude first: 3°11'42"S 35°28'10"E. The
      * observation rows and the observation meta plate both state coordinates

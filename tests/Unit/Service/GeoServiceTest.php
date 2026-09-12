@@ -56,4 +56,65 @@ final class GeoServiceTest extends TestCase
 
         new GeoService()->coordinates('{"type":"LineString","coordinates":[[1,2],[3,4]]}');
     }
+
+    /** A pair a map could have produced becomes a Point, longitude first. */
+    public function testItWritesALatitudeAndLongitudeAsAGeoJsonPoint(): void
+    {
+        self::assertSame(
+            '{"type":"Point","coordinates":[35.44,-3.19]}',
+            new GeoService()->pointGeoJson(-3.19, 35.44),
+        );
+    }
+
+    /**
+     * OFF THE WORLD IS NOT A COORDINATE, and it is refused rather than clamped: a
+     * station filed at the pole would read as placed.
+     *
+     * @return iterable<string, array{float, float}>
+     */
+    public static function offTheWorld(): iterable
+    {
+        yield 'past the north pole' => [90.5, 35.0];
+        yield 'past the south pole' => [-91.0, 35.0];
+        yield 'past the antimeridian' => [-3.0, 180.5];
+        yield 'the other way past it' => [-3.0, -181.0];
+    }
+
+    #[DataProvider('offTheWorld')]
+    public function testItRefusesAPairThatIsNotAPlaceOnEarth(float $lat, float $lon): void
+    {
+        self::assertNull(new GeoService()->pointGeoJson($lat, $lon));
+    }
+
+    /**
+     * THE MIDDLE OF A GEOMETRY'S BOX, however deeply the geometry nests its pairs —
+     * which is what lets a picker open on an area without knowing whether the
+     * boundary came back as a Polygon or a MultiPolygon.
+     *
+     * @return iterable<string, array{string, array{0: float, 1: float}|null}>
+     */
+    public static function geometries(): iterable
+    {
+        yield 'a point is its own middle' => ['{"type":"Point","coordinates":[35.0,-3.0]}', [35.0, -3.0]];
+        yield 'a polygon ring' => [
+            '{"type":"Polygon","coordinates":[[[12.0,-6.0],[14.0,-6.0],[14.0,-4.0],[12.0,-4.0],[12.0,-6.0]]]}',
+            [13.0, -5.0],
+        ];
+        yield 'two polygons' => [
+            '{"type":"MultiPolygon","coordinates":[[[[0.0,0.0],[2.0,0.0],[2.0,2.0],[0.0,0.0]]],'
+            .'[[[8.0,8.0],[10.0,8.0],[10.0,10.0],[8.0,8.0]]]]}',
+            [5.0, 5.0],
+        ];
+        yield 'text carrying no geometry' => ['{"type":"Polygon"}', null];
+        yield 'not json at all' => ['a boundary, honestly', null];
+    }
+
+    /**
+     * @param array{0: float, 1: float}|null $expected
+     */
+    #[DataProvider('geometries')]
+    public function testItFindsTheMiddleOfAGeometrysBox(string $geoJson, ?array $expected): void
+    {
+        self::assertSame($expected, new GeoService()->centre($geoJson));
+    }
 }

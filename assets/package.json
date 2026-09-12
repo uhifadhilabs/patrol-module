@@ -18,6 +18,11 @@
                 "main": "controllers/disclose_controller.js",
                 "fetch": "eager",
                 "enabled": true
+            },
+            "point": {
+                "main": "controllers/point_controller.js",
+                "fetch": "eager",
+                "enabled": true
             }
         },
         "importmap": {}

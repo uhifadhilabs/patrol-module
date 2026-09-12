@@ -20,11 +20,14 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\AreaBundle\Repository\AreaOfInterestRepository;
+use Uhifadhi\Bundle\AtlasBundle\Map\MapBuilderInterface;
 use Uhifadhi\Contracts\Shell\ConfigurationSection;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolSettingsRepository;
 use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Repository\StationRepository;
+use Uhifadhi\Patrol\Service\GeoService;
+use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolSettingsService;
 use Uhifadhi\Patrol\Service\PatrolVocabularyService;
 use Uhifadhi\Patrol\Shell\PatrolConfigurationSections;
@@ -68,6 +71,8 @@ final class PatrolConfigurationSectionsTest extends TestCase
                 $stations,
                 ['walk' => ['label' => 'Walking round']],
             ),
+            new PatrolMapService($this->createStub(MapBuilderInterface::class)),
+            new GeoService(),
             null,
         );
     }

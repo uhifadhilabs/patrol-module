@@ -188,6 +188,84 @@ final readonly class PatrolMapService
     }
 
     /**
+     * THE PLATE A STATION'S POINT IS PICKED ON — the area's boundary, the stations
+     * that already have a point drawn quietly for bearings, and ONE marker.
+     *
+     * THE MARKER IS THE ONLY ACCENTED THING ON IT because it is the only thing
+     * being changed. Everything else is context: the boundary says where the area
+     * is, the other stations say where its posts are, and neither is a control.
+     *
+     * IT IS DRAGGED BY A CONTROLLER OF THIS MODULE'S, not by anything stated here.
+     * UX Map's `ux:map:connect` hands the created markers to whatever is listening
+     * — which is how a marker becomes draggable without this module building a map
+     * — so what PHP says is WHERE the marker starts and WHAT it is called, and the
+     * browser says how it moves.
+     *
+     * NO SCRIM. A picker opens on the whole area with its edge in frame, and
+     * dimming the outside of a boundary somebody is placing a point inside of
+     * darkens the very imagery they are reading. The control is built either way.
+     *
+     * @param list<array{name: string, lon: float, lat: float}> $placed  the stations that already have a point
+     * @param string                                            $placing whose point is being placed, for the marker's own title
+     */
+    public function stationPoint(?string $boundary, array $placed, float $lat, float $lon, string $placing): AtlasMap
+    {
+        $map = $this->maps->createMap();
+        $this->drawBoundary($map, $boundary, scrim: false);
+
+        $stations = [];
+        foreach ($placed as $station) {
+            $stations[] = self::feature(
+                ['type' => 'Point', 'coordinates' => [$station['lon'], $station['lat']]],
+                ['label' => $station['name']],
+            );
+        }
+
+        $map->addLayer(new GeoJsonLayer(
+            id: 'patrol.stations',
+            label: 'stations with a point',
+            features: self::collection($stations),
+            swatch: self::STATION_SWATCH,
+            shape: LayerShape::Point,
+            visible: [] !== $stations,
+            count: \count($stations),
+            group: self::AREA_GROUP,
+            style: new LayerStyle(fillOpacity: 0.55),
+        ));
+
+        $map->ux()->addMarker(new Marker(
+            position: new Point($lat, $lon),
+            title: \sprintf('%s · drag to place', $placing),
+            icon: self::placing(),
+        ));
+
+        $map->addLegendItem(new LegendItem(
+            label: 'the point being placed',
+            swatch: self::DEFAULT_SWATCH,
+            shape: LayerShape::Point,
+            group: self::PATROLS_GROUP,
+        ));
+
+        return $map;
+    }
+
+    /**
+     * The marker the picker drags: the dashed ring an observation wears, in the
+     * accent rather than the amber, so a reader who has seen one plate reads this
+     * one without being taught it.
+     */
+    private static function placing(): Icon
+    {
+        return Icon::svg(\sprintf(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">'
+            .'<circle cx="22" cy="22" r="15" fill="none" stroke="%1$s" stroke-width="2.2" stroke-dasharray="5 4"/>'
+            .'<circle cx="22" cy="22" r="6.5" fill="%1$s" stroke="rgba(10,14,11,.85)" stroke-width="2.4"/>'
+            .'</svg>',
+            self::DEFAULT_SWATCH,
+        ));
+    }
+
+    /**
      * A detail plate: one route, the observations logged along it, and the area
      * underneath as context.
      *

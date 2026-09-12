@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Shell;
 
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Uid\Uuid;
@@ -22,12 +23,15 @@ use Uhifadhi\Contracts\Shell\ConfigurationSection;
 use Uhifadhi\Contracts\Shell\ConfigurationSectionsInterface;
 use Uhifadhi\Patrol\Controller\PatrolVocabularyController;
 use Uhifadhi\Patrol\Entity\PatrolType;
+use Uhifadhi\Patrol\Entity\Station;
 use Uhifadhi\Patrol\Enum\ObservationPlacementEnum;
 use Uhifadhi\Patrol\Enum\PatrolBaseEnum;
 use Uhifadhi\Patrol\Model\PatrolBaseDefaults;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Repository\StationRepository;
+use Uhifadhi\Patrol\Service\GeoService;
+use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolSettingsService;
 use Uhifadhi\Patrol\Service\PatrolVocabularyService;
 
@@ -85,6 +89,8 @@ final readonly class PatrolConfigurationSections implements ConfigurationSection
         private PatrolTypeRepository $types,
         private StationRepository $stations,
         private PatrolVocabularyService $vocabulary,
+        private PatrolMapService $maps,
+        private GeoService $geo,
         /*
          * NULL WHERE THE INSTALLATION RUNS NO SECURITY — and there the Settings
          * form has no route to post to either, so the section renders as a
@@ -209,7 +215,8 @@ final readonly class PatrolConfigurationSections implements ConfigurationSection
             ],
             self::STATIONS => [
                 ...$common,
-                'stations' => $this->stations->findByArea($area),
+                ...$this->stationPicker($area, $stations = $this->stations->findByArea($area), $request),
+                'stations' => $stations,
                 'stationCounts' => $this->stations->countPatrolsByArea($area),
             ],
             default => [
@@ -240,6 +247,67 @@ final readonly class PatrolConfigurationSections implements ConfigurationSection
         $this->vocabulary->seedTypes($area);
 
         return $this->types->findByArea($area);
+    }
+
+    /**
+     * THE PICKER THE STATIONS SECTION DRAWS, AND WHAT EVERY ROW READS BACK.
+     *
+     * ONE PLATE FOR THE WHOLE SECTION, and the design is why: it draws the picker
+     * inside the add panel with a marker whose own title names an EXISTING station,
+     * because a point is a point whichever row asked for it. So a row's control is
+     * a link that names itself in `?point=`, and what comes back is this plate bound
+     * to that station — one map on the page rather than one per row, and the state
+     * the design drew rather than a component it did not.
+     *
+     * WHERE THE MARKER STARTS: on the station's own point if it has one, else in
+     * the middle of the area, which is the only honest answer to "we do not know".
+     * An area with no boundary stored starts at the null island and the plate says
+     * so by having nothing to fit to — better than inventing a country.
+     *
+     * @param list<Station> $stations
+     *
+     * @return array<string, mixed>
+     */
+    private function stationPicker(AreaOfInterest $area, array $stations, Request $request): array
+    {
+        $asked = $request->query->getString('point');
+        $placing = '' !== $asked ? $this->stations->findOneByAreaAndUuid($area, $asked) : null;
+
+        $placed = [];
+        $points = [];
+        foreach ($stations as $station) {
+            $point = $station->getPoint();
+            if (null === $point) {
+                continue;
+            }
+
+            [$lon, $lat] = $this->geo->coordinates($point);
+            $points[$station->getUuid()->toRfc4122()] = $this->geo->formatDms($lon, $lat);
+            // The station being placed is the marker, so it is not also drawn as
+            // one of the quiet ones underneath it.
+            if ($station !== $placing) {
+                $placed[] = ['name' => $station->getLabel(), 'lon' => $lon, 'lat' => $lat];
+            }
+        }
+
+        $boundary = $area->getGeom();
+        $start = null !== $placing?->getPoint()
+            ? $this->geo->coordinates($placing->getPoint())
+            : (null !== $boundary ? $this->geo->centre($boundary) : null);
+        [$lon, $lat] = $start ?? [0.0, 0.0];
+
+        $label = $placing?->getLabel() ?? 'the new station';
+
+        return [
+            'stationPoints' => $points,
+            'placing' => $placing,
+            'placingLabel' => $label,
+            'plate' => $this->maps->stationPoint($boundary, $placed, $lat, $lon, $label),
+            'plateCoordinate' => $this->geo->formatDms($lon, $lat),
+            // The two the plate's marker travels in, and what a save reads back.
+            'plateLat' => $lat,
+            'plateLng' => $lon,
+        ];
     }
 
     /**

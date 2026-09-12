@@ -36,6 +36,7 @@ use Uhifadhi\Patrol\Exception\VocabularyConflictException;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Repository\StationRepository;
+use Uhifadhi\Patrol\Service\GeoService;
 use Uhifadhi\Patrol\Service\PatrolVocabularyService;
 use Uhifadhi\Patrol\Shell\PatrolConfigurationSections;
 
@@ -86,9 +87,16 @@ final readonly class PatrolVocabularyController
     /** What a row's buttons may ask for. Anything else is not a button we drew. */
     private const array ACTIONS = ['rename', 'retire', 'reactivate'];
 
+    /**
+     * What a point off the world is told. It names the plate rather than the
+     * fields, because the fields are hidden and the plate is what a person used.
+     */
+    private const string POINT_SENTENCE = 'That is not a place on the map. Nothing was saved — drag the marker on the plate and save again.';
+
     public function __construct(
         private UrlGeneratorInterface $router,
         private PatrolVocabularyService $vocabulary,
+        private GeoService $geo,
         private PatrolTypeRepository $types,
         private StationRepository $stations,
         private AuthorizationCheckerInterface $authorization,
@@ -205,10 +213,24 @@ final readonly class PatrolVocabularyController
     ): RedirectResponse {
         $this->guard($request);
 
+        /*
+         * WHERE THE PLATE LEFT ITS MARKER. Null where the two fields hold nothing
+         * a map could have produced — a coordinate off the world, or a value typed
+         * into a hidden field by hand — and that is told rather than clamped: a
+         * station filed at the pole would read as placed.
+         */
+        $point = $this->geo->pointGeoJson(
+            (float) $request->request->getString('point_lat'),
+            (float) $request->request->getString('point_lng'),
+        );
+        if (null === $point) {
+            return $this->back($request, $area, PatrolConfigurationSections::STATIONS, 'error', self::POINT_SENTENCE);
+        }
+
         $label = trim($request->request->getString('label'));
         if ('' !== $label) {
             try {
-                $created = $this->vocabulary->addStation($area, $label);
+                $created = $this->vocabulary->addStation($area, $label, point: $point);
             } catch (VocabularyConflictException $conflict) {
                 return $this->back($request, $area, PatrolConfigurationSections::STATIONS, 'error', $conflict->getMessage());
             }
@@ -216,6 +238,20 @@ final readonly class PatrolVocabularyController
             return $this->back($request, $area, PatrolConfigurationSections::STATIONS, 'success', \sprintf(
                 '"%s" is a station in this area now.',
                 $created->getLabel(),
+            ));
+        }
+
+        // A POINT WITHOUT A NAME BELONGS TO THE ROW THAT ASKED, which is the uuid
+        // the plate was bound to. A save that names neither is somebody pressing
+        // Save with nothing changed, and that is not an error.
+        $asked = $request->request->getString('point');
+        $station = '' !== $asked ? $this->stations->findOneByAreaAndUuid($area, $asked) : null;
+        if ($station instanceof Station) {
+            $this->vocabulary->setStationPoint($station, $point);
+
+            return $this->back($request, $area, PatrolConfigurationSections::STATIONS, 'success', \sprintf(
+                '"%s" sets off from there now.',
+                $station->getLabel(),
             ));
         }
 
