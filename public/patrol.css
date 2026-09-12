@@ -1123,3 +1123,41 @@ button.spoint{cursor:pointer;font-family:"JetBrains Mono",ui-monospace,monospace
 /* The list's last entry keeps no rule of its own: the panel below it is the
    separation, and a dashed line immediately above the panel is a second one. */
 .stype:has(+ .saddcard),.srow:has(+ .saddcard){border-bottom:0}
+
+
+/* ---- the sentence that opens an area-scoped section ----------------------- *
+ * `.tx-say` — the statement of scope and authority a configure section opens
+ * with: whose words these are, and which permission editing them rides on. Its
+ * rules moved here from taxonomy.css unchanged (and are verbatim the design
+ * workspace's own, DesignsProjects/uhifadhi-web/taxonomy.css): three sections
+ * draw the banner now — the kinds manager, the patrol types and the stations —
+ * and only one of them links the taxonomy sheet, so it is the MODULE's and not
+ * the taxonomy admin's. Moved rather than copied: one component with two
+ * definitions renders differently depending on which sheet a page linked last.
+ *
+ * Hoist debt like the families below it: a scope-and-authority banner is general,
+ * and the day the shell ships one this block comes out. */
+.tx-say{display:flex;align-items:flex-start;gap:13px;border:1px solid var(--ln2);border-radius:12px;
+  padding:14px 16px;margin:0 0 24px;background:color-mix(in srgb,var(--acc) 5%,transparent)}
+.tx-say>svg{width:17px;height:17px;color:var(--acc);flex:none;margin-top:2px}
+.tx-say div{font-size:12.5px;line-height:1.65;color:var(--tx)}
+.tx-say div b{font-weight:700}
+.tx-say .mono{font-size:11.5px;color:var(--acc)}
+
+/* ---- a disclosure that shows no triangle --------------------------------- *
+ * `<details>` is how a row opens a rename field or a base picker with no script,
+ * and a `<summary>` wears a browser marker by default — so the control renders
+ * as "▸RENAME" and the badge as "▸SURFACE". The design has no such marker and
+ * could not have: it draws plain buttons, and the disclosure is this port's own
+ * adaptation, which makes hiding the marker this port's own job.
+ *
+ * Three declarations because three engines answer for it: `list-style` is the
+ * standard's, `::marker` is what the marker actually is, and
+ * `::-webkit-details-marker` is the legacy pseudo-element WebKit still draws.
+ * The same triple the calendar's own chip already states.
+ *
+ * QUALIFIED BY THE ELEMENT, so this decorates the shell's `.sact` where the
+ * module discloses with one and states nothing about `.sact` itself. */
+summary.sact,summary.sbase{list-style:none;cursor:pointer}
+.sact::-webkit-details-marker,.sbase::-webkit-details-marker{display:none}
+.sact::marker,.sbase::marker{content:''}

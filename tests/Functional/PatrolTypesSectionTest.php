@@ -288,7 +288,17 @@ final class PatrolTypesSectionTest extends ConfigureSectionTestCase
                 static fn (Crawler $t): string => trim(str_replace((string) $t->filter('.src')->text(''), '', $t->text())),
             ),
         );
-        self::assertCount(1, $crawler->filter('.save-row'));
+        // THE SAVE ROW IS CANCEL AND THE CTA, as the design draws it on all three
+        // of its configure pages: a way out of the form that is not "save", back
+        // to the screen the module opens on.
+        $row = $crawler->filter('.save-row');
+        self::assertCount(1, $row);
+        self::assertSame('Cancel', trim($row->filter('a.tgl')->text()));
+        self::assertSame(
+            '/areas/'.$this->area->getUuidString().'/modules/patrols',
+            $row->filter('a.tgl')->attr('href'),
+        );
+        self::assertSame('Save patrol types', trim($row->filter('button.cta')->text()));
         self::assertSame('Add a patrol type', trim($crawler->filter('.saddcard > .hd')->text()));
         self::assertSame('+ Add type', trim($crawler->filter('.saddcard .sadd')->text()));
     }

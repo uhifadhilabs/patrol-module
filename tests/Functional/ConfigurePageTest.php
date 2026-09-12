@@ -136,6 +136,12 @@ final class ConfigurePageTest extends WebTestCase
             ),
         );
 
+        // The same save row its two new siblings draw: a way out of the form that
+        // is not "save".
+        $row = $crawler->filter('.save-row');
+        self::assertSame('Cancel', trim($row->filter('a.tgl')->text()));
+        self::assertSame('Save settings', trim($row->filter('button.cta')->text()));
+
         // Not the words, and not a link out to them either: the strip is the way.
         self::assertStringNotContainsString('North post', $crawler->filter('.c')->text());
         self::assertCount(0, $crawler->filter('.c .srow'));

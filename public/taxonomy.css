@@ -22,14 +22,6 @@
    is correct in both themes without a second rule.
    ========================================================================== */
 
-/* the permission statement that opens the admin page */
-.tx-say{display:flex;align-items:flex-start;gap:13px;border:1px solid var(--ln2);border-radius:12px;
-  padding:14px 16px;margin:0 0 24px;background:color-mix(in srgb,var(--acc) 5%,transparent)}
-.tx-say>svg{width:17px;height:17px;color:var(--acc);flex:none;margin-top:2px}
-.tx-say div{font-size:12.5px;line-height:1.65;color:var(--tx)}
-.tx-say div b{font-weight:700}
-.tx-say .mono{font-size:11.5px;color:var(--acc)}
-
 /* ── the two-pane manager ─────────────────────────────────────────────────
    Ruled composition A. Kinds on the left because ordering needs a stable,
    short column; the selected kind's sub-categories on the right.              */

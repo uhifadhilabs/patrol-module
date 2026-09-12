@@ -68,6 +68,9 @@ final class PatrolStationsSectionTest extends ConfigureSectionTestCase
                 static fn (Crawler $t): string => trim(str_replace((string) $t->filter('.src')->text(''), '', $t->text())),
             ),
         );
+        $row = $crawler->filter('.save-row');
+        self::assertSame('Cancel', trim($row->filter('a.tgl')->text()));
+        self::assertSame('Save stations', trim($row->filter('button.cta')->text()));
         self::assertSame('Add a station', trim($crawler->filter('.saddcard > .hd')->text()));
         self::assertSame('+ Add station', trim($crawler->filter('.saddcard .sadd')->text()));
     }

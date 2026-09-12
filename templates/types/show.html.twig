@@ -198,10 +198,15 @@
 </div>
 
 {% if save %}
-    {# NO CANCEL LINK OUT OF THE MODULE. The section strip, the lit Configure and
-       the crumb are the ways back; a fourth would be the thing the frame
-       replaced. #}
-    <div class="save-row"><button class="cta" type="submit">Save patrol types</button></div>
+    {# THE WAY OUT OF THE FORM THAT IS NOT "SAVE", as the design draws it on all
+       three of its configure pages: back to the screen the module opens on, with
+       nothing written. It is NOT a way back off the section — the strip, the lit
+       Configure and the crumb are those, and there are no others. #}
+    <div class="save-row">
+        {% set out = patrol_url('patrol_dashboard', {uuid: area.uuid}) %}
+        {% if out %}<a class="tgl" href="{{ out }}">Cancel</a>{% endif %}
+        <button class="cta" type="submit">Save patrol types</button>
+    </div>
 </form>
 
     {# The row forms, at the end of the section, named by the controls above. #}
