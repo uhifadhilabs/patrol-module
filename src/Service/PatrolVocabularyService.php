@@ -17,7 +17,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\PatrolType;
 use Uhifadhi\Patrol\Entity\Station;
+use Uhifadhi\Patrol\Enum\ObservationPlacementEnum;
+use Uhifadhi\Patrol\Enum\PatrolBaseEnum;
 use Uhifadhi\Patrol\Exception\VocabularyConflictException;
+use Uhifadhi\Patrol\Model\PatrolBaseDefaults;
 use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Repository\StationRepository;
 
@@ -73,9 +76,24 @@ final class PatrolVocabularyService
 
     // ── patrol types ──────────────────────────────────────────────────────────
 
-    /** @throws VocabularyConflictException on a blank or duplicate label */
-    public function addType(AreaOfInterest $area, string $label, string $key = ''): PatrolType
-    {
+    /**
+     * @param ?PatrolBaseEnum $base  what it records; null where the add panel was
+     *                               submitted without a choice, which the section
+     *                               then asks for on the row
+     * @param ?string         $glyph a mark from {@see PatrolBaseDefaults::GLYPHS};
+     *                               anything else is ignored rather than written,
+     *                               because a name nothing ships a file for is an
+     *                               empty square on every row it reaches
+     *
+     * @throws VocabularyConflictException on a blank or duplicate label
+     */
+    public function addType(
+        AreaOfInterest $area,
+        string $label,
+        string $key = '',
+        ?PatrolBaseEnum $base = null,
+        ?string $glyph = null,
+    ): PatrolType {
         $label = $this->cleanLabel($label);
         if ('' === $label) {
             throw VocabularyConflictException::label('A patrol type needs a name.');
@@ -86,11 +104,100 @@ final class PatrolVocabularyService
 
         $type = new PatrolType($area, $this->freeTypeKey($area, '' !== $key ? $key : $label), $label);
         $type->setPosition($this->types->maxPositionByArea($area) + 1);
+        $type->setGlyph(self::knownGlyph($glyph));
+        self::adoptBase($type, $base);
 
         $this->entityManager->persist($type);
         $this->entityManager->flush();
 
         return $type;
+    }
+
+    /**
+     * WHAT A TYPE RECORDS, AND THE THREE NUMBERS THAT COME WITH IT.
+     *
+     * Choosing a base SEEDS the tunables and never overwrites one: a number the
+     * area tuned is the area's, and re-saving the section — which posts every base
+     * on the page, chosen or not — must not walk back over it. Only a tunable
+     * standing empty is filled, which is exactly what "prefilled from the base"
+     * means and is why moving a type from surface to aerial leaves a buffer
+     * somebody widened alone.
+     *
+     * THERE IS NO CLEARING. A type with no base is a type nobody has answered for
+     * yet, never an answer somebody withdrew, and the section draws no control that
+     * would take one back off.
+     */
+    public function setTypeBase(PatrolType $type, PatrolBaseEnum $base): PatrolType
+    {
+        self::adoptBase($type, $base);
+        $this->entityManager->flush();
+
+        return $type;
+    }
+
+    /**
+     * THE FOUR A ROW'S DISCLOSURE EDITS. A null leaves the type's own value where
+     * it is rather than clearing it — the section posts what its fields hold, and a
+     * row whose disclosure was never opened holds nothing to say.
+     *
+     * Out of range is CLAMPED rather than refused, for the reason
+     * {@see PatrolBaseDefaults::MIN_PACE_KMH} gives: the bounds are the fields'
+     * own, so anything outside them was hand-posted.
+     */
+    public function tuneType(
+        PatrolType $type,
+        ?int $paceMinKmh = null,
+        ?int $paceMaxKmh = null,
+        ?int $coverageBufferM = null,
+        ?ObservationPlacementEnum $placement = null,
+        ?string $glyph = null,
+    ): PatrolType {
+        if (null !== $paceMinKmh) {
+            $type->setPaceMinKmh(self::clamp($paceMinKmh, PatrolBaseDefaults::MIN_PACE_KMH, PatrolBaseDefaults::MAX_PACE_KMH));
+        }
+        if (null !== $paceMaxKmh) {
+            $type->setPaceMaxKmh(self::clamp($paceMaxKmh, PatrolBaseDefaults::MIN_PACE_KMH, PatrolBaseDefaults::MAX_PACE_KMH));
+        }
+        if (null !== $coverageBufferM) {
+            $type->setCoverageBufferM(self::clamp($coverageBufferM, PatrolBaseDefaults::MIN_BUFFER_M, PatrolBaseDefaults::MAX_BUFFER_M));
+        }
+        if (null !== $placement) {
+            $type->setObservationPlacement($placement);
+        }
+        $known = self::knownGlyph($glyph);
+        if (null !== $known) {
+            $type->setGlyph($known);
+        }
+
+        $this->entityManager->flush();
+
+        return $type;
+    }
+
+    /** Seed what stands empty under the base, and nothing that does not. */
+    private static function adoptBase(PatrolType $type, ?PatrolBaseEnum $base): void
+    {
+        $type->setBase($base);
+        if (null === $base) {
+            return;
+        }
+
+        $defaults = PatrolBaseDefaults::of($base);
+        $type->setPaceMinKmh($type->getPaceMinKmh() ?? $defaults->paceMinKmh);
+        $type->setPaceMaxKmh($type->getPaceMaxKmh() ?? $defaults->paceMaxKmh);
+        $type->setCoverageBufferM($type->getCoverageBufferM() ?? $defaults->coverageBufferM);
+        $type->setObservationPlacement($type->getObservationPlacement() ?? $defaults->observationPlacement);
+    }
+
+    /** A mark this module ships a file for, or nothing at all. */
+    private static function knownGlyph(?string $glyph): ?string
+    {
+        return \in_array($glyph, PatrolBaseDefaults::GLYPHS, true) ? $glyph : null;
+    }
+
+    private static function clamp(int $value, int $min, int $max): int
+    {
+        return max($min, min($max, $value));
     }
 
     /** @throws VocabularyConflictException on a blank or duplicate label */

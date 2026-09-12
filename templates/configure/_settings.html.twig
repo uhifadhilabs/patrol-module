@@ -4,151 +4,29 @@
    writes the section's content and nothing around it, which is the whole of what
    a rendered section is.
 
-   IT SPENDS ONLY THE PLATFORM'S VOCABULARY — .c, .srow, .sact, .sadd, .sout,
-   .frow, .fld, .chip, .save-row — because the shell's stylesheet is the only one
-   linked on the configure page, and because those classes are the shell's to
-   define. A module that redefined one would be drift, and the conformance test
-   says so. It is also why there is no SET·xx index badge on the headings: the
-   design draws one with a class no sheet here ships.
+   TWO NUMBERS, AND NOTHING ELSE ON IT. The words a ranger picks from — the types,
+   the stations, the observation kinds — each keep a section of their own in the
+   strip above, so nothing about them is restated here and nothing here links out
+   to them: the strip is how a person gets to a section.
 
-   FOUR SECTIONS, THREE KINDS OF WRITE. The thresholds are fields of one record
-   and save together, so nothing in SET·04 writes on change. A word-list row is
-   its own decision, so each of its buttons is its own POST. The observation
-   kinds keep a screen of their own and are only summarised.
+   IT SPENDS ONLY THE PLATFORM'S VOCABULARY — .c, .frow, .fld, .save-row — because
+   the shell's stylesheet is the only one linked on the configure page, and
+   because those classes are the shell's to define. A module that redefined one
+   would be drift, and the conformance test says so. It is also why there is no
+   index badge on the heading: the design draws one with a class no sheet here
+   ships.
 
-   THE ROW FORMS SIT AT THE END OF THEIR SECTION, and each control names its own
-   with the HTML `form` attribute. A form cannot be nested inside another and the
-   shell's `.srow > .nm | .cd | .n | .acts` rules are direct-child rules, so a
-   form wrapped round a row would both nest and break the layout; `form="…"` is
-   the standard's answer to exactly this and needs no JavaScript.
-   @see https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fae-form #}
+   BOTH FIELDS ARE OF ONE RECORD AND SAVE TOGETHER, so nothing here writes on
+   change. → POST …/configure/settings (patrol_settings_save) #}
 
 {% set save = patrol_url('patrol_settings_save', {uuid: area.uuid}) %}
-{% set typeAdd = patrol_url('patrol_settings_type_add', {uuid: area.uuid}) %}
-{% set stationAdd = patrol_url('patrol_settings_station_add', {uuid: area.uuid}) %}
 
-{# ── SET·01 · Patrol types ────────────────────────────────────────────────── #}
-<div class="c" style="margin-bottom:20px">
-    <span class="tab">Patrol types<span class="src">· area scope</span></span>
-    {# Never deleted: a patrol filed under a type keeps it. Retiring takes it off
-       the handset at the next sync and leaves every record intact. #}
-    {% for type in types %}
-        {% set n = typeCounts[type.key]|default(0) %}
-        <div class="srow{{ type.active ? '' : ' gone' }}">
-            <span class="nm">{{ type.label }}</span>
-            <span class="cd">{{ type.key }}</span>
-            {% if not type.active %}<span class="chip idle">retired</span>{% endif %}
-            <span class="n">{{ n }} {{ n == 1 ? 'patrol' : 'patrols' }}</span>
-            {% if typeAdd %}
-                <span class="acts">
-                    {# THE FIELD IS DISCLOSED BY THE ROW'S OWN RENAME CONTROL. The design's
-                       row is text and two buttons; a field open on every row turns a list
-                       of words into a page of form controls. HTML's own disclosure does
-                       it, so the configure page still ships no script.
-                       @see https://html.spec.whatwg.org/multipage/interactive-elements.html#the-details-element #}
-                    <details>
-                        <summary class="sact">Rename</summary>
-                        <input class="fld" style="width:150px" type="text" name="label" value="{{ type.label }}"
-                               form="patrol-type-rename-{{ type.uuid }}" aria-label="Rename {{ type.label }}" required>
-                        <button class="sact" type="submit" form="patrol-type-rename-{{ type.uuid }}">Save</button>
-                    </details>
-                    {% if type.active %}
-                        <button class="sact warn" type="submit" form="patrol-type-retire-{{ type.uuid }}">Retire</button>
-                    {% else %}
-                        <button class="sact" type="submit" form="patrol-type-reactivate-{{ type.uuid }}">Reactivate</button>
-                    {% endif %}
-                </span>
-            {% endif %}
-        </div>
-    {% else %}
-        <div class="srow"><span class="nm">No patrol types are configured.</span></div>
-    {% endfor %}
-    {% if typeAdd %}
-        {% for type in types %}
-            {% for action in ['rename', 'retire', 'reactivate'] %}
-                <form id="patrol-type-{{ action }}-{{ type.uuid }}" method="post"
-                      action="{{ patrol_url('patrol_settings_type_act', {uuid: area.uuid, type: type.uuid, action: action}) }}">
-                    <input type="hidden" name="_token" value="{{ csrfToken }}">
-                </form>
-            {% endfor %}
-        {% endfor %}
-        {# NOT a .srow: the shell's row rules are direct-child rules and this row
-           is a form, not a word the area keeps. #}
-        <form method="post" action="{{ typeAdd }}" style="display:flex;align-items:center;gap:9px;margin-top:8px">
-            <input type="hidden" name="_token" value="{{ csrfToken }}">
-            <input class="fld" style="width:220px" type="text" name="label" placeholder="Foot patrol" aria-label="New patrol type" required>
-            <button class="sadd" type="submit">+ New patrol type</button>
-        </form>
-    {% endif %}
-</div>
-
-{# ── SET·02 · Observation kinds, which live on their own screen ───────────── #}
-<div class="c" style="margin-bottom:20px">
-    <span class="tab">Observation categories<span class="src">· its own section</span></span>
-    <div class="sout">
-        <span class="bd"><b>{{ kindCount }} {{ kindCount == 1 ? 'kind' : 'kinds' }}, {{ subcategoryCount }}
-        {{ subcategoryCount == 1 ? 'sub-category' : 'sub-categories' }}{% if retiredCount %},
-        {{ retiredCount }} retired{% endif %}.</b> The kinds a ranger picks from on the handset are managed in
-        their own section — the two-pane manager with the rename and the deactivation footprint note. They are
-        not duplicated here.</span>
-        {% set kinds = patrol_url('patrol_kinds', {uuid: area.uuid}) %}
-        {% if kinds %}<a class="cta" href="{{ kinds }}">Open Observation kinds →</a>{% endif %}
-    </div>
-</div>
-
-{# ── SET·03 · Stations ────────────────────────────────────────────────────── #}
-<div class="c" style="margin-bottom:20px">
-    <span class="tab">Stations<span class="src">· where a patrol sets off</span></span>
-    {% for station in stations %}
-        {% set n = stationCounts[station.key]|default(0) %}
-        <div class="srow{{ station.active ? '' : ' gone' }}">
-            <span class="nm">{{ station.label }}</span>
-            <span class="cd">{{ station.key }}</span>
-            {% if not station.active %}<span class="chip idle">retired</span>{% endif %}
-            <span class="n">{{ n }} {{ n == 1 ? 'patrol' : 'patrols' }}</span>
-            {% if stationAdd %}
-                <span class="acts">
-                    {# Disclosed the same way the patrol-type row's is, and for the same
-                       reason. #}
-                    <details>
-                        <summary class="sact">Rename</summary>
-                        <input class="fld" style="width:150px" type="text" name="label" value="{{ station.label }}"
-                               form="patrol-station-rename-{{ station.uuid }}" aria-label="Rename {{ station.label }}" required>
-                        <button class="sact" type="submit" form="patrol-station-rename-{{ station.uuid }}">Save</button>
-                    </details>
-                    {% if station.active %}
-                        <button class="sact warn" type="submit" form="patrol-station-retire-{{ station.uuid }}">Retire</button>
-                    {% else %}
-                        <button class="sact" type="submit" form="patrol-station-reactivate-{{ station.uuid }}">Reactivate</button>
-                    {% endif %}
-                </span>
-            {% endif %}
-        </div>
-    {% else %}
-        <div class="srow"><span class="nm">This area keeps no stations yet.</span></div>
-    {% endfor %}
-    {% if stationAdd %}
-        {% for station in stations %}
-            {% for action in ['rename', 'retire', 'reactivate'] %}
-                <form id="patrol-station-{{ action }}-{{ station.uuid }}" method="post"
-                      action="{{ patrol_url('patrol_settings_station_act', {uuid: area.uuid, station: station.uuid, action: action}) }}">
-                    <input type="hidden" name="_token" value="{{ csrfToken }}">
-                </form>
-            {% endfor %}
-        {% endfor %}
-        <form method="post" action="{{ stationAdd }}" style="display:flex;align-items:center;gap:9px;margin-top:8px">
-            <input type="hidden" name="_token" value="{{ csrfToken }}">
-            <input class="fld" style="width:220px" type="text" name="label" placeholder="River Post" aria-label="New station" required>
-            <button class="sadd" type="submit">+ New station</button>
-        </form>
-    {% endif %}
-</div>
-
-{# ── SET·04 · Thresholds — the two this area saves together ───────────────── #}
 {% if save %}<form method="post" action="{{ save }}">
 <input type="hidden" name="_token" value="{{ csrfToken }}">{% endif %}
 <div class="c" style="margin-bottom:20px">
     <span class="tab">Thresholds<span class="src">· {{ settings.areaChose ? 'this area’s own' : 'the installation’s, until this area saves' }}</span></span>
+    <p class="use">The two numbers the module runs on. The words a ranger picks from — the types, the stations, the
+        observation kinds — each have a section of their own in the strip above.</p>
     <div class="frow">
         <label for="patrol-gap">gps gap</label>
         <div style="display:flex;align-items:center;gap:9px">

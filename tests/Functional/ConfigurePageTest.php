@@ -21,15 +21,18 @@ use Symfony\Component\DomCrawler\Crawler;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Patrol;
-use Uhifadhi\Patrol\Entity\Station;
-use Uhifadhi\Patrol\Repository\StationRepository;
 use Uhifadhi\Patrol\Service\PatrolSettingsService;
 use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 
 /**
- * ONE CONFIGURE BUTTON, ONE CONFIGURE PAGE — the shell's page over this
- * module's declared sections, and the one POST behind its Settings body.
+ * ONE CONFIGURE BUTTON, ONE CONFIGURE PAGE — the shell's page over this module's
+ * five declared sections, and the one POST behind its Settings body.
+ *
+ * THE WORD-LISTS ARE NOT DRIVEN HERE. Each keeps a section of its own now, with a
+ * case of its own beside this one ({@see PatrolTypesSectionTest},
+ * {@see PatrolStationsSectionTest}); what this case is for is the PAGE — the
+ * strip, which section is lit, the bare address, and the thresholds.
  */
 final class ConfigurePageTest extends WebTestCase
 {
@@ -109,183 +112,33 @@ final class ConfigurePageTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('demo reserve — Patrols · configure', $crawler->filter('h1.pg')->text());
         self::assertSame(
-            ['Widget library', 'Observation kinds', 'Settings'],
+            ['Widget library', 'Patrol types', 'Stations', 'Observation kinds', 'Settings'],
             $crawler->filter('.atabs a')->each(static fn (Crawler $a): string => trim($a->text())),
         );
         self::assertSame('Settings', trim($crawler->filter('.atabs a.on')->text()));
     }
 
-    /** The section body is the module's, and it is a body: no head, no strip of its own. */
-    public function testTheSettingsBodyDrawsTheDesignsFourCards(): void
+    /**
+     * THE SETTINGS SECTION IS THE TWO NUMBERS AND NOTHING ELSE, which is what the
+     * settled design draws once the types, the stations and the observation kinds
+     * each keep a section of their own. A word-list restated here would be a
+     * second place to edit it and a second place for it to be out of date.
+     */
+    public function testTheSettingsBodyDrawsTheThresholdsAlone(): void
     {
         $this->signInAsManager();
         $crawler = $this->client->request('GET', $this->configureUrl('settings'));
 
         self::assertSame(
-            ['Patrol types', 'Observation categories', 'Stations', 'Thresholds'],
+            ['Thresholds'],
             $crawler->filter('.c > .tab')->each(
                 static fn (Crawler $t): string => trim(str_replace((string) $t->filter('.src')->text(''), '', $t->text())),
             ),
         );
 
-        self::assertStringContainsString('North post', self::card($crawler, 'Stations')->text());
-    }
-
-    /**
-     * SET·01 AND SET·03 ARE ROWS WITH COUNTS AND ACTIONS, as the design draws
-     * them: the label, the wire key, how many patrols are filed under it, and
-     * the two buttons.
-     */
-    public function testTheTwoWordListsDrawARowPerWordWithItsCountAndItsActions(): void
-    {
-        $this->signInAsManager();
-        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
-
-        $stations = self::card($crawler, 'Stations');
-        $row = $stations->filter('.srow')->first();
-        self::assertSame('North post', trim($row->filter('.nm')->text()));
-        self::assertSame('north-post', trim($row->filter('.cd')->text()));
-        self::assertSame('1 patrol', trim($row->filter('.n')->text()));
-        self::assertSame(
-            ['Rename', 'Save', 'Retire'],
-            $row->filter('.acts .sact')->each(static fn (Crawler $b): string => trim($b->text())),
-        );
-        self::assertSame('+ New station', trim($stations->filter('.sadd')->text()));
-
-        // This area already had a type before the page was opened (the fixture
-        // patrol's), so the installation's seed does NOT reach back into it —
-        // which is the whole of what "seed a NEW area only" means.
-        $types = self::card($crawler, 'Patrol types');
-        self::assertSame(
-            ['Walking round'],
-            $types->filter('.srow .nm')->each(static fn (Crawler $n): string => trim($n->text())),
-        );
-        self::assertSame('+ New patrol type', trim($types->filter('.sadd')->text()));
-
-        // The not-built notes are gone from both.
-        self::assertStringNotContainsString('not built yet', $stations->text());
-        self::assertStringNotContainsString('not built yet', $types->text());
-    }
-
-    /**
-     * THE FIELD IS NOT ON THE ROW UNTIL RENAME IS PRESSED. The design's row is
-     * text and two buttons; an input sitting open on every row turns a list of
-     * words into a page of form controls. It is disclosed by the row's own
-     * Rename control and by nothing else — HTML's own disclosure, so the page
-     * still needs no script of its own.
-     */
-    public function testTheRenameFieldIsDisclosedByTheRenameControl(): void
-    {
-        $this->signInAsManager();
-        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
-
-        $row = self::card($crawler, 'Stations')->filter('.srow')->first();
-
-        // Nothing on the row itself is a field.
-        self::assertCount(0, $row->filter('.acts > .fld'));
-
-        $rename = $row->filter('.acts details');
-        self::assertCount(1, $rename);
-        self::assertNull($rename->attr('open'), 'The row opens closed.');
-        self::assertSame('Rename', trim($rename->filter('summary')->text()));
-        self::assertCount(1, $rename->filter('input.fld[name="label"]'));
-
-        // And no script anywhere makes that work.
-        self::assertCount(0, $crawler->filter('.srow script'));
-    }
-
-    /** A new station, then renamed, then retired — and never deleted. */
-    public function testAStationIsAddedRenamedAndRetiredWithoutLosingAPatrol(): void
-    {
-        $this->signInAsManager();
-        $token = $this->token();
-
-        $this->client->request('POST', $this->configureUrl('settings/stations'), ['_token' => $token, 'label' => 'Ridge Camp']);
-        self::assertResponseRedirects($this->configureUrl('settings'));
-
-        $station = $this->stations()->findOneByAreaAndKey($this->area, 'ridge-camp');
-        self::assertInstanceOf(Station::class, $station);
-
-        $this->client->request('POST', $this->configureUrl('settings/stations/'.$station->getUuid()->toRfc4122().'/rename'), [
-            '_token' => $token,
-            'label' => 'Lake Post',
-        ]);
-        $this->em->clear();
-        $station = $this->stations()->findOneByAreaAndKey($this->area, 'ridge-camp');
-        self::assertInstanceOf(Station::class, $station);
-        self::assertSame('Lake Post', $station->getLabel());
-        self::assertSame('ridge-camp', $station->getKey(), 'A rename never touches the wire value.');
-
-        $this->client->request('POST', $this->configureUrl('settings/stations/'.$station->getUuid()->toRfc4122().'/retire'), ['_token' => $token]);
-        $this->em->clear();
-        $station = $this->stations()->findOneByAreaAndKey($this->area, 'ridge-camp');
-        self::assertInstanceOf(Station::class, $station);
-        self::assertFalse($station->isActive());
-
-        // Dimmed and pilled on the page, never gone.
-        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
-        $retired = self::card($crawler, 'Stations')->filter('.srow.gone');
-        self::assertSame('Lake Post', trim($retired->filter('.nm')->text()));
-        self::assertSame('retired', trim($retired->filter('.chip.idle')->text()));
-        self::assertSame(
-            ['Rename', 'Save', 'Reactivate'],
-            $retired->filter('.acts .sact')->each(static fn (Crawler $b): string => trim($b->text())),
-        );
-    }
-
-    /** A patrol type is added, and the row says nobody has used it yet. */
-    public function testANewPatrolTypeStartsWithNoPatrolsFiledUnderIt(): void
-    {
-        $this->signInAsManager();
-
-        $this->client->request('POST', $this->configureUrl('settings/types'), ['_token' => $this->token(), 'label' => 'Drone sortie']);
-
-        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
-        $rows = self::card($crawler, 'Patrol types')->filter('.srow');
-        $last = $rows->eq($rows->count() - 1);
-        self::assertSame('Drone sortie', trim($last->filter('.nm')->text()));
-        self::assertSame('drone-sortie', trim($last->filter('.cd')->text()));
-        self::assertSame('0 patrols', trim($last->filter('.n')->text()));
-    }
-
-    /** Two words the same is refused rather than quietly made twice. */
-    public function testASecondStationWithTheSameNameIsRefused(): void
-    {
-        $this->signInAsManager();
-
-        $this->client->request('POST', $this->configureUrl('settings/stations'), ['_token' => $this->token(), 'label' => 'north POST']);
-
-        self::assertResponseRedirects($this->configureUrl('settings'));
-        self::assertCount(1, $this->stations()->findByArea($this->area));
-    }
-
-    /** Editing the words rides on the same authority the numbers do. */
-    public function testSomebodyWhoMayNotManageCannotAddAStation(): void
-    {
-        $recorder = new User()->setPassword('x')->setEmail(FixedRecordVoter::RECORDER_EMAIL)
-            ->setFirstName('Rita')->setLastName('Recorder');
-        $this->em->persist($recorder);
-        $this->em->flush();
-        $this->client->loginUser($recorder);
-
-        $this->client->request('POST', $this->configureUrl('settings/stations'), ['label' => 'Ridge Camp']);
-
-        self::assertResponseStatusCodeSame(403);
-    }
-
-    private function token(): string
-    {
-        $crawler = $this->client->request('GET', $this->configureUrl('settings'));
-
-        return (string) $crawler->filter('input[name="_token"]')->attr('value');
-    }
-
-    private function stations(): StationRepository
-    {
-        $repository = $this->em->getRepository(Station::class);
-        self::assertInstanceOf(StationRepository::class, $repository);
-
-        return $repository;
+        // Not the words, and not a link out to them either: the strip is the way.
+        self::assertStringNotContainsString('North post', $crawler->filter('.c')->text());
+        self::assertCount(0, $crawler->filter('.c .srow'));
     }
 
     /** Until an area saves, it runs on the installation's numbers. */

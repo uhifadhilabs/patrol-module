@@ -13,6 +13,11 @@
                 "main": "controllers/calendar_controller.js",
                 "fetch": "eager",
                 "enabled": true
+            },
+            "disclose": {
+                "main": "controllers/disclose_controller.js",
+                "fetch": "eager",
+                "enabled": true
             }
         },
         "importmap": {}

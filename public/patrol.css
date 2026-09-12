@@ -977,3 +977,149 @@ html.light .kheat{background:color-mix(in srgb,var(--heat,var(--acc)) calc(var(-
    template that renders from data states them once, as classes. */
 .krow .n.patrol-ksubs { min-width: 34px; }
 .kmatrix td.patrol-knone { text-align: left; }
+
+
+/* ---- a registry member that carries a fixed property ---------------------- *
+ * Copied verbatim from the design workspace's own sheet (DesignsProjects/
+ * uhifadhi-web/uhifadhi.css, the ".sbase/.sbpick/.sbicon/.stype/.stun",
+ * ".spoint/.sppick" and ".saddrow/.saddcard" families), because the shell does
+ * not ship them yet. They are GENERAL — a registry member with a fixed property,
+ * a member's point, the row that creates one — so they belong in shell.css; the
+ * hoist is debt this module carries until they are there, and the day they are
+ * this block comes out rather than being restyled.
+ *
+ * Some registries hold members that BEHAVE differently, and the difference is a
+ * key rather than a label: something downstream resolves what to do from it, so
+ * a rename must never touch it. These rules draw that property on a row, the
+ * choice between its values, the glyph the member wears, and the settings the
+ * property prefills.
+ *
+ * .sbase   the property on a row: its glyph and its word. A property is not a
+ *          status, so both values read in one quiet colour and are told apart by
+ *          the glyph — an accent would claim one of them is the live one. The
+ *          single accented variant, .ask, is a member that has no value yet: a
+ *          control, because the row is asking for one, and never an error.
+ * .sbpick  a choice between two, in two heights. In a form it joins the 34px
+ *          control family so field, picker and button sit on one baseline;
+ *          inside a list row it takes the row's own control height (21px, what
+ *          a .sact, a .chip and a .sbase compute to), so a row mid-change is
+ *          exactly as tall as its siblings.
+ * .sbicon  which glyph the member wears, where the property leaves a choice.
+ * .stype   one member: the row, and the settings the row hides.
+ * .stun    those settings, prefilled from the property and overridable per
+ *          member.                                                            */
+.sbase{display:inline-flex;align-items:center;gap:6px;flex:none;height:21px;padding:0 9px;
+  font:600 9.5px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--fog);background:none;
+  border:1px solid var(--ln2);border-radius:6px;white-space:nowrap}
+.sbase svg{height:13px;width:13px;flex:none;display:block}
+button.sbase{cursor:pointer;font-family:"JetBrains Mono",ui-monospace,monospace}
+.sbase.ask{color:var(--acc);border:1px dashed color-mix(in srgb,var(--acc) 55%,transparent)}
+.sbase.ask:hover{background:color-mix(in srgb,var(--acc) 10%,transparent)}
+.srow.gone .sbase{color:var(--dim);border-color:var(--ln)}
+/* Everything standing in a settings row is 21px, so nothing beside the property
+   is a pixel short of it. */
+.srow>.chip{height:21px;display:inline-flex;align-items:center}
+.sbpick{display:inline-flex;align-items:stretch;flex:none;height:34px;
+  border:1px solid var(--ln2);border-radius:9px;overflow:hidden;background:var(--raised)}
+.sbo{display:inline-flex;align-items:center;gap:7px;padding:0 12px;border:0;
+  border-left:1px solid var(--ln2);background:none;color:var(--fog);cursor:pointer;
+  font:600 9.5px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.08em;
+  text-transform:uppercase;white-space:nowrap}
+.sbo:first-child{border-left:0}
+.sbo svg{height:14px;width:14px;flex:none;display:block}
+.sbo:hover{color:var(--tx)}
+.sbo.on{color:var(--accT);background:var(--acc)}
+/* THE APP'S ONE ADDITION to the block above, and the design is why it is needed:
+   the design's strip is two <button>s a script lights, and a section that saves
+   in ONE post makes them radios inside their labels instead. So the lit member
+   has to be the CHECKED one, or a choice would not show until the page came
+   back. Same rule, said of the state the markup actually carries. */
+.sbo:has(input:checked){color:var(--accT);background:var(--acc)}
+.sbpick.row{height:21px;border-radius:7px}
+.sbpick.row .sbo{padding:0 9px;gap:6px}
+.sbpick.row .sbo svg{height:13px;width:13px}
+.sbicon{display:inline-flex;align-items:stretch;flex:none;height:21px;
+  border:1px solid var(--ln2);border-radius:7px;overflow:hidden;background:var(--raised)}
+.sbi{display:inline-flex;align-items:center;justify-content:center;width:26px;padding:0;border:0;
+  border-left:1px solid var(--ln2);background:none;color:var(--fog);cursor:pointer}
+.sbi:first-child{border-left:0}
+.sbi svg{height:13px;width:13px;display:block}
+.sbi:hover{color:var(--tx)}
+.sbi.on{color:var(--accT);background:var(--acc)}
+.sbi:has(input:checked){color:var(--accT);background:var(--acc)}
+/* The rule belongs to the member, not to its summary line: a member with its
+   settings open is still one entry, closed by one line under the whole of it. */
+.stype{border-bottom:1px dashed var(--ln)}
+.stype>.srow{border-bottom:0}
+.stype:last-of-type{border-bottom:0}
+.stype.shut>.stun{display:none}
+.sact .cv{display:inline-block;width:6px;height:6px;margin:-2px 0 0 5px;
+  border-right:1.4px solid currentColor;border-bottom:1.4px solid currentColor;
+  transform:rotate(45deg);vertical-align:middle}
+.stype.shut .sact .cv{transform:rotate(-45deg);margin-top:1px}
+/* A form, so the 34px control family, and every control arrives with the
+   property's default already in it. */
+.stun{display:flex;flex-wrap:wrap;align-items:center;gap:11px 24px;padding:4px 0 14px 15px;
+  border-left:2px solid color-mix(in srgb,var(--acc) 30%,transparent);margin:0 0 2px 1px}
+.stun>.tn{display:flex;align-items:center;gap:8px}
+.stun .lb{flex:none;font:600 9.5px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--dim)}
+.stun .fld{width:70px;height:34px;padding:0 11px;font-size:12.5px;text-align:center}
+.stun .u{font:500 10px "JetBrains Mono",ui-monospace,monospace;color:var(--fog)}
+.stun .to{color:var(--dim);font-size:12px}
+.stun .from{flex-basis:100%;font-size:11.5px;color:var(--dim);line-height:1.5}
+.stun .from b{color:var(--fog);font-weight:600}
+
+/* ---- a registry member's POINT -------------------------------------------- *
+ * Where a member IS, when being somewhere is part of what it is.
+ * .spoint  the point on a row, at the row's own 21px control height. .ask is a
+ *          member with no point yet — the same dashed accented control a member
+ *          with no property value gets, for the same reason: the row asks, it
+ *          does not accuse.
+ * .sppick  the plate the point is picked on, inside an add panel: the house map
+ *          plate at a form's height, the area's boundary under it, one
+ *          draggable marker on it, its legend, and the coordinate it reads out.
+ *
+ * The design draws that plate as an SVG and sizes it with rules of its own. The
+ * real plate is the ATLAS'S, and nothing about its insides is stated here — not
+ * its height, which is the custom property render_map() lifts onto it and so is
+ * stated at the call, and not the imagery frame, which is the atlas's to dress. */
+.spoint{display:inline-flex;align-items:center;gap:6px;flex:none;height:21px;padding:0 9px;
+  font:600 9.5px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.06em;
+  color:var(--fog);background:none;border:1px solid var(--ln2);border-radius:6px;
+  white-space:nowrap;font-variant-numeric:tabular-nums}
+.spoint svg{height:13px;width:13px;flex:none;display:block}
+button.spoint{cursor:pointer;font-family:"JetBrains Mono",ui-monospace,monospace}
+.spoint.ask{color:var(--acc);border:1px dashed color-mix(in srgb,var(--acc) 55%,transparent);
+  text-transform:uppercase;letter-spacing:.08em}
+.spoint.ask:hover{background:color-mix(in srgb,var(--acc) 10%,transparent)}
+.srow.gone .spoint{color:var(--dim);border-color:var(--ln)}
+.sppick{margin-top:12px}
+.sppick>.ft{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;
+  font-size:12px;line-height:1.55;color:var(--fog)}
+.sppick>.ft b{color:var(--tx)}
+.sppick>.ft .co{flex:none;font:600 10px "JetBrains Mono",ui-monospace,monospace;color:var(--tx);
+  border:1px solid var(--ln2);border-radius:6px;padding:5px 9px;font-variant-numeric:tabular-nums}
+
+/* ---- the row that creates a member, and the panel that holds it ----------- *
+ * .sadd alone is the button. .saddrow is the row it stands in once creating
+ * takes more than a name — a field, a property, a glyph, an act — at the 34px
+ * control height the form family keeps. .saddcard separates that row from the
+ * list above it by giving it a panel and a heading of its own: creating is a
+ * small form, and a form inside a list is not a list row.                      */
+.saddrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.saddrow>.fld{flex:1;width:auto;min-width:168px;height:34px;padding:0 13px;font-size:12.5px}
+.saddrow>.lb{flex:none;font:600 9.5px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--dim)}
+.saddrow>.sadd{margin-top:0;height:34px;display:inline-flex;align-items:center;white-space:nowrap}
+.saddrow>.sbicon{height:34px;border-radius:9px}
+.saddrow>.sbicon .sbi{width:34px}
+.saddrow>.sbicon .sbi svg{height:14px;width:14px}
+.saddcard{margin-top:18px;border:1px solid var(--ln2);border-radius:11px;
+  padding:12px 14px 13px;background:var(--raised)}
+.saddcard>.hd{display:block;margin-bottom:10px;color:var(--dim);
+  font:600 9px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase}
+/* The list's last entry keeps no rule of its own: the panel below it is the
+   separation, and a dashed line immediately above the panel is a second one. */
+.stype:has(+ .saddcard),.srow:has(+ .saddcard){border-bottom:0}

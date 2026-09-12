@@ -42,6 +42,7 @@ use Uhifadhi\Patrol\Controller\PatrolHoldController;
 use Uhifadhi\Patrol\Controller\PatrolRecordController;
 use Uhifadhi\Patrol\Controller\PatrolSettingsController;
 use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
+use Uhifadhi\Patrol\Controller\PatrolVocabularyController;
 use Uhifadhi\Patrol\Controller\PatrolWidgetsController;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
 use Uhifadhi\Patrol\Devkit\PatrolCommandProvider;
@@ -554,6 +555,23 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 ->args([
                     service('router'),
                     service('patrol.settings'),
+                    service('security.authorization_checker'),
+                    service('security.csrf.token_manager'),
+                ])
+                ->public();
+            $services->alias(PatrolSettingsController::class, 'patrol.controller.settings')->public();
+
+            /*
+             * THE TWO WORD-LIST SECTIONS' WRITES — the patrol types and the
+             * stations. Same door and same reason as the settings above: each
+             * changes the words everybody else must use, so each rides on
+             * "patrols.manage" and exists only where SecurityBundle can enforce
+             * it. The service behind them is unconditional; reading a word-list
+             * is not a privilege.
+             */
+            $services->set('patrol.controller.vocabulary', PatrolVocabularyController::class)
+                ->args([
+                    service('router'),
                     service('patrol.vocabulary'),
                     service(PatrolTypeRepository::class),
                     service(StationRepository::class),
@@ -561,7 +579,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service('security.csrf.token_manager'),
                 ])
                 ->public();
-            $services->alias(PatrolSettingsController::class, 'patrol.controller.settings')->public();
+            $services->alias(PatrolVocabularyController::class, 'patrol.controller.vocabulary')->public();
         }
 
         /*

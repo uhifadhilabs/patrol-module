@@ -1,0 +1,210 @@
+{# THE PATROL TYPES SECTION OF THE CONFIGURE PAGE — body only.
+
+   NO HEAD, NO STRIP, NO CRUMB, NO WAY BACK. The shell draws all four; this file
+   writes the section's content and nothing around it, which is the whole of what
+   a rendered section is.
+
+   ONE SECTION, ONE POST. Every base, glyph and tunable below is a field of this
+   section, and the design draws ONE save row under them. The add panel's own
+   button submits the same form, so a name typed there is created whichever of
+   the two buttons is pressed.
+   → POST …/configure/types (patrol_types_save)
+
+   A ROW'S RENAME, RETIRE AND REACTIVATE ARE EACH THEIR OWN POST, because each is
+   a decision on its own. A form cannot be nested inside another and the shell's
+   `.srow > .nm | .cd | .n | .acts` rules are direct-child rules, so each of those
+   forms sits at the END of the section and its controls name it with the HTML
+   `form` attribute.
+   @see https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fae-form
+
+   THE TWO PICKERS ARE RADIOS, NOT BUTTONS. The design draws `<button>`s and a
+   script; a section that saves in one POST makes them radios inside their
+   labels, so the lit member and the checked one are the same thing and the page
+   needs no script to keep them so. The radio itself is `hidden` — clicking the
+   label still checks it — and `.sbo:has(input:checked)` is what lights it.
+
+   THE ONE THING THAT DOES NEED A SCRIPT is the tunables disclosure. The design
+   hides them behind the row's own Tunables control and its `.stype.shut` class,
+   and HTML's own `<details>` cannot do it here: the row is full of buttons and
+   inputs, and inside a `<summary>` every one of them would toggle the disclosure
+   instead of doing its job. So one Stimulus controller toggles that one class.
+   The base picker IS a `<details>`, because its summary is a badge and nothing
+   else. #}
+
+{% set save = patrol_url('patrol_types_save', {uuid: area.uuid}) %}
+
+{# Area scope, said once, plainly — the one fact that changes how the section is
+   read. #}
+<div class="tx-say">{{ ux_icon('patrol:shield', {width: 17, height: 17}) }}<div><b>These patrol types are {{ area.name }}&rsquo;s own.</b>
+    Each area keeps its own, so a type added here reaches only the handsets patrolling {{ area.name }}.
+    Editing rides on <span class="mono">patrols.manage</span> — the authority over the words everybody else must
+    use. Being able to log a patrol (<span class="mono">patrols.record</span>) is not enough.</div></div>
+
+{% if save %}<form method="post" action="{{ save }}">
+<input type="hidden" name="_token" value="{{ csrfToken }}">{% endif %}
+<div class="c" style="margin-bottom:20px">
+    <span class="tab">Patrol types<span class="src">· area scope</span></span>
+    {# Never deleted: a patrol filed under a type keeps it. Retiring takes it off
+       the handset at the next sync and leaves every record intact. The base is a
+       fixed key, never a label: the handset resolves what it records from it. #}
+    <p class="use">A type carries <b>what it records</b>, and the handset reads it:
+        {%- for base in bases %} <b>{{ base.label }}</b> — {{ base.records }}{{ loop.last ? '.' : ';' }}{% endfor %}
+        The base is picked when the type is created and can be changed on its row, and it prefills the three numbers
+        under it: the pace a patrol of this type is expected to keep, how wide its track counts as covered, and where
+        an observation is placed.</p>
+
+    {% for type in types %}
+        {% set n = typeCounts[type.key]|default(0) %}
+        {% set defaults = type.base ? baseDefaults[type.base.value] : null %}
+        <div class="stype shut" {{ stimulus_controller('@uhifadhi/patrol-module/disclose') }}>
+            <div class="srow{{ type.active ? '' : ' gone' }}">
+                <span class="nm">{{ type.label }}</span>
+                <span class="cd">{{ type.key }}</span>
+                {% if not type.active %}<span class="chip idle">retired</span>{% endif %}
+                {% if save %}
+                    {# CLOSED, THE BADGE; OPEN, THE TWO PICKERS. `.ask` is a type
+                       nobody has answered for yet — a control, because the row is
+                       asking, and never an error. #}
+                    <details>
+                        <summary class="sbase{{ type.base ? '' : ' ask' }}">
+                            {{- ux_icon('patrol:' ~ typeGlyphs[type.uuid], {width: 13, height: 13}) -}}
+                            {{ type.base ? type.base.label : 'choose base' }}
+                        </summary>
+                        <span class="sbpick row" role="group" aria-label="What {{ type.label }} records">
+                            {% for base in bases %}
+                                <label class="sbo">
+                                    <input type="radio" name="base[{{ type.uuid }}]" value="{{ base.value }}"
+                                           {{ type.base == base ? 'checked' : '' }} hidden>
+                                    {{- ux_icon('patrol:' ~ baseDefaults[base.value].glyph, {width: 13, height: 13}) -}}
+                                    {{ base.label }}
+                                </label>
+                            {% endfor %}
+                        </span>
+                        <span class="sbicon" role="group" aria-label="The glyph {{ type.label }} wears">
+                            {% for glyph in glyphs %}
+                                <label class="sbi" title="{{ glyph }}">
+                                    <input type="radio" name="glyph[{{ type.uuid }}]" value="{{ glyph }}"
+                                           {{ type.glyph == glyph ? 'checked' : '' }} hidden>
+                                    {{- ux_icon('patrol:' ~ glyph, {width: 13, height: 13}) -}}
+                                </label>
+                            {% endfor %}
+                        </span>
+                    </details>
+                {% else %}
+                    <span class="sbase{{ type.base ? '' : ' ask' }}">
+                        {{- ux_icon('patrol:' ~ typeGlyphs[type.uuid], {width: 13, height: 13}) -}}
+                        {{ type.base ? type.base.label : 'no base' }}
+                    </span>
+                {% endif %}
+                <span class="n">{{ n }} {{ n == 1 ? 'patrol' : 'patrols' }}</span>
+                <span class="acts">
+                    <button class="sact" type="button"
+                            {{ stimulus_action('@uhifadhi/patrol-module/disclose', 'toggle') }}>Tunables<i class="cv"></i></button>
+                    {% if save %}
+                        {# THE FIELD IS DISCLOSED BY THE ROW'S OWN RENAME CONTROL. A
+                           field open on every row turns a list of words into a page
+                           of form controls.
+                           @see https://html.spec.whatwg.org/multipage/interactive-elements.html#the-details-element #}
+                        <details>
+                            <summary class="sact">Rename</summary>
+                            <input class="fld" style="width:150px" type="text" name="label" value="{{ type.label }}"
+                                   form="patrol-type-rename-{{ type.uuid }}" aria-label="Rename {{ type.label }}" required>
+                            <button class="sact" type="submit" form="patrol-type-rename-{{ type.uuid }}">Save</button>
+                        </details>
+                        {% if type.active %}
+                            <button class="sact warn" type="submit" form="patrol-type-retire-{{ type.uuid }}">Retire</button>
+                        {% else %}
+                            <button class="sact" type="submit" form="patrol-type-reactivate-{{ type.uuid }}">Reactivate</button>
+                        {% endif %}
+                    {% endif %}
+                </span>
+            </div>
+            <div class="stun">
+                <div class="tn">
+                    <span class="lb">pace</span>
+                    <input class="fld" type="number" name="pace_min[{{ type.uuid }}]" min="{{ minPaceKmh }}" max="{{ maxPaceKmh }}"
+                           value="{{ type.paceMinKmh }}" aria-label="Slowest pace for {{ type.label }}"{{ save ? '' : ' disabled' }}>
+                    <span class="to">&ndash;</span>
+                    <input class="fld" type="number" name="pace_max[{{ type.uuid }}]" min="{{ minPaceKmh }}" max="{{ maxPaceKmh }}"
+                           value="{{ type.paceMaxKmh }}" aria-label="Fastest pace for {{ type.label }}"{{ save ? '' : ' disabled' }}>
+                    <span class="u">km/h</span>
+                </div>
+                <div class="tn">
+                    <span class="lb">coverage buffer</span>
+                    <input class="fld" type="number" name="buffer[{{ type.uuid }}]" min="{{ minBufferM }}" max="{{ maxBufferM }}"
+                           value="{{ type.coverageBufferM }}" aria-label="Coverage buffer for {{ type.label }}"{{ save ? '' : ' disabled' }}>
+                    <span class="u">m</span>
+                </div>
+                <div class="tn">
+                    <span class="lb">observations</span>
+                    <span class="sbpick" role="group" aria-label="Where an observation of {{ type.label }} is placed">
+                        {% for placement in placements %}
+                            <label class="sbo">
+                                <input type="radio" name="placement[{{ type.uuid }}]" value="{{ placement.value }}"
+                                       {{ type.observationPlacement == placement ? 'checked' : '' }}{{ save ? '' : ' disabled' }} hidden>
+                                {{ placement.label }}
+                            </label>
+                        {% endfor %}
+                    </span>
+                </div>
+                {% if defaults %}
+                    <span class="from">Prefilled from the <b>{{ type.base.label }}</b> base:
+                        {{ defaults.sentence }}. A number changed here belongs to this type alone.</span>
+                {% else %}
+                    <span class="from">Nothing is prefilled until this type is given a base. A number typed here
+                        belongs to this type alone.</span>
+                {% endif %}
+            </div>
+        </div>
+    {% else %}
+        <div class="srow"><span class="nm">No patrol types are configured.</span></div>
+    {% endfor %}
+
+    {% if save %}
+        <div class="saddcard">
+            <span class="hd">Add a patrol type</span>
+            <div class="saddrow">
+                <input class="fld" type="text" name="label" placeholder="Name of the new patrol type"
+                       aria-label="New patrol type">
+                <span class="lb">records</span>
+                <span class="sbpick" role="group" aria-label="What the new type records">
+                    {% for base in bases %}
+                        <label class="sbo">
+                            <input type="radio" name="add_base" value="{{ base.value }}" hidden>
+                            {{- ux_icon('patrol:' ~ baseDefaults[base.value].glyph, {width: 14, height: 14}) -}}
+                            {{ base.label }}
+                        </label>
+                    {% endfor %}
+                </span>
+                <span class="lb">glyph</span>
+                <span class="sbicon" role="group" aria-label="The glyph the new type wears">
+                    {% for glyph in glyphs %}
+                        <label class="sbi" title="{{ glyph }}">
+                            <input type="radio" name="add_glyph" value="{{ glyph }}" hidden>
+                            {{- ux_icon('patrol:' ~ glyph, {width: 14, height: 14}) -}}
+                        </label>
+                    {% endfor %}
+                </span>
+                <button class="sadd" type="submit">+ Add type</button>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+{% if save %}
+    {# NO CANCEL LINK OUT OF THE MODULE. The section strip, the lit Configure and
+       the crumb are the ways back; a fourth would be the thing the frame
+       replaced. #}
+    <div class="save-row"><button class="cta" type="submit">Save patrol types</button></div>
+</form>
+
+    {# The row forms, at the end of the section, named by the controls above. #}
+    {% for type in types %}
+        {% for action in ['rename', 'retire', 'reactivate'] %}
+            <form id="patrol-type-{{ action }}-{{ type.uuid }}" method="post"
+                  action="{{ patrol_url('patrol_type_act', {uuid: area.uuid, type: type.uuid, action: action}) }}">
+                <input type="hidden" name="_token" value="{{ csrfToken }}">
+            </form>
+        {% endfor %}
+    {% endfor %}
+{% endif %}

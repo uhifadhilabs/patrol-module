@@ -62,6 +62,23 @@ final readonly class PatrolBaseDefaults
      */
     public const string UNCHOSEN_GLYPH = 'circle-question';
 
+    /**
+     * THE BOUNDS THE SECTION'S FIELDS CARRY, and the bounds a hand-posted value is
+     * CLAMPED to. A form is not a security boundary: a number outside these is one
+     * the browser's own `min`/`max` would never have sent, so it is brought inside
+     * rather than refused with a sentence nobody typed their way into.
+     *
+     * A pace floor of zero is deliberate — a patrol that stops is at zero, and the
+     * band is what "stopped" is read against.
+     */
+    public const int MIN_PACE_KMH = 0;
+
+    public const int MAX_PACE_KMH = 120;
+
+    public const int MIN_BUFFER_M = 5;
+
+    public const int MAX_BUFFER_M = 2000;
+
     public static function glyphOf(?PatrolBaseEnum $base, ?string $chosen): string
     {
         if (null !== $chosen && '' !== $chosen) {

@@ -25,7 +25,6 @@ use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolSettingsRepository;
 use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Repository\StationRepository;
-use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;
 use Uhifadhi\Patrol\Service\PatrolSettingsService;
 use Uhifadhi\Patrol\Service\PatrolVocabularyService;
 use Uhifadhi\Patrol\Shell\PatrolConfigurationSections;
@@ -69,7 +68,6 @@ final class PatrolConfigurationSectionsTest extends TestCase
                 $stations,
                 ['walk' => ['label' => 'Walking round']],
             ),
-            new TaxonomyKindRepository($registry),
             null,
         );
     }
@@ -80,38 +78,50 @@ final class PatrolConfigurationSectionsTest extends TestCase
     }
 
     /**
-     * THE THREE SECTIONS, in the words this module chose — and two of them keep
-     * an address of their own, exactly as the settled design draws them.
+     * THE FIVE SECTIONS, in the ruled order and in the words this module chose:
+     * the library, the types, the places, the words, the numbers. Two of them
+     * keep an address of their own, exactly as the settled design draws them.
      */
-    public function testItDeclaresTheLibraryTheKindsAndTheSettings(): void
+    public function testItDeclaresTheLibraryTheTypesTheStationsTheKindsAndTheSettings(): void
     {
         $sections = $this->declaration()->sections();
 
+        // `types`, not `patrol_types`: the shell's configure route requires a
+        // section of `[a-z][a-z0-9-]*`, so an underscore is a section with no
+        // address — and it is the word the design's own crumb ends in.
         self::assertSame(
-            [ConfigurationSection::WIDGETS, 'kinds', ConfigurationSection::SETTINGS],
+            [
+                ConfigurationSection::WIDGETS,
+                PatrolConfigurationSections::TYPES,
+                PatrolConfigurationSections::STATIONS,
+                'kinds',
+                ConfigurationSection::SETTINGS,
+            ],
             array_map(static fn (ConfigurationSection $s): string => $s->id, $sections),
         );
         self::assertSame(
-            ['Widget library', 'Observation kinds', 'Settings'],
+            ['Widget library', 'Patrol types', 'Stations', 'Observation kinds', 'Settings'],
             array_map(static fn (ConfigurationSection $s): string => $s->label, $sections),
         );
         self::assertFalse($sections[0]->isRendered());
-        self::assertFalse($sections[1]->isRendered());
+        self::assertTrue($sections[1]->isRendered());
         self::assertTrue($sections[2]->isRendered());
+        self::assertFalse($sections[3]->isRendered());
+        self::assertTrue($sections[4]->isRendered());
     }
 
     /**
-     * A DECLARATION IS CONSULTED ON EVERY PAGE OF THE MODULE, so the one body
-     * the shell renders is gathered only where it is drawn.
+     * A DECLARATION IS CONSULTED ON EVERY PAGE OF THE MODULE, so the bodies the
+     * shell renders are gathered only where they are drawn.
      */
-    public function testTheSettingsBodyIsNotBuiltAwayFromTheConfigurePage(): void
+    public function testNoRenderedBodyIsBuiltAwayFromTheConfigurePage(): void
     {
         $request = new Request();
         $request->attributes->set('_route', 'patrol_dashboard');
 
-        $sections = $this->declaration($request)->sections();
-
-        self::assertSame([], $sections[2]->variables);
+        foreach ($this->declaration($request)->sections() as $section) {
+            self::assertSame([], $section->variables, $section->id);
+        }
     }
 
     /** A request that names no area gets an empty heading rather than a throw. */
