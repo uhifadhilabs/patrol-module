@@ -16,6 +16,7 @@ namespace Uhifadhi\Patrol\Controller;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
@@ -25,20 +26,22 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
-use Uhifadhi\Bundle\ShellBundle\Frame\Controller\ConfigureController;
 use Uhifadhi\Patrol\Entity\PatrolType;
 use Uhifadhi\Patrol\Entity\Station;
 use Uhifadhi\Patrol\Enum\ObservationPlacementEnum;
 use Uhifadhi\Patrol\Enum\PatrolBaseEnum;
 use Uhifadhi\Patrol\Exception\VocabularyConflictException;
+use Uhifadhi\Patrol\Model\PatrolBaseDefaults;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Repository\StationRepository;
 use Uhifadhi\Patrol\Service\GeoService;
+use Uhifadhi\Patrol\Service\PatrolMapService;
+use Uhifadhi\Patrol\Service\PatrolScreenAccessService;
 use Uhifadhi\Patrol\Service\PatrolVocabularyService;
-use Uhifadhi\Patrol\Shell\PatrolConfigurationSections;
 
 /**
  * THE WRITES BEHIND THE TWO WORD-LIST SECTIONS — Patrol types and Stations, each
@@ -67,9 +70,20 @@ use Uhifadhi\Patrol\Shell\PatrolConfigurationSections;
  * clamped, what collides and why a retirement never deletes are all
  * {@see PatrolVocabularyService}'s.
  *
- * THERE IS NO GET HERE. Reading a section is the SHELL's configure page, and the
- * shell's route answers GET at these very addresses; a module that also served
- * them would be a second answer to where configuration lives.
+ * IT SERVES THE TWO GETS AS WELL, and the stylesheet is why. A section the shell
+ * renders as a BODY inside its own configure page can spend only the vocabulary
+ * the SHELL's sheet ships: that page links the shell's sheet and no module's, and
+ * it is not the shell's business to know which sheets a module's section needs.
+ * Both of these sections draw this module's own families — `.stype`, `.stun`,
+ * `.sbase`, `.sbpick`, `.sbicon`, `.spoint`, `.sppick`, `.tx-say` — and the
+ * stations picker draws the atlas's map plate besides, so each keeps an ADDRESS of
+ * its own and its template links what it draws. That is not a second answer to
+ * where configuration lives: the section still belongs to the configure page, wears
+ * its heading and its strip, and keeps the Configure action lit, exactly as the
+ * observation kinds section beside it does.
+ *
+ * @see PatrolTaxonomyController::show() — the same
+ *      arrangement, for the same reason
  */
 #[Route(defaults: [RegistryBundle::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final readonly class PatrolVocabularyController
@@ -84,6 +98,15 @@ final readonly class PatrolVocabularyController
      */
     public const string CSRF_TOKEN_ID = PatrolSettingsController::CSRF_TOKEN_ID;
 
+    /**
+     * THE TWO ADDRESSES, published because the declaration names them in the strip
+     * and every save redirects back to one. A route name typed twice is a route
+     * name that eventually differs.
+     */
+    public const string TYPES_ROUTE = 'patrol_types';
+
+    public const string STATIONS_ROUTE = 'patrol_stations';
+
     /** What a row's buttons may ask for. Anything else is not a button we drew. */
     private const array ACTIONS = ['rename', 'retire', 'reactivate'];
 
@@ -94,11 +117,14 @@ final readonly class PatrolVocabularyController
     private const string POINT_SENTENCE = 'That is not a place on the map. Nothing was saved — drag the marker on the plate and save again.';
 
     public function __construct(
+        private Environment $twig,
         private UrlGeneratorInterface $router,
         private PatrolVocabularyService $vocabulary,
+        private PatrolMapService $maps,
         private GeoService $geo,
         private PatrolTypeRepository $types,
         private StationRepository $stations,
+        private PatrolScreenAccessService $screens,
         private AuthorizationCheckerInterface $authorization,
         private CsrfTokenManagerInterface $csrfTokenManager,
     ) {
@@ -106,8 +132,53 @@ final readonly class PatrolVocabularyController
 
     // ── the Patrol types section ──────────────────────────────────────────────
 
+    /**
+     * THE SECTION, READ. Open to anybody the installation lets onto the configure
+     * page, exactly as the Settings section is — reading what an area patrols on is
+     * not a privilege. The WRITE controls are drawn only for somebody who may
+     * manage, so a reader gets the section rather than a form that answers 403.
+     */
     #[Route(
-        '/areas/{uuid}/modules/patrols/configure/types',
+        '/areas/{uuid}/modules/patrols/types',
+        name: 'patrol_types',
+        requirements: ['uuid' => Requirement::UUID],
+        methods: ['GET'],
+        priority: 2,
+    )]
+    public function types(#[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area): Response
+    {
+        /*
+         * AN AREA NOBODY HAS CONFIGURED YET OPENS ON THE INSTALLATION'S WORDS,
+         * written in as its own — the one thing `patrol.types` is still for. After
+         * this the two have nothing to do with each other: renaming a type here
+         * changes this area and no other, and a later config change never reaches
+         * back into a list somebody has curated.
+         */
+        $this->vocabulary->seedTypes($area);
+        $types = $this->types->findByArea($area);
+
+        return new Response($this->twig->render('@UhifadhiPatrol/types/show.html.twig', [
+            'area' => $area,
+            'types' => $types,
+            'typeCounts' => $this->types->countPatrolsByArea($area),
+            'bases' => PatrolBaseEnum::cases(),
+            // WHAT EACH BASE SEEDS AND WHAT MARK A ROW DRAWS, resolved here: both
+            // are one `match` over an enum, and a template that reached for them
+            // would be a template holding the rule.
+            'baseDefaults' => self::baseDefaults(),
+            'typeGlyphs' => self::glyphsOf($types),
+            'glyphs' => PatrolBaseDefaults::GLYPHS,
+            'placements' => ObservationPlacementEnum::cases(),
+            'minPaceKmh' => PatrolBaseDefaults::MIN_PACE_KMH,
+            'maxPaceKmh' => PatrolBaseDefaults::MAX_PACE_KMH,
+            'minBufferM' => PatrolBaseDefaults::MIN_BUFFER_M,
+            'maxBufferM' => PatrolBaseDefaults::MAX_BUFFER_M,
+            ...$this->chrome(),
+        ]));
+    }
+
+    #[Route(
+        '/areas/{uuid}/modules/patrols/types',
         name: 'patrol_types_save',
         requirements: ['uuid' => Requirement::UUID],
         methods: ['POST'],
@@ -155,20 +226,20 @@ final readonly class PatrolVocabularyController
                     glyph: $request->request->getString('add_glyph'),
                 );
             } catch (VocabularyConflictException $conflict) {
-                return $this->back($request, $area, PatrolConfigurationSections::TYPES, 'error', $conflict->getMessage());
+                return $this->back($request, $area, self::TYPES_ROUTE, 'error', $conflict->getMessage());
             }
 
-            return $this->back($request, $area, PatrolConfigurationSections::TYPES, 'success', \sprintf(
+            return $this->back($request, $area, self::TYPES_ROUTE, 'success', \sprintf(
                 '"%s" is a patrol type in this area now.',
                 $created->getLabel(),
             ));
         }
 
-        return $this->back($request, $area, PatrolConfigurationSections::TYPES, 'success', 'Saved. These are this area’s patrol types.');
+        return $this->back($request, $area, self::TYPES_ROUTE, 'success', 'Saved. These are this area’s patrol types.');
     }
 
     #[Route(
-        '/areas/{uuid}/modules/patrols/configure/types/{type}/{action}',
+        '/areas/{uuid}/modules/patrols/types/{type}/{action}',
         name: 'patrol_type_act',
         requirements: ['uuid' => Requirement::UUID, 'type' => Requirement::UUID],
         methods: ['POST'],
@@ -193,16 +264,86 @@ final readonly class PatrolVocabularyController
                 default => \sprintf('"%s" is back in use.', $this->vocabulary->reactivateType($record)->getLabel()),
             };
         } catch (VocabularyConflictException $conflict) {
-            return $this->back($request, $area, PatrolConfigurationSections::TYPES, 'error', $conflict->getMessage());
+            return $this->back($request, $area, self::TYPES_ROUTE, 'error', $conflict->getMessage());
         }
 
-        return $this->back($request, $area, PatrolConfigurationSections::TYPES, 'success', $message);
+        return $this->back($request, $area, self::TYPES_ROUTE, 'success', $message);
     }
 
     // ── the Stations section ──────────────────────────────────────────────────
 
+    /**
+     * THE SECTION, READ — and the plate its point is picked on.
+     *
+     * ONE PLATE FOR THE WHOLE SECTION, whichever row asked, and the design is why:
+     * it draws the picker inside the add panel with a marker whose own title names
+     * an EXISTING station, because a point is a point whichever row asked for it.
+     * So a row's control names itself in `?point=` and the plate comes back bound
+     * to that station — one map on the page rather than one per row, and the state
+     * the design drew rather than a component it did not.
+     *
+     * WHERE THE MARKER STARTS: on the station's own point if it has one, else in
+     * the middle of the area, which is the only honest answer to "we do not know".
+     */
     #[Route(
-        '/areas/{uuid}/modules/patrols/configure/stations',
+        '/areas/{uuid}/modules/patrols/stations',
+        name: 'patrol_stations',
+        requirements: ['uuid' => Requirement::UUID],
+        methods: ['GET'],
+        priority: 2,
+    )]
+    public function stations(
+        Request $request,
+        #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
+    ): Response {
+        $stations = $this->stations->findByArea($area);
+
+        $asked = $request->query->getString('point');
+        $placing = '' !== $asked ? $this->stations->findOneByAreaAndUuid($area, $asked) : null;
+
+        $placed = [];
+        $points = [];
+        foreach ($stations as $station) {
+            $point = $station->getPoint();
+            if (null === $point) {
+                continue;
+            }
+
+            [$lon, $lat] = $this->geo->coordinates($point);
+            $points[$station->getUuid()->toRfc4122()] = $this->geo->formatDms($lon, $lat);
+            // The station being placed IS the marker, so it is not also drawn as
+            // one of the quiet ones underneath it.
+            if ($station !== $placing) {
+                $placed[] = ['name' => $station->getLabel(), 'lon' => $lon, 'lat' => $lat];
+            }
+        }
+
+        $boundary = $area->getGeom();
+        $own = $placing?->getPoint();
+        $start = null !== $own
+            ? $this->geo->coordinates($own)
+            : (null !== $boundary ? $this->geo->centre($boundary) : null);
+        [$lon, $lat] = $start ?? [0.0, 0.0];
+        $label = $placing?->getLabel() ?? 'the new station';
+
+        return new Response($this->twig->render('@UhifadhiPatrol/stations/show.html.twig', [
+            'area' => $area,
+            'stations' => $stations,
+            'stationCounts' => $this->stations->countPatrolsByArea($area),
+            'stationPoints' => $points,
+            'placing' => $placing,
+            'placingLabel' => $label,
+            'plate' => $this->maps->stationPoint($boundary, $placed, $lat, $lon, $label),
+            'plateCoordinate' => $this->geo->formatDms($lon, $lat),
+            // The two the marker's position travels in, and what a save reads back.
+            'plateLat' => $lat,
+            'plateLng' => $lon,
+            ...$this->chrome(),
+        ]));
+    }
+
+    #[Route(
+        '/areas/{uuid}/modules/patrols/stations',
         name: 'patrol_stations_save',
         requirements: ['uuid' => Requirement::UUID],
         methods: ['POST'],
@@ -224,7 +365,7 @@ final readonly class PatrolVocabularyController
             (float) $request->request->getString('point_lng'),
         );
         if (null === $point) {
-            return $this->back($request, $area, PatrolConfigurationSections::STATIONS, 'error', self::POINT_SENTENCE);
+            return $this->back($request, $area, self::STATIONS_ROUTE, 'error', self::POINT_SENTENCE);
         }
 
         $label = trim($request->request->getString('label'));
@@ -232,10 +373,10 @@ final readonly class PatrolVocabularyController
             try {
                 $created = $this->vocabulary->addStation($area, $label, point: $point);
             } catch (VocabularyConflictException $conflict) {
-                return $this->back($request, $area, PatrolConfigurationSections::STATIONS, 'error', $conflict->getMessage());
+                return $this->back($request, $area, self::STATIONS_ROUTE, 'error', $conflict->getMessage());
             }
 
-            return $this->back($request, $area, PatrolConfigurationSections::STATIONS, 'success', \sprintf(
+            return $this->back($request, $area, self::STATIONS_ROUTE, 'success', \sprintf(
                 '"%s" is a station in this area now.',
                 $created->getLabel(),
             ));
@@ -249,17 +390,17 @@ final readonly class PatrolVocabularyController
         if ($station instanceof Station) {
             $this->vocabulary->setStationPoint($station, $point);
 
-            return $this->back($request, $area, PatrolConfigurationSections::STATIONS, 'success', \sprintf(
+            return $this->back($request, $area, self::STATIONS_ROUTE, 'success', \sprintf(
                 '"%s" sets off from there now.',
                 $station->getLabel(),
             ));
         }
 
-        return $this->back($request, $area, PatrolConfigurationSections::STATIONS, 'success', 'Saved. These are this area’s stations.');
+        return $this->back($request, $area, self::STATIONS_ROUTE, 'success', 'Saved. These are this area’s stations.');
     }
 
     #[Route(
-        '/areas/{uuid}/modules/patrols/configure/stations/{station}/{action}',
+        '/areas/{uuid}/modules/patrols/stations/{station}/{action}',
         name: 'patrol_station_act',
         requirements: ['uuid' => Requirement::UUID, 'station' => Requirement::UUID],
         methods: ['POST'],
@@ -284,10 +425,61 @@ final readonly class PatrolVocabularyController
                 default => \sprintf('"%s" is back in use.', $this->vocabulary->reactivateStation($record)->getLabel()),
             };
         } catch (VocabularyConflictException $conflict) {
-            return $this->back($request, $area, PatrolConfigurationSections::STATIONS, 'error', $conflict->getMessage());
+            return $this->back($request, $area, self::STATIONS_ROUTE, 'error', $conflict->getMessage());
         }
 
-        return $this->back($request, $area, PatrolConfigurationSections::STATIONS, 'success', $message);
+        return $this->back($request, $area, self::STATIONS_ROUTE, 'success', $message);
+    }
+
+    // ── what every section's template is given besides its own rows ───────────
+
+    /**
+     * @return array{recordScreens: bool, mayManage: bool, csrfToken: string}
+     */
+    private function chrome(): array
+    {
+        return [
+            // The one page action either screen draws. The way back is the strip,
+            // the lit Configure and the crumb — never a button of its own.
+            'recordScreens' => $this->screens->mayRecord(),
+            // WHETHER THE FORM IS DRAWN AT ALL. A reader gets the section read-only
+            // rather than controls that answer 403 when pressed.
+            'mayManage' => $this->screens->mayManage(),
+            'csrfToken' => $this->csrfTokenManager->getToken(self::CSRF_TOKEN_ID)->getValue(),
+        ];
+    }
+
+    /**
+     * What each base prefills, keyed by the wire value the section's radios carry.
+     *
+     * @return array<string, PatrolBaseDefaults>
+     */
+    private static function baseDefaults(): array
+    {
+        $defaults = [];
+        foreach (PatrolBaseEnum::cases() as $base) {
+            $defaults[$base->value] = PatrolBaseDefaults::of($base);
+        }
+
+        return $defaults;
+    }
+
+    /**
+     * The mark each row draws, keyed by the type's uuid — its own, or its base's,
+     * or the question mark a row with no base is asking with.
+     *
+     * @param list<PatrolType> $types
+     *
+     * @return array<string, string>
+     */
+    private static function glyphsOf(array $types): array
+    {
+        $glyphs = [];
+        foreach ($types as $type) {
+            $glyphs[$type->getUuid()->toRfc4122()] = PatrolBaseDefaults::glyphOf($type->getBase(), $type->getGlyph());
+        }
+
+        return $glyphs;
     }
 
     // ── reading the section's fields ──────────────────────────────────────────
@@ -336,21 +528,16 @@ final readonly class PatrolVocabularyController
         }
     }
 
-    private function back(Request $request, AreaOfInterest $area, string $section, string $type, string $message): RedirectResponse
+    private function back(Request $request, AreaOfInterest $area, string $route, string $type, string $message): RedirectResponse
     {
         $session = $request->hasSession() ? $request->getSession() : null;
         if ($session instanceof FlashBagAwareSessionInterface) {
             $session->getFlashBag()->add($type, $message);
         }
 
-        // BACK TO THE SECTION THAT WAS SAVED, NAMED. The bare address belongs to
-        // the page's FIRST section — the widget library, a screen of its own — so
-        // a save that returned there would land somebody on a different page than
-        // the one they saved.
-        return new RedirectResponse($this->router->generate(ConfigureController::MODULE_ROUTE, [
-            'uuid' => $area->getUuidString(),
-            'slug' => PatrolModuleProvider::SLUG,
-            'section' => $section,
-        ]));
+        // BACK TO THE SECTION THAT WAS SAVED, at its own address. A save that
+        // returned to the bare configure address would land somebody on the widget
+        // library — the page's first section — rather than on what they saved.
+        return new RedirectResponse($this->router->generate($route, ['uuid' => $area->getUuidString()]));
     }
 }

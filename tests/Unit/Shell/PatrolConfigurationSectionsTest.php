@@ -20,16 +20,10 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\AreaBundle\Repository\AreaOfInterestRepository;
-use Uhifadhi\Bundle\AtlasBundle\Map\MapBuilderInterface;
 use Uhifadhi\Contracts\Shell\ConfigurationSection;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolSettingsRepository;
-use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
-use Uhifadhi\Patrol\Repository\StationRepository;
-use Uhifadhi\Patrol\Service\GeoService;
-use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolSettingsService;
-use Uhifadhi\Patrol\Service\PatrolVocabularyService;
 use Uhifadhi\Patrol\Shell\PatrolConfigurationSections;
 
 /**
@@ -48,10 +42,10 @@ final class PatrolConfigurationSectionsTest extends TestCase
         $areas = $this->createStub(AreaOfInterestRepository::class);
         $areas->method('findOneBy')->willReturn($area);
 
-        // REAL COLLABORATORS OVER AN EMPTY REGISTRY. None of them is reached on
-        // the pages this test drives — the declaration answers before it queries
-        // — and a repository over a registry that was never asked for a manager
-        // is cheaper to build than a double of a final class.
+        // A REAL SETTINGS SERVICE OVER AN EMPTY REGISTRY. It is not reached on the
+        // pages this test drives — the declaration answers before it queries — and
+        // a repository over a registry that was never asked for a manager is
+        // cheaper to build than a double of a final class.
         $registry = $this->createStub(ManagerRegistry::class);
 
         return new PatrolConfigurationSections(
@@ -63,16 +57,6 @@ final class PatrolConfigurationSectionsTest extends TestCase
                 5.0,
                 90,
             ),
-            $types = new PatrolTypeRepository($registry),
-            $stations = new StationRepository($registry),
-            new PatrolVocabularyService(
-                $this->createStub(EntityManagerInterface::class),
-                $types,
-                $stations,
-                ['walk' => ['label' => 'Walking round']],
-            ),
-            new PatrolMapService($this->createStub(MapBuilderInterface::class)),
-            new GeoService(),
             null,
         );
     }
@@ -84,16 +68,17 @@ final class PatrolConfigurationSectionsTest extends TestCase
 
     /**
      * THE FIVE SECTIONS, in the ruled order and in the words this module chose:
-     * the library, the types, the places, the words, the numbers. Two of them
-     * keep an address of their own, exactly as the settled design draws them.
+     * the library, the types, the places, the words, the numbers.
+     *
+     * FOUR OF THEM KEEP AN ADDRESS OF THEIR OWN, and the stylesheet is why: a
+     * section the shell renders as a body inside its own configure page can spend
+     * only the vocabulary the SHELL's sheet ships, and each of those four draws
+     * families of its own. Settings spends the shell's alone, so it stays a body.
      */
     public function testItDeclaresTheLibraryTheTypesTheStationsTheKindsAndTheSettings(): void
     {
         $sections = $this->declaration()->sections();
 
-        // `types`, not `patrol_types`: the shell's configure route requires a
-        // section of `[a-z][a-z0-9-]*`, so an underscore is a section with no
-        // address — and it is the word the design's own crumb ends in.
         self::assertSame(
             [
                 ConfigurationSection::WIDGETS,
@@ -109,10 +94,10 @@ final class PatrolConfigurationSectionsTest extends TestCase
             array_map(static fn (ConfigurationSection $s): string => $s->label, $sections),
         );
         self::assertFalse($sections[0]->isRendered());
-        self::assertTrue($sections[1]->isRendered());
-        self::assertTrue($sections[2]->isRendered());
+        self::assertFalse($sections[1]->isRendered());
+        self::assertFalse($sections[2]->isRendered());
         self::assertFalse($sections[3]->isRendered());
-        self::assertTrue($sections[4]->isRendered());
+        self::assertTrue($sections[4]->isRendered(), 'Settings is the one body the shell renders.');
     }
 
     /**

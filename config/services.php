@@ -366,11 +366,6 @@ return static function (ContainerConfigurator $container): void {
             service('request_stack'),
             service(AreaOfInterestRepository::class),
             service('patrol.settings'),
-            service(PatrolTypeRepository::class),
-            service(StationRepository::class),
-            service('patrol.vocabulary'),
-            service('patrol.map'),
-            service('patrol.geo'),
             service('security.csrf.token_manager')->nullOnInvalid(),
         ])
         ->tag(ConfigurationSectionsInterface::TAG);

@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Shell;
 
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Uid\Uuid;
@@ -22,42 +21,39 @@ use Uhifadhi\Bundle\AreaBundle\Repository\AreaOfInterestRepository;
 use Uhifadhi\Contracts\Shell\ConfigurationSection;
 use Uhifadhi\Contracts\Shell\ConfigurationSectionsInterface;
 use Uhifadhi\Patrol\Controller\PatrolVocabularyController;
-use Uhifadhi\Patrol\Entity\PatrolType;
-use Uhifadhi\Patrol\Entity\Station;
-use Uhifadhi\Patrol\Enum\ObservationPlacementEnum;
-use Uhifadhi\Patrol\Enum\PatrolBaseEnum;
-use Uhifadhi\Patrol\Model\PatrolBaseDefaults;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
-use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
-use Uhifadhi\Patrol\Repository\StationRepository;
-use Uhifadhi\Patrol\Service\GeoService;
-use Uhifadhi\Patrol\Service\PatrolMapService;
 use Uhifadhi\Patrol\Service\PatrolSettingsService;
-use Uhifadhi\Patrol\Service\PatrolVocabularyService;
 
 /**
  * WHAT IS ON THE PATROLS CONFIGURE PAGE — five sections, in the order the
  * platform rules and not the order written here: the library, the types, the
  * places, the words, the numbers.
  *
- * TWO OF THEM KEEP AN ADDRESS OF THEIR OWN, and the design is why. The widget
- * library and the observation kinds are each a full screen in the settled
- * design — `widgets.html` and `kinds.html`, each with its own URL, wearing the
- * configure page's heading and the configure page's strip — so they are
- * declared as {@see ConfigurationSection::screen()} rather than bodies the shell
- * renders. There is a second reason and it is the harder one: `sections()` is
- * consulted on EVERY page of this module, and the library's body is assembled
- * from the month's patrols, the coverage buffer, the map plate, the day's live
- * reading, the viewer's presets and a token. Handing that over as a rendered
- * section's variables would build a whole dashboard preview on every request
- * this module serves.
+ * FOUR OF THEM KEEP AN ADDRESS OF THEIR OWN, and the STYLESHEET is the reason
+ * rather than taste. A section the shell renders as a BODY inside its own
+ * configure page can spend only the vocabulary the SHELL's sheet ships: that page
+ * links the shell's sheet and no module's, and it is not the shell's business to
+ * know which sheets a module's section needs. The widget library and the
+ * observation kinds each draw their own families, and so do the patrol types
+ * (`.stype`, `.stun`, `.sbase`, `.sbpick`, `.sbicon`) and the stations
+ * (`.spoint`, `.sppick`, and the atlas's own map plate) — so each is declared as
+ * {@see ConfigurationSection::screen()}, keeps an address of its own, and links
+ * what it draws. Each still belongs to the configure page: it wears the page's
+ * heading and the page's strip, and the Configure action stays lit on it, because
+ * that screen adopts the same frame.
  *
- * A RENDERED SECTION IS BUILT ONLY WHERE IT IS DRAWN. For the same reason, the
- * three rendered sections' variables are gathered only when the request IS the
- * shell's configure page AND names that section; everywhere else each is declared
- * with its label alone, which is all the strip needs. A declaration that queried
- * on every page would make a page frame expensive, and one that queried for all
- * three on every section would make each of them pay for the other two.
+ * There is a second reason and it is the harder one: `sections()` is consulted on
+ * EVERY page of this module, and the library's body is assembled from the month's
+ * patrols, the coverage buffer, the map plate, the day's live reading, the
+ * viewer's presets and a token. Handing that over as a rendered section's
+ * variables would build a whole dashboard preview on every request this module
+ * serves — and the stations section would build a map plate on every one.
+ *
+ * ITS ONE RENDERED SECTION IS BUILT ONLY WHERE IT IS DRAWN. The Settings body
+ * spends the shell's vocabulary alone — `.c`, `.frow`, `.fld`, `.save-row` — so it
+ * needs no sheet of its own and stays a body the shell renders; its variables are
+ * gathered only when the request IS the shell's configure page, and everywhere
+ * else the section is declared with its label alone, which is all the strip needs.
  *
  * IT RESOLVES THE REQUEST ITSELF, like every other source in the frame: the
  * shell passes nothing, because it has a slug and not an area.
@@ -68,15 +64,9 @@ final readonly class PatrolConfigurationSections implements ConfigurationSection
     private const string CONFIGURE_ROUTE = 'shell_module_configure';
 
     /**
-     * THE TWO SECTIONS THIS MODULE NAMES ITSELF, published because the writes
-     * behind them redirect back to one by id and an id typed twice is an id that
-     * eventually differs.
-     *
-     * `types` AND NOT `patrol_types`, and the frame decides that rather than
-     * taste: the shell's configure route requires a section of
-     * `[a-z][a-z0-9-]*`, so an underscore is a section with no address. It is
-     * also the word the design's own crumb ends in — "configure / types" — and
-     * the module's namespace is what makes it unambiguous.
+     * THE TWO SECTIONS THIS MODULE NAMES ITSELF. The ids are the words the design's
+     * own crumb ends in — "configure / types", "configure / stations" — and the
+     * module's namespace is what makes them unambiguous.
      */
     public const string TYPES = 'types';
 
@@ -86,11 +76,6 @@ final readonly class PatrolConfigurationSections implements ConfigurationSection
         private RequestStack $requests,
         private AreaOfInterestRepository $areas,
         private PatrolSettingsService $settings,
-        private PatrolTypeRepository $types,
-        private StationRepository $stations,
-        private PatrolVocabularyService $vocabulary,
-        private PatrolMapService $maps,
-        private GeoService $geo,
         /*
          * NULL WHERE THE INSTALLATION RUNS NO SECURITY — and there the Settings
          * form has no route to post to either, so the section renders as a
@@ -132,17 +117,15 @@ final readonly class PatrolConfigurationSections implements ConfigurationSection
                 'Widget library',
                 'patrol_widgets',
             ),
-            ConfigurationSection::page(
+            ConfigurationSection::screen(
                 self::TYPES,
                 'Patrol types',
-                '@UhifadhiPatrol/configure/_types.html.twig',
-                $this->sectionVariables(self::TYPES),
+                PatrolVocabularyController::TYPES_ROUTE,
             ),
-            ConfigurationSection::page(
+            ConfigurationSection::screen(
                 self::STATIONS,
                 'Stations',
-                '@UhifadhiPatrol/configure/_stations.html.twig',
-                $this->sectionVariables(self::STATIONS),
+                PatrolVocabularyController::STATIONS_ROUTE,
             ),
             // THE WORD IS THIS MODULE'S. The shell prints "Observation kinds"
             // because this line says so; the frame has no vocabulary to impose.
@@ -155,26 +138,24 @@ final readonly class PatrolConfigurationSections implements ConfigurationSection
                 ConfigurationSection::SETTINGS,
                 'Settings',
                 '@UhifadhiPatrol/configure/_settings.html.twig',
-                $this->sectionVariables(ConfigurationSection::SETTINGS),
+                $this->settingsVariables(),
             ),
         ];
     }
 
     /**
-     * What ONE section's body is given — and nothing at all unless the viewer is
-     * on the page that draws it, and on THAT section of it.
+     * What the Settings body is given — and nothing at all unless the viewer is on
+     * the page that draws it.
      *
-     * ONE SECTION'S QUERIES, NEVER THE PAGE'S. `sections()` is consulted on every
-     * page this module serves and has to name all five whichever one is being
-     * read, so each declaration is built with its label alone everywhere except
-     * where it is drawn. Narrowing to the CURRENT section on top of that is what
-     * keeps the split honest: opening Stations counts patrols per station and
-     * asks the area for its boundary; it has no business also counting patrols
-     * per type, and the Patrol types section has no business drawing a map.
+     * A DECLARATION IS CONSULTED ON EVERY PAGE OF THE MODULE, so the one body the
+     * shell renders is gathered only when the request IS the shell's configure
+     * page; everywhere else the section is declared with its label alone, which is
+     * all the strip needs. A declaration that queried on every page would make a
+     * page frame expensive.
      *
      * @return array<string, mixed>
      */
-    private function sectionVariables(string $section): array
+    private function settingsVariables(): array
     {
         $request = $this->requests->getCurrentRequest();
         $area = $this->currentArea();
@@ -183,164 +164,15 @@ final readonly class PatrolConfigurationSections implements ConfigurationSection
             return [];
         }
 
-        // The bare address is the widget library's, which is a screen of its own;
-        // a request that names no section is therefore never drawing one here.
-        $named = $request->attributes->get('section');
-        if ($named !== $section) {
-            return [];
-        }
-
-        $common = [
+        return [
             'area' => $area,
+            'settings' => $this->settings->forArea($area),
+            'minGapMinutes' => PatrolSettingsService::MIN_GAP_MINUTES,
+            'maxGapMinutes' => PatrolSettingsService::MAX_GAP_MINUTES,
+            'minRetentionDays' => PatrolSettingsService::MIN_RETENTION_DAYS,
+            'maxRetentionDays' => PatrolSettingsService::MAX_RETENTION_DAYS,
             'csrfToken' => $this->csrfTokenManager?->getToken(PatrolVocabularyController::CSRF_TOKEN_ID)->getValue() ?? '',
         ];
-
-        return match ($section) {
-            self::TYPES => [
-                ...$common,
-                'types' => $types = $this->seededTypes($area),
-                'typeCounts' => $this->types->countPatrolsByArea($area),
-                'bases' => PatrolBaseEnum::cases(),
-                // WHAT EACH BASE SEEDS AND WHAT MARK A ROW DRAWS, RESOLVED HERE.
-                // Both are one `match` over an enum, and a template that reached
-                // for them would be a template holding the rule.
-                'baseDefaults' => self::baseDefaults(),
-                'typeGlyphs' => self::glyphsOf($types),
-                'glyphs' => PatrolBaseDefaults::GLYPHS,
-                'placements' => ObservationPlacementEnum::cases(),
-                'minPaceKmh' => PatrolBaseDefaults::MIN_PACE_KMH,
-                'maxPaceKmh' => PatrolBaseDefaults::MAX_PACE_KMH,
-                'minBufferM' => PatrolBaseDefaults::MIN_BUFFER_M,
-                'maxBufferM' => PatrolBaseDefaults::MAX_BUFFER_M,
-            ],
-            self::STATIONS => [
-                ...$common,
-                ...$this->stationPicker($area, $stations = $this->stations->findByArea($area), $request),
-                'stations' => $stations,
-                'stationCounts' => $this->stations->countPatrolsByArea($area),
-            ],
-            default => [
-                ...$common,
-                'settings' => $this->settings->forArea($area),
-                'minGapMinutes' => PatrolSettingsService::MIN_GAP_MINUTES,
-                'maxGapMinutes' => PatrolSettingsService::MAX_GAP_MINUTES,
-                'minRetentionDays' => PatrolSettingsService::MIN_RETENTION_DAYS,
-                'maxRetentionDays' => PatrolSettingsService::MAX_RETENTION_DAYS,
-            ],
-        };
-    }
-
-    /**
-     * The area's types, having first been given the installation's words if it
-     * has none of its own.
-     *
-     * AN AREA NOBODY HAS CONFIGURED YET OPENS ON THE INSTALLATION'S WORDS, written
-     * in as its own — the one thing `patrol.types` is still for. After this the
-     * two have nothing to do with each other: renaming a type here changes this
-     * area and no other, and a later config change never reaches back into a list
-     * somebody has curated.
-     *
-     * @return list<PatrolType>
-     */
-    private function seededTypes(AreaOfInterest $area): array
-    {
-        $this->vocabulary->seedTypes($area);
-
-        return $this->types->findByArea($area);
-    }
-
-    /**
-     * THE PICKER THE STATIONS SECTION DRAWS, AND WHAT EVERY ROW READS BACK.
-     *
-     * ONE PLATE FOR THE WHOLE SECTION, and the design is why: it draws the picker
-     * inside the add panel with a marker whose own title names an EXISTING station,
-     * because a point is a point whichever row asked for it. So a row's control is
-     * a link that names itself in `?point=`, and what comes back is this plate bound
-     * to that station — one map on the page rather than one per row, and the state
-     * the design drew rather than a component it did not.
-     *
-     * WHERE THE MARKER STARTS: on the station's own point if it has one, else in
-     * the middle of the area, which is the only honest answer to "we do not know".
-     * An area with no boundary stored starts at the null island and the plate says
-     * so by having nothing to fit to — better than inventing a country.
-     *
-     * @param list<Station> $stations
-     *
-     * @return array<string, mixed>
-     */
-    private function stationPicker(AreaOfInterest $area, array $stations, Request $request): array
-    {
-        $asked = $request->query->getString('point');
-        $placing = '' !== $asked ? $this->stations->findOneByAreaAndUuid($area, $asked) : null;
-
-        $placed = [];
-        $points = [];
-        foreach ($stations as $station) {
-            $point = $station->getPoint();
-            if (null === $point) {
-                continue;
-            }
-
-            [$lon, $lat] = $this->geo->coordinates($point);
-            $points[$station->getUuid()->toRfc4122()] = $this->geo->formatDms($lon, $lat);
-            // The station being placed is the marker, so it is not also drawn as
-            // one of the quiet ones underneath it.
-            if ($station !== $placing) {
-                $placed[] = ['name' => $station->getLabel(), 'lon' => $lon, 'lat' => $lat];
-            }
-        }
-
-        $boundary = $area->getGeom();
-        $start = null !== $placing?->getPoint()
-            ? $this->geo->coordinates($placing->getPoint())
-            : (null !== $boundary ? $this->geo->centre($boundary) : null);
-        [$lon, $lat] = $start ?? [0.0, 0.0];
-
-        $label = $placing?->getLabel() ?? 'the new station';
-
-        return [
-            'stationPoints' => $points,
-            'placing' => $placing,
-            'placingLabel' => $label,
-            'plate' => $this->maps->stationPoint($boundary, $placed, $lat, $lon, $label),
-            'plateCoordinate' => $this->geo->formatDms($lon, $lat),
-            // The two the plate's marker travels in, and what a save reads back.
-            'plateLat' => $lat,
-            'plateLng' => $lon,
-        ];
-    }
-
-    /**
-     * What each base prefills, keyed by the wire value the section's radios carry.
-     *
-     * @return array<string, PatrolBaseDefaults>
-     */
-    private static function baseDefaults(): array
-    {
-        $defaults = [];
-        foreach (PatrolBaseEnum::cases() as $base) {
-            $defaults[$base->value] = PatrolBaseDefaults::of($base);
-        }
-
-        return $defaults;
-    }
-
-    /**
-     * The mark each row draws, keyed by the type's uuid — its own, or its base's,
-     * or the question mark a row with no base is asking with.
-     *
-     * @param list<PatrolType> $types
-     *
-     * @return array<string, string>
-     */
-    private static function glyphsOf(array $types): array
-    {
-        $glyphs = [];
-        foreach ($types as $type) {
-            $glyphs[$type->getUuid()->toRfc4122()] = PatrolBaseDefaults::glyphOf($type->getBase(), $type->getGlyph());
-        }
-
-        return $glyphs;
     }
 
     private function currentArea(): ?AreaOfInterest

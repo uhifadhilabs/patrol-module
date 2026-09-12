@@ -562,20 +562,24 @@ final class UhifadhiPatrolBundle extends AbstractBundle
             $services->alias(PatrolSettingsController::class, 'patrol.controller.settings')->public();
 
             /*
-             * THE TWO WORD-LIST SECTIONS' WRITES — the patrol types and the
-             * stations. Same door and same reason as the settings above: each
-             * changes the words everybody else must use, so each rides on
-             * "patrols.manage" and exists only where SecurityBundle can enforce
-             * it. The service behind them is unconditional; reading a word-list
-             * is not a privilege.
+             * THE TWO WORD-LIST SECTIONS — the patrol types and the stations.
+             * Each keeps an address of its own (so its template can link the
+             * sheets it draws with), and each WRITE on it changes the words
+             * everybody else must use, so the writes ride on "patrols.manage" and
+             * the whole controller exists only where SecurityBundle can enforce
+             * that. Reading a word-list is not a privilege, and the service behind
+             * it is unconditional.
              */
             $services->set('patrol.controller.vocabulary', PatrolVocabularyController::class)
                 ->args([
+                    service('twig'),
                     service('router'),
                     service('patrol.vocabulary'),
+                    service('patrol.map'),
                     service('patrol.geo'),
                     service(PatrolTypeRepository::class),
                     service(StationRepository::class),
+                    service('patrol.screen_access'),
                     service('security.authorization_checker'),
                     service('security.csrf.token_manager'),
                 ])

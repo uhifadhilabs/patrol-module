@@ -1,30 +1,43 @@
-{# THE STATIONS SECTION OF THE CONFIGURE PAGE — body only.
+{# ============================================================================
+   THE PLACES A PATROL SETS OFF FROM — the design's stations.html, ported.
 
-   NO HEAD, NO STRIP, NO CRUMB, NO WAY BACK. The shell draws all four; this file
-   writes the section's content and nothing around it.
+   IT IS A SECTION OF THE CONFIGURE PAGE THAT KEEPS AN ADDRESS OF ITS OWN, and
+   the stylesheet is why rather than taste. A section the shell renders as a BODY
+   inside its own configure page can spend only the vocabulary the SHELL's sheet
+   ships — that page links the shell's sheet and no module's, and it is not the
+   shell's business to know which sheets a module's section needs. This section
+   draws `.spoint`, `.sppick`, `.tx-say` and the atlas's own map plate, which are this module's own, so it
+   wears the configure page's heading and the configure page's strip at an address
+   of its own and links its own sheets, exactly as the observation kinds section
+   beside it does.
 
-   ONE SECTION, ONE POST, and a row's own decisions each their own — exactly as
-   the Patrol types section beside it, and for the same reasons.
-   → POST …/configure/stations (patrol_stations_save)
-   @see https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fae-form
+   The shell draws the head, the strip and the crumb; nothing here draws
+   navigation, and there is no way back other than the strip, the lit Configure
+   and the crumb.
+   ========================================================================== #}
+{% extends '@UhifadhiPatrol/base.html.twig' %}
 
-   ONE PLATE, WHICHEVER ROW ASKED. The design draws the picker inside the add panel
-   with a marker whose own title names an EXISTING station, because a point is a
-   point whichever row asked for it. So a row's control is a LINK naming itself in
-   `?point=`, and what comes back is this plate bound to that station: one map on
-   the page rather than one per row, and the state the design drew rather than a
-   component it did not.
+{% block title %}Patrols · stations{% endblock %}
 
-   THE PLATE IS THE ATLAS'S. This module states what is on it in PHP and calls
-   render_map(); the height is the plate's own custom property, handed over at the
-   call because a module's stylesheet does not size the atlas's frame. The marker
-   becomes DRAGGABLE in one controller of this module's, which listens for the
-   markers UX Map hands over when it has created them — there is no map here for
-   this module to have built.
-   @see vendor/symfony/ux-map/assets/dist/abstract_map_controller.js — the connect
-        event carries `markers` #}
+{% block patrol_trail_tail %} <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / configure / stations{% endblock %}
 
-{% set save = patrol_url('patrol_stations_save', {uuid: area.uuid}) %}
+{% block shell_page_title %}{{ area.name }} — Patrols · configure{% endblock %}
+
+{% block shell_page_subtitle %}Everything this module is set up with in <b>this area</b>, in one place: how its dashboard is composed, the words a ranger picks from, and the numbers the module runs on.{% endblock %}
+
+{# NO WAY BACK IS DRAWN HERE — the strip, the lit Configure and the crumb are the
+   three ways back, and there is no fourth. #}
+{% block shell_page_actions %}
+    {% if recordScreens %}
+        <a class="cta" href="{{ path('patrol_log', {uuid: area.uuid}) }}">{{ ux_icon('patrol:pen-line') }}Log patrol</a>
+    {% endif %}
+{% endblock %}
+
+{% block patrol_page %}
+{# THE FORM IS DRAWN FOR SOMEBODY WHO MAY MANAGE, and for nobody else: a reader
+   gets the section read-only rather than controls that answer 403 when pressed.
+   Null also where the installation mounted no write route at all. #}
+{% set save = mayManage ? patrol_url('patrol_stations_save', {uuid: area.uuid}) : null %}
 
 <div class="tx-say">{{ ux_icon('patrol:shield', {width: 17, height: 17}) }}<div><b>These stations are {{ area.name }}&rsquo;s own.</b>
     Each area keeps its own, so a station added here reaches only the handsets patrolling {{ area.name }}.
@@ -121,3 +134,4 @@
         {% endfor %}
     {% endfor %}
 {% endif %}
+{% endblock %}

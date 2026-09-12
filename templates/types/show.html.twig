@@ -1,37 +1,43 @@
-{# THE PATROL TYPES SECTION OF THE CONFIGURE PAGE — body only.
+{# ============================================================================
+   THE PATROL TYPES AN AREA KEEPS — the design's configure.html, ported.
 
-   NO HEAD, NO STRIP, NO CRUMB, NO WAY BACK. The shell draws all four; this file
-   writes the section's content and nothing around it, which is the whole of what
-   a rendered section is.
+   IT IS A SECTION OF THE CONFIGURE PAGE THAT KEEPS AN ADDRESS OF ITS OWN, and
+   the stylesheet is why rather than taste. A section the shell renders as a BODY
+   inside its own configure page can spend only the vocabulary the SHELL's sheet
+   ships — that page links the shell's sheet and no module's, and it is not the
+   shell's business to know which sheets a module's section needs. This section
+   draws `.stype`, `.stun`, `.sbase`, `.sbpick`, `.sbicon` and `.tx-say`, which are this module's own, so it
+   wears the configure page's heading and the configure page's strip at an address
+   of its own and links its own sheets, exactly as the observation kinds section
+   beside it does.
 
-   ONE SECTION, ONE POST. Every base, glyph and tunable below is a field of this
-   section, and the design draws ONE save row under them. The add panel's own
-   button submits the same form, so a name typed there is created whichever of
-   the two buttons is pressed.
-   → POST …/configure/types (patrol_types_save)
+   The shell draws the head, the strip and the crumb; nothing here draws
+   navigation, and there is no way back other than the strip, the lit Configure
+   and the crumb.
+   ========================================================================== #}
+{% extends '@UhifadhiPatrol/base.html.twig' %}
 
-   A ROW'S RENAME, RETIRE AND REACTIVATE ARE EACH THEIR OWN POST, because each is
-   a decision on its own. A form cannot be nested inside another and the shell's
-   `.srow > .nm | .cd | .n | .acts` rules are direct-child rules, so each of those
-   forms sits at the END of the section and its controls name it with the HTML
-   `form` attribute.
-   @see https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fae-form
+{% block title %}Patrols · patrol types{% endblock %}
 
-   THE TWO PICKERS ARE RADIOS, NOT BUTTONS. The design draws `<button>`s and a
-   script; a section that saves in one POST makes them radios inside their
-   labels, so the lit member and the checked one are the same thing and the page
-   needs no script to keep them so. The radio itself is `hidden` — clicking the
-   label still checks it — and `.sbo:has(input:checked)` is what lights it.
+{% block patrol_trail_tail %} <a href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">patrols</a> / configure / types{% endblock %}
 
-   THE ONE THING THAT DOES NEED A SCRIPT is the tunables disclosure. The design
-   hides them behind the row's own Tunables control and its `.stype.shut` class,
-   and HTML's own `<details>` cannot do it here: the row is full of buttons and
-   inputs, and inside a `<summary>` every one of them would toggle the disclosure
-   instead of doing its job. So one Stimulus controller toggles that one class.
-   The base picker IS a `<details>`, because its summary is a badge and nothing
-   else. #}
+{% block shell_page_title %}{{ area.name }} — Patrols · configure{% endblock %}
 
-{% set save = patrol_url('patrol_types_save', {uuid: area.uuid}) %}
+{% block shell_page_subtitle %}Everything this module is set up with in <b>this area</b>, in one place: how its dashboard is composed, the words a ranger picks from, and the numbers the module runs on.{% endblock %}
+
+{# NO WAY BACK IS DRAWN HERE — the strip, the lit Configure and the crumb are the
+   three ways back, and there is no fourth. #}
+{% block shell_page_actions %}
+    {% if recordScreens %}
+        <a class="cta" href="{{ path('patrol_log', {uuid: area.uuid}) }}">{{ ux_icon('patrol:pen-line') }}Log patrol</a>
+    {% endif %}
+{% endblock %}
+
+{% block patrol_page %}
+{# THE FORM IS DRAWN FOR SOMEBODY WHO MAY MANAGE, and for nobody else: a reader
+   gets the section read-only rather than controls that answer 403 when pressed.
+   Null also where the installation mounted no write route at all. #}
+{% set save = mayManage ? patrol_url('patrol_types_save', {uuid: area.uuid}) : null %}
 
 {# Area scope, said once, plainly — the one fact that changes how the section is
    read. #}
@@ -208,3 +214,4 @@
         {% endfor %}
     {% endfor %}
 {% endif %}
+{% endblock %}

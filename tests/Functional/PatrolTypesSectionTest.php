@@ -44,11 +44,48 @@ final class PatrolTypesSectionTest extends ConfigureSectionTestCase
         return 'types';
     }
 
+    /**
+     * THE PAGE LINKS THE SHEET THAT SHIPS WHAT IT DRAWS.
+     *
+     * This is the whole reason the section keeps an address of its own. `.stun`,
+     * `.sbase`, `.sbpick`, `.sbicon` and `.tx-say` are this module's vocabulary, and
+     * a section rendered as a BODY inside the shell's configure page can only spend
+     * the shell's — the shell's page links the shell's sheet and nothing of a
+     * module's. The result answers 200 and renders as raw markup with every
+     * tunable open and the base badge showing a bare disclosure triangle, which no
+     * structural assertion catches. So the links are asserted.
+     */
+    public function testTheSectionLinksTheModulesOwnStylesheet(): void
+    {
+        $this->signInAsManager();
+        $crawler = $this->client->request('GET', $this->sectionUrl());
+
+        self::assertResponseIsSuccessful();
+        $this->assertLinksTheModulesSheet($crawler);
+    }
+
+    /**
+     * EVERY ROW OPENS SHUT, from the server. The disclosure class is the design's
+     * own and the stylesheet hides the tunables with it, so a page that arrived
+     * without it would show every row's form open before a single script ran.
+     */
+    public function testEveryRowsTunablesArrivedShutRatherThanOpen(): void
+    {
+        $this->signInAsManager();
+        $crawler = $this->client->request('GET', $this->sectionUrl());
+
+        $rows = $crawler->filter('.stype');
+        self::assertGreaterThan(0, $rows->count());
+        foreach ($rows->each(static fn (Crawler $row): string => (string) $row->attr('class')) as $class) {
+            self::assertStringContainsString('shut', $class);
+        }
+    }
+
     /** The strip carries the five sections the design draws, in the ruled order. */
     public function testTheStripCarriesEverySectionInTheRuledOrder(): void
     {
         $this->signInAsManager();
-        $crawler = $this->client->request('GET', $this->configureUrl('types'));
+        $crawler = $this->client->request('GET', $this->sectionUrl());
 
         self::assertResponseIsSuccessful();
         self::assertSame(
@@ -65,7 +102,7 @@ final class PatrolTypesSectionTest extends ConfigureSectionTestCase
     public function testATypeWithNoBaseAsksForOneOnItsRow(): void
     {
         $this->signInAsManager();
-        $crawler = $this->client->request('GET', $this->configureUrl('types'));
+        $crawler = $this->client->request('GET', $this->sectionUrl());
 
         $row = $crawler->filter('.stype')->first()->filter('.srow');
         self::assertSame('Walking round', trim($row->filter('.nm')->text()));
@@ -86,8 +123,8 @@ final class PatrolTypesSectionTest extends ConfigureSectionTestCase
         $this->signInAsManager();
         $type = $this->firstType();
 
-        $this->post($this->configureUrl('types'), ['base' => [$type->getUuid()->toRfc4122() => 'surface']]);
-        self::assertResponseRedirects($this->configureUrl('types'));
+        $this->post($this->sectionUrl(), ['base' => [$type->getUuid()->toRfc4122() => 'surface']]);
+        self::assertResponseRedirects($this->sectionUrl());
 
         $this->em->clear();
         $type = $this->firstType();
@@ -97,7 +134,7 @@ final class PatrolTypesSectionTest extends ConfigureSectionTestCase
         self::assertSame(150, $type->getCoverageBufferM());
         self::assertSame(ObservationPlacementEnum::AtPosition, $type->getObservationPlacement());
 
-        $crawler = $this->client->request('GET', $this->configureUrl('types'));
+        $crawler = $this->client->request('GET', $this->sectionUrl());
         $row = $crawler->filter('.stype')->first();
         self::assertSame('surface', trim($row->filter('summary.sbase')->text()));
         self::assertStringContainsString(
@@ -112,7 +149,7 @@ final class PatrolTypesSectionTest extends ConfigureSectionTestCase
         $this->signInAsManager();
         $type = $this->firstType();
 
-        $this->post($this->configureUrl('types'), ['base' => [$type->getUuid()->toRfc4122() => 'aerial']]);
+        $this->post($this->sectionUrl(), ['base' => [$type->getUuid()->toRfc4122() => 'aerial']]);
 
         $this->em->clear();
         $type = $this->firstType();
@@ -132,8 +169,8 @@ final class PatrolTypesSectionTest extends ConfigureSectionTestCase
         $type = $this->firstType();
         $uuid = $type->getUuid()->toRfc4122();
 
-        $this->post($this->configureUrl('types'), ['base' => [$uuid => 'surface']]);
-        $this->post($this->configureUrl('types'), [
+        $this->post($this->sectionUrl(), ['base' => [$uuid => 'surface']]);
+        $this->post($this->sectionUrl(), [
             'base' => [$uuid => 'surface'],
             'pace_min' => [$uuid => '3'],
             'pace_max' => [$uuid => '18'],
@@ -157,7 +194,7 @@ final class PatrolTypesSectionTest extends ConfigureSectionTestCase
         $this->signInAsManager();
         $uuid = $this->firstType()->getUuid()->toRfc4122();
 
-        $this->post($this->configureUrl('types'), [
+        $this->post($this->sectionUrl(), [
             'base' => [$uuid => 'surface'],
             'pace_min' => [$uuid => '-4'],
             'pace_max' => [$uuid => '9999'],
@@ -177,7 +214,7 @@ final class PatrolTypesSectionTest extends ConfigureSectionTestCase
         $this->signInAsManager();
         $uuid = $this->firstType()->getUuid()->toRfc4122();
 
-        $this->post($this->configureUrl('types'), ['glyph' => [$uuid => 'helicopter']]);
+        $this->post($this->sectionUrl(), ['glyph' => [$uuid => 'helicopter']]);
 
         $this->em->clear();
         self::assertNull($this->firstType()->getGlyph());
@@ -188,7 +225,7 @@ final class PatrolTypesSectionTest extends ConfigureSectionTestCase
     {
         $this->signInAsManager();
 
-        $this->post($this->configureUrl('types'), [
+        $this->post($this->sectionUrl(), [
             'label' => 'Drone sortie',
             'add_base' => 'aerial',
             'add_glyph' => 'truck',
@@ -208,10 +245,10 @@ final class PatrolTypesSectionTest extends ConfigureSectionTestCase
         $this->signInAsManager();
         $uuid = $this->firstType()->getUuid()->toRfc4122();
 
-        $this->post($this->configureUrl('types'), ['base' => [$uuid => 'surface']]);
-        $this->post($this->configureUrl('types/'.$uuid.'/retire'), []);
+        $this->post($this->sectionUrl(), ['base' => [$uuid => 'surface']]);
+        $this->post($this->sectionUrl($uuid.'/retire'), []);
 
-        $crawler = $this->client->request('GET', $this->configureUrl('types'));
+        $crawler = $this->client->request('GET', $this->sectionUrl());
         $row = $crawler->filter('.stype .srow.gone');
         self::assertSame('Walking round', trim($row->filter('.nm')->text()));
         self::assertSame('retired', trim($row->filter('.chip.idle')->text()));
@@ -234,7 +271,7 @@ final class PatrolTypesSectionTest extends ConfigureSectionTestCase
     {
         $this->signInAsRecorder();
 
-        $this->client->request('POST', $this->configureUrl('types'), ['label' => 'Night sweep']);
+        $this->client->request('POST', $this->sectionUrl(), ['label' => 'Night sweep']);
 
         self::assertResponseStatusCodeSame(403);
     }
@@ -243,7 +280,7 @@ final class PatrolTypesSectionTest extends ConfigureSectionTestCase
     public function testTheSectionDrawsOneCardAndOneSaveRow(): void
     {
         $this->signInAsManager();
-        $crawler = $this->client->request('GET', $this->configureUrl('types'));
+        $crawler = $this->client->request('GET', $this->sectionUrl());
 
         self::assertSame(
             ['Patrol types'],

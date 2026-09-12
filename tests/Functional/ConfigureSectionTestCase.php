@@ -17,7 +17,9 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AtlasBundle\AtlasBundle;
 use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Entity\PatrolType;
@@ -26,6 +28,7 @@ use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Repository\StationRepository;
 use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
+use Uhifadhi\Patrol\UhifadhiPatrolBundle;
 
 /**
  * ONE AREA WITH ONE PATROL IN IT, AND A WAY TO POST TO A SECTION OF THE CONFIGURE
@@ -77,6 +80,51 @@ abstract class ConfigureSectionTestCase extends WebTestCase
             .(null === $section ? '' : '/'.$section);
     }
 
+    /**
+     * A SECTION THAT KEEPS AN ADDRESS OF ITS OWN, which is what a section has to
+     * do to link a stylesheet: a body the shell renders inside its own page can
+     * only spend the vocabulary the shell's sheet ships.
+     */
+    protected function sectionUrl(string $tail = ''): string
+    {
+        return '/areas/'.$this->area->getUuidString().'/modules/patrols/'.$this->section()
+            .('' === $tail ? '' : '/'.$tail);
+    }
+
+    /**
+     * THE SHEETS THE RENDERED PAGE ACTUALLY LINKS. A section drawing `.stun`,
+     * `.sbase` or `.sppick` over a page that links only the shell's sheet is a
+     * page of unstyled markup that still answers 200 — which no structural
+     * assertion catches, so the links themselves are asserted.
+     *
+     * @return list<string>
+     */
+    protected function linkedStylesheets(Crawler $crawler): array
+    {
+        return $crawler->filter('link[rel="stylesheet"]')->each(
+            static fn (Crawler $link): string => (string) $link->attr('href'),
+        );
+    }
+
+    protected function assertLinksTheModulesSheet(Crawler $crawler): void
+    {
+        $links = $this->linkedStylesheets($crawler);
+        $wanted = [UhifadhiPatrolBundle::STYLESHEET, AtlasBundle::STYLESHEET];
+
+        foreach ($wanted as $sheet) {
+            self::assertNotEmpty(
+                array_filter($links, static fn (string $href): bool => str_contains($href, self::basename($sheet))),
+                \sprintf('the page links %s — it draws classes only that sheet ships. Linked: %s', $sheet, implode(', ', $links)),
+            );
+        }
+    }
+
+    /** The file name inside an asset path, which is what a digested href keeps. */
+    private static function basename(string $path): string
+    {
+        return pathinfo($path, \PATHINFO_FILENAME);
+    }
+
     protected function signInAsManager(): void
     {
         $manager = new User()->setPassword('x')->setEmail(FixedRecordVoter::MANAGER_EMAIL)
@@ -98,7 +146,7 @@ abstract class ConfigureSectionTestCase extends WebTestCase
     /** The token this section's forms carry, read off the section itself. */
     protected function token(): string
     {
-        $crawler = $this->client->request('GET', $this->configureUrl($this->section()));
+        $crawler = $this->client->request('GET', $this->sectionUrl());
 
         return (string) $crawler->filter('input[name="_token"]')->attr('value');
     }

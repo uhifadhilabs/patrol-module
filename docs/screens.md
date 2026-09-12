@@ -24,16 +24,14 @@
 | Export a recorded track as GPX | `patrol_export_gpx` |
 | Export the filtered log (`csv`) or its tracks (`gpx`) | `patrol_export` |
 | Log a patrol — the one entry flow | `patrol_log` |
+| Patrol types (configure section) | `patrol_types` |
+| Stations (configure section) | `patrol_stations` |
 | Observation kinds (configure section) | `patrol_kinds` |
 | Save the Patrol types section | `patrol_types_save` |
 | Rename / retire / reactivate one patrol type | `patrol_type_act` |
 | Save the Stations section | `patrol_stations_save` |
 | Rename / retire / reactivate one station | `patrol_station_act` |
 | Save the module's thresholds | `patrol_settings_save` |
-
-The Patrol types and Stations sections are drawn by the SHELL, at
-`…/configure/types` and `…/configure/stations`; the routes above are the POSTs
-behind them.
 
 `patrol_taxonomy` (`…/patrols/taxonomy`) still answers, permanently redirecting to
 `patrol_kinds` (`…/patrols/kinds`) — a saved link does not become a 404 over a
@@ -132,16 +130,24 @@ draws both:
   opening a record does not leave the place the record lives in.
 - **Five configure sections** — `Widget library`, `Patrol types`, `Stations`,
   `Observation kinds`, `Settings` — through `ConfigurationSectionsInterface`
-  (`Uhifadhi\Patrol\Shell\PatrolConfigurationSections`). `Widget library` and
-  `Observation kinds` keep an address of their own, exactly as the settled design
-  draws them; the other three are bodies the shell renders inside its own
-  configure page, at `…/configure/{section}`. The order is the platform's: the
-  library opens every configure page and the settings close it, and what a module
-  files between them keeps the order it declared.
+  (`Uhifadhi\Patrol\Shell\PatrolConfigurationSections`). The order is the
+  platform's: the library opens every configure page and the settings close it, and
+  what a module files between them keeps the order it declared.
 
-  The section ids are `types` and `stations` — not `patrol_types`: the shell's
-  configure route requires a section matching `[a-z][a-z0-9-]*`, so an underscore
-  is a section with no address.
+  **Four of the five keep an address of their own, and the stylesheet is why.** A
+  section the shell renders as a BODY inside its own configure page can spend only
+  the vocabulary the SHELL's sheet ships — that page links the shell's sheet and no
+  module's, and it is not the shell's business to know which sheets a module's
+  section needs. `Patrol types` draws `.stype`, `.stun`, `.sbase`, `.sbpick` and
+  `.sbicon`; `Stations` draws `.spoint`, `.sppick` and the atlas's map plate; both
+  draw `.tx-say`. So each is a `ConfigurationSection::screen()` at
+  `…/modules/patrols/types` and `…/modules/patrols/stations`, whose template extends
+  `@UhifadhiPatrol/base.html.twig` and links what it draws — exactly as
+  `Observation kinds` does. `Settings` spends the shell's vocabulary alone (`.c`,
+  `.frow`, `.fld`, `.save-row`), so it stays the one body the shell renders.
+
+  A section that keeps an address still belongs to the configure page: it wears the
+  page's heading and the page's strip, and the `Configure` action stays lit on it.
 
 There is one configuration entry per surface — the shell's `Configure` action —
 and no `Settings`, `Patrol types`, `Stations`, `Observation kinds` or
@@ -179,7 +185,11 @@ caption needs a verdict before that is closed.
 
 ## Patrol types
 
-`…/configure/types`, saved by one POST to `patrol_types_save`. One row per type
+`patrol_types` (`/areas/{uuid}/modules/patrols/types`), saved by one POST to the
+same address. Reading it is open to anybody the installation lets onto the
+configure page — reading what an area patrols on is not a privilege — and the
+write controls are drawn only for somebody who may `patrols.manage`, so a reader
+gets the section read-only rather than a form that answers 403. One row per type
 the area keeps: its label, its wire key, what it RECORDS, how many patrols are
 filed under it, and Rename / Retire — or Reactivate on a retired one, drawn
 dimmed with a `retired` chip. A retired type stays listed.
@@ -221,7 +231,8 @@ because each is a decision on its own.
 
 ## Stations
 
-`…/configure/stations`, saved by one POST to `patrol_stations_save`. The same row
+`patrol_stations` (`/areas/{uuid}/modules/patrols/stations`), saved by one POST to
+the same address, read under the same policy as the types section. The same row
 for the places a patrol sets off from, plus the one thing a station has that a
 type does not: a **point**.
 
@@ -295,10 +306,10 @@ each exists only where SecurityBundle can enforce the permission:
 
 | Route | Method | Path |
 |---|---|---|
-| `patrol_types_save` | POST | `…/configure/types` |
-| `patrol_type_act` | POST | `…/configure/types/{uuid}/{rename\|retire\|reactivate}` |
-| `patrol_stations_save` | POST | `…/configure/stations` |
-| `patrol_station_act` | POST | `…/configure/stations/{uuid}/{rename\|retire\|reactivate}` |
+| `patrol_types_save` | POST | `…/patrols/types` |
+| `patrol_type_act` | POST | `…/patrols/types/{uuid}/{rename\|retire\|reactivate}` |
+| `patrol_stations_save` | POST | `…/patrols/stations` |
+| `patrol_station_act` | POST | `…/patrols/stations/{uuid}/{rename\|retire\|reactivate}` |
 | `patrol_settings_save` | POST | `…/configure/settings` |
 
 **Nothing is ever deleted:** retiring flips a flag, and the patrols filed under a

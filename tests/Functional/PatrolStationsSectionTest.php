@@ -39,11 +39,26 @@ final class PatrolStationsSectionTest extends ConfigureSectionTestCase
         return $station;
     }
 
+    /**
+     * THE PAGE LINKS THE SHEETS THAT SHIP WHAT IT DRAWS — this module's own for
+     * `.spoint` and `.sppick`, and the atlas's for the plate the picker is. A
+     * section rendered as a body inside the shell's configure page could link
+     * neither, and would draw an unstyled box where the map is.
+     */
+    public function testTheSectionLinksTheModulesOwnStylesheetAndTheAtlass(): void
+    {
+        $this->signInAsManager();
+        $crawler = $this->client->request('GET', $this->sectionUrl());
+
+        self::assertResponseIsSuccessful();
+        $this->assertLinksTheModulesSheet($crawler);
+    }
+
     /** The section is lit in the strip and its body is a body. */
     public function testTheSectionIsLitAndDrawsOneCard(): void
     {
         $this->signInAsManager();
-        $crawler = $this->client->request('GET', $this->configureUrl('stations'));
+        $crawler = $this->client->request('GET', $this->sectionUrl());
 
         self::assertResponseIsSuccessful();
         self::assertSame('Stations', trim($crawler->filter('.atabs a.on')->text()));
@@ -64,7 +79,7 @@ final class PatrolStationsSectionTest extends ConfigureSectionTestCase
     public function testARowCarriesItsCountAndItsActions(): void
     {
         $this->signInAsManager();
-        $crawler = $this->client->request('GET', $this->configureUrl('stations'));
+        $crawler = $this->client->request('GET', $this->sectionUrl());
 
         $row = $crawler->filter('.srow')->first();
         self::assertSame('North post', trim($row->filter('.nm')->text()));
@@ -85,7 +100,7 @@ final class PatrolStationsSectionTest extends ConfigureSectionTestCase
     public function testTheRenameFieldIsDisclosedByTheRenameControl(): void
     {
         $this->signInAsManager();
-        $crawler = $this->client->request('GET', $this->configureUrl('stations'));
+        $crawler = $this->client->request('GET', $this->sectionUrl());
 
         $row = $crawler->filter('.srow')->first();
         self::assertCount(0, $row->filter('.acts > .fld'));
@@ -102,27 +117,27 @@ final class PatrolStationsSectionTest extends ConfigureSectionTestCase
     {
         $this->signInAsManager();
 
-        $this->post($this->configureUrl('stations'), ['label' => 'Ridge Camp']);
-        self::assertResponseRedirects($this->configureUrl('stations'));
+        $this->post($this->sectionUrl(), ['label' => 'Ridge Camp']);
+        self::assertResponseRedirects($this->sectionUrl());
 
         $station = $this->stations()->findOneByAreaAndKey($this->area, 'ridge-camp');
         self::assertInstanceOf(Station::class, $station);
 
-        $this->post($this->configureUrl('stations/'.$station->getUuid()->toRfc4122().'/rename'), ['label' => 'Lake Post']);
+        $this->post($this->sectionUrl($station->getUuid()->toRfc4122().'/rename'), ['label' => 'Lake Post']);
         $this->em->clear();
         $station = $this->stations()->findOneByAreaAndKey($this->area, 'ridge-camp');
         self::assertInstanceOf(Station::class, $station);
         self::assertSame('Lake Post', $station->getLabel());
         self::assertSame('ridge-camp', $station->getKey(), 'A rename never touches the wire value.');
 
-        $this->post($this->configureUrl('stations/'.$station->getUuid()->toRfc4122().'/retire'), []);
+        $this->post($this->sectionUrl($station->getUuid()->toRfc4122().'/retire'), []);
         $this->em->clear();
         $station = $this->stations()->findOneByAreaAndKey($this->area, 'ridge-camp');
         self::assertInstanceOf(Station::class, $station);
         self::assertFalse($station->isActive());
 
         // Dimmed and pilled on the page, never gone.
-        $crawler = $this->client->request('GET', $this->configureUrl('stations'));
+        $crawler = $this->client->request('GET', $this->sectionUrl());
         $retired = $crawler->filter('.srow.gone');
         self::assertSame('Lake Post', trim($retired->filter('.nm')->text()));
         self::assertSame('retired', trim($retired->filter('.chip.idle')->text()));
@@ -137,9 +152,9 @@ final class PatrolStationsSectionTest extends ConfigureSectionTestCase
     {
         $this->signInAsManager();
 
-        $this->post($this->configureUrl('stations'), ['label' => 'north POST']);
+        $this->post($this->sectionUrl(), ['label' => 'north POST']);
 
-        self::assertResponseRedirects($this->configureUrl('stations'));
+        self::assertResponseRedirects($this->sectionUrl());
         self::assertCount(1, $this->stations()->findByArea($this->area));
     }
 
@@ -151,7 +166,7 @@ final class PatrolStationsSectionTest extends ConfigureSectionTestCase
     public function testAStationWithNoPointAsksForOneOnItsRow(): void
     {
         $this->signInAsManager();
-        $crawler = $this->client->request('GET', $this->configureUrl('stations'));
+        $crawler = $this->client->request('GET', $this->sectionUrl());
 
         $asking = $crawler->filter('.srow .spoint.ask');
         self::assertCount(1, $asking);
@@ -169,12 +184,12 @@ final class PatrolStationsSectionTest extends ConfigureSectionTestCase
         $this->signInAsManager();
         $station = $this->northPost();
 
-        $this->post($this->configureUrl('stations'), [
+        $this->post($this->sectionUrl(), [
             'point' => $station->getUuid()->toRfc4122(),
             'point_lat' => '-5.65',
             'point_lng' => '12.35',
         ]);
-        self::assertResponseRedirects($this->configureUrl('stations'));
+        self::assertResponseRedirects($this->sectionUrl());
 
         $this->em->clear();
         $stored = $this->northPost()->getPoint();
@@ -182,7 +197,7 @@ final class PatrolStationsSectionTest extends ConfigureSectionTestCase
         self::assertStringContainsString('"type":"Point"', $stored);
         self::assertStringContainsString('12.35', $stored);
 
-        $crawler = $this->client->request('GET', $this->configureUrl('stations'));
+        $crawler = $this->client->request('GET', $this->sectionUrl());
         $pill = $crawler->filter('.srow .spoint')->first();
         self::assertStringNotContainsString('ask', (string) $pill->attr('class'));
         self::assertSame('5°39\'00"S 12°21\'00"E', trim($pill->text()));
@@ -194,7 +209,7 @@ final class PatrolStationsSectionTest extends ConfigureSectionTestCase
         $this->signInAsManager();
         $station = $this->northPost();
 
-        $this->post($this->configureUrl('stations'), [
+        $this->post($this->sectionUrl(), [
             'point' => $station->getUuid()->toRfc4122(),
             'point_lat' => '-91.4',
             'point_lng' => '12.35',
@@ -209,7 +224,7 @@ final class PatrolStationsSectionTest extends ConfigureSectionTestCase
     {
         $this->signInAsManager();
 
-        $this->post($this->configureUrl('stations'), [
+        $this->post($this->sectionUrl(), [
             'label' => 'Ridge Camp',
             'point_lat' => '-5.7',
             'point_lng' => '12.4',
@@ -229,7 +244,7 @@ final class PatrolStationsSectionTest extends ConfigureSectionTestCase
     public function testTheAddPanelCarriesTheHousePlateWithOneMarkerOnIt(): void
     {
         $this->signInAsManager();
-        $crawler = $this->client->request('GET', $this->configureUrl('stations'));
+        $crawler = $this->client->request('GET', $this->sectionUrl());
 
         $picker = $crawler->filter('.sppick');
         self::assertCount(1, $picker);
@@ -278,7 +293,7 @@ final class PatrolStationsSectionTest extends ConfigureSectionTestCase
 
         $crawler = $this->client->request(
             'GET',
-            $this->configureUrl('stations').'?point='.$station->getUuid()->toRfc4122(),
+            $this->sectionUrl().'?point='.$station->getUuid()->toRfc4122(),
         );
 
         self::assertResponseIsSuccessful();
@@ -294,7 +309,7 @@ final class PatrolStationsSectionTest extends ConfigureSectionTestCase
     {
         $this->signInAsRecorder();
 
-        $this->client->request('POST', $this->configureUrl('stations'), ['label' => 'Ridge Camp']);
+        $this->client->request('POST', $this->sectionUrl(), ['label' => 'Ridge Camp']);
 
         self::assertResponseStatusCodeSame(403);
     }
