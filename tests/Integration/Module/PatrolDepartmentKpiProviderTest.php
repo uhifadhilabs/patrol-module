@@ -269,38 +269,98 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         self::assertSame("\u{2014}", $coverage->display());
     }
 
-    public function testCoverageIsNeverSplitByArea(): void
+    /**
+     * AN AREA-SCOPED DEPARTMENT READS ITS OWN AREA AND NOTHING ELSE.
+     *
+     * A department confined to one area is not a small view of the organisation's figures — it
+     * IS the figures, and another area's patrols are somebody else's work. So the count, the
+     * kilometres and the sparkline all stop at the boundary.
+     */
+    public function testAnAreaScopedDepartmentReadsThatAreasFiguresAlone(): void
     {
         $world = $this->world();
-
-        // A second area with its own Ecology patrol, so the per-area figures are emitted at all.
-        $second = new AreaOfInterest()->setSource('test fixture')
-            ->setName('Second reserve')
-            ->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.6,-2.3],[-30.4,-2.3],[-30.4,-2.1],[-30.6,-2.1],[-30.6,-2.3]]]]}');
-        $this->em->persist($second);
-        $this->tracked($second, $world['analyst'], '{"type":"LineString","coordinates":[[-30.6,-2.2],[-30.4,-2.2]]}');
+        $second = $this->secondArea();
+        // One more Ecology patrol, next door: 7 km, and outside this department's remit.
+        $this->patrol($second, $world['analyst'], 7.0);
         $this->em->flush();
 
-        $kpis = $this->provider()->kpisFor(self::ref($world['ecology']), self::now());
-        $coverages = array_values(array_filter($kpis, static fn (DepartmentKpi $k): bool => 'coverage' === $k->key));
+        $figures = self::figures($this->provider()->kpisFor(self::ref($world['ecology'], $world['area']), self::now()));
 
-        // Coverage over two areas is not the sum, the mean, or a per-area row of two coverages.
-        // The department reads ONE ratio over the ground it walked; the per-area table dashes it.
-        self::assertCount(1, $coverages);
-        self::assertTrue($coverages[0]->isTotal());
-        self::assertNotNull($coverages[0]->value);
+        self::assertSame(2.0, $figures['patrols'], 'The seventh kilometre next door is not this area\'s patrol.');
+        self::assertSame(22.0, $figures['distance']);
+
+        $elsewhere = self::figures($this->provider()->kpisFor(self::ref($world['ecology'], $second), self::now()));
+        self::assertSame(1.0, $elsewhere['patrols']);
+        self::assertSame(7.0, $elsewhere['distance']);
+    }
+
+    /**
+     * AN ORGANISATION-WIDE DEPARTMENT READS ONE ROLL-UP, NOT ONE SET PER AREA.
+     *
+     * Counts and kilometres are summed across every area; coverage is ONE share of one larger
+     * surface (the ground covered over the boundaries walked), which is the only reading of a
+     * ratio over two places that means anything.
+     */
+    public function testAnOrganisationWideDepartmentRollsUpEveryArea(): void
+    {
+        $world = $this->world();
+        $second = $this->secondArea();
+        $this->patrol($second, $world['analyst'], 7.0);
+        $this->em->persist(new Observation($this->patrol($second, $world['analyst'], 3.0), 'sighting')->setRecordedBy($world['analyst']));
+        $this->em->flush();
+
+        $figures = self::figures($this->provider()->kpisFor(self::ref($world['ecology']), self::now()));
+
+        // 2 here + 2 next door, 22 km + 10 km, 2 observations here + 1 next door.
+        self::assertSame(4.0, $figures['patrols']);
+        self::assertSame(32.0, $figures['distance']);
+        self::assertSame(3.0, $figures['observations']);
+    }
+
+    /**
+     * FOUR FIGURES, ONCE, WHATEVER THE SCOPE.
+     *
+     * The defect this pins: the provider used to append a second and third set of figures, one
+     * per area, and a department page then printed "Patrols logged / Distance patrolled /
+     * Observations / Coverage" three times under no heading at all.
+     */
+    public function testFourFiguresAreReportedOnceWhateverTheScope(): void
+    {
+        $world = $this->world();
+        $second = $this->secondArea();
+        $this->patrol($second, $world['analyst'], 7.0);
+        $this->em->flush();
+
+        self::assertSame(
+            ['patrols', 'distance', 'observations', 'coverage'],
+            self::keys($this->provider()->kpisFor(self::ref($world['ecology']), self::now())),
+            'An organisation-wide department reads one roll-up.',
+        );
+        self::assertSame(
+            ['patrols', 'distance', 'observations', 'coverage'],
+            self::keys($this->provider()->kpisFor(self::ref($world['ecology'], $world['area']), self::now())),
+            'An area-scoped department reads one set too.',
+        );
+    }
+
+    /** An area the department's people never worked in has nothing to report, not four zeros. */
+    public function testAnAreaScopedDepartmentWithNothingRecordedThereReportsNothing(): void
+    {
+        $world = $this->world();
+        $second = $this->secondArea();
+        $this->em->flush();
+
+        self::assertSame([], $this->provider()->kpisFor(self::ref($world['ecology'], $second), self::now()));
     }
 
     public function testCoverageIsTheLastFigureReported(): void
     {
         $world = $this->world();
 
-        $keys = array_map(static fn (DepartmentKpi $k): string => $k->key, array_filter(
-            $this->provider()->kpisFor(self::ref($world['ecology']), self::now()),
-            static fn (DepartmentKpi $k): bool => $k->isTotal(),
-        ));
-
-        self::assertSame(['patrols', 'distance', 'observations', 'coverage'], array_values($keys));
+        self::assertSame(
+            ['patrols', 'distance', 'observations', 'coverage'],
+            self::keys($this->provider()->kpisFor(self::ref($world['ecology']), self::now())),
+        );
     }
 
     public function testEveryFigureNamesTheModuleTheHostAskedFor(): void
@@ -326,13 +386,17 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
      * module that reports a figure hard-require team. Whoever holds the
      * department resolves it to a ref — here, the test playing the surface that
      * renders a performance page.
+     *
+     * An area handed in confines the department to it; without one the ref is
+     * organisation-wide and the figures roll up across every area.
      */
-    private static function ref(Department $department): DepartmentRef
+    private static function ref(Department $department, ?AreaOfInterest $area = null): DepartmentRef
     {
         return new DepartmentRef(
             (int) $department->getId(),
             (string) $department->getName(),
             $department->getUuid()?->toRfc4122(),
+            $area?->getUuid()?->toRfc4122(),
         );
     }
 
@@ -370,6 +434,17 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         $this->em->flush();
 
         return ['area' => $area, 'ecology' => $ecology, 'protection' => $protection, 'analyst' => $analyst, 'ranger' => $ranger];
+    }
+
+    /** A second boundary next door, so a scope has something to exclude. */
+    private function secondArea(): AreaOfInterest
+    {
+        $area = new AreaOfInterest()->setSource('test fixture')
+            ->setName('Second reserve')
+            ->setGeom('{"type":"MultiPolygon","coordinates":[[[[-30.6,-2.3],[-30.4,-2.3],[-30.4,-2.1],[-30.6,-2.1],[-30.6,-2.3]]]]}');
+        $this->em->persist($area);
+
+        return $area;
     }
 
     /** One department's PL·03 over the test month, straight from the repository. */
@@ -458,8 +533,7 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
     }
 
     /**
-     * The department TOTALS as key => value. Per-area figures are deliberately excluded — summing
-     * the raw list would double-count.
+     * The department's figures as key => value.
      *
      * @param list<DepartmentKpi> $kpis
      *
@@ -469,19 +543,29 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
     {
         $figures = [];
         foreach ($kpis as $kpi) {
-            if ($kpi->isTotal()) {
-                $figures[$kpi->key] = (float) $kpi->value;
-            }
+            $figures[$kpi->key] = (float) $kpi->value;
         }
 
         return $figures;
+    }
+
+    /**
+     * Every key reported, in order — the assertion that catches a repeated set.
+     *
+     * @param list<DepartmentKpi> $kpis
+     *
+     * @return list<string>
+     */
+    private static function keys(array $kpis): array
+    {
+        return array_map(static fn (DepartmentKpi $kpi): string => $kpi->key, $kpis);
     }
 
     /** @param list<DepartmentKpi> $kpis */
     private static function kpi(array $kpis, string $key): DepartmentKpi
     {
         foreach ($kpis as $kpi) {
-            if ($kpi->key === $key && $kpi->isTotal()) {
+            if ($kpi->key === $key) {
                 return $kpi;
             }
         }

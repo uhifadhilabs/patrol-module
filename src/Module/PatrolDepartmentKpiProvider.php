@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Module;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Contracts\Kpi\DepartmentKpi;
@@ -25,10 +26,12 @@ use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 
 /**
- * What THIS department did with the Patrols module, this month.
+ * What THIS department did with the Patrols module, this month, ANYWHERE THE REF ALLOWS.
  *
  * The host asks for these only when a department attaches Patrols, so there is no "is it
- * installed" question here — only the slice.
+ * installed" question here — only the slice and the scope. The scope is the ref's `areaUuid`: one
+ * area for a department confined to it, every area for an organisation-wide one, and one set of
+ * four figures either way — see {@see self::kpisFor()}.
  *
  * THE SLICE, which is the whole point of the class. A patrol is not a department's because of
  * where it happened or who may read it; it is a department's because THE PERSON WHO RECORDED IT
@@ -74,15 +77,22 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
     }
 
     /**
-     * Patrols logged, distance patrolled, observations recorded and ground covered — as
-     * department totals, and, for the three this module can honestly split, once more per area.
+     * FOUR FIGURES, ONCE: patrols logged, distance patrolled, observations recorded and ground
+     * covered, for the scope the ref names and for nothing else.
      *
-     * COVERAGE IS A TOTAL AND ONLY A TOTAL. PL·03 is a share of a surface, and the share of two
-     * areas is not the sum, the mean, or a row-per-area of two shares — it is one ratio over one
-     * larger surface, which is exactly what {@see PatrolRepository::coverageFractionForDepartment()}
-     * answers when asked without an area. The per-area table draws a dash in that column rather
-     * than a split nobody can define, which is the honest reading and the one the area's widget
-     * already documents.
+     * THE SCOPE IS THE REF'S, NOT THE INSTALLATION'S. A ref carrying an `areaUuid` is a
+     * department confined to that area, and its figures stop at that boundary — another area's
+     * patrols are somebody else's work, not a smaller view of the same work. A ref without one is
+     * organisation-wide and reads the roll-up across every area: counts and kilometres summed,
+     * the sparklines summed the same way month by month.
+     *
+     * COVERAGE ROLLS UP AS ONE SHARE OF ONE SURFACE — the ground covered across the areas the
+     * department walked, over those areas' boundaries added together. Not the sum of two shares,
+     * which can exceed 1, and not their unweighted mean, which would let a pond outvote a
+     * province; a big area and a small one contribute in proportion to their size, which is what
+     * {@see PatrolRepository::coverageFractionForDepartment()} already answers when asked without
+     * an area, and what the plate's caption says out loud. Areas the department never set foot in
+     * are in neither sum rather than dragging the figure towards zero.
      *
      * @return list<DepartmentKpi>
      */
@@ -93,10 +103,14 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
         [$monthStart, $nextMonth] = PatrolDashboardService::monthRange($now);
         $previousStart = $monthStart->modify('-1 month');
 
-        $areas = $this->areasWithPatrols();
+        $areas = $this->areasWithPatrols($department->areaUuid);
         if ([] === $areas) {
             return [];
         }
+
+        // The area coverage is measured over: the one the ref confines the department to, or
+        // every area it walked, folded into a single ratio by the repository.
+        $within = null === $department->areaUuid ? null : $areas[0];
 
         $month = $this->tally($areas, $departmentId, $monthStart, $nextMonth);
         $previous = $this->tally($areas, $departmentId, $previousStart, $monthStart);
@@ -115,7 +129,7 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
             $areas,
         )));
 
-        $kpis = [
+        return [
             new DepartmentKpi('patrols', 'Patrols logged', $this->slug, $this->name, (float) $month->patrols, '', (float) $previous->patrols, $spark['patrols'], $caption),
             new DepartmentKpi('distance', 'Distance patrolled', $this->slug, $this->name, $month->distanceKm, 'km', $previous->distanceKm, $spark['distance'], $caption),
             new DepartmentKpi('observations', 'Observations', $this->slug, $this->name, (float) $month->observations, '', (float) $previous->observations, $spark['observations'], $caption),
@@ -124,32 +138,22 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
                 'Coverage',
                 $this->slug,
                 $this->name,
-                $this->coverage($departmentId, $monthStart, $nextMonth),
+                $this->coverage($within, $departmentId, $monthStart, $nextMonth),
                 DepartmentKpi::SHARE,
-                $this->coverage($departmentId, $previousStart, $monthStart),
-                $this->coverageSpark($departmentId, $monthStart),
+                $this->coverage($within, $departmentId, $previousStart, $monthStart),
+                $this->coverageSpark($within, $departmentId, $monthStart),
                 // Its own provenance line: the buffer is part of what the number MEANS, not a
                 // setting, and a share printed without the distance it was measured at is
-                // unreadable. The label stays short because a table header wears it too.
-                \sprintf('%s · within %s km of a track', $caption, rtrim(rtrim(number_format(PatrolDashboardService::COVERAGE_BUFFER_M / 1000, 1, '.', ''), '0'), '.')),
+                // unreadable. Rolled up, it says which surface the share is OF, because a
+                // reader who is not told will assume a mean of the areas listed beside it.
+                \sprintf(
+                    '%s · within %s km of a track%s',
+                    $caption,
+                    rtrim(rtrim(number_format(PatrolDashboardService::COVERAGE_BUFFER_M / 1000, 1, '.', ''), '0'), '.'),
+                    null === $within && \count($areas) > 1 ? ', as one share of those boundaries combined' : '',
+                ),
             ),
         ];
-
-        // The same month again, split by area — the per-area widget's business and nobody else's.
-        // Only worth stating when there is more than one area to compare. THREE figures, not
-        // four: counts and kilometres add up across areas and a share does not, so coverage is
-        // absent here and the table dashes its column rather than inventing a split.
-        if (\count($areas) > 1) {
-            foreach ($areas as $area) {
-                $here = $this->tally([$area], $departmentId, $monthStart, $nextMonth);
-                $areaName = (string) $area->getName();
-                $kpis[] = new DepartmentKpi('patrols', 'Patrols logged', $this->slug, $this->name, (float) $here->patrols, '', null, [], $caption, $areaName);
-                $kpis[] = new DepartmentKpi('distance', 'Distance patrolled', $this->slug, $this->name, $here->distanceKm, 'km', null, [], $caption, $areaName);
-                $kpis[] = new DepartmentKpi('observations', 'Observations', $this->slug, $this->name, (float) $here->observations, '', null, [], $caption, $areaName);
-            }
-        }
-
-        return $kpis;
     }
 
     /**
@@ -217,16 +221,16 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
      * formats the value it is given and {@see DepartmentKpi::delta()} moves a share in POINTS.
      * The conversion belongs here, once, rather than in every surface that reads the figure.
      *
-     * Asked WITHOUT an area on purpose — see {@see self::kpisFor()} for why coverage is one
-     * ratio over every area the department walked and never a per-area row.
+     * `$within` null asks across every area the department walked, as ONE ratio — see
+     * {@see self::kpisFor()} for why that is the only honest roll-up of a share.
      *
      * Null stays null the whole way: no track recorded by these people in this window is not
      * zero coverage, and the host draws it as a dash.
      */
-    private function coverage(int $departmentId, \DateTimeImmutable $from, \DateTimeImmutable $until): ?float
+    private function coverage(?AreaOfInterest $within, int $departmentId, \DateTimeImmutable $from, \DateTimeImmutable $until): ?float
     {
         $fraction = $this->patrols->coverageFractionForDepartment(
-            null,
+            $within,
             $departmentId,
             PatrolDashboardService::COVERAGE_BUFFER_M,
             $from,
@@ -246,13 +250,13 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
      *
      * @return list<float>
      */
-    private function coverageSpark(int $departmentId, \DateTimeImmutable $monthStart): array
+    private function coverageSpark(?AreaOfInterest $within, int $departmentId, \DateTimeImmutable $monthStart): array
     {
         $series = [];
 
         for ($back = self::SPARK_MONTHS - 1; $back >= 0; --$back) {
             $from = $monthStart->modify(\sprintf('-%d month', $back));
-            $reading = $this->coverage($departmentId, $from, $from->modify('+1 month'));
+            $reading = $this->coverage($within, $departmentId, $from, $from->modify('+1 month'));
             if (null === $reading) {
                 return [];
             }
@@ -287,21 +291,29 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
     }
 
     /**
-     * The areas this module has any patrol in. Asked of the data rather than of the host's
-     * area × module table, because a KPI is about rows that exist: an area the module was
-     * switched on in yesterday contributes nothing to this month and needs no row.
+     * The areas in scope that this module has any patrol in — one, when the ref named it, and
+     * otherwise every one of them. Asked of the data rather than of the host's area × module
+     * table, because a KPI is about rows that exist: an area the module was switched on in
+     * yesterday contributes nothing to this month and needs no row.
      *
-     * DISCARDED patrols do not make an area countable. An area whose only patrols were
-     * thrown away has nothing to report, and letting it in would earn it a per-area row of
-     * zeros in the comparison table — a row that reads as "they worked here and achieved
-     * nothing" rather than "nothing counted here".
+     * DISCARDED patrols do not make an area countable. An area whose only patrols were thrown
+     * away has nothing to report, and letting it in would earn the department four zeros — which
+     * read as "they worked here and achieved nothing" rather than "nothing counted here".
+     *
+     * An `$areaUuid` that is not a uuid, or names no area, leaves the list EMPTY and the
+     * department reports nothing. That is the same answer as an area with no patrols, and it is
+     * the right one: a scope nobody can resolve must not silently widen to the whole
+     * organisation.
      *
      * @return list<AreaOfInterest>
      */
-    private function areasWithPatrols(): array
+    private function areasWithPatrols(?string $areaUuid): array
     {
-        /** @var list<AreaOfInterest> $areas */
-        $areas = $this->entityManager->createQueryBuilder()
+        if (null !== $areaUuid && !Uuid::isValid($areaUuid)) {
+            return [];
+        }
+
+        $query = $this->entityManager->createQueryBuilder()
             ->select('DISTINCT a')
             ->from(AreaOfInterest::class, 'a')
             // The same rule tally() applies in PHP, expressed in DQL: only a
@@ -311,9 +323,14 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
             // this method exists to avoid.
             ->innerJoin(Patrol::class, 'p', 'WITH', 'p.area = a AND p.status = :counted')
             ->setParameter('counted', PatrolStatusEnum::Complete)
-            ->orderBy('a.name', 'ASC')
-            ->getQuery()
-            ->getResult();
+            ->orderBy('a.name', 'ASC');
+
+        if (null !== $areaUuid) {
+            $query->andWhere('a.uuid = :area')->setParameter('area', Uuid::fromString($areaUuid));
+        }
+
+        /** @var list<AreaOfInterest> $areas */
+        $areas = $query->getQuery()->getResult();
 
         return $areas;
     }
