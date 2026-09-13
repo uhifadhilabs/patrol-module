@@ -14,11 +14,11 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Tests\Integration\Module;
 
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
-use Uhifadhi\Bundle\AreaBundle\Kpi\DepartmentKpi;
-use Uhifadhi\Bundle\AreaBundle\Kpi\DepartmentRef;
 use Uhifadhi\Bundle\TeamBundle\Entity\Department;
 use Uhifadhi\Bundle\TeamBundle\Entity\Position;
 use Uhifadhi\Bundle\TeamBundle\Entity\User;
+use Uhifadhi\Contracts\Kpi\DepartmentKpi;
+use Uhifadhi\Contracts\Kpi\DepartmentRef;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
@@ -320,7 +320,7 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
      * A department as the CONTRACT hands it over — id, name and uuid, never the
      * entity.
      *
-     * This is the shape AreaBundle's KPI contract takes, and the reason it
+     * This is the shape the core's KPI contract takes, and the reason it
      * takes it: departments belong to TeamBundle and nothing publishes
      * a contract for one, so a signature typed against team's class would make every
      * module that reports a figure hard-require team. Whoever holds the

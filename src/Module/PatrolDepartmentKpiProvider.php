@@ -15,10 +15,10 @@ namespace Uhifadhi\Patrol\Module;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
-use Uhifadhi\Bundle\AreaBundle\Kpi\DepartmentKpi;
-use Uhifadhi\Bundle\AreaBundle\Kpi\DepartmentKpiProviderInterface;
-use Uhifadhi\Bundle\AreaBundle\Kpi\DepartmentRef;
 use Uhifadhi\Contracts\Entity\UserInterface;
+use Uhifadhi\Contracts\Kpi\DepartmentKpi;
+use Uhifadhi\Contracts\Kpi\DepartmentKpiProviderInterface;
+use Uhifadhi\Contracts\Kpi\DepartmentRef;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 use Uhifadhi\Patrol\Repository\PatrolRepository;

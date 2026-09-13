@@ -461,9 +461,8 @@ final class PatrolRepository extends ServiceEntityRepository
      * against. Departments belong to TeamBundle and NOTHING PUBLISHES
      * A CONTRACT FOR ONE, so a signature naming that bundle's class would make
      * every installation of this module install team's — for a value that is
-     * one integer by the time it reaches SQL. The same reasoning the area
-     * module's KPI contract states for its own DepartmentRef, applied one layer
-     * down.
+     * one integer by the time it reaches SQL. The same reasoning the core's
+     * KPI contract states for its own DepartmentRef, applied one layer down.
      */
     public function coverageFractionForDepartment(?AreaOfInterest $area, int $departmentId, float $bufferMetres, \DateTimeImmutable $from, \DateTimeImmutable $until): ?float
     {
