@@ -418,138 +418,67 @@ final class PatrolRepository extends ServiceEntityRepository
     }
 
     /**
-     * PL·03 FOR ONE DEPARTMENT — the same share, measured over only the tracks
-     * THIS DEPARTMENT'S PEOPLE recorded.
+     * PL·03 ROLLED UP ACROSS EVERY AREA — one share of one surface: the ground
+     * covered in each area that recorded a track in the window, summed, over
+     * those areas' boundaries, summed.
      *
-     * Identical geometry to {@see self::coverageFractionWithin()} — buffer each
-     * track in GEOGRAPHY so the distance is metres on the spheroid, union the
-     * buffers so overlapping patrols are not counted twice, clip the union to
-     * the boundary, divide the two geodesic areas — over a strictly smaller set
-     * of tracks, and with DISCARDED and still-RECORDING patrols absent for the
-     * same reasons they are absent from the area-wide figure.
-     * Nothing about the AREA changes: the denominator is the whole
-     * boundary, because the question is "how much of this place did they walk",
-     * not "how much of their own patrolling was inside it". So a department's
-     * figure is always ≤ the area's, and two departments walking different
-     * ground both read less than the area does. That inequality is the reason
-     * this method exists: handing every department the area-wide number would
-     * credit each of them with ground only the others covered.
+     * Per area it is the same set operation as {@see self::coverageFractionWithin()}
+     * — buffer each COMPLETE track in geography, union, clip to the boundary —
+     * and the fold happens outside the per-area subquery because ST_Union is an
+     * aggregate. Not the sum of the shares, which can exceed 1, and not their
+     * unweighted mean, which would let a small area outvote a large one. Areas
+     * with no track in the window, or with no stored boundary, are absent from
+     * BOTH sums rather than dragging the figure towards zero.
      *
-     * THE SLICE is the module's one and only slice, the same one
-     * {@see \Uhifadhi\Patrol\Module\PatrolDepartmentKpiProvider} counts
-     * patrols by: patrol → lead → position → department. Three INNER JOINs
-     * express in SQL exactly what that provider expresses in PHP, and a patrol
-     * that fails any link — no lead, a lead with no position, a position filed
-     * under no department — drops out of EVERY department's coverage rather
-     * than being shared among them. It still counts towards the area's, which
-     * is why the two figures are allowed to disagree.
-     *
-     * $area NULL asks across every area the department recorded a track in, as
-     * ONE ratio: the covered surfaces summed over the boundary surfaces summed.
-     * Coverage over two areas is not the sum of two coverages and not their
-     * mean — it is a single share of a single larger surface, and the areas the
-     * department never set foot in are absent from BOTH sums rather than
-     * dragging the figure towards zero with boundaries nobody was asked about.
-     *
-     * Null — never 0.0 — where there is nothing to measure: no track recorded
-     * by this department's people in the window, or an area with no stored
-     * boundary. Unknown coverage and zero coverage are different facts, and the
-     * plate says the first with the design's em dash.
-     *
-     * THE DEPARTMENT ARRIVES AS AN ID, NOT AS AN ENTITY, and that is the whole
-     * of what this query needs: the key `position.department_id` is compared
-     * against. Departments belong to TeamBundle and NOTHING PUBLISHES
-     * A CONTRACT FOR ONE, so a signature naming that bundle's class would make
-     * every installation of this module install team's — for a value that is
-     * one integer by the time it reaches SQL. The same reasoning the core's
-     * KPI contract states for its own DepartmentRef, applied one layer down.
+     * Null — never 0.0 — where no area has anything to measure.
      */
-    public function coverageFractionForDepartment(?AreaOfInterest $area, int $departmentId, float $bufferMetres, \DateTimeImmutable $from, \DateTimeImmutable $until): ?float
+    public function coverageFractionAcrossAreas(float $bufferMetres, \DateTimeImmutable $from, \DateTimeImmutable $until): ?float
     {
         $entityManager = $this->getEntityManager();
         $patrol = $this->getClassMetadata();
         $areaMeta = $entityManager->getClassMetadata(AreaOfInterest::class);
-        // Walked from the mapping rather than named, for the same reason the
-        // area-wide query reads its own columns from metadata: the host owns
-        // User and Position and may map them with another naming strategy.
-        $userMeta = $entityManager->getClassMetadata($patrol->getAssociationTargetClass('lead'));
-        $positionMeta = $entityManager->getClassMetadata($userMeta->getAssociationTargetClass('position'));
-
-        // Table names go through the quote strategy — unlike the columns, one of
-        // them genuinely needs it: the host stores users in `"user"`, which is a
-        // reserved word in PostgreSQL and unparseable bare.
         $platform = $entityManager->getConnection()->getDatabasePlatform();
         $quotes = $entityManager->getConfiguration()->getQuoteStrategy();
 
-        // The per-area shares are computed in the subquery (one row per area,
-        // because ST_Union is an aggregate) and folded into one ratio outside
-        // it. With an area named, that is a single row and the fold is a no-op.
         $sql = \sprintf(
             <<<'SQL'
                 SELECT SUM(covered) / NULLIF(SUM(total), 0) AS fraction
                 FROM (
                     SELECT ST_Area(
                                ST_Intersection(
-                                   ST_Union(ST_Buffer(p.%s::geography, :buffer)::geometry),
-                                   a.%s
+                                   ST_Union(ST_Buffer(p.%1$s::geography, :buffer)::geometry),
+                                   a.%2$s
                                )::geography
                            ) AS covered,
-                           ST_Area(a.%s::geography) AS total
-                    FROM %s a
-                    INNER JOIN %s p ON p.%s = a.%s
-                    INNER JOIN %s u ON u.%s = p.%s
-                    INNER JOIN %s pos ON pos.%s = u.%s
-                    WHERE (CAST(:area AS INTEGER) IS NULL OR a.%s = CAST(:area AS INTEGER))
-                      AND pos.%s = :department
-                      AND a.%s IS NOT NULL
-                      AND p.%s IS NOT NULL
-                      AND p.%s = :counted
-                      AND p.%s >= :from
-                      AND p.%s < :until
-                    GROUP BY a.%s, a.%s
+                           ST_Area(a.%2$s::geography) AS total
+                    FROM %3$s a
+                    INNER JOIN %4$s p ON p.%5$s = a.%6$s
+                    WHERE a.%2$s IS NOT NULL
+                      AND p.%1$s IS NOT NULL
+                      AND p.%7$s = :counted
+                      AND p.%8$s >= :from
+                      AND p.%8$s < :until
+                    GROUP BY a.%6$s, a.%2$s
                 ) per_area
                 SQL,
             $patrol->getColumnName('track'),
-            $areaGeom = $areaMeta->getColumnName('geom'),
-            $areaGeom,
+            $areaMeta->getColumnName('geom'),
             $quotes->getTableName($areaMeta, $platform),
             $quotes->getTableName($patrol, $platform),
             $patrol->getSingleAssociationJoinColumnName('area'),
-            $areaId = $areaMeta->getSingleIdentifierColumnName(),
-            // patrol → lead
-            $quotes->getTableName($userMeta, $platform),
-            $patrol->getSingleAssociationReferencedJoinColumnName('lead'),
-            $patrol->getSingleAssociationJoinColumnName('lead'),
-            // lead → position
-            $quotes->getTableName($positionMeta, $platform),
-            $userMeta->getSingleAssociationReferencedJoinColumnName('position'),
-            $userMeta->getSingleAssociationJoinColumnName('position'),
-            // position → department
-            $areaId,
-            $positionMeta->getSingleAssociationJoinColumnName('department'),
-            $areaGeom,
-            $patrol->getColumnName('track'),
+            $areaMeta->getSingleIdentifierColumnName(),
             $patrol->getColumnName('status'),
-            $startedAt = $patrol->getColumnName('startedAt'),
-            $startedAt,
-            $areaId,
-            $areaGeom,
+            $patrol->getColumnName('startedAt'),
         );
 
         $fraction = $entityManager->getConnection()->fetchOne($sql, [
             'buffer' => $bufferMetres,
-            'area' => $area?->getId(),
-            'department' => $departmentId,
             'counted' => PatrolStatusEnum::Complete->value,
             'from' => $from,
             'until' => $until,
         ], [
             'buffer' => Types::FLOAT,
-            'area' => Types::INTEGER,
-            'department' => Types::INTEGER,
             'counted' => Types::STRING,
-            // Bound as Doctrine types, not as pre-formatted strings, so the
-            // window is written exactly the way the ORM wrote started_at.
             'from' => Types::DATETIME_IMMUTABLE,
             'until' => Types::DATETIME_IMMUTABLE,
         ]);

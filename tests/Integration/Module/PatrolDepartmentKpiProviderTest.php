@@ -29,58 +29,139 @@ use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
 /**
- * THE test this whole feature turns on: TWO DEPARTMENTS SHARING THE PATROLS MODULE.
- *
- * Both read the same rows. Neither is fenced out of the other's. And yet they must report
- * different numbers, because a patrol belongs to a department through THE PERSON WHO RECORDED IT
- * — patrol → lead → position → department. Get this wrong in the obvious way (count the area's
- * patrols) and both departments report the same figure and the board becomes meaningless.
+ * A department reads the Patrols module BY SCOPE: every patrol recorded in its area, or across the
+ * organisation when it has none — whoever led the patrol, whether they hold a position, and
+ * whichever department that position is filed under.
  */
 final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
 {
     private const string NOW = '2026-08-20 09:00:00';
 
-    public function testTwoDepartmentsSharingTheModuleReadTheSameRowsAndGetDifferentNumbers(): void
+    public function testEveryPatrolInTheAreaCountsWhicheverDepartmentItsLeadIsSeatedIn(): void
     {
         $world = $this->world();
 
-        $ecology = self::figures($this->provider()->kpisFor(self::ref($world['ecology']), self::now()));
-        $protection = self::figures($this->provider()->kpisFor(self::ref($world['protection']), self::now()));
+        $ecology = self::figures($this->provider()->kpisFor(self::ref($world['ecology'], $world['area']), self::now()));
 
-        // 5 patrols exist this month in one area. Ecology's people led 2 of them, Protection's 3.
-        // Neither department "sees" fewer rows — the SPLIT is by recording position.
-        self::assertSame(2.0, $ecology['patrols']);
-        self::assertSame(3.0, $protection['patrols']);
-        self::assertSame(5.0, $ecology['patrols'] + $protection['patrols']);
-
-        // Distance follows the same rows: 10 + 12 against 20 + 30 + 40.
-        self::assertSame(22.0, $ecology['distance']);
-        self::assertSame(90.0, $protection['distance']);
+        // Two patrols led from Ecology, three from Protection: all five are the area's.
+        self::assertSame(5.0, $ecology['patrols']);
+        self::assertSame(112.0, $ecology['distance']);
+        self::assertSame(3.0, $ecology['observations']);
     }
 
-    public function testAnObservationCountsForItsOwnRecordersDepartmentNotTheLeadsOne(): void
+    public function testAPatrolLedBySomebodyWithNoPositionCountsForTheArea(): void
     {
         $world = $this->world();
 
-        $ecology = self::figures($this->provider()->kpisFor(self::ref($world['ecology']), self::now()));
-        $protection = self::figures($this->provider()->kpisFor(self::ref($world['protection']), self::now()));
+        $unseated = $this->user('Neema', 'Mollel', null);
+        $this->em->persist(new Observation($this->patrol($world['area'], $unseated, 8.0), 'sighting')->setRecordedBy($unseated));
+        $this->patrol($world['area'], null, 4.0);
+        $this->em->flush();
 
-        // Three observations exist. Two were logged by Ecology's analyst — one of them DURING a
-        // patrol Protection led. An observation carries its own recorder, so it counts for the
-        // person's department and not for whoever led the patrol.
-        self::assertSame(2.0, $ecology['observations']);
-        self::assertSame(1.0, $protection['observations']);
+        $figures = self::figures($this->provider()->kpisFor(self::ref($world['ecology'], $world['area']), self::now()));
+
+        self::assertSame(7.0, $figures['patrols']);
+        self::assertSame(124.0, $figures['distance']);
+        self::assertSame(4.0, $figures['observations']);
     }
 
-    /**
-     * A DISCARDED patrol belongs to no department's figures — and neither do the
-     * observations logged on it.
-     *
-     * The observations are the part worth pinning: they are otherwise counted
-     * independently of the patrol (an observation carries its own recorder), and
-     * crediting them while dropping the patrol's kilometres would produce a
-     * department that observed things on no patrols.
-     */
+    public function testAPatrolLedFromAnotherDepartmentCountsForADepartmentWithNoPeopleOfItsOwn(): void
+    {
+        $world = $this->world();
+        $tourism = $this->department('Tourism');
+        $this->em->flush();
+
+        $figures = self::figures($this->provider()->kpisFor(self::ref($tourism, $world['area']), self::now()));
+
+        self::assertSame(5.0, $figures['patrols']);
+        self::assertSame(112.0, $figures['distance']);
+        self::assertSame(3.0, $figures['observations']);
+    }
+
+    public function testTwoDepartmentsScopedToTheSameAreaReadIdenticalFigures(): void
+    {
+        $world = $this->world();
+        $this->tracked($world['area'], $world['analyst'], '{"type":"LineString","coordinates":[[-29.6,-3.25],[-29.4,-3.25]]}');
+        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[-29.6,-3.15],[-29.4,-3.15]]}');
+        $this->patrol($world['area'], $world['ranger'], 9.0, '2026-07-12 07:00:00');
+        $this->em->flush();
+
+        $ecology = $this->provider()->kpisFor(self::ref($world['ecology'], $world['area']), self::now());
+        $protection = $this->provider()->kpisFor(self::ref($world['protection'], $world['area']), self::now());
+
+        self::assertNotSame([], $ecology);
+        self::assertNotNull(self::kpi($ecology, 'coverage')->value);
+        self::assertEquals($ecology, $protection);
+    }
+
+    public function testAnOrganisationWideDepartmentSumsEveryArea(): void
+    {
+        $world = $this->world();
+        $second = $this->secondArea();
+        $this->patrol($second, $world['analyst'], 7.0);
+        $this->em->persist(new Observation($this->patrol($second, null, 3.0), 'sighting'));
+        $this->em->flush();
+
+        $figures = self::figures($this->provider()->kpisFor(self::ref($world['protection']), self::now()));
+
+        // 5 + 2 patrols, 112 + 10 km, 3 + 1 observations.
+        self::assertSame(7.0, $figures['patrols']);
+        self::assertSame(122.0, $figures['distance']);
+        self::assertSame(4.0, $figures['observations']);
+    }
+
+    public function testAnOrganisationWideDepartmentReadsOneShareOfEveryBoundaryWalked(): void
+    {
+        $world = $this->world();
+        $second = $this->secondArea();
+        $this->tracked($world['area'], $world['analyst'], '{"type":"LineString","coordinates":[[-29.6,-3.2],[-29.4,-3.2]]}');
+        $this->tracked($second, null, '{"type":"LineString","coordinates":[[-30.6,-2.2],[-30.4,-2.2]]}');
+        $this->em->flush();
+
+        $coverage = self::kpi($this->provider()->kpisFor(self::ref($world['ecology']), self::now()), 'coverage');
+
+        $repository = $this->em->getRepository(Patrol::class);
+        \assert($repository instanceof PatrolRepository);
+        $rolledUp = $repository->coverageFractionAcrossAreas(PatrolDashboardService::COVERAGE_BUFFER_M, ...PatrolDashboardService::monthRange(self::now()));
+
+        self::assertNotNull($rolledUp);
+        self::assertNotNull($coverage->value);
+        self::assertEqualsWithDelta($rolledUp * 100.0, $coverage->value, 0.0001);
+    }
+
+    public function testAnAreaWithNoPatrolsInEitherWindowReportsNothing(): void
+    {
+        $world = $this->world();
+        $second = $this->secondArea();
+        $this->em->flush();
+
+        self::assertSame([], $this->provider()->kpisFor(self::ref($world['ecology'], $second), self::now()));
+    }
+
+    public function testAScopeWhosePatrolsAreOlderThanBothWindowsReportsNothing(): void
+    {
+        $area = $this->secondArea();
+        $this->patrol($area, null, 7.0, '2026-06-10 07:00:00');
+        $ecology = $this->department('Ecology');
+        $this->em->flush();
+
+        self::assertSame([], $this->provider()->kpisFor(self::ref($ecology), self::now()));
+        self::assertSame([], $this->provider()->kpisFor(self::ref($ecology, $area), self::now()));
+    }
+
+    public function testAPatrolOnlyInThePreviousWindowStillReports(): void
+    {
+        $area = $this->secondArea();
+        $this->patrol($area, null, 7.0, '2026-07-10 07:00:00');
+        $ecology = $this->department('Ecology');
+        $this->em->flush();
+
+        $patrols = self::kpi($this->provider()->kpisFor(self::ref($ecology, $area), self::now()), 'patrols');
+
+        self::assertSame(0.0, $patrols->value);
+        self::assertSame(1.0, $patrols->previous);
+    }
+
     public function testADiscardedPatrolAndItsObservationsCountForNobody(): void
     {
         $world = $this->world();
@@ -89,21 +170,13 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         $this->em->persist(new Observation($thrownAway, 'sighting')->setRecordedBy($world['analyst']));
         $this->em->flush();
 
-        $ecology = self::figures($this->provider()->kpisFor(self::ref($world['ecology']), self::now()));
-        $protection = self::figures($this->provider()->kpisFor(self::ref($world['protection']), self::now()));
+        $figures = self::figures($this->provider()->kpisFor(self::ref($world['ecology'], $world['area']), self::now()));
 
-        // Unchanged from the baseline the other tests assert.
-        self::assertSame(3.0, $protection['patrols'], 'The discarded patrol is not a fourth.');
-        self::assertSame(90.0, $protection['distance'], 'Nor are its 500 km.');
-        self::assertSame(2.0, $ecology['observations'], 'Nor is the observation logged on it.');
+        self::assertSame(5.0, $figures['patrols'], 'The discarded patrol is not a sixth.');
+        self::assertSame(112.0, $figures['distance'], 'Nor are its 500 km.');
+        self::assertSame(3.0, $figures['observations'], 'Nor is the observation logged on it.');
     }
 
-    /**
-     * THE SAME RULE FOR A PATROL STILL ARRIVING, and for the sister reason: not
-     * that the effort was withdrawn but that it is not all here yet. Crediting a
-     * department with a distance that is still growing makes its figures wrong
-     * until the phone happens to finish syncing.
-     */
     public function testAPatrolStillRecordingCountsForNobodyYet(): void
     {
         $world = $this->world();
@@ -113,217 +186,100 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         $this->em->persist(new Observation($stillArriving, 'sighting')->setRecordedBy($world['analyst']));
         $this->em->flush();
 
-        $ecology = self::figures($this->provider()->kpisFor(self::ref($world['ecology']), self::now()));
-        $protection = self::figures($this->provider()->kpisFor(self::ref($world['protection']), self::now()));
+        $figures = self::figures($this->provider()->kpisFor(self::ref($world['ecology'], $world['area']), self::now()));
 
-        // The same baseline the discard test holds to.
-        self::assertSame(3.0, $protection['patrols'], 'A patrol still arriving is not a fourth.');
-        self::assertSame(90.0, $protection['distance'], 'Nor is the distance it has reached so far.');
-        self::assertSame(2.0, $ecology['observations'], 'Nor is the observation logged on it.');
+        self::assertSame(5.0, $figures['patrols'], 'A patrol still arriving is not a sixth.');
+        self::assertSame(112.0, $figures['distance'], 'Nor is the distance it has reached so far.');
+        self::assertSame(3.0, $figures['observations'], 'Nor is the observation logged on it.');
     }
 
-    /** Coverage is sliced the same way, in PostGIS: a discarded track is not the department's ground. */
-    public function testADiscardedTrackIsNotADepartmentsCoverage(): void
-    {
-        $world = $this->world();
-
-        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[-29.6,-3.2],[-29.4,-3.2]]}');
-        $this->em->flush();
-        $withRealTrackOnly = $this->departmentCoverage($world['protection']);
-        self::assertNotNull($withRealTrackOnly);
-
-        // A second, perpendicular track by the same department — discarded. If it
-        // counted, the union would be a cross and the share would grow.
-        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[-29.5,-3.3],[-29.5,-3.1]]}')
-            ->discard('Testing');
-        $this->em->flush();
-
-        self::assertEqualsWithDelta($withRealTrackOnly, $this->departmentCoverage($world['protection']), 0.0001);
-    }
-
-    /** And a track that has not finished arriving is not the department's ground either. */
-    public function testATrackStillRecordingIsNotADepartmentsCoverage(): void
-    {
-        $world = $this->world();
-
-        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[-29.6,-3.2],[-29.4,-3.2]]}');
-        $this->em->flush();
-        $withCompleteTrackOnly = $this->departmentCoverage($world['protection']);
-        self::assertNotNull($withCompleteTrackOnly);
-
-        // Perpendicular again: were it counted, the union would be a cross.
-        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[-29.5,-3.3],[-29.5,-3.1]]}')
-            ->setStatus(PatrolStatusEnum::Recording);
-        $this->em->flush();
-
-        self::assertEqualsWithDelta($withCompleteTrackOnly, $this->departmentCoverage($world['protection']), 0.0001);
-    }
-
-    public function testAPatrolWithNoRecordableDepartmentBelongsToNobodysFigures(): void
-    {
-        $world = $this->world();
-
-        // An unled patrol, and one led by somebody whose position is filed under no department.
-        $this->patrol($world['area'], null, 500.0);
-        $unfiled = $this->user('Unfiled', 'Person', $this->position('Contractor', null));
-        $this->patrol($world['area'], $unfiled, 700.0);
-        $this->em->flush();
-
-        $ecology = self::figures($this->provider()->kpisFor(self::ref($world['ecology']), self::now()));
-        $protection = self::figures($this->provider()->kpisFor(self::ref($world['protection']), self::now()));
-
-        // Real work the org chart cannot place. It is shared out among NOBODY rather than
-        // among everybody — 500 and 700 km appear in neither column.
-        self::assertSame(22.0, $ecology['distance']);
-        self::assertSame(90.0, $protection['distance']);
-    }
-
-    public function testTheMonthOverMonthComparisonIsLastMonthsSameSlice(): void
-    {
-        $world = $this->world();
-
-        // Two more Ecology patrols, last month.
-        $this->patrol($world['area'], $world['analyst'], 5.0, '2026-07-04 07:00:00');
-        $this->patrol($world['area'], $world['analyst'], 6.0, '2026-07-19 07:00:00');
-        $this->em->flush();
-
-        $kpis = $this->provider()->kpisFor(self::ref($world['ecology']), self::now());
-        $patrols = self::kpi($kpis, 'patrols');
-
-        self::assertSame(2.0, $patrols->value);
-        self::assertSame(2.0, $patrols->previous);
-        // Same count, so no move — and a flat delta is '' rather than a fabricated direction.
-        self::assertSame(0.0, $patrols->delta());
-        self::assertSame('', $patrols->direction());
-    }
-
-    public function testADepartmentWhosePeopleRecordedNothingReportsNothingRatherThanZeros(): void
-    {
-        $world = $this->world();
-        $tourism = $this->department('Tourism');
-        $this->em->flush();
-
-        // The module IS attached (the host only calls this provider when it is), but nobody in
-        // Tourism has recorded a row. Three zeros would read as "they did nothing"; an empty list
-        // makes the host draw dashed labelled slots, which is the true statement.
-        self::assertSame([], $this->provider()->kpisFor(self::ref($tourism), self::now()));
-    }
-
-    public function testTheFiguresCarrySixMonthsOfTheirOwnSliceForTheSparkline(): void
-    {
-        $world = $this->world();
-
-        $patrols = self::kpi($this->provider()->kpisFor(self::ref($world['ecology']), self::now()), 'patrols');
-
-        self::assertCount(6, $patrols->spark);
-        // Oldest first, current month last — the month with Ecology's two patrols.
-        self::assertSame(2.0, $patrols->spark[5]);
-        self::assertNotSame('', $patrols->sparkPoints());
-    }
-
-    public function testCoverageIsReportedAndIsThisDepartmentsGroundAlone(): void
-    {
-        $world = $this->world();
-
-        // The world's patrols carry distances but no routes. Give each department a recorded
-        // track: Ecology one band across the area, Protection two — so the two figures cannot
-        // come out equal by symmetry, and neither may come out as the area's.
-        $this->tracked($world['area'], $world['analyst'], '{"type":"LineString","coordinates":[[-29.6,-3.25],[-29.4,-3.25]]}');
-        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[-29.6,-3.20],[-29.4,-3.20]]}');
-        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[-29.6,-3.15],[-29.4,-3.15]]}');
-        $this->em->flush();
-
-        $ecology = self::kpi($this->provider()->kpisFor(self::ref($world['ecology']), self::now()), 'coverage');
-        $protection = self::kpi($this->provider()->kpisFor(self::ref($world['protection']), self::now()), 'coverage');
-
-        // A share, so the host prints it with a '%' and moves it in POINTS, not percent.
-        self::assertSame(DepartmentKpi::SHARE, $ecology->unit);
-        self::assertTrue($ecology->isShare());
-        self::assertNotNull($ecology->value);
-        self::assertNotNull($protection->value);
-
-        // Reported in points, the way every plate on the department page prints a share.
-        self::assertGreaterThan(0.0, $ecology->value);
-        self::assertLessThan(100.0, $protection->value);
-
-        // Protection walked twice the ground, so the two figures differ — the whole reason this
-        // KPI could not be the area's number handed to everybody.
-        self::assertGreaterThan($ecology->value, $protection->value);
-
-        $areaWide = $this->areaWideCoverage($world['area']);
-        self::assertNotNull($areaWide);
-        self::assertLessThan($areaWide * 100.0, $ecology->value);
-        self::assertLessThan($areaWide * 100.0, $protection->value);
-    }
-
-    public function testADepartmentThatRecordedNoTrackReportsCoverageAsUnknownRatherThanZero(): void
-    {
-        $world = $this->world();
-
-        // The world's patrols are hand-logged: real work, no route. "We did not measure" is not
-        // "we covered none of it", and the plate must show the design's dash.
-        $coverage = self::kpi($this->provider()->kpisFor(self::ref($world['ecology']), self::now()), 'coverage');
-
-        self::assertNull($coverage->value);
-        self::assertFalse($coverage->isKnown());
-        self::assertSame("\u{2014}", $coverage->display());
-    }
-
-    /**
-     * AN AREA-SCOPED DEPARTMENT READS ITS OWN AREA AND NOTHING ELSE.
-     *
-     * A department confined to one area is not a small view of the organisation's figures — it
-     * IS the figures, and another area's patrols are somebody else's work. So the count, the
-     * kilometres and the sparkline all stop at the boundary.
-     */
     public function testAnAreaScopedDepartmentReadsThatAreasFiguresAlone(): void
     {
         $world = $this->world();
         $second = $this->secondArea();
-        // One more Ecology patrol, next door: 7 km, and outside this department's remit.
         $this->patrol($second, $world['analyst'], 7.0);
         $this->em->flush();
 
-        $figures = self::figures($this->provider()->kpisFor(self::ref($world['ecology'], $world['area']), self::now()));
-
-        self::assertSame(2.0, $figures['patrols'], 'The seventh kilometre next door is not this area\'s patrol.');
-        self::assertSame(22.0, $figures['distance']);
+        $here = self::figures($this->provider()->kpisFor(self::ref($world['ecology'], $world['area']), self::now()));
+        self::assertSame(5.0, $here['patrols']);
+        self::assertSame(112.0, $here['distance']);
 
         $elsewhere = self::figures($this->provider()->kpisFor(self::ref($world['ecology'], $second), self::now()));
         self::assertSame(1.0, $elsewhere['patrols']);
         self::assertSame(7.0, $elsewhere['distance']);
     }
 
-    /**
-     * AN ORGANISATION-WIDE DEPARTMENT READS ONE ROLL-UP, NOT ONE SET PER AREA.
-     *
-     * Counts and kilometres are summed across every area; coverage is ONE share of one larger
-     * surface (the ground covered over the boundaries walked), which is the only reading of a
-     * ratio over two places that means anything.
-     */
-    public function testAnOrganisationWideDepartmentRollsUpEveryArea(): void
+    public function testTheMonthOverMonthComparisonIsLastMonthsSameScope(): void
+    {
+        $world = $this->world();
+
+        $this->patrol($world['area'], $world['analyst'], 5.0, '2026-07-04 07:00:00');
+        $this->patrol($world['area'], null, 6.0, '2026-07-19 07:00:00');
+        $this->em->flush();
+
+        $patrols = self::kpi($this->provider()->kpisFor(self::ref($world['ecology'], $world['area']), self::now()), 'patrols');
+
+        self::assertSame(5.0, $patrols->value);
+        self::assertSame(2.0, $patrols->previous);
+        self::assertSame(150.0, $patrols->delta());
+        self::assertSame('good', $patrols->direction());
+    }
+
+    public function testTheFiguresCarrySixMonthsOfTheScopeForTheSparkline(): void
+    {
+        $world = $this->world();
+
+        $patrols = self::kpi($this->provider()->kpisFor(self::ref($world['ecology']), self::now()), 'patrols');
+
+        self::assertCount(6, $patrols->spark);
+        self::assertSame(5.0, $patrols->spark[5]);
+        self::assertNotSame('', $patrols->sparkPoints());
+    }
+
+    public function testCoverageIsTheAreasOwnShareWhoeverWalkedIt(): void
+    {
+        $world = $this->world();
+
+        $this->tracked($world['area'], $this->user('Neema', 'Mollel', null), '{"type":"LineString","coordinates":[[-29.6,-3.25],[-29.4,-3.25]]}');
+        $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[-29.6,-3.15],[-29.4,-3.15]]}');
+        $this->em->flush();
+
+        $coverage = self::kpi($this->provider()->kpisFor(self::ref($world['ecology'], $world['area']), self::now()), 'coverage');
+
+        self::assertSame(DepartmentKpi::SHARE, $coverage->unit);
+        self::assertTrue($coverage->isShare());
+
+        $areaWide = $this->areaWideCoverage($world['area']);
+        self::assertNotNull($areaWide);
+        self::assertNotNull($coverage->value);
+        self::assertEqualsWithDelta($areaWide * 100.0, $coverage->value, 0.0001);
+    }
+
+    public function testCoverageWithNoRecordedTrackIsUnknownRatherThanZero(): void
+    {
+        $world = $this->world();
+
+        $coverage = self::kpi($this->provider()->kpisFor(self::ref($world['ecology'], $world['area']), self::now()), 'coverage');
+
+        self::assertNull($coverage->value);
+        self::assertFalse($coverage->isKnown());
+        self::assertSame("\u{2014}", $coverage->display());
+    }
+
+    public function testTheCaptionNamesTheScopesPatrolsAndNotTheDepartment(): void
     {
         $world = $this->world();
         $second = $this->secondArea();
-        $this->patrol($second, $world['analyst'], 7.0);
-        $this->em->persist(new Observation($this->patrol($second, $world['analyst'], 3.0), 'sighting')->setRecordedBy($world['analyst']));
+        $this->patrol($second, null, 7.0);
         $this->em->flush();
 
-        $figures = self::figures($this->provider()->kpisFor(self::ref($world['ecology']), self::now()));
+        $area = self::kpi($this->provider()->kpisFor(self::ref($world['ecology'], $world['area']), self::now()), 'patrols');
+        self::assertSame('Patrols module · every patrol recorded in Example reserve', $area->caption);
 
-        // 2 here + 2 next door, 22 km + 10 km, 2 observations here + 1 next door.
-        self::assertSame(4.0, $figures['patrols']);
-        self::assertSame(32.0, $figures['distance']);
-        self::assertSame(3.0, $figures['observations']);
+        $organisation = self::kpi($this->provider()->kpisFor(self::ref($world['ecology']), self::now()), 'patrols');
+        self::assertSame('Patrols module · every patrol recorded across the organisation: Example reserve, Second reserve', $organisation->caption);
     }
 
-    /**
-     * FOUR FIGURES, ONCE, WHATEVER THE SCOPE.
-     *
-     * The defect this pins: the provider used to append a second and third set of figures, one
-     * per area, and a department page then printed "Patrols logged / Distance patrolled /
-     * Observations / Coverage" three times under no heading at all.
-     */
     public function testFourFiguresAreReportedOnceWhateverTheScope(): void
     {
         $world = $this->world();
@@ -343,33 +299,11 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         );
     }
 
-    /** An area the department's people never worked in has nothing to report, not four zeros. */
-    public function testAnAreaScopedDepartmentWithNothingRecordedThereReportsNothing(): void
-    {
-        $world = $this->world();
-        $second = $this->secondArea();
-        $this->em->flush();
-
-        self::assertSame([], $this->provider()->kpisFor(self::ref($world['ecology'], $second), self::now()));
-    }
-
-    public function testCoverageIsTheLastFigureReported(): void
-    {
-        $world = $this->world();
-
-        self::assertSame(
-            ['patrols', 'distance', 'observations', 'coverage'],
-            self::keys($this->provider()->kpisFor(self::ref($world['ecology']), self::now())),
-        );
-    }
-
     public function testEveryFigureNamesTheModuleTheHostAskedFor(): void
     {
         $world = $this->world();
 
         foreach ($this->provider()->kpisFor(self::ref($world['ecology']), self::now()) as $kpi) {
-            // The host only asks a provider whose slug the department attaches, so a figure
-            // captioned with another module's name would be untraceable on the page.
             self::assertSame('patrols', $kpi->moduleSlug);
             self::assertSame('Patrols', $kpi->moduleName);
         }
@@ -401,7 +335,7 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
     }
 
     /**
-     * One area, two departments, five patrols this month and three observations.
+     * One area, two departments, five patrols this month (112 km) and three observations.
      *
      * @return array{area: AreaOfInterest, ecology: Department, protection: Department, analyst: User, ranger: User}
      */
@@ -447,27 +381,13 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         return $area;
     }
 
-    /** One department's PL·03 over the test month, straight from the repository. */
-    private function departmentCoverage(Department $department): ?float
-    {
-        $repository = $this->em->getRepository(Patrol::class);
-        \assert($repository instanceof PatrolRepository);
-
-        return $repository->coverageFractionForDepartment(
-            null,
-            (int) $department->getId(),
-            PatrolDashboardService::COVERAGE_BUFFER_M,
-            ...PatrolDashboardService::monthRange(self::now()),
-        );
-    }
-
     /** A patrol that actually recorded a route — the only kind coverage can be measured from. */
-    private function tracked(AreaOfInterest $area, User $lead, string $track): Patrol
+    private function tracked(AreaOfInterest $area, ?User $lead, string $track): Patrol
     {
         return $this->patrol($area, $lead, 0.0)->setTrack($track);
     }
 
-    /** The area's own PL·03, for comparing a department's share against the whole. */
+    /** The area's own PL·03, straight from the repository. */
     private function areaWideCoverage(AreaOfInterest $area): ?float
     {
         $repository = $this->em->getRepository(Patrol::class);
@@ -504,7 +424,7 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         return $position;
     }
 
-    private function user(string $first, string $last, Position $position): User
+    private function user(string $first, string $last, ?Position $position): User
     {
         $user = new User()->setPassword('x')
             ->setEmail(strtolower($first.'.'.$last).'@example.test')
