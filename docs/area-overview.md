@@ -1,4 +1,4 @@
-# What patrols puts on the area overview
+# What patrols puts on an area's pages
 
 `AreaBundle`'s `/areas/{uuid}` is **composed from module-contributed widgets**:
 that bundle owns the surface, the grid, the preset framework and the area's
@@ -8,6 +8,7 @@ identity, and every operational number arrives through a contribution point.
 
 - [The five this module fills](#the-five-this-module-fills)
 - [What the area provides for these plates](#what-the-area-provides-for-these-plates)
+- [Three figures for every zone](#three-figures-for-every-zone)
 - [What this module cannot tell that page](#what-this-module-cannot-tell-that-page)
 
 ## The five this module fills
@@ -40,6 +41,26 @@ The `.ao-*` vocabulary (`.ao-by`, `.ao-live`, `.ao-col`, `.ao-colstack`,
 overview and is **not** shipped here. That bundle paints every contributor dot a
 neutral fog and names no module in a rule; `public/patrol.css` paints this
 module's own six selectors with the accent its tracks already wear.
+
+## Three figures for every zone
+
+A zone is the area module's ground and every count over it is whichever module
+recorded it, so `Module\PatrolZoneFigureProvider` (tagged `uhifadhi.zone_kpi`)
+publishes three `DepartmentKpi` figures for each zone of an area, answered for
+the whole set the caller is about to draw in one query and keyed by the zone's
+uuid. **Patrols logged** is every complete patrol in the period whose track
+entered the ring — the track, never the station, which is a free-text word and
+no evidence anybody crossed anything. **Distance patrolled** is the length of
+those tracks *inside* the ring, in kilometres. **Covered** — the key the
+contract names, a share in points — is how much of the zone's surface lies
+under the period's tracks buffered each at its own type's width, falling back
+on the module's two kilometres where a type sets none; the union is built for
+the whole area and then clipped to the zone, because a round walked along the
+fence covers the ring's edge without ever crossing it. The answer states the
+period it measured, which is the period asked for. A zone no track entered, in
+a period whose area recorded no track at all, is left out of the answer
+entirely: unknown is not zero, and the zones surfaces say so in their own
+words.
 
 ## What this module cannot tell that page
 

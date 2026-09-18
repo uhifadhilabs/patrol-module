@@ -253,8 +253,8 @@ them rides a later one. See [docs/development.md](docs/development.md).
 - [docs/discarded-patrols.md](docs/discarded-patrols.md) — what a discard means,
   what it is counted in, the retention clock and how a review hold stops it.
 - [docs/area-overview.md](docs/area-overview.md) — the five contribution points
-  patrols fills on an area's overview page, and the one thing it cannot tell
-  that page.
+  patrols fills on an area's overview page, the three figures it publishes for
+  every zone, and the one thing it cannot tell that page.
 - [docs/design-decisions.md](docs/design-decisions.md) — deliberate modeling
   choices (per-area type and station records, free-text team, how photos are
   stored, honest sources, live tracking as a v2 third door) recorded with their
