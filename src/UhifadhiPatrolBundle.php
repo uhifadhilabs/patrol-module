@@ -27,6 +27,7 @@ use Uhifadhi\Bundle\AreaBundle\Overview\PulseProviderInterface;
 use Uhifadhi\Bundle\AreaBundle\Repository\AreaOfInterestRepository;
 use Uhifadhi\Bundle\ShellBundle\Widget\Registry\WidgetSurfaceInterface;
 use Uhifadhi\Contracts\Kpi\DepartmentKpiProviderInterface;
+use Uhifadhi\Contracts\Kpi\ZoneFigureProviderInterface;
 use Uhifadhi\Patrol\Api\PatrolApiContext;
 use Uhifadhi\Patrol\Api\State\AppendEventsProcessor;
 use Uhifadhi\Patrol\Api\State\AppendFlightsProcessor;
@@ -49,6 +50,7 @@ use Uhifadhi\Patrol\Devkit\PatrolCommandProvider;
 use Uhifadhi\Patrol\Devkit\PatrolContentProvider;
 use Uhifadhi\Patrol\Module\PatrolDepartmentKpiProvider;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
+use Uhifadhi\Patrol\Module\PatrolZoneFigureProvider;
 use Uhifadhi\Patrol\Overview\PatrolAttention;
 use Uhifadhi\Patrol\Overview\PatrolMapLayers;
 use Uhifadhi\Patrol\Overview\PatrolNowTiles;
@@ -794,6 +796,30 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 'Patrols',
             ])
             ->tag(DepartmentKpiProviderInterface::TAG);
+
+        /*
+         * THE ZONE FIGURE CONTRIBUTION POINT — the same three-figure answer the
+         * department seam gives, over the area module's ground instead of the
+         * team module's lens.
+         *
+         * Tagged EXPLICITLY, for the reason every tag above is: a reusable bundle
+         * is not autoconfigured (symfony.com/doc/current/bundles/best_practices.html),
+         * so the host's autoconfiguration never fires for it — and an
+         * #[AutoconfigureTag] written on the interface would be silently dead,
+         * because Symfony reads that attribute off the definition's own class only.
+         *
+         * The slug and the name are the scalars PatrolModuleProvider::slug()/name()
+         * return, and they must MATCH: a zone surface asks this provider only where
+         * the area runs the module of that slug, and captions the plates with that
+         * name.
+         */
+        $services->set('patrol.zone_figure_provider', PatrolZoneFigureProvider::class)
+            ->args([
+                service(PatrolRepository::class),
+                'patrols',
+                'Patrols',
+            ])
+            ->tag(ZoneFigureProviderInterface::TAG);
 
         /*
          * THE AREA OVERVIEW CONTRIBUTION POINTS — the module's contribution to /areas/{uuid}.

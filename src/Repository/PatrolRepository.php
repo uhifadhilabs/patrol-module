@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
@@ -702,5 +703,138 @@ final class PatrolRepository extends ServiceEntityRepository
         ]);
 
         return \is_string($geoJson) ? $geoJson : null;
+    }
+
+    /**
+     * WHAT THIS MODULE HOLDS OVER EACH OF A SET OF ZONES in a half-open window
+     * — the patrols that entered, how far they ran inside, and how much of the
+     * ground the month's tracks lie over.
+     *
+     * ONE STATEMENT FOR THE WHOLE SET, because the zone seam is asked once for
+     * every zone a page draws and a query per zone would be a round trip per
+     * zone per module per page. Zones are addressed by their PUBLISHED uuid:
+     * a module and the core do not share a schema, and the sequential key is
+     * the one thing about a row that is nobody else's business.
+     *
+     * TWO DIFFERENT SETS OF PATROLS, deliberately. The count and the distance
+     * are about tracks that ENTERED the ring — ST_Intersects against the host's
+     * polygon, never the patrol's station, which is a free-text word and no
+     * evidence anybody crossed anything. The covered share is about the area's
+     * WHOLE month: a track walked just outside the ring still covers ground
+     * inside it at its type's width, so the union is built for the area and
+     * then clipped per zone, once, in a CTE.
+     *
+     * EACH TRACK AT ITS OWN TYPE'S WIDTH, as {@see self::coverageBufferGeoJson()}
+     * draws it: how wide a track counts as covered is a property of the TYPE, and
+     * $fallbackBufferMetres is what a type carrying none falls back on.
+     *
+     * ONLY COMPLETE PATROLS COUNT, for the reason
+     * {@see self::coverageFractionWithin()} states: a discard says the effort did
+     * not happen as recorded, and a recording patrol's track has not finished
+     * arriving.
+     *
+     * The share is null — never 0.0 — where the area recorded no track at all in
+     * the window, or the zone has no measurable surface. Zero covered and unknown
+     * covered are different facts.
+     *
+     * @param list<string> $zoneUuids
+     *
+     * @return array<string, array{patrols: int, distanceKm: float, coverageFraction: float|null}> zone uuid to its figures
+     */
+    public function zoneFiguresFor(array $zoneUuids, float $fallbackBufferMetres, \DateTimeImmutable $from, \DateTimeImmutable $until): array
+    {
+        if ([] === $zoneUuids) {
+            return [];
+        }
+
+        $entityManager = $this->getEntityManager();
+        $patrol = $this->getClassMetadata();
+        $zoneMeta = $entityManager->getClassMetadata(Zone::class);
+        $typeMeta = $entityManager->getClassMetadata(PatrolType::class);
+
+        // The uuid is compared as TEXT so the column may be a native uuid or a
+        // string: which one it is belongs to whoever mapped it, not here.
+        $sql = \sprintf(
+            <<<'SQL'
+                WITH asked AS (
+                    SELECT z.%1$s AS id, CAST(z.%2$s AS TEXT) AS uuid, z.%3$s AS geom, z.%4$s AS area_id
+                    FROM %5$s z
+                    WHERE CAST(z.%2$s AS TEXT) IN (:zones)
+                ),
+                covered AS (
+                    SELECT p.%6$s AS area_id,
+                           ST_Union(ST_Buffer(p.%7$s::geography, COALESCE(t.%8$s, :buffer))::geometry) AS geom
+                    FROM %9$s p
+                    LEFT JOIN %10$s t ON t.%11$s = p.%12$s
+                    WHERE p.%6$s IN (SELECT DISTINCT area_id FROM asked)
+                      AND p.%7$s IS NOT NULL
+                      AND p.%13$s = :counted
+                      AND p.%14$s >= :from
+                      AND p.%14$s < :until
+                    GROUP BY p.%6$s
+                ),
+                entered AS (
+                    SELECT a.id AS zone_id,
+                           COUNT(*) AS patrols,
+                           SUM(ST_Length(ST_Intersection(p.%7$s, a.geom)::geography)) AS metres
+                    FROM asked a
+                    INNER JOIN %9$s p ON p.%6$s = a.area_id
+                        AND p.%7$s IS NOT NULL
+                        AND p.%13$s = :counted
+                        AND p.%14$s >= :from
+                        AND p.%14$s < :until
+                        AND ST_Intersects(p.%7$s, a.geom)
+                    GROUP BY a.id
+                )
+                SELECT a.uuid AS zone_uuid,
+                       COALESCE(e.patrols, 0) AS patrols,
+                       COALESCE(e.metres, 0) AS metres,
+                       ST_Area(ST_Intersection(c.geom, a.geom)::geography)
+                           / NULLIF(ST_Area(a.geom::geography), 0) AS fraction
+                FROM asked a
+                LEFT JOIN entered e ON e.zone_id = a.id
+                LEFT JOIN covered c ON c.area_id = a.area_id
+                SQL,
+            $zoneMeta->getSingleIdentifierColumnName(),
+            $zoneMeta->getColumnName('uuid'),
+            $zoneMeta->getColumnName('geom'),
+            $zoneMeta->getSingleAssociationJoinColumnName('area'),
+            $zoneMeta->getTableName(),
+            $patrol->getSingleAssociationJoinColumnName('area'),
+            $patrol->getColumnName('track'),
+            $typeMeta->getColumnName('coverageBufferM'),
+            $patrol->getTableName(),
+            $typeMeta->getTableName(),
+            $typeMeta->getSingleIdentifierColumnName(),
+            $patrol->getSingleAssociationJoinColumnName('patrolType'),
+            $patrol->getColumnName('status'),
+            $patrol->getColumnName('startedAt'),
+        );
+
+        /** @var list<array{zone_uuid: string, patrols: int|string, metres: float|string, fraction: float|string|null}> $rows */
+        $rows = $entityManager->getConnection()->fetchAllAssociative($sql, [
+            'zones' => $zoneUuids,
+            'buffer' => $fallbackBufferMetres,
+            'counted' => PatrolStatusEnum::Complete->value,
+            'from' => $from,
+            'until' => $until,
+        ], [
+            'zones' => ArrayParameterType::STRING,
+            'buffer' => Types::FLOAT,
+            'counted' => Types::STRING,
+            'from' => Types::DATETIME_IMMUTABLE,
+            'until' => Types::DATETIME_IMMUTABLE,
+        ]);
+
+        $figures = [];
+        foreach ($rows as $row) {
+            $figures[$row['zone_uuid']] = [
+                'patrols' => (int) $row['patrols'],
+                'distanceKm' => (float) $row['metres'] / 1000.0,
+                'coverageFraction' => is_numeric($row['fraction']) ? (float) $row['fraction'] : null,
+            ];
+        }
+
+        return $figures;
     }
 }
