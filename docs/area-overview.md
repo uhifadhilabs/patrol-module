@@ -9,6 +9,7 @@ identity, and every operational number arrives through a contribution point.
 - [The five this module fills](#the-five-this-module-fills)
 - [What the area provides for these plates](#what-the-area-provides-for-these-plates)
 - [Three figures for every zone](#three-figures-for-every-zone)
+- [One headline for every station](#one-headline-for-every-station)
 - [What this module cannot tell that page](#what-this-module-cannot-tell-that-page)
 
 ## The five this module fills
@@ -61,6 +62,50 @@ period it measured, which is the period asked for. A zone no track entered, in
 a period whose area recorded no track at all, is left out of the answer
 entirely: unknown is not zero, and the zones surfaces say so in their own
 words.
+
+## One headline for every station
+
+A station is the area module's post and the counts about it are whichever
+module recorded them, so `Module\PatrolStationFigureProvider` (tagged
+`uhifadhi.station_kpi`) publishes **one** `DepartmentKpi` for each station of
+an area — the key the contract names, `HEADLINE` — answered for the whole set
+in one query and keyed by the station's uuid. The value is the number of
+**complete patrols in the period that started at that post**, and the caption
+is `out of here · <km> km`, the total distance those patrols recorded. One
+figure and not three: a station's dock draws one row per module, so anything
+more this module has to say is said in the caption.
+
+**What "started here" means today.** A patrol still points at this module's own
+station vocabulary rather than at the area's station record, so the attribution
+is the honest join the module can make now, in this order:
+
+| Rule | When it applies | What it matches |
+|---|---|---|
+| By name | the patrol names a station | the patrol's station text equals the post's name, both trimmed and case-folded |
+| By the first fix | the patrol names none | the track's first point lies within 300 m of the post's point |
+
+A patrol that named a post is attributed to THAT post even when it set off
+beside another, because a person's word beats a coordinate; the two rules
+therefore cannot both fire for one patrol, and a patrol matching neither is
+counted at no post at all. Three hundred metres is the yard rather than the
+neighbourhood: a fix taken at the barrier or across the compound is inside it,
+the next post along a road is not.
+
+**The follow-up that retires both.** Neither rule is the model anybody wants to
+keep: a patrol should reference the area's `Station` by id, which is one
+coordinated change across the two modules — the area module owning the post,
+this module pointing at it and migrating its own station records onto it,
+falling back on the name only for rows recorded before the change. Until that
+lands, an installation that spells a post differently in the two lists sees its
+patrols counted nowhere, which is why both rules are written here rather than
+left to be discovered.
+
+**Zero and unknown are different facts.** A post that launched nothing in a
+month its area patrolled reads zero — the month was measured there. Every post
+of an area that recorded no complete patrol at all in the period is left out of
+the answer entirely, and the station surfaces say so in their own words. The
+period answered is the period asked for, and no figure carries a URL: the core
+resolves the dock's link from the module's slug.
 
 ## What this module cannot tell that page
 
