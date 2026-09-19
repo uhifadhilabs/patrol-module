@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Tests\Unit\Template;
 
 use PHPUnit\Framework\TestCase;
+use Uhifadhi\Bundle\ShellBundle\ShellBundle;
 
 /**
  * A DISCLOSURE THIS MODULE DRAWS SHOWS NO TRIANGLE.
@@ -25,6 +26,13 @@ use PHPUnit\Framework\TestCase;
  * have: it draws plain buttons, and the disclosure is this port's own
  * adaptation. So hiding the marker is this port's own job, and it is CSS —
  * which means no functional test can see it, which is why it is pinned here.
+ *
+ * THE CHAIN'S CLASSES ARE THE CHAIN'S PROBLEM. A summary wearing the shell's
+ * own vocabulary — the grouped dropdown's `.i-ddt` chip — is drawn by the
+ * shell's sheet, marker and all, and restating that rule here would be the very
+ * duplication the vocabulary conformance test forbids. So a class the chain
+ * defines is skipped, and only the marks this module invents are held to the
+ * rule below.
  *
  * THE CLASS, NOT THE INSTANCES. The summary classes are read out of the
  * TEMPLATES, so a screen that discloses with a new class and forgets the rule
@@ -45,8 +53,14 @@ final class DisclosureMarkerTest extends TestCase
 
         $sheet = self::stylesheet();
 
+        $chain = self::classesTheChainDefines();
+
         $missing = [];
         foreach ($classes as $class) {
+            if (\in_array($class, $chain, true)) {
+                continue;
+            }
+
             // The rule may name the class alone or qualify it by the element, and
             // may share its block with a sibling selector; all of those hide the
             // marker, and which reads better is the sheet's business rather than
@@ -68,6 +82,31 @@ final class DisclosureMarkerTest extends TestCase
             .'triangle before its label. State list-style, ::marker and ::-webkit-details-marker, as .patrol-morechip does.',
             implode(', ', array_map(static fn (string $c): string => '.'.$c, $missing)),
         ));
+    }
+
+    /**
+     * Every class name the chain's own sheet defines a rule for — the shell's
+     * vocabulary, which this module wears and never redraws.
+     *
+     * @return list<string>
+     */
+    private static function classesTheChainDefines(): array
+    {
+        $sheet = (string) file_get_contents(
+            \dirname((string) new \ReflectionClass(ShellBundle::class)->getFileName()).'/public/shell.css',
+        );
+
+        preg_match_all('/([^{}]+)\{[^}]*\}/', $sheet, $rules, \PREG_SET_ORDER);
+
+        $classes = [];
+        foreach ($rules as $rule) {
+            preg_match_all('/\.([A-Za-z][\w-]*)/', $rule[1], $found);
+            foreach ($found[1] as $class) {
+                $classes[$class] = $class;
+            }
+        }
+
+        return array_values($classes);
     }
 
     /**

@@ -2,8 +2,8 @@
    design system. What ShellBundle ships (.page, .c/.tab, .kpi, .chip, .mchip,
    .tbl, .crumb/.pghead/.open-btn, .map-frame/.map-btn, plus the token channels
    --c-*, --shadow and --font-mono) is REUSED, never redefined here. The design
-   vocabulary shell.css does not carry — the .ch chart text/lines and the .i-dd*
-   dropdown chrome — is this module's own. The way back off a screen is the
+   vocabulary shell.css does not carry — the .ch chart text/lines — is this
+   module's own; the grouped dropdown the filter bar wears is the shell's. The way back off a screen is the
    shell's own .backbtn, not a pill of ours. Every other class is
    patrol-prefixed so it can never collide with a shell class (the shell owns
    .page, .thumb, .map-legend, .who — none of them is touched).
@@ -53,8 +53,8 @@
 /* ---- VOCABULARY THIS MODULE ADDS TO THE SHELL'S ------------------------ --
    .mchip is the SHELL's — the compact pill that carries an interactive control,
    shipped in shell.css because more than one surface draws one. This module
-   draws the type toggles, the .i-ddt dropdown triggers, the month chip and the
-   calendar prev/next ghosts with it and defines none of it. What is below is
+   draws the type toggles, the dropdown chips, the month chip and the calendar
+   prev/next ghosts with it and defines none of it. What is below is
    the two states the shell does not carry, which decorate the shared class
    rather than restating it.
 
@@ -96,54 +96,21 @@
 /* Patrol's own "not chosen yet" ghost chip (the calendar prev/next carry it as
    .mchip.patrol-ghost); mirrors the .mchip.ghost dashed treatment shipped above. */
 .patrol-ghost { border-style: dashed; color: rgb(var(--c-fog)); cursor: pointer; }
-/* ---- filter dropdowns: the incidents bar's chrome, ported (self-sufficient) --
-   The station filter is a dropdown in the SAME chrome the incidents bar uses — a
-   .mchip trigger (.i-ddt) opening a floating .i-ddmenu, hidden until its .i-dd
-   carries .open (the filters controller toggles it, one at a time, and closes it
-   on Escape or an outside click). Ported here onto patrol's token bridge, so
-   the patrol bar carries its own filter chrome without depending on
-   incidents.css.
+/* ---- the filter bar's own marks ---------------------------------------- --
+   The grouped dropdown itself — .i-dd, its .i-ddt chip, the .i-ddmenu panel and
+   every option inside it — is the SHELL's, drawn here as the `<details>` control
+   shell.css ships and restated nowhere: a rule written twice renders differently
+   depending on which sheet loaded last. What is below is the two marks the house
+   dropdown does not carry, which decorate its classes rather than redefining them.
 
-   The OPTIONS drive patrol's real-time filter (they publish the patrol:filter
-   document event), which is the module's deliberate design: one filter, the map
-   and the log together, with no reload. The chrome is the incidents bar's; the
-   mechanism behind it is patrol's own. */
-.i-dd { position: relative; display: inline-flex; }
-.i-ddt { cursor: pointer; background: none; }
-.i-ddt .i-ddcaret { font-size: 9px; line-height: 1; opacity: .7; transition: transform .12s; }
-.i-dd.open .i-ddt .i-ddcaret { transform: rotate(180deg); }
-/* The chosen-station trigger reads in the accent, the way a live filter should. */
-.i-dd.patrol-dd-chosen .i-ddt { color: rgb(var(--c-acc)); border-color: rgb(var(--c-acc)); }
-.i-ddmenu {
-    position: absolute; top: calc(100% + 6px); left: 0; z-index: 50; display: none;
-    flex-direction: column; min-width: 196px; padding: 5px; gap: 1px;
-    background: rgb(var(--c-cv)); border: 1px solid var(--c-ln2); border-radius: 11px; box-shadow: var(--shadow);
-}
-.i-dd.open .i-ddmenu { display: flex; }
-.i-ddhead {
-    font-family: var(--font-mono); font-size: 8.5px; letter-spacing: .14em;
-    text-transform: uppercase; color: rgb(var(--c-dim)); padding: 6px 9px 4px;
-}
-.i-ddopt {
-    display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; cursor: pointer;
-    border: 0; background: none; color: rgb(var(--c-tx)); font-family: inherit; font-size: 12px;
-    padding: 7px 9px; border-radius: 7px; text-decoration: none;
-}
-.i-ddopt:hover { background: rgb(var(--c-raised)); text-decoration: none; }
-.i-ddopt.on { background: color-mix(in srgb, rgb(var(--c-acc)) 12%, transparent); }
-/* The chosen value, in the trigger — what the chip says without opening. */
-.i-ddval { display: inline-flex; align-items: center; gap: 5px; }
-/* An option's leading mark. Colourless here: a patrol type wears its track
-   colour on the chip that filters by it, and a second coloured mark in the menu
-   would be a second palette to keep in step. */
+   An option's leading mark. Colourless: a patrol type wears its track colour on
+   the chip that filters by it, and a second coloured mark in the menu would be a
+   second palette to keep in step. */
 .i-dot { width: 8px; height: 8px; border-radius: 2px; flex: none; background: transparent; }
-.i-ddopt-l { flex: 1; white-space: nowrap; }
-.i-ddopt-n { font-family: var(--font-mono); font-size: 10.5px; color: rgb(var(--c-dim)); font-variant-numeric: tabular-nums; }
-.i-ddopt.on .i-ddopt-n { color: rgb(var(--c-acc)); }
-.i-ddsep { height: 1px; background: var(--c-ln); margin: 4px 2px; }
-/* An option that only names an empty state ("no stations yet") — not selectable. */
-.i-ddopt.is-empty { color: rgb(var(--c-dim)); cursor: default; }
-.i-ddopt.is-empty:hover { background: none; }
+/* An option that only names an empty state ("no stations yet") — not a link, so
+   it neither points nor lights up under the cursor. */
+.patrol-ddempty { color: rgb(var(--c-dim)); cursor: default; }
+.patrol-ddempty:hover { background: none; }
 /* The thin divider between the type toggles and the dropdowns. */
 .patrol-chiprow .sep { width: 1px; height: 18px; background: var(--c-ln2); margin: 0 3px; }
 /* The month indicator: the period the dashboard covers, a solid chip — never a
