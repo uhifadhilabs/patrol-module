@@ -25,7 +25,7 @@
 
 {% macro option(here, area, filter, label, count, on) %}
     <a class="i-ddopt{{ on ? ' on' }}"
-       href="{{ path(here, {uuid: area.uuid}|merge(filter.toQuery)) }}"><span class="i-dot"></span><span class="i-ddopt-l">{{ label }}</span>
+       href="{{ path(here, {uuid: area.uuid}|merge(filter.toQuery)) }}"><span class="i-ddopt-l">{{ label }}</span>
         {%- if count is not null %}<span class="i-ddopt-n">{{ count }}</span>{% endif -%}
     </a>
 {% endmacro %}

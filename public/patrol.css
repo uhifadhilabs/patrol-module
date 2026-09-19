@@ -96,18 +96,14 @@
 /* Patrol's own "not chosen yet" ghost chip (the calendar prev/next carry it as
    .mchip.patrol-ghost); mirrors the .mchip.ghost dashed treatment shipped above. */
 .patrol-ghost { border-style: dashed; color: rgb(var(--c-fog)); cursor: pointer; }
-/* ---- the filter bar's own marks ---------------------------------------- --
+/* ---- the filter bar's own mark ---------------------------------------- --
    The grouped dropdown itself — .i-dd, its .i-ddt chip, the .i-ddmenu panel and
    every option inside it — is the SHELL's, drawn here as the `<details>` control
    shell.css ships and restated nowhere: a rule written twice renders differently
-   depending on which sheet loaded last. What is below is the two marks the house
-   dropdown does not carry, which decorate its classes rather than redefining them.
+   depending on which sheet loaded last. What is below is the one mark the house
+   dropdown does not carry, which decorates its classes rather than redefining them.
 
-   An option's leading mark. Colourless: a patrol type wears its track colour on
-   the chip that filters by it, and a second coloured mark in the menu would be a
-   second palette to keep in step. */
-.i-dot { width: 8px; height: 8px; border-radius: 2px; flex: none; background: transparent; }
-/* An option that only names an empty state ("no stations yet") — not a link, so
+   An option that only names an empty state ("no stations yet") — not a link, so
    it neither points nor lights up under the cursor. */
 .patrol-ddempty { color: rgb(var(--c-dim)); cursor: default; }
 .patrol-ddempty:hover { background: none; }

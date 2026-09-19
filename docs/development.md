@@ -5,6 +5,7 @@
 - [The one command](#the-one-command)
 - [The test database](#the-test-database)
 - [Migrations](#migrations)
+- [Upgrading to 0.6](#upgrading-to-06)
 
 ## The one command
 
@@ -97,3 +98,27 @@ services survive a further migrate and the history round-trips, and the lint
 reads the SQL each version plans and rejects rules 1 and 3 being broken. The
 lint's own fixtures live in `tests/Integration/Migrations/Fixtures/Migrations` —
 two that break one rule each, two that keep them.
+
+## Upgrading to 0.6
+
+**Drop the `filters` Stimulus controller from `assets/controllers.json`.** The
+filter bar's dropdowns are the shell's `<details>` grouped dropdown now, so the
+controller that opened this module's own panels has nothing left to do. It
+still ships in 0.6 — emptied, and disabled for fresh installations — because
+`assets/controllers.json` is the INSTALLATION's file and keeps naming whatever
+it was given: StimulusBundle resolves every name in it against the package and
+throws `Controller "filters" does not exist in the "@uhifadhi/patrol-module"
+package.` at render, on every page, when the file behind a name is gone.
+
+Delete this block from `assets/controllers.json`:
+
+```json
+"@uhifadhi/patrol-module": {
+    "filters": { "enabled": true, "fetch": "eager" }
+}
+```
+
+(keeping the package's other controllers — `calendar`, `disclose`, `point` —
+and the surrounding JSON valid), then `php bin/console asset-map:compile` and
+`cache:clear`. **The file is removed in 0.7**, so an installation that has not
+dropped the entry by then gets the 500 this release exists to prevent.
