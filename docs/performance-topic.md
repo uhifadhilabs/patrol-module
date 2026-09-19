@@ -20,6 +20,7 @@ module and drops it wherever the module is switched off.
 - [A department is a lens over ground](#a-department-is-a-lens-over-ground)
 - [Where the history comes from](#where-the-history-comes-from)
 - [Three absences, kept apart](#three-absences-kept-apart)
+- [The ground: coverage by area, and by zone](#the-ground-coverage-by-area-and-by-zone)
 - [What this topic cannot say yet](#what-this-topic-cannot-say-yet)
 
 ## The five figures
@@ -148,6 +149,64 @@ module" into "no work".
 
 A measured nought is none of the three: an area that ran the module and
 recorded no patrol reads zero, because the month was measured there.
+
+## The ground: coverage by area, and by zone
+
+Figures about WHERE are a separate, optional seam —
+`Contracts\Performance\PerformanceGeoProviderInterface`, tagged
+`uhifadhi.performance_geo`. Most topics have nothing to say about the ground:
+staffing does not, goals do not, and a `geo()` on the topic contract would make
+every module answer a question it has no answer to. This module does have one,
+so `Module\PatrolPerformanceGeo` publishes it beside the topic and the page
+draws it on the atlas plate — the same plate, the same chrome and the same
+legend as every other map in the product.
+
+It is registered **unguarded**, unlike the topic: a matrix is rows of
+departments and needs TeamBundle, but an area and its zones are AreaBundle's,
+which this module requires outright. An installation running no departments at
+all still gets the plate.
+
+| Series | Over | Published on | Figures |
+|---|---|---|---|
+| `patrols.coverage_by_area` | areas | every page | one per area of the scope that runs this module |
+| `patrols.coverage_by_zone` | the zones of one area | an area's page only | one per zone of that area, carrying the area's uuid |
+
+Both are shares in points (54.0 for 54 %) and both judge **upwards**: a plate
+hues a placing, and hue without polarity is a plate claiming that more is
+better when the figure is incidents. The organisation's page gets no zone
+series — "the zones of one area" has no answer where there is no one area —
+and an area with no zones publishes none rather than an empty one.
+
+**The ground is named by its identifier, never by its geometry.** The area
+module owns the shapes and draws them; a uuid and a name are the whole of what
+leaves this module, and nothing here reads a polygon out to hand over.
+
+**Each area's figure is a share of its own boundary**, not of the scope's
+boundaries combined — which is what the headline Coverage card reads, and is a
+different number. A plate compares one piece of ground with the next, and a
+figure that was a share of everything would rank them all identically. The
+measurement itself is the topic's: one `Service\PatrolFigureService`, so the
+card and the plate cannot come to quote two shares for one month.
+
+A zone's share is read with each track at its own type's width, the module's
+2 km standing in where a type sets none — the same reading
+`Module\PatrolZoneFigureProvider` publishes for the zone cards.
+
+### Two absences, and they are different facts
+
+| Absence | Here it means |
+|---|---|
+| **an area is not a figure at all** | it does not run this module. Nobody was recording there, so there is nothing to shade and no blank to draw; a null would say "we looked and found nothing", which is not what happened. Whether a module is on is the registry's ledger, and this asks it rather than inferring it from whether a patrol happens to have been recorded — an area that switched Patrols on last week and has not been out yet is ground with nothing measured on it |
+| **a null value** | ground this module was asked about and cannot measure: no track was recorded over it in the period, or the area has no boundary stored yet. For a zone, that means the area recorded no track at all |
+
+A **measured nought** is neither: a zone the month's tracks ran nowhere near,
+in an area that recorded tracks elsewhere, reads 0 — the ground was looked at
+and none of it was covered.
+
+**A series of nothing is still published.** Whether a plate of blanks is drawn
+at all is the page's call, and the contract hands it `GeoSeries::isEmpty()` to
+make it with; a module that pre-filtered would be deciding a picture it cannot
+see. `geo()` returns nothing only where no area of the scope runs the module.
 
 ## What this topic cannot say yet
 

@@ -35,7 +35,9 @@ use Uhifadhi\Bundle\ShellBundle\ShellBundle;
 use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Bundle\TeamBundle\Security\ApiTokenAuthenticator;
 use Uhifadhi\Bundle\TeamBundle\TeamBundle;
+use Uhifadhi\Contracts\Performance\PerformanceGeoProviderInterface;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\CollectedContentProviders;
+use Uhifadhi\Patrol\Tests\Integration\Fixtures\CollectedGeoProviders;
 use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 use Uhifadhi\Patrol\UhifadhiPatrolBundle;
 use Uhifadhi\Storage\Controller\EvidenceController;
@@ -208,6 +210,14 @@ final class TestKernel extends Kernel
         $container->services()->set(CollectedContentProviders::class)
             ->args([tagged_iterator('uhifadhi.devkit.content_provider')])->public();
         $container->services()->alias('test_public.devkit.content_providers', CollectedContentProviders::class)->public();
+
+        // And the performance page's GROUND collector. The core publishes the
+        // seam and nothing in it reads the tag yet, so a fixture reads the tag
+        // the page will read — a provider that was never tagged has to be
+        // invisible here exactly as it would be there.
+        $container->services()->set(CollectedGeoProviders::class)
+            ->args([tagged_iterator(PerformanceGeoProviderInterface::TAG)])->public();
+        $container->services()->alias('test_public.performance.geo_providers', CollectedGeoProviders::class)->public();
 
         $container->extension('doctrine', [
             'dbal' => [

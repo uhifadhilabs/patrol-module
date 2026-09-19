@@ -98,6 +98,41 @@ final readonly class PatrolFigureService
     }
 
     /**
+     * THE SAME SHARE, FOR A SET OF ZONES AT ONCE, IN POINTS — keyed by the
+     * zone's published uuid, and only for the zones the database answered for.
+     *
+     * ONE PASS, NOT ONE PER ZONE. Every figure here is a set operation, and
+     * asking the question zone by zone would union the same buffers again for
+     * each of them; {@see PatrolRepository::zoneFiguresFor()} measures the
+     * whole set in one go, which is the only reason a plate of forty zones is
+     * a page and not a wait.
+     *
+     * A ZONE'S WIDTH IS READ PER TRACK — each counts as covering its own
+     * type's width, with the module's figure standing in where a type sets
+     * none — so this is the zone-shaped sibling of {@see coverage()} rather
+     * than a second opinion about it.
+     *
+     * NULL STAYS NULL, and it means the area recorded no track in the window
+     * at all. A zone the window's tracks ran nowhere near, in an area that
+     * recorded tracks elsewhere, is a MEASURED NOUGHT: the ground was looked
+     * at and none of it was covered.
+     *
+     * @param list<string> $zoneUuids
+     *
+     * @return array<string, float|null> zone uuid to its share of covered ground
+     */
+    public function zoneCoverage(array $zoneUuids, \DateTimeImmutable $from, \DateTimeImmutable $until): array
+    {
+        $shares = [];
+        foreach ($this->patrols->zoneFiguresFor($zoneUuids, PatrolDashboardService::COVERAGE_BUFFER_M, $from, $until) as $uuid => $figures) {
+            $fraction = $figures['coverageFraction'];
+            $shares[$uuid] = null === $fraction ? null : $fraction * 100.0;
+        }
+
+        return $shares;
+    }
+
+    /**
      * How many patrols were out over the given ground at one instant — see
      * {@see PatrolRepository::countOutAt()} for what "out" is read from.
      *

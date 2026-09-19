@@ -258,8 +258,8 @@ them rides a later one. See [docs/development.md](docs/development.md).
   cannot tell that page.
 - [docs/performance-topic.md](docs/performance-topic.md) — the topic this module
   publishes on the organisation's performance page: its five figures, its two
-  charts, the departments its matrix holds, and the three absences it keeps
-  apart.
+  charts, the departments its matrix holds, the coverage it publishes over the
+  ground beside it, and the absences it keeps apart.
 - [docs/design-decisions.md](docs/design-decisions.md) — deliberate modeling
   choices (per-area type and station records, free-text team, how photos are
   stored, honest sources, live tracking as a v2 third door) recorded with their

@@ -30,6 +30,7 @@ use Uhifadhi\Contracts\Kpi\DepartmentKpiProviderInterface;
 use Uhifadhi\Contracts\Kpi\StationFigureProviderInterface;
 use Uhifadhi\Contracts\Kpi\ZoneFigureProviderInterface;
 use Uhifadhi\Contracts\Performance\DepartmentDirectoryInterface;
+use Uhifadhi\Contracts\Performance\PerformanceGeoProviderInterface;
 use Uhifadhi\Contracts\Performance\PerformanceTopicProviderInterface;
 use Uhifadhi\Patrol\Api\PatrolApiContext;
 use Uhifadhi\Patrol\Api\State\AppendEventsProcessor;
@@ -53,6 +54,7 @@ use Uhifadhi\Patrol\Devkit\PatrolCommandProvider;
 use Uhifadhi\Patrol\Devkit\PatrolContentProvider;
 use Uhifadhi\Patrol\Module\PatrolDepartmentKpiProvider;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
+use Uhifadhi\Patrol\Module\PatrolPerformanceGeo;
 use Uhifadhi\Patrol\Module\PatrolPerformanceTopic;
 use Uhifadhi\Patrol\Module\PatrolStationFigureProvider;
 use Uhifadhi\Patrol\Module\PatrolZoneFigureProvider;
@@ -888,6 +890,43 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 ])
                 ->tag(PerformanceTopicProviderInterface::TAG);
         }
+
+        /*
+         * THIS MODULE'S FIGURES OVER THE GROUND — coverage per area, and per
+         * zone once the performance page is about one area.
+         *
+         * A SEPARATE SEAM FROM THE TOPIC, AND DELIBERATELY UNGUARDED. The
+         * topic above needs TeamBundle because a matrix is rows of
+         * departments; the ground is not — an area and its zones are
+         * AreaBundle's, which this module requires outright — so the plate is
+         * published in any installation, including one running no departments
+         * at all.
+         *
+         * IT ASKS THE REGISTRY WHETHER THE MODULE IS ON, area by area, because
+         * an area that switched Patrols on and has not been out yet is ground
+         * with nothing measured on it while an area that never switched it on
+         * is not this module's ground at all. That is one question about an
+         * area and a module, which is exactly what the ledger answers, and
+         * nothing here joins it to anybody's departments.
+         *
+         * Tagged EXPLICITLY for the reason every tag above is: a reusable
+         * bundle is not autoconfigured (symfony.com/doc/current/bundles/
+         * best_practices.html), so the host's autoconfiguration never fires for
+         * it.
+         *
+         * The slug and the name MATCH the topic's and the module provider's:
+         * the page finds a module's ground figures by the same slug it orders
+         * its topic by, and drops them wherever the module is switched off.
+         */
+        $services->set('patrol.performance_geo', PatrolPerformanceGeo::class)
+            ->args([
+                service('doctrine.orm.entity_manager'),
+                service('registry.area_modules'),
+                service('patrol.figure_service'),
+                'patrols',
+                'Patrols',
+            ])
+            ->tag(PerformanceGeoProviderInterface::TAG);
 
         /*
          * THE AREA OVERVIEW CONTRIBUTION POINTS — the module's contribution to /areas/{uuid}.
