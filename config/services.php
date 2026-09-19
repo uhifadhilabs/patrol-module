@@ -43,6 +43,7 @@ use Uhifadhi\Patrol\Service\GeoService;
 use Uhifadhi\Patrol\Service\GpxParser;
 use Uhifadhi\Patrol\Service\GpxWriter;
 use Uhifadhi\Patrol\Service\ObservationAmendmentService;
+use Uhifadhi\Patrol\Service\PatrolCalendar;
 use Uhifadhi\Patrol\Service\PatrolCoverageService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolDraftService;
@@ -96,6 +97,20 @@ return static function (ContainerConfigurator $container): void {
         ->args([service('patrol.geo')]);
 
     $services->set('patrol.dashboard', PatrolDashboardService::class);
+
+    /*
+     * THE MODULE'S MONTH. What patrols has to say about one month, handed to
+     * the atlas to draw — a feed is NAMED by the surface that wants it, never
+     * tagged and gathered, because a month of patrols and a month of anything
+     * else are different pages.
+     */
+    $services->set('patrol.calendar', PatrolCalendar::class)
+        ->args([
+            service(PatrolRepository::class),
+            service(AreaOfInterestRepository::class),
+            service('router'),
+        ]);
+    $services->alias(PatrolCalendar::class, 'patrol.calendar');
 
     /*
      * THE MODULE'S PLATES. What patrol states about its two maps, handed to the

@@ -300,6 +300,7 @@ final class TestKernel extends Kernel
             \Uhifadhi\Patrol\Service\PatrolRecordingService::class => 'patrol.recording',
             \Uhifadhi\Patrol\Devkit\PatrolContentProvider::class => 'patrol.devkit.content',
             \Uhifadhi\Patrol\Service\PatrolHoldService::class => 'patrol.hold',
+            \Uhifadhi\Patrol\Service\PatrolCalendar::class => 'patrol.calendar',
             \Uhifadhi\Patrol\Service\ObservationAmendmentService::class => 'patrol.observation_amendments',
             \Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetService::class => 'shell.widget.service',
             \Uhifadhi\Bundle\ShellBundle\Widget\Service\WidgetEndpoint::class => 'shell.widget.endpoint',
