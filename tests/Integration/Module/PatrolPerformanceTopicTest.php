@@ -19,6 +19,7 @@ use Uhifadhi\Bundle\RegistryBundle\Entity\Module;
 use Uhifadhi\Bundle\TeamBundle\Entity\Department;
 use Uhifadhi\Bundle\TeamBundle\Service\PerformanceTopics;
 use Uhifadhi\Contracts\Kpi\FigurePeriod;
+use Uhifadhi\Contracts\Performance\ChartSeries;
 use Uhifadhi\Contracts\Performance\DepartmentDirectoryInterface;
 use Uhifadhi\Contracts\Performance\MatrixRow;
 use Uhifadhi\Contracts\Performance\PerformanceScope;
@@ -181,25 +182,54 @@ final class PatrolPerformanceTopicTest extends IntegrationTestCase
         self::assertSame([null, null, null, null, null, null], $coverage->history);
     }
 
-    public function testADepartmentWhoseGroundRunsNothingIsNotARow(): void
+    public function testADepartmentWhoseGroundRunsNothingIsARowOfDashes(): void
     {
         $world = $this->world();
 
-        // It attaches Patrols in the register, but its area never installed
-        // it, so nobody ever asked it about patrols.
+        // It leads with Patrols, and no area it reads is running them.
         $unserved = $this->area('Unserved reserve', -31.6, -1.3);
         $orphan = $this->department('Orphan', $unserved);
         $orphan->attachModule($world['module']);
         $this->em->flush();
 
-        $names = self::names($this->topic()->matrix(PerformanceScope::organisation(), self::period())->rows);
+        $rows = self::rows($this->topic()->matrix(PerformanceScope::organisation(), self::period()));
+
+        self::assertArrayHasKey('Orphan', $rows, 'Attaching a module and running it nowhere is a fact the page states, not one it hides.');
+        foreach ($rows['Orphan']->cells as $key => $cell) {
+            self::assertTrue($cell->notMine, \sprintf('Nobody put %s to this department.', $key));
+            self::assertFalse($cell->isKnown());
+            self::assertNull($cell->value);
+            self::assertNull($cell->delta);
+        }
+    }
+
+    public function testADepartmentThatAttachesNothingOfThisModulesIsNoRow(): void
+    {
+        $this->world();
+        $this->department('Tourism');
+        $this->em->flush();
 
         self::assertNotContains(
-            'Orphan',
-            $names,
-            'Attaching a module in an area nobody runs it in is not a row of empties — it is not a row.',
+            'Tourism',
+            self::names($this->topic()->matrix(PerformanceScope::organisation(), self::period())->rows),
+            'The topic is not about a department that does not lead with this module.',
         );
-        self::assertSame(['Ecology', 'Protection Service'], $names);
+    }
+
+    public function testARowOfDashesContributesNoLineToAChart(): void
+    {
+        $world = $this->world();
+
+        $unserved = $this->area('Unserved reserve', -31.6, -1.3);
+        $this->department('Orphan', $unserved)->attachModule($world['module']);
+        $this->em->flush();
+
+        $distance = $this->topic()->charts(PerformanceScope::organisation(), self::period())[0];
+
+        self::assertSame(['Ecology', 'Protection Service'], array_map(
+            static fn (ChartSeries $series): string => $series->label,
+            $distance->series,
+        ), 'A department with nothing to answer has nothing to draw.');
     }
 
     public function testEveryRowCarriesTheTwoLettersEverySurfaceDrawsItBy(): void
@@ -266,7 +296,7 @@ final class PatrolPerformanceTopicTest extends IntegrationTestCase
         }
 
         self::assertSame(['Ecology', 'Protection Service'], array_map(
-            static fn (object $series): string => (string) $series->label,
+            static fn (ChartSeries $series): string => $series->label,
             $charts[0]->series,
         ));
     }

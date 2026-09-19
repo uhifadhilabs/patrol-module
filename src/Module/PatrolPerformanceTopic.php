@@ -72,11 +72,11 @@ use Uhifadhi\Patrol\Service\PatrolFigureService;
  *   module was not yet switched on anywhere that department reads, so nobody
  *   was recording, and a nought there would draw a collapse that never
  *   happened;
- * - {@see MatrixCell::notMine()} is ground that has gone: the directory said a
- *   department could be asked and the areas behind it were not there to
- *   measure. A department that attaches Patrols where nobody runs Patrols
- *   never reaches a cell at all — `answeringFor()` leaves it out, because it
- *   is not a row of empties, it is not a row.
+ * - {@see MatrixCell::notMine()} is a department that leads with Patrols
+ *   while nothing on its ground runs them. It is drawn as a ROW OF DASHES
+ *   rather than dropped, because "attaches the module and is running it
+ *   nowhere" is a fact a director acts on and a page that hid the row would
+ *   hide it. Nobody asked it, so it did not fail to answer.
  *
  * SCOPE IS OBEYED, NOT ASSUMED. Every figure is the intersection of the page's
  * scope with the row's, so an area's page never draws the organisation's
@@ -143,7 +143,7 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
 
     public function kpis(PerformanceScope $scope, FigurePeriod $period): array
     {
-        $entries = $this->rowsIn($scope);
+        $entries = $this->answering($scope);
         if ([] === $entries) {
             return $this->nothingRunsHere($scope);
         }
@@ -253,7 +253,9 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
             $rows[] = new MatrixRow(
                 departmentUuid: $entry->uuid,
                 departmentName: $entry->name,
-                cells: $this->cellsFor($this->groundOf($slice->areaUuid, $entry->runningSince[$this->slug] ?? null), $period, $run),
+                cells: $entry->canAnswerFor($this->slug)
+                    ? $this->cellsFor($this->groundOf($slice->areaUuid, $entry->runningSince[$this->slug] ?? null), $period, $run)
+                    : self::notMineCells(),
                 band: $entry->band,
                 mark: $entry->mark,
             );
@@ -269,12 +271,9 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
     /**
      * ONE DEPARTMENT'S FOUR CELLS.
      *
-     * Ground with no area left on it is four `notMine` cells, not four dashes:
-     * the directory said this department could be asked, and by the time the
-     * areas were read there was nothing there to measure. It is the honest
-     * answer to a question that was never really put, and it is the only way a
-     * row reaches here unanswerable — a department that attaches this module
-     * where nobody runs it is filtered out before it becomes a row.
+     * Ground with no area on it answers `notMine` throughout, the same as a
+     * department nothing on whose ground runs this module: in both, nobody was
+     * ever asked, so neither an empty figure nor a nought would be honest.
      *
      * @param list<FigurePeriod> $run
      *
@@ -283,12 +282,7 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
     private function cellsFor(PatrolTopicGround $ground, FigurePeriod $period, array $run): array
     {
         if ($ground->isUnrun()) {
-            $cells = [];
-            foreach (self::columns() as $column) {
-                $cells[$column->key] = MatrixCell::notMine();
-            }
-
-            return $cells;
+            return self::notMineCells();
         }
 
         $patrols = [];
@@ -323,6 +317,25 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
     }
 
     /**
+     * FOUR COLUMNS NOBODY PUT TO THIS DEPARTMENT — a row of dashes.
+     *
+     * Not an empty figure and never a nought: the department leads with this
+     * module and nothing on its ground is running it, so it did not fail to
+     * answer, it was not asked.
+     *
+     * @return array<string, MatrixCell>
+     */
+    private static function notMineCells(): array
+    {
+        $cells = [];
+        foreach (self::columns() as $column) {
+            $cells[$column->key] = MatrixCell::notMine();
+        }
+
+        return $cells;
+    }
+
+    /**
      * ONE LINE PER DEPARTMENT, over the chart's run — the comparison the design
      * asks for, and part of why a topic owns its own charts: only this module
      * knows that its departments differ by how much ground each reads.
@@ -335,7 +348,7 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
         $series = [];
         $reads = [];
 
-        foreach ($this->rowsIn($scope) as $entry) {
+        foreach ($this->answering($scope) as $entry) {
             $slice = PatrolTopicSlice::of($scope->areaUuid, $entry->areaUuid);
             \assert(null !== $slice);
 
@@ -380,7 +393,7 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
      */
     private function coverageOverTime(PerformanceScope $scope, array $run, array $labels): TopicChart
     {
-        $ground = $this->groundOf($scope->areaUuid, $this->runningSince($this->rowsIn($scope)));
+        $ground = $this->groundOf($scope->areaUuid, $this->runningSince($this->answering($scope)));
 
         $points = [];
         foreach ($run as $past) {
@@ -409,17 +422,24 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
      * {@see DepartmentDirectoryInterface} publishes. This module does not
      * depend on either of those packages' entities and no longer reads them.
      *
-     * `answeringFor()` is the row set by the contract's own definition: the
-     * departments that attach this module AND can be asked about it. A
-     * department that attaches Patrols where nobody runs Patrols is not a row
-     * of empties, it is not a row — which is the whole difference between a
-     * topic and the board of everybody's columns it replaces.
+     * THE ROWS ARE THE DEPARTMENTS THAT ATTACH THIS MODULE, and a department
+     * that attaches it where nothing on its ground runs it is a ROW OF DASHES
+     * rather than no row: that it leads with Patrols and is not running them
+     * anywhere is a fact a director acts on, and a page that silently dropped
+     * the row would hide it. {@see DepartmentEntry::canAnswerFor()} is what
+     * separates the two, and it decides the cells, not the row set.
+     *
+     * A department that attaches nothing of this module's is a different case
+     * and is genuinely not a row: the topic is not about it at all.
      *
      * @return list<DepartmentEntry>
      */
     private function rowsIn(PerformanceScope $scope): array
     {
-        return $this->directory->forScope($scope)->answeringFor($this->slug);
+        return array_values(array_filter(
+            $this->directory->forScope($scope)->entries,
+            fn (DepartmentEntry $entry): bool => $entry->attaches($this->slug),
+        ));
     }
 
     /**
@@ -458,6 +478,21 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
         $dated = null !== $runningSince && $runningSince->getTimestamp() > 0 ? $runningSince : null;
 
         return new PatrolTopicGround($areas, null === $areaUuid ? null : ($areas[0] ?? null), $dated);
+    }
+
+    /**
+     * THE ROWS A FIGURE IS ACTUALLY DRAWN ACROSS — the ones this module can be
+     * asked about.
+     *
+     * A row of dashes is still a row, but it contributes no line to a chart
+     * and no department to the headline's "across N", because it has nothing
+     * to contribute.
+     *
+     * @return list<DepartmentEntry>
+     */
+    private function answering(PerformanceScope $scope): array
+    {
+        return $this->directory->forScope($scope)->answeringFor($this->slug);
     }
 
     /**

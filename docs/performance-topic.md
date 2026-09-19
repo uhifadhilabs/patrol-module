@@ -88,13 +88,18 @@ each of those modules has been running somewhere that department can see it —
 and it is why this module reads neither the team bundle's entities nor the
 registry's ledger.
 
-`answeringFor()` is the row set by definition: the departments that attach this
-module **and** can be asked about it. A department that attaches nothing of
-this module's, and one that attaches it in an area nobody runs it in, are both
-absent — not rows of dashes, not rows. That is the whole difference between a
-topic and the board it replaces, where one module's columns were imposed on
-every department and half the cells were about departments that had never
-attached it.
+**The rows are the departments that attach this module**, and `canAnswerFor()`
+decides their cells rather than their existence:
+
+| The department | Is | Because |
+|---|---|---|
+| attaches nothing of this module's | not a row | the topic is not about it — which is the whole difference between a topic and the board it replaces, where one module's columns were imposed on every department |
+| attaches it, and something on its ground runs it | a row of figures | it was asked, and it answered |
+| attaches it, and nothing on its ground runs it | a **row of dashes** (`MatrixCell::notMine()` throughout) | leading with a module and running it nowhere is a fact a director acts on; a page that dropped the row would hide it. It did not fail to answer — nobody asked it |
+
+A row of dashes is still a row, but it contributes no line to a chart and no
+department to the headline's "across N", because it has nothing to
+contribute.
 
 The row's two letters (`mark`) and the band it is placed among come from the
 same read, so this module invents neither.
@@ -139,7 +144,7 @@ module" into "no work".
 |---|---|
 | a null **value** | this module cannot measure that figure for that ground in that period — coverage where no track was recorded, and every figure of a scope where no area runs the module |
 | a hole in a **history** | the period falls before the entry's `runningSince`: the module was not yet switched on anywhere that department reads, so nobody was recording, and a nought there would draw a collapse that never happened. Running since nobody knows when (the contract's epoch) dates no holes |
-| `MatrixCell::notMine()` | ground that has gone — the directory said a department could be asked and the areas behind it were not there to measure. A department nobody ever asked is filtered out by `answeringFor()` instead, so this is the only way a row reaches a cell unanswerable |
+| `MatrixCell::notMine()` | the department leads with this module and nothing on its ground runs it, so nobody ever put the question — a row of dashes, not an empty figure and never a nought |
 
 A measured nought is none of the three: an area that ran the module and
 recorded no patrol reads zero, because the month was measured there.
