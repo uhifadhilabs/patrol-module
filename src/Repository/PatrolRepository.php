@@ -19,9 +19,11 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Entity\Station as AreaStation;
 use Uhifadhi\Bundle\AreaBundle\Entity\Zone;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Entity\PatrolType;
+use Uhifadhi\Patrol\Entity\Station;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 
 /**
@@ -832,6 +834,158 @@ final class PatrolRepository extends ServiceEntityRepository
                 'patrols' => (int) $row['patrols'],
                 'distanceKm' => (float) $row['metres'] / 1000.0,
                 'coverageFraction' => is_numeric($row['fraction']) ? (float) $row['fraction'] : null,
+            ];
+        }
+
+        return $figures;
+    }
+
+    /**
+     * WHAT WENT OUT OF EACH OF A SET OF STATIONS in a half-open window — how
+     * many complete patrols started there and how far they went in total.
+     *
+     * ONE STATEMENT FOR THE WHOLE SET, for the reason
+     * {@see self::zoneFiguresFor()} is one: the station seam is asked once for
+     * every post a page draws. Stations are the AREA module's and are
+     * addressed by their published uuid; this module's own station records are
+     * a different table and a different vocabulary.
+     *
+     * TWO WAYS A PATROL IS ATTRIBUTED TO A POST, because this module does not
+     * yet hold a reference to the area's station and both of these are things
+     * it can honestly know today:
+     *
+     *  1. BY NAME. The patrol's own station text — the label of the module's
+     *     station record — equals the area station's name, compared trimmed and
+     *     case-folded. An installation types the same post into both lists, and
+     *     that identity of words is the evidence.
+     *  2. BY THE FIRST FIX, and only where the patrol names no station at all.
+     *     A patrol whose track begins within $proximityMetres of the post's
+     *     point set off from it; a patrol that named a post is attributed to
+     *     THAT post even when it started beside another, because a person's
+     *     word beats a coordinate.
+     *
+     * A patrol matching neither is counted nowhere, and a patrol may be counted
+     * at one post only: the name rule matches at most one post (the area's
+     * names are unique within it) and the proximity rule is asked only where
+     * there is no name, so the two cannot both fire for one row.
+     *
+     * ONLY COMPLETE PATROLS COUNT, as everywhere else in this repository: a
+     * discard says the effort did not happen as recorded, and a recording
+     * patrol has not finished arriving.
+     *
+     * THE DISTANCE IS THE PATROL'S OWN RECORDED FIGURE, summed — the same
+     * `distanceKm` the department figures add up — and a patrol that recorded
+     * none adds nothing rather than having a length invented from its track.
+     *
+     * `areaRecorded` says whether the post's area recorded ANY complete patrol
+     * in the window, which is what tells a measured naught from an unmeasured
+     * one: a post that launched nothing in a month the area patrolled reads
+     * zero, and every post of an area that recorded nothing at all is unknown.
+     *
+     * @param list<string> $stationUuids
+     *
+     * @return array<string, array{patrols: int, distanceKm: float, areaRecorded: bool}> station uuid to its figures
+     */
+    public function stationFiguresFor(array $stationUuids, float $proximityMetres, \DateTimeImmutable $from, \DateTimeImmutable $until): array
+    {
+        if ([] === $stationUuids) {
+            return [];
+        }
+
+        $entityManager = $this->getEntityManager();
+        $patrol = $this->getClassMetadata();
+        $stationMeta = $entityManager->getClassMetadata(AreaStation::class);
+        $ownStation = $entityManager->getClassMetadata(Station::class);
+
+        // The uuid is compared as TEXT so the column may be a native uuid or a
+        // string: which one it is belongs to whoever mapped it, not here.
+        $sql = \sprintf(
+            <<<'SQL'
+                WITH asked AS (
+                    SELECT s.%1$s AS id, CAST(s.%2$s AS TEXT) AS uuid, s.%3$s AS name, s.%4$s AS point, s.%5$s AS area_id
+                    FROM %6$s s
+                    WHERE CAST(s.%2$s AS TEXT) IN (:stations)
+                ),
+                recorded AS (
+                    SELECT p.%7$s AS area_id, COUNT(*) AS patrols
+                    FROM %8$s p
+                    WHERE p.%7$s IN (SELECT DISTINCT area_id FROM asked)
+                      AND p.%9$s = :counted
+                      AND p.%10$s >= :from
+                      AND p.%10$s < :until
+                    GROUP BY p.%7$s
+                ),
+                started AS (
+                    SELECT a.id AS station_id,
+                           COUNT(*) AS patrols,
+                           SUM(COALESCE(p.%11$s, 0)) AS km
+                    FROM asked a
+                    INNER JOIN %8$s p ON p.%7$s = a.area_id
+                    LEFT JOIN %12$s ps ON ps.%13$s = p.%14$s
+                    WHERE p.%9$s = :counted
+                      AND p.%10$s >= :from
+                      AND p.%10$s < :until
+                      AND (
+                          LOWER(BTRIM(COALESCE(ps.%15$s, ''))) = LOWER(BTRIM(a.name))
+                          OR (
+                              COALESCE(BTRIM(ps.%15$s), '') = ''
+                              AND p.%16$s IS NOT NULL
+                              AND ST_DWithin(
+                                  ST_StartPoint(ST_GeometryN(p.%16$s, 1))::geography,
+                                  a.point::geography,
+                                  :metres
+                              )
+                          )
+                      )
+                    GROUP BY a.id
+                )
+                SELECT a.uuid AS station_uuid,
+                       COALESCE(s.patrols, 0) AS patrols,
+                       COALESCE(s.km, 0) AS km,
+                       COALESCE(r.patrols, 0) AS area_patrols
+                FROM asked a
+                LEFT JOIN started s ON s.station_id = a.id
+                LEFT JOIN recorded r ON r.area_id = a.area_id
+                SQL,
+            $stationMeta->getSingleIdentifierColumnName(),
+            $stationMeta->getColumnName('uuid'),
+            $stationMeta->getColumnName('name'),
+            $stationMeta->getColumnName('point'),
+            $stationMeta->getSingleAssociationJoinColumnName('area'),
+            $stationMeta->getTableName(),
+            $patrol->getSingleAssociationJoinColumnName('area'),
+            $patrol->getTableName(),
+            $patrol->getColumnName('status'),
+            $patrol->getColumnName('startedAt'),
+            $patrol->getColumnName('distanceKm'),
+            $ownStation->getTableName(),
+            $ownStation->getSingleIdentifierColumnName(),
+            $patrol->getSingleAssociationJoinColumnName('stationRecord'),
+            $ownStation->getColumnName('label'),
+            $patrol->getColumnName('track'),
+        );
+
+        /** @var list<array{station_uuid: string, patrols: int|string, km: float|string, area_patrols: int|string}> $rows */
+        $rows = $entityManager->getConnection()->fetchAllAssociative($sql, [
+            'stations' => $stationUuids,
+            'metres' => $proximityMetres,
+            'counted' => PatrolStatusEnum::Complete->value,
+            'from' => $from,
+            'until' => $until,
+        ], [
+            'stations' => ArrayParameterType::STRING,
+            'metres' => Types::FLOAT,
+            'counted' => Types::STRING,
+            'from' => Types::DATETIME_IMMUTABLE,
+            'until' => Types::DATETIME_IMMUTABLE,
+        ]);
+
+        $figures = [];
+        foreach ($rows as $row) {
+            $figures[$row['station_uuid']] = [
+                'patrols' => (int) $row['patrols'],
+                'distanceKm' => (float) $row['km'],
+                'areaRecorded' => 0 < (int) $row['area_patrols'],
             ];
         }
 

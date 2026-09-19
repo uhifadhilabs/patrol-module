@@ -27,6 +27,7 @@ use Uhifadhi\Bundle\AreaBundle\Overview\PulseProviderInterface;
 use Uhifadhi\Bundle\AreaBundle\Repository\AreaOfInterestRepository;
 use Uhifadhi\Bundle\ShellBundle\Widget\Registry\WidgetSurfaceInterface;
 use Uhifadhi\Contracts\Kpi\DepartmentKpiProviderInterface;
+use Uhifadhi\Contracts\Kpi\StationFigureProviderInterface;
 use Uhifadhi\Contracts\Kpi\ZoneFigureProviderInterface;
 use Uhifadhi\Patrol\Api\PatrolApiContext;
 use Uhifadhi\Patrol\Api\State\AppendEventsProcessor;
@@ -50,6 +51,7 @@ use Uhifadhi\Patrol\Devkit\PatrolCommandProvider;
 use Uhifadhi\Patrol\Devkit\PatrolContentProvider;
 use Uhifadhi\Patrol\Module\PatrolDepartmentKpiProvider;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
+use Uhifadhi\Patrol\Module\PatrolStationFigureProvider;
 use Uhifadhi\Patrol\Module\PatrolZoneFigureProvider;
 use Uhifadhi\Patrol\Overview\PatrolAttention;
 use Uhifadhi\Patrol\Overview\PatrolMapLayers;
@@ -820,6 +822,24 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 'Patrols',
             ])
             ->tag(ZoneFigureProviderInterface::TAG);
+
+        /*
+         * THE STATION FIGURE CONTRIBUTION POINT — one headline per post of an
+         * area: the complete patrols that went out of it, with the kilometres
+         * they covered said in the caption.
+         *
+         * Tagged EXPLICITLY for the reason the zone provider above is, and with
+         * the same slug and name: a station dock asks this provider only where
+         * the area runs the module of that slug, and captions the row with that
+         * name.
+         */
+        $services->set('patrol.station_figure_provider', PatrolStationFigureProvider::class)
+            ->args([
+                service(PatrolRepository::class),
+                'patrols',
+                'Patrols',
+            ])
+            ->tag(StationFigureProviderInterface::TAG);
 
         /*
          * THE AREA OVERVIEW CONTRIBUTION POINTS — the module's contribution to /areas/{uuid}.
