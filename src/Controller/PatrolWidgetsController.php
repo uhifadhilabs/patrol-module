@@ -34,6 +34,7 @@ use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;
+use Uhifadhi\Patrol\Service\PatrolCalendar;
 use Uhifadhi\Patrol\Service\PatrolCoverageService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolKindsService;
@@ -77,6 +78,9 @@ final class PatrolWidgetsController
         private readonly UrlGeneratorInterface $router,
         private readonly PatrolRepository $patrols,
         private readonly PatrolDashboardService $dashboard,
+        // The library previews the REAL month, on the same feed the dashboard
+        // draws: the picture of a widget IS the widget.
+        private readonly PatrolCalendar $calendar,
         private readonly PatrolMapService $plates,
         private readonly PatrolCoverageService $coverage,
         // The library previews EVERY widget, including the direction widgets that
@@ -153,6 +157,12 @@ final class PatrolWidgetsController
                 'now' => $now,
                 'month' => $monthStart,
                 'filter' => $filter,
+                // THE MONTH'S FEED AND ITS SUBJECT. The calendar widget hands both
+                // to atlas_calendar(); the module draws no grid of its own, and the
+                // scope carries the surface's own type filter so the month narrows
+                // with everything else on the screen.
+                'calendarFeed' => $this->calendar,
+                'calendarScope' => PatrolCalendar::scopeFor((string) $area->getUuidString(), $filter->type),
                 'patrolZones' => $patrolZones,
                 'dashboard' => $dashboard,
                 'map' => $this->plates->coverage(

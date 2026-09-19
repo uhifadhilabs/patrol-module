@@ -92,9 +92,6 @@
     border-color: var(--patrol-track);
     background: color-mix(in srgb, var(--patrol-track) 12%, transparent);
 }
-/* Patrol's own "not chosen yet" ghost chip (the calendar prev/next carry it as
-   .mchip.patrol-ghost); mirrors the .mchip.ghost dashed treatment shipped above. */
-.patrol-ghost { border-style: dashed; color: rgb(var(--c-fog)); cursor: pointer; }
 /* ---- the filter bar's own mark ---------------------------------------- --
    The grouped dropdown itself — .i-dd, its .i-ddt chip, the .i-ddmenu panel and
    every option inside it — is the SHELL's, drawn here as the `<details>` control
@@ -156,30 +153,6 @@
 .patrol-who em { display: block; font: 500 9px var(--font-mono); color: rgb(var(--c-dim)); font-style: normal; margin-top: 1px; }
 .patrol-n { font: 600 10.5px var(--font-mono); color: rgb(var(--c-fog)); min-width: 120px; text-align: right; }
 .patrol-spacer { flex: 1; }
-
-/* ---- calendar (PL·11) --------------------------------------------------- */
-.patrol-calnav { display: flex; gap: 8px; align-items: center; margin-top: 2px; }
-.patrol-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; }
-.patrol-dh { font: 600 9.5px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: rgb(var(--c-fog)); padding: 2px 4px; }
-/* FIXED HEIGHT (owner overflow rule): a day cell never grows with the number of
-   patrols. It holds the day number and up to three chips (the third is the
-   "+N more" fold on a busy day); anything more lives in the fold's popover, not
-   in a taller cell. Only the day cells are sized — the weekday header row keeps
-   its own height. */
-.patrol-dc {
-    border: 1px solid var(--c-ln); border-radius: 9px; height: 106px; padding: 22px 6px 6px;
-    position: relative; display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
-    background: color-mix(in srgb, rgb(var(--c-fog)) 3%, transparent);
-}
-.patrol-dn { position: absolute; top: 6px; right: 8px; font: 600 9.5px var(--font-mono); color: rgb(var(--c-dim)); }
-.patrol-dc.patrol-out { opacity: .4; }
-.patrol-dc.patrol-today {
-    border-color: color-mix(in srgb, rgb(var(--c-acc)) 55%, transparent);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, rgb(var(--c-acc)) 25%, transparent);
-}
-.patrol-dc.patrol-today .patrol-dn { color: rgb(var(--c-acc)); }
-.patrol-daypill { text-decoration: none; }
-.patrol-daypill .chip { cursor: pointer; }
 
 /* ---- how tall a patrol map is ------------------------------------------ */
 /* THE PLATE CARRIES A REAL HEIGHT off this one property and refuses to stretch,
@@ -411,123 +384,6 @@
 .patrol-save-row .cta { border: 0; cursor: pointer; font-family: inherit; }
 .patrol-error { font-size: 12.5px; line-height: 1.5; color: rgb(var(--c-fail)); margin: 12px 2px 0; }
 
-/* ---- calendar: month navigation + hover cards (PL·11) ------------------- */
-/* Appended block: everything the interactive calendar adds on top of the ported
-   grid above (.patrol-cal / .patrol-dc / .patrol-daypill, unchanged).
-
-   The month is fetched and swapped by the calendar Stimulus controller; the
-   hover card is PURE CSS on server-rendered markup, so it needs no JS at all —
-   including its edge handling, which is done with nth-child on the grid rather
-   than by measuring at runtime. */
-
-/* While a month is in flight: the grid dims, and nothing in it can be clicked
-   into a page that is about to be replaced. */
-.patrol-cal-busy .patrol-calmonth { opacity: .5; pointer-events: none; transition: opacity .12s ease-out; }
-
-/* ‹ › are real <button>s (they change what the widget shows, so they must be
-   keyboard reachable); the host's .mchip is an inline span, exactly as with the
-   filter chips above. */
-.patrol-calnav > button.mchip { font-family: inherit; cursor: pointer; }
-
-/* The pill anchors its own card. A day cell does not clip (no overflow rule on
-   .patrol-dc), so the card may spill over its neighbours. */
-.patrol-daypill { position: relative; display: block; max-width: 100%; }
-.patrol-daypill .chip { max-width: 100%; }
-
-.patrol-pop {
-    position: absolute; z-index: 40; top: calc(100% + 6px); left: 0;
-    display: block; width: max-content; min-width: 168px; max-width: 232px;
-    padding: 9px 11px 8px; border: 1px solid var(--c-ln2); border-radius: 9px;
-    background: rgb(var(--c-cv)); box-shadow: var(--shadow);
-    text-align: left; white-space: normal; cursor: pointer;
-    /* Hidden without being gone: opacity+visibility keeps it out of the hit test
-       until it is wanted, and lets it fade rather than jump. */
-    opacity: 0; visibility: hidden; transition: opacity .1s ease-out, visibility 0s linear .1s;
-}
-.patrol-daypill:hover .patrol-pop,
-.patrol-daypill:focus-visible .patrol-pop,
-.patrol-pop:hover { opacity: 1; visibility: visible; transition-delay: 0s; }
-/* A dimmed neighbouring-month cell must not dim its own hover card into
-   illegibility — the pill is still a real patrol. */
-.patrol-dc.patrol-out .patrol-daypill:hover { opacity: 1; }
-.patrol-dc:has(.patrol-daypill:hover) { z-index: 41; }
-
-.patrol-pop-head { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
-.patrol-pop-ref { font: 600 10px var(--font-mono); color: rgb(var(--c-dim)); margin-left: auto; }
-.patrol-pop-who { display: block; font-size: 12px; font-weight: 600; color: rgb(var(--c-tx)); margin-bottom: 7px; }
-.patrol-pop-row {
-    display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
-    font-size: 10.5px; color: rgb(var(--c-fog)); padding: 1.5px 0;
-}
-.patrol-pop-row .mono { font: 600 10.5px var(--font-mono); color: rgb(var(--c-tx)); }
-.patrol-pop-open {
-    display: block; margin-top: 7px; padding-top: 6px; border-top: 1px solid var(--c-ln);
-    font: 600 10px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: rgb(var(--c-acc));
-}
-
-/* Edges, without measuring anything at runtime. The grid's first seven children
-   are the weekday headers, so a cell in the LAST column is every 7th child, and
-   the last two rows start at the 36th. */
-.patrol-cal > .patrol-dc:nth-child(7n) .patrol-pop,
-.patrol-cal > .patrol-dc:nth-child(7n-1) .patrol-pop { left: auto; right: 0; }
-.patrol-cal > .patrol-dc:nth-child(n+36) .patrol-pop { top: auto; bottom: calc(100% + 6px); }
-
-/* Coarse pointers have no hover: the pill still opens the patrol on tap, and the
-   card would only sit in the way. */
-@media (hover: none) {
-    .patrol-pop { display: none; }
-}
-
-/* ---- calendar day overflow: the "+N more" fold (owner overflow rule) ------ */
-/* Past the cell's cap the extra patrols fold into this chip so the cell keeps
-   its height. The chip is a native <summary> (click and keyboard, no JS, and it
-   survives a month swap), styled like the filter row's dashed ghost chip so it
-   reads as one of the calendar's own controls. */
-.patrol-daymore { position: relative; }
-.patrol-morechip {
-    display: inline-flex; align-items: center; list-style: none; cursor: pointer;
-    font: 600 9.5px var(--font-mono); letter-spacing: .04em; color: rgb(var(--c-fog));
-    border: 1px dashed var(--c-ln2); border-radius: 999px; padding: 2px 8px;
-}
-.patrol-morechip::-webkit-details-marker { display: none; }
-.patrol-morechip::marker { content: ''; }
-.patrol-morechip:hover { color: rgb(var(--c-tx)); border-color: rgb(var(--c-fog)); }
-.patrol-daymore[open] > .patrol-morechip {
-    color: rgb(var(--c-acc)); border-color: color-mix(in srgb, rgb(var(--c-acc)) 55%, transparent);
-}
-/* The open cell rises above its neighbours so the panel is never covered. */
-.patrol-dc:has(.patrol-daymore[open]) { z-index: 43; }
-
-/* The panel: absolutely positioned so opening it OVERLAYS the grid rather than
-   growing the cell — the whole point of the fold. Same card chrome and edge
-   manners as the per-pill hover card. */
-.patrol-morepop {
-    position: absolute; z-index: 43; top: calc(100% + 6px); left: 0;
-    display: flex; flex-direction: column; gap: 2px;
-    width: max-content; min-width: 184px; max-width: 248px; max-height: 260px; overflow-y: auto;
-    padding: 9px 10px; border: 1px solid var(--c-ln2); border-radius: 9px;
-    background: rgb(var(--c-cv)); box-shadow: var(--shadow); text-align: left; white-space: normal;
-}
-.patrol-morepop-hd {
-    font: 600 9px var(--font-mono); letter-spacing: .12em; text-transform: uppercase;
-    color: rgb(var(--c-dim)); padding: 1px 2px 6px; margin-bottom: 3px; border-bottom: 1px solid var(--c-ln);
-}
-.patrol-morepop-row {
-    display: flex; align-items: center; gap: 8px; padding: 4px 2px; border-radius: 7px;
-    text-decoration: none; white-space: nowrap;
-}
-.patrol-morepop-row:hover { background: color-mix(in srgb, rgb(var(--c-acc)) 6%, transparent); }
-.patrol-morepop-meta {
-    font: 500 10px var(--font-mono); color: rgb(var(--c-dim));
-    overflow: hidden; text-overflow: ellipsis;
-}
-.patrol-morepop-row.patrol-abandoned .chip.patrol-tchip { opacity: .55; border-style: dashed; }
-/* The last column and the last two rows open the panel the other way, so a fold
-   at the edge of the grid never spills off the card (mirrors the pill popover). */
-.patrol-cal > .patrol-dc:nth-child(7n) .patrol-morepop,
-.patrol-cal > .patrol-dc:nth-child(7n-1) .patrol-morepop { left: auto; right: 0; }
-.patrol-cal > .patrol-dc:nth-child(n+36) .patrol-morepop { top: auto; bottom: calc(100% + 6px); }
-
 /* ---- observation cycling (appended block — detail-surfaces work) --------- */
 /* Prev/next arrows in the observation page header, so the patrol's
    observations can be circled without going back up to the patrol. They reuse
@@ -574,10 +430,6 @@
 .patrol-feed-row.patrol-abandoned .patrol-n {
     color: rgb(var(--c-fog));
 }
-/* The calendar pill: dimmed rather than washed, because a day cell is small and
-   a second background inside it reads as a different KIND of day. */
-.patrol-daypill.patrol-abandoned .chip.patrol-tchip { opacity: .55; border-style: dashed; }
-
 /* The sub-line under a cell's own value — "not counted", "kept · viewable", the
    reason and the removal date. Mono and dim, the same voice the feed's <em>
    sub-lines already speak in, so it reads as annotation rather than data. */

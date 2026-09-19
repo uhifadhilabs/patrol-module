@@ -23,32 +23,30 @@ use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
-use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
-use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\PatrolCalendar;
 
 /**
- * One month of the patrol calendar (PL·11) as an HTML FRAGMENT — what the
- * widget's ‹ › controls fetch.
+ * THE PATROLS MONTH AS ITS OWN PAGE (PL·11).
  *
- * Server-rendered per month on purpose: a day cell holds real patrols with real
- * refs, colours and links, so stepping to another month is a different QUERY,
- * not a client-side redraw of data the browser happens to be holding. The
- * fragment is the same partial the dashboard renders inline, so the two can
- * never drift.
+ * ONE ADDRESS AND ONE SHAPE. The month used to be served twice — a bare
+ * fragment for the widget's ‹ › to swap in over XHR, and a framed page for
+ * anybody who navigated to the URL — because the stepper was JavaScript. It
+ * is not any more: the atlas's month draws its arrows as LINKS, so stepping a
+ * month is a navigation like every other and there is nothing left to fetch.
  *
- * The month travels as ?month=YYYY-MM (an unbounded walk in either direction —
- * a month with no patrols renders as a full grid of empty days, never an error).
- * Anything else is a 400: this endpoint answers the widget, and a month it
- * cannot read is a malformed request, not an empty month.
+ * WHAT TRAVELS IN THE QUERY. `?month=YYYY-MM` is the month, and anything else
+ * is a 400 rather than a guess; `?type=` is the surface's own control, the
+ * patrol type the chip in the stepper's row has narrowed to. Both are
+ * unbounded in the sense that matters: a month with no patrols renders as a
+ * full grid of empty days, never an error.
  *
- * Same gating as the dashboard this fragment belongs to: area-nested, the uuid
+ * Same gating as the dashboard this page belongs to: area-nested, the uuid
  * resolved by MapEntity (a wrong or unknown area is a 404), and no further
  * permission — it shows exactly what the dashboard already shows the same
- * caller, one month at a time. It is registered unconditionally (config/services.php)
- * for the same reason the dashboard controller is: the widget renders in hosts
- * without SecurityBundle too, and a nav control that 404s there would be worse
- * than no nav at all.
+ * caller, one month at a time. It is registered unconditionally
+ * (config/services.php) for the same reason the dashboard controller is: the
+ * widget renders in hosts without SecurityBundle too.
  *
  * A plain class, not a Symfony AbstractController subclass — see PatrolController
  * and config/services.php for the reusable-bundle rule.
@@ -63,8 +61,7 @@ final class PatrolCalendarController
 
     public function __construct(
         private readonly Environment $twig,
-        private readonly PatrolRepository $patrols,
-        private readonly PatrolDashboardService $dashboard,
+        private readonly PatrolCalendar $calendar,
         private readonly PatrolTypeRepository $types,
     ) {
     }
@@ -87,44 +84,29 @@ final class PatrolCalendarController
         $now = new \DateTimeImmutable();
         $month = $this->month($request, $now);
 
-        // Exactly the window the grid can draw — the month plus the dimmed
-        // leading/trailing days, which carry pills too.
-        [$from, $until] = PatrolDashboardService::calendarRange($month);
-
-        // The AREA's own words, so a pill on the grid is coloured and labelled
-        // exactly as the same patrol is on the map beside it.
+        // The AREA's own words: what the chip may narrow to, and what it prints.
         $types = $this->types->findVocabularyByArea($area);
+        $type = $this->type($request);
 
-        $context = [
+        return new Response($this->twig->render('@UhifadhiPatrol/calendar/show.html.twig', [
             'area' => $area,
             'types' => $types,
-            'typeColor' => PatrolDashboardService::typeColors($types),
+            'type' => $type,
             'month' => $month,
             'now' => $now,
-            'cells' => $this->dashboard->calendarFor(
-                $this->patrols->findByAreaStartedBetween($area, $from, $until),
-                $month,
-                $now,
-            ),
-        ];
-
-        // ONE ADDRESS, TWO SHAPES. The widget's ‹ › controls fetch this over XHR
-        // and inject the BARE month grid into the card's body, so an XHR request
-        // gets the fragment and nothing around it. A person who navigates to the
-        // URL directly (a link, a bookmark, a hard-refresh) must not be handed
-        // that fragment naked — no shell, no stylesheets — so they get the whole
-        // framed calendar page instead. The grid inside is the same partial either
-        // way, so the two can never drift.
-        if ($request->isXmlHttpRequest()) {
-            return new Response($this->twig->render('@UhifadhiPatrol/dashboard/_cal_body.html.twig', $context));
-        }
-
-        return new Response($this->twig->render('@UhifadhiPatrol/calendar/show.html.twig', $context));
+            // The three months the stepper and the chip link to, spelled once
+            // here so no template does date arithmetic to build a url.
+            'monthKey' => $month->format('Y-m'),
+            'previousKey' => $month->modify('-1 month')->format('Y-m'),
+            'nextKey' => $month->modify('+1 month')->format('Y-m'),
+            'feed' => $this->calendar,
+            'scope' => PatrolCalendar::scopeFor((string) $area->getUuidString(), $type),
+        ]));
     }
 
     /**
      * The requested month as its first instant. Absent means "the month the
-     * widget opens on", so the endpoint is also a plain reload of the current
+     * calendar opens on", so the endpoint is also a plain reload of the current
      * month; anything that is not YYYY-MM is rejected rather than guessed at.
      */
     private function month(Request $request, \DateTimeImmutable $now): \DateTimeImmutable
@@ -147,5 +129,18 @@ final class PatrolCalendarController
         }
 
         return $month;
+    }
+
+    /**
+     * The patrol type the chip has narrowed to, or null for all of them. Not
+     * checked against the area's vocabulary, exactly as the module's filter row
+     * does not check it: a key nothing matches draws an empty month, which is
+     * the honest answer to a question about patrols that do not exist.
+     */
+    private function type(Request $request): ?string
+    {
+        $type = trim($request->query->getString('type'));
+
+        return '' === $type ? null : $type;
     }
 }

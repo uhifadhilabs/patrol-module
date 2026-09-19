@@ -1,14 +1,23 @@
-{# Widget "cal" — the month calendar (PL·11).
+{# Widget "cal" — the month calendar (PL·11), which is the house calendar with
+   patrol marks in it.
 
-   The card and its caption stay here; the month itself (header row + grid) is
-   _cal_body.html.twig, which the ‹ › controls re-fetch from patrol_calendar and
-   swap in. The dashboard ships the CURRENT month already rendered, so the widget
-   is complete before any JavaScript runs. #}
-<div class="c" data-patrol-calendar
-     {{ stimulus_controller('@uhifadhi/patrol-module/calendar', {url: path('patrol_calendar', {uuid: area.uuid})}) }}>
-    <span class="tab">Patrol calendar<span class="src">&middot; <span
-                {{ stimulus_target('@uhifadhi/patrol-module/calendar', 'label') }}>{{ now|date('F Y')|lower }}</span></span></span>
-    <div {{ stimulus_target('@uhifadhi/patrol-module/calendar', 'body') }}>
-        {{ include('@UhifadhiPatrol/dashboard/_cal_body.html.twig', {cells: dashboard.calendar, month: now}) }}
-    </div>
-</div>
+   THE STEPPER MOVES THE DASHBOARD'S MONTH, not a month of its own. One filter
+   drives the map, the log, the charts and this grid together, so ‹ › carry the
+   whole question with them and land on the same dashboard a month either side.
+   A calendar that stepped privately would disagree with every other card on
+   the screen.
+
+   AND IT DRAWS NO FILTER OF ITS OWN. The surface's filter row is already on
+   this page (the map and log widgets carry it, once), and two copies of a
+   filter row are two answers to "what is on screen". The calendar TAB, which
+   has no row, puts the patrol-type chip in the stepper's own line instead. #}
+{{ include('@UhifadhiPatrol/_calendar.html.twig', {
+    area: area,
+    feed: calendarFeed,
+    scope: calendarScope,
+    month: month,
+    now: now,
+    previousUrl: path('patrol_dashboard', {uuid: area.uuid}|merge(filter.inMonth(month|date_modify('-1 month')).toQuery)),
+    nextUrl: path('patrol_dashboard', {uuid: area.uuid}|merge(filter.inMonth(month|date_modify('+1 month')).toQuery)),
+    controls: '',
+}, with_context: false) }}

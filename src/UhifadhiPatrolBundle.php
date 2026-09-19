@@ -427,6 +427,7 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service('router'),
                     service(PatrolRepository::class),
                     service('patrol.dashboard'),
+                    service('patrol.calendar'),
                     service('patrol.map'),
                     service('patrol.coverage'),
                     // The day's live reading for the direction widgets the library

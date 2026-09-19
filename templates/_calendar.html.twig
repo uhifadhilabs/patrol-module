@@ -1,0 +1,41 @@
+{# THE PATROLS MONTH, drawn ONCE for both of the places it appears — the
+   dashboard's calendar widget and the calendar tab.
+
+   THE MONTH IS THE ATLAS'S AND NOT THIS MODULE'S. The grid, the day head, the
+   cell, its fixed height, the day number, the day's count, the mark, the
+   "+N more" and the stepper all come out of `atlas_calendar()`; this module
+   ships no month grid of its own and says only what happened on which day
+   (Uhifadhi\Patrol\Service\PatrolCalendar). That is the whole bargain of the
+   component, and the reason a busy week cannot make the month taller than a
+   quiet one.
+
+   THE CARD IS THIS MODULE'S. The `.c` shell, its tab and the month in the
+   caption are the dashboard card every widget wears; everything inside the
+   card below the caption is the component's.
+
+   THE FEED IS HANDED OVER BY THE CONTROLLER rather than reached for as a
+   global: a template that resolved a service would be a template with a
+   container in it.
+
+   Bindings:
+     area        the area on screen, for nothing but the card's own links
+     feed        the CalendarFeedInterface this month is asked of
+     scope       what to narrow it to — PatrolCalendar::scopeFor()
+     month       a \DateTimeImmutable inside the month being drawn
+     now         the viewer's instant, so the right square is ringed
+     previousUrl where ‹ goes, and nextUrl where › goes
+     controls    the surface's OWN control, already rendered, drawn at the
+                 trailing end of the stepper row; '' where the surface's
+                 filter is already on screen somewhere else #}
+<div class="c">
+    <span class="tab">Patrol calendar<span class="src">&middot; {{ month|date('F Y')|lower }}</span></span>
+    {{ atlas_calendar(
+        feed,
+        month|date('Y-m'),
+        scope,
+        today: now,
+        previousUrl: previousUrl,
+        nextUrl: nextUrl,
+        controls: controls|default('')
+    ) }}
+</div>

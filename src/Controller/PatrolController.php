@@ -31,6 +31,7 @@ use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Repository\TaxonomyKindRepository;
+use Uhifadhi\Patrol\Service\PatrolCalendar;
 use Uhifadhi\Patrol\Service\PatrolCoverageService;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolKindsService;
@@ -69,6 +70,9 @@ final class PatrolController
         private readonly Environment $twig,
         private readonly PatrolRepository $patrols,
         private readonly PatrolDashboardService $dashboard,
+        // WHAT THE MONTH IS MADE OF. The grid is the atlas's; this says what
+        // happened on which day, and the calendar widget hands it over.
+        private readonly PatrolCalendar $calendar,
         private readonly PatrolMapService $plates,
         // The ground the month's routes covered, held for the day it was
         // measured on — PL·03's set operation is real work on a busy month.
@@ -155,6 +159,12 @@ final class PatrolController
             // THE FILTER ITSELF, so every chip and option in the bar can link to
             // the same question narrowed on one axis, and mark what is chosen.
             'filter' => $filter,
+            // THE MONTH'S FEED AND ITS SUBJECT. The calendar widget hands both
+            // to atlas_calendar(); the module draws no grid of its own, and the
+            // scope carries the surface's own type filter so the month narrows
+            // with everything else on the screen.
+            'calendarFeed' => $this->calendar,
+            'calendarScope' => PatrolCalendar::scopeFor((string) $area->getUuidString(), $filter->type),
             // patrol id → zone name: the log rows name the zone each patrol set
             // out in, which is what the ZONE options are chosen from.
             'patrolZones' => $patrolZones,

@@ -1,17 +1,16 @@
-{# The patrol calendar as a FULL PAGE — what a direct visit to patrol_calendar
-   lands on.
+{# The patrol calendar as a FULL PAGE — the month on its own, wearing the shell
+   frame, the breadcrumb, the page head and the module's stylesheets.
 
-   patrol_calendar serves TWO shapes on one address: the widget's ‹ › controls
-   fetch the bare month fragment (_cal_body) over XHR and swap it in, while a
-   plain browser navigation to the same URL gets THIS page — that same calendar
-   card wearing the shell frame, the breadcrumb, the page head and, crucially,
-   the module's stylesheets (patrol.css, the map chrome, the widget grid). Before
-   this, a hard-refresh of the URL rendered the fragment on its own: raw markup,
-   no frame and no CSS, because a fragment carries neither.
+   THE SAME CARD THE DASHBOARD RENDERS. Both include
+   @UhifadhiPatrol/_calendar.html.twig around the same feed, so the widget and
+   the tab cannot drift — and neither of them draws a grid: the month is the
+   atlas's `atlas_calendar()`.
 
-   The card here is the SAME card the dashboard renders inline (_w_cal) around the
-   SAME partial (_cal_body), so the three cannot drift — and the ‹ › nav on this
-   page fetches the fragment exactly as it does on the dashboard. #}
+   WHAT THIS PAGE ADDS IS THE SURFACE'S OWN CONTROL. The dashboard already
+   carries the module's filter row; this page carries none, so the patrol-type
+   chip rides in the stepper's own line through the component's `controls`
+   slot — one row of chrome, the stepper at the left and the chip at the right,
+   as the design draws it. #}
 {% extends '@UhifadhiPatrol/base.html.twig' %}
 
 {% block title %}Patrols · calendar{% endblock %}
@@ -28,15 +27,39 @@
 {% block patrol_page %}
 <a class="backbtn" href="{{ path('patrol_dashboard', {uuid: area.uuid}) }}">{{ ux_icon('shell:chevron-left') }}All patrols</a>
 
-{# The calendar card — identical to the dashboard widget (_w_cal): the Stimulus
-   controller wires ‹ ›, and the body is the month fragment for the month asked
-   for, so month navigation works on this page too. #}
-<div class="c" data-patrol-calendar
-     {{ stimulus_controller('@uhifadhi/patrol-module/calendar', {url: path('patrol_calendar', {uuid: area.uuid})}) }}>
-    <span class="tab">Patrol calendar<span class="src">&middot; <span
-                {{ stimulus_target('@uhifadhi/patrol-module/calendar', 'label') }}>{{ month|date('F Y')|lower }}</span></span></span>
-    <div {{ stimulus_target('@uhifadhi/patrol-module/calendar', 'body') }}>
-        {{ include('@UhifadhiPatrol/dashboard/_cal_body.html.twig', {cells: cells, month: month}) }}
-    </div>
-</div>
+{# THE PATROL-TYPE CHIP — the house's grouped dropdown, which is a `<details>`:
+   the browser opens it, and a panel rendered as a div is a panel rendered
+   OPEN. Every option is a real link carrying the month with it, so a narrowed
+   calendar is a url somebody can send. This module defines none of that
+   vocabulary; it is the shell's. #}
+{% set typeFilter %}
+    <details class="i-dd">
+        <summary class="mchip i-ddt{{ type ? ' on' }}">
+            <span class="i-ddval">{{ type ? types[type].label|default(type)|lower : 'all types' }}</span><span class="i-ddcaret">&#9662;</span>
+        </summary>
+        <div class="i-ddmenu" aria-label="Filter by patrol type">
+            <span class="i-ddhead">patrol type</span>
+            <a class="i-ddopt{{ type is null ? ' on' }}"
+               href="{{ path('patrol_calendar', {uuid: area.uuid, month: monthKey}) }}"><span class="i-ddopt-l">All types</span></a>
+            <span class="i-ddsep"></span>
+            {% for key, patrolType in types %}
+                <a class="i-ddopt{{ type == key ? ' on' }}"
+                   href="{{ path('patrol_calendar', {uuid: area.uuid, month: monthKey, type: key}) }}"><span class="i-ddopt-l">{{ patrolType.label|lower }}</span></a>
+            {% else %}
+                <span class="i-ddopt patrol-ddempty"><span class="i-ddopt-l">no patrol types yet</span></span>
+            {% endfor %}
+        </div>
+    </details>
+{% endset %}
+
+{{ include('@UhifadhiPatrol/_calendar.html.twig', {
+    area: area,
+    feed: feed,
+    scope: scope,
+    month: month,
+    now: now,
+    previousUrl: path('patrol_calendar', {uuid: area.uuid, month: previousKey}|merge(type ? {type: type} : {})),
+    nextUrl: path('patrol_calendar', {uuid: area.uuid, month: nextKey}|merge(type ? {type: type} : {})),
+    controls: typeFilter,
+}, with_context: false) }}
 {% endblock %}

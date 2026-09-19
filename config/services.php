@@ -409,6 +409,7 @@ return static function (ContainerConfigurator $container): void {
             service('twig'),
             service(PatrolRepository::class),
             service('patrol.dashboard'),
+            service('patrol.calendar'),
             service('patrol.map'),
             service('patrol.coverage'),
             // The day's live reading (out now, zone gaps, the observation queue)
@@ -466,17 +467,16 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(PatrolListController::class, 'patrol.controller.list')->public();
 
     /*
-     * The calendar's month fragment (PL·11 ‹ ›). Registered beside the dashboard
-     * rather than inside the bundle's SecurityBundle guard: it is a slice of the
-     * dashboard the same caller already reads, so it must exist wherever the
-     * dashboard does — including a host with no security, where the widget still
-     * renders and its ‹ › must still work.
+     * The calendar tab (PL·11). Registered beside the dashboard rather than
+     * inside the bundle's SecurityBundle guard: it is a slice of the dashboard
+     * the same caller already reads, so it must exist wherever the dashboard
+     * does — including a host with no security, where the widget still renders
+     * and its stepper must still lead somewhere.
      */
     $services->set('patrol.controller.calendar', PatrolCalendarController::class)
         ->args([
             service('twig'),
-            service(PatrolRepository::class),
-            service('patrol.dashboard'),
+            service('patrol.calendar'),
             service(PatrolTypeRepository::class),
         ])
         ->public();
