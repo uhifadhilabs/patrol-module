@@ -101,6 +101,15 @@ two that break one rule each, two that keep them.
 
 ## Upgrading to 0.6
 
+**BREAKING — the PostGIS bundle is `utafitilabs/postgis-bundle` now.** Spatial
+columns ride on `utafitilabs/postgis-bundle` (`^0.1`) instead of
+`fundistadi/postgis-bundle`; both register the same Doctrine DBAL type names, so
+the old one must leave the tree. In the installation, swap the line in
+`config/bundles.php` to
+`UtafitiLabs\PostGISBundle\UtafitiLabsPostGISBundle::class => ['all' => true]`,
+rename any `fundi_stadi_post_gis` config key to `utafiti_labs_post_gis`, then
+`cache:clear`.
+
 **Drop the `filters` Stimulus controller from `assets/controllers.json`.** The
 filter bar's dropdowns are the shell's `<details>` grouped dropdown now, so the
 controller that opened this module's own panels has nothing left to do. It

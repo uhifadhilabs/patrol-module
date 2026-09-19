@@ -31,13 +31,12 @@
         }
     ],
     "require": {
+        "php": ">=8.4",
+        "ext-simplexml": "*",
+        "ext-xmlwriter": "*",
         "doctrine/dbal": "^4.0",
         "doctrine/doctrine-bundle": "^3.0",
         "doctrine/orm": "^3.5",
-        "ext-simplexml": "*",
-        "ext-xmlwriter": "*",
-        "fundistadi/postgis-bundle": "^0.5",
-        "php": ">=8.4",
         "symfony/asset": "^7.3 || ^8.0",
         "symfony/asset-mapper": "^7.3 || ^8.0",
         "symfony/config": "^7.3 || ^8.0",
@@ -50,7 +49,8 @@
         "symfony/ux-icons": "^3.4",
         "symfony/ux-map": "^2.20 || ^3.0",
         "uhifadhi/storage-module": "0.2.x-dev",
-        "uhifadhi/uhifadhi": "^1.0@dev"
+        "uhifadhi/uhifadhi": "^1.0@dev",
+        "utafitilabs/postgis-bundle": "^0.1"
     },
     "autoload": {
         "psr-4": {

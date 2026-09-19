@@ -23,7 +23,7 @@ jobs:
     # Real PostGIS for the integration suite (unit tests don't touch it).
     services:
       postgres:
-        image: ghcr.io/fundistadi/postgis:17
+        image: ghcr.io/utafitilabs/postgis:17
         env:
           POSTGRES_USER: app
           POSTGRES_PASSWORD: app

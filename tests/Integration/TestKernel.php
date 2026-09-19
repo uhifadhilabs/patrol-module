@@ -16,7 +16,6 @@ namespace Uhifadhi\Patrol\Tests\Integration;
 use ApiPlatform\Symfony\Bundle\ApiPlatformBundle;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use Doctrine\Bundle\MigrationsBundle\DoctrineMigrationsBundle;
-use FundiStadi\PostGISBundle\FundiStadiPostGISBundle;
 use League\FlysystemBundle\FlysystemBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
@@ -43,6 +42,7 @@ use Uhifadhi\Patrol\UhifadhiPatrolBundle;
 use Uhifadhi\Storage\Controller\EvidenceController;
 use Uhifadhi\Storage\Controller\UploadController;
 use Uhifadhi\Storage\UhifadhiStorageBundle;
+use UtafitiLabs\PostGISBundle\UtafitiLabsPostGISBundle;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
@@ -87,7 +87,7 @@ final class TestKernel extends Kernel
         // Without it the bundle's migrations_paths block is guarded out and
         // tests/Integration/Migrations has nothing to assert.
         yield new DoctrineMigrationsBundle();
-        yield new FundiStadiPostGISBundle();
+        yield new UtafitiLabsPostGISBundle();
         yield new SecurityBundle();
         // An installation installs api-platform; this stands in for one so the
         // bundle's own sync endpoints can be exercised.

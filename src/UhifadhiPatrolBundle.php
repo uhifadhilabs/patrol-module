@@ -107,7 +107,7 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
  *
  * Zero-config: registering the bundle maps its own entities (no host doctrine
  * block needed) and registers the domain services. Spatial columns ride on
- * fundistadi/postgis-bundle.
+ * utafitilabs/postgis-bundle.
  */
 final class UhifadhiPatrolBundle extends AbstractBundle
 {
