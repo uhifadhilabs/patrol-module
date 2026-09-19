@@ -29,6 +29,7 @@ use Uhifadhi\Bundle\ShellBundle\Widget\Registry\WidgetSurfaceInterface;
 use Uhifadhi\Contracts\Kpi\DepartmentKpiProviderInterface;
 use Uhifadhi\Contracts\Kpi\StationFigureProviderInterface;
 use Uhifadhi\Contracts\Kpi\ZoneFigureProviderInterface;
+use Uhifadhi\Contracts\Performance\DepartmentDirectoryInterface;
 use Uhifadhi\Contracts\Performance\PerformanceTopicProviderInterface;
 use Uhifadhi\Patrol\Api\PatrolApiContext;
 use Uhifadhi\Patrol\Api\State\AppendEventsProcessor;
@@ -849,6 +850,13 @@ final class UhifadhiPatrolBundle extends AbstractBundle
             ->tag(StationFigureProviderInterface::TAG);
 
         /*
+         * THE PERFORMANCE TOPIC — registered only where TeamBundle is in the
+         * kernel, read from kernel.bundles for the reason the SecurityBundle
+         * guard above states. Departments are TeamBundle's, and a topic asks
+         * DepartmentDirectoryInterface who they are; without that bundle the
+         * alias does not exist and a hard reference would break the container
+         * rather than simply leaving the page a topic short.
+         *
          * THE PERFORMANCE TOPIC — this module's whole section of the
          * organisation's performance page: five headline figures, two charts
          * and a matrix of only the departments that read it.
@@ -869,14 +877,17 @@ final class UhifadhiPatrolBundle extends AbstractBundle
          * by the order the organisation arranged its modules, and finds this
          * one by that slug.
          */
-        $services->set('patrol.performance_topic', PatrolPerformanceTopic::class)
-            ->args([
-                service('doctrine.orm.entity_manager'),
-                service('patrol.figure_service'),
-                'patrols',
-                'Patrols',
-            ])
-            ->tag(PerformanceTopicProviderInterface::TAG);
+        if (isset($bundles['TeamBundle'])) {
+            $services->set('patrol.performance_topic', PatrolPerformanceTopic::class)
+                ->args([
+                    service('doctrine.orm.entity_manager'),
+                    service(DepartmentDirectoryInterface::class),
+                    service('patrol.figure_service'),
+                    'patrols',
+                    'Patrols',
+                ])
+                ->tag(PerformanceTopicProviderInterface::TAG);
+        }
 
         /*
          * THE AREA OVERVIEW CONTRIBUTION POINTS — the module's contribution to /areas/{uuid}.

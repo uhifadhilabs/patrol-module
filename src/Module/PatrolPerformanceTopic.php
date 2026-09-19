@@ -14,13 +14,14 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Module;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
-use Uhifadhi\Bundle\RegistryBundle\Entity\AreaModule;
-use Uhifadhi\Bundle\TeamBundle\Entity\Department;
 use Uhifadhi\Contracts\Kpi\FigurePeriod;
 use Uhifadhi\Contracts\Performance\ChartKind;
 use Uhifadhi\Contracts\Performance\ChartSeries;
 use Uhifadhi\Contracts\Performance\ColumnPolarity;
+use Uhifadhi\Contracts\Performance\DepartmentDirectoryInterface;
+use Uhifadhi\Contracts\Performance\DepartmentEntry;
 use Uhifadhi\Contracts\Performance\MatrixCell;
 use Uhifadhi\Contracts\Performance\MatrixColumn;
 use Uhifadhi\Contracts\Performance\MatrixRow;
@@ -54,17 +55,28 @@ use Uhifadhi\Patrol\Service\PatrolFigureService;
  * {@see PatrolTopicSlice} resolves as the intersection of its scope with the
  * page's.
  *
+ * WHO THE ROWS ARE IS ASKED, NOT QUERIED. Enumerating departments means
+ * reading the team bundle's entities and the registry's area × module ledger,
+ * across two packages this module does not depend on — which is what the first
+ * draft of this class had to do. {@see DepartmentDirectoryInterface} is the
+ * published answer: one read gives who they are, what each is placed among,
+ * what each attaches, and since when each of those modules has been running
+ * somewhere that department can see it.
+ *
  * THE THREE ABSENCES ARE KEPT APART, and each has exactly one cause here:
  *
  * - a NULL VALUE is a figure this module cannot measure for that ground in
  *   that period — coverage where no track was recorded, and every figure of a
- *   scope where no area runs this module at all;
- * - a HOLE IN A HISTORY is a period this module was not yet installed over
- *   that ground, so nobody was recording: a nought there would draw a collapse
- *   where there was simply no module;
- * - {@see MatrixCell::notMine()} is a department that attaches Patrols in the
- *   register while no area it reads actually runs it. The columns are not its
- *   to answer, and no amount of publishing by this module will make them so.
+ *   scope no department can be asked about this module in;
+ * - a HOLE IN A HISTORY is a period before the entry's `runningSince`: the
+ *   module was not yet switched on anywhere that department reads, so nobody
+ *   was recording, and a nought there would draw a collapse that never
+ *   happened;
+ * - {@see MatrixCell::notMine()} is ground that has gone: the directory said a
+ *   department could be asked and the areas behind it were not there to
+ *   measure. A department that attaches Patrols where nobody runs Patrols
+ *   never reaches a cell at all — `answeringFor()` leaves it out, because it
+ *   is not a row of empties, it is not a row.
  *
  * SCOPE IS OBEYED, NOT ASSUMED. Every figure is the intersection of the page's
  * scope with the row's, so an area's page never draws the organisation's
@@ -80,6 +92,7 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
 
     public function __construct(
         private EntityManagerInterface $entityManager,
+        private DepartmentDirectoryInterface $directory,
         private PatrolFigureService $figures,
         /** The slug this module is registered under in the registry's catalogue. */
         private string $slug,
@@ -130,7 +143,12 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
 
     public function kpis(PerformanceScope $scope, FigurePeriod $period): array
     {
-        $ground = $this->groundOf($scope->areaUuid);
+        $entries = $this->rowsIn($scope);
+        if ([] === $entries) {
+            return $this->nothingRunsHere($scope);
+        }
+
+        $ground = $this->groundOf($scope->areaUuid, $this->runningSince($entries));
         if ($ground->isUnrun()) {
             return $this->nothingRunsHere($scope);
         }
@@ -159,7 +177,7 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
         $wasShare = $this->figures->coverage($ground->within, $previous->from, $previous->until);
         $outNow = $this->figures->outAt($ground->areas, $period->until);
         $wasOut = $this->figures->outAt($ground->areas, $previous->until);
-        $rows = \count($this->rowsIn($scope));
+        $rows = \count($entries);
 
         return [
             new TopicKpi(
@@ -228,15 +246,16 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
         $run = self::run($period, self::PERIODS);
 
         $rows = [];
-        foreach ($this->rowsIn($scope) as $department) {
-            $slice = PatrolTopicSlice::of($scope->areaUuid, $department->getArea()?->getUuidString());
+        foreach ($this->rowsIn($scope) as $entry) {
+            $slice = PatrolTopicSlice::of($scope->areaUuid, $entry->areaUuid);
             \assert(null !== $slice);
 
             $rows[] = new MatrixRow(
-                departmentUuid: (string) $department->getUuidString(),
-                departmentName: (string) $department->getName(),
-                cells: $this->cellsFor($this->groundOf($slice->areaUuid), $period, $run),
-                band: null === $department->getArea() ? 'Org-wide' : (string) $department->getArea()->getName(),
+                departmentUuid: $entry->uuid,
+                departmentName: $entry->name,
+                cells: $this->cellsFor($this->groundOf($slice->areaUuid, $entry->runningSince[$this->slug] ?? null), $period, $run),
+                band: $entry->band,
+                mark: $entry->mark,
             );
         }
 
@@ -250,9 +269,12 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
     /**
      * ONE DEPARTMENT'S FOUR CELLS.
      *
-     * Ground no running area falls on is four `notMine` cells, not four
-     * dashes: the department attached this module in the register, but nothing
-     * it reads is running it, so the columns are not its to answer.
+     * Ground with no area left on it is four `notMine` cells, not four dashes:
+     * the directory said this department could be asked, and by the time the
+     * areas were read there was nothing there to measure. It is the honest
+     * answer to a question that was never really put, and it is the only way a
+     * row reaches here unanswerable — a department that attaches this module
+     * where nobody runs it is filtered out before it becomes a row.
      *
      * @param list<FigurePeriod> $run
      *
@@ -313,11 +335,11 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
         $series = [];
         $reads = [];
 
-        foreach ($this->rowsIn($scope) as $department) {
-            $slice = PatrolTopicSlice::of($scope->areaUuid, $department->getArea()?->getUuidString());
+        foreach ($this->rowsIn($scope) as $entry) {
+            $slice = PatrolTopicSlice::of($scope->areaUuid, $entry->areaUuid);
             \assert(null !== $slice);
 
-            $ground = $this->groundOf($slice->areaUuid);
+            $ground = $this->groundOf($slice->areaUuid, $entry->runningSince[$this->slug] ?? null);
             if ($ground->isUnrun()) {
                 continue;
             }
@@ -329,7 +351,7 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
                     : null;
             }
 
-            $name = (string) $department->getName();
+            $name = $entry->name;
             $series[] = new ChartSeries($name, $points);
             $reads[] = \sprintf('%s reads %d area%s', $name, \count($ground->areas), 1 === \count($ground->areas) ? '' : 's');
         }
@@ -358,7 +380,7 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
      */
     private function coverageOverTime(PerformanceScope $scope, array $run, array $labels): TopicChart
     {
-        $ground = $this->groundOf($scope->areaUuid);
+        $ground = $this->groundOf($scope->areaUuid, $this->runningSince($this->rowsIn($scope)));
 
         $points = [];
         foreach ($run as $past) {
@@ -379,103 +401,97 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
     }
 
     /**
-     * THE DEPARTMENTS THIS PAGE HOLDS — the ones that attach this module and
-     * whose scope the page's scope reaches.
+     * THE DEPARTMENTS THIS PAGE HOLDS — asked of the host, in one read.
      *
-     * A department that attaches nothing of this module's is not a row of
-     * empties here, it is not a row: that is the whole difference between a
+     * Who the departments are lives in the team bundle and whether a module is
+     * switched on lives in the registry's ledger; joining them is the host's
+     * job, done once, which is exactly what
+     * {@see DepartmentDirectoryInterface} publishes. This module does not
+     * depend on either of those packages' entities and no longer reads them.
+     *
+     * `answeringFor()` is the row set by the contract's own definition: the
+     * departments that attach this module AND can be asked about it. A
+     * department that attaches Patrols where nobody runs Patrols is not a row
+     * of empties, it is not a row — which is the whole difference between a
      * topic and the board of everybody's columns it replaces.
      *
-     * @return list<Department>
+     * @return list<DepartmentEntry>
      */
     private function rowsIn(PerformanceScope $scope): array
     {
-        /** @var list<Department> $attaching */
-        $attaching = $this->entityManager->createQueryBuilder()
-            ->select('d')
-            ->from(Department::class, 'd')
-            ->innerJoin('d.modules', 'm')
-            ->andWhere('m.slug = :slug')
-            ->andWhere('d.active = true')
-            ->setParameter('slug', $this->slug)
-            ->orderBy('d.name', 'ASC')
-            ->getQuery()
-            ->getResult();
-
-        return array_values(array_filter(
-            $attaching,
-            static fn (Department $department): bool => null !== PatrolTopicSlice::of($scope->areaUuid, $department->getArea()?->getUuidString()),
-        ));
+        return $this->directory->forScope($scope)->answeringFor($this->slug);
     }
 
     /**
-     * THE GROUND OF ONE SLICE — the areas of it that actually run this module,
-     * by name, and the instant recording began over them.
+     * THE GROUND OF ONE SLICE — the areas it covers, by name, and the instant
+     * this module started recording over them.
      *
-     * Read from the registry's area × module ledger rather than from the
-     * patrols table, and deliberately not the question
-     * {@see PatrolDepartmentKpiProvider} asks: a KPI plate is about rows that
-     * exist, while a matrix row has to tell "this ground runs Patrols and
-     * recorded nothing" from "this ground does not run Patrols at all", and
-     * only the ledger knows the second.
+     * The areas come from the area module, whose records this module's own
+     * patrols already point at. WHETHER THE MODULE IS RUNNING does not: that
+     * is the registry's ledger, and it arrives already joined and already
+     * scoped as a department entry's `runningSince`, so nothing here reads the
+     * ledger by hand.
+     *
+     * RUNNING SINCE NOBODY KNOWS WHEN DATES NO HOLES. The contract answers the
+     * epoch for a row written before the day was recorded — the module is
+     * running, the day is simply unknown — so it is read as "no lower bound"
+     * rather than as a date every period is after.
      */
-    private function groundOf(?string $areaUuid): PatrolTopicGround
+    private function groundOf(?string $areaUuid, ?\DateTimeImmutable $runningSince): PatrolTopicGround
     {
-        /** @var list<AreaModule> $installed */
-        $installed = $this->entityManager->createQueryBuilder()
-            ->select('am')
-            ->from(AreaModule::class, 'am')
-            ->innerJoin('am.module', 'm')
-            ->andWhere('m.slug = :slug')
-            ->andWhere('am.active = true')
-            ->setParameter('slug', $this->slug)
-            ->getQuery()
-            ->getResult();
-
-        $areas = [];
-        $within = null;
-        $measuredFrom = null;
-        $unbounded = false;
-
-        foreach ($installed as $row) {
-            $area = $row->getArea();
-            if (!$area instanceof AreaOfInterest) {
-                continue;
-            }
-
-            if (null !== $areaUuid && $areaUuid !== $area->getUuidString()) {
-                continue;
-            }
-
-            $areas[] = $area;
-            if (null !== $areaUuid) {
-                $within = $area;
-            }
-
-            $installedAt = $row->getInstalledAt();
-            if (null === $installedAt) {
-                $unbounded = true;
-                continue;
-            }
-
-            $measuredFrom = null === $measuredFrom || $installedAt < $measuredFrom ? $installedAt : $measuredFrom;
+        if (null !== $areaUuid && !Uuid::isValid($areaUuid)) {
+            return new PatrolTopicGround([]);
         }
 
-        usort($areas, static fn (AreaOfInterest $a, AreaOfInterest $b): int => strcmp((string) $a->getName(), (string) $b->getName()));
+        $query = $this->entityManager->createQueryBuilder()
+            ->select('a')
+            ->from(AreaOfInterest::class, 'a')
+            ->orderBy('a.name', 'ASC');
 
-        return new PatrolTopicGround($areas, $within, $unbounded ? null : $measuredFrom);
+        if (null !== $areaUuid) {
+            $query->andWhere('a.uuid = :area')->setParameter('area', Uuid::fromString($areaUuid));
+        }
+
+        /** @var list<AreaOfInterest> $areas */
+        $areas = $query->getQuery()->getResult();
+
+        $dated = null !== $runningSince && $runningSince->getTimestamp() > 0 ? $runningSince : null;
+
+        return new PatrolTopicGround($areas, null === $areaUuid ? null : ($areas[0] ?? null), $dated);
     }
 
     /**
-     * FIVE FIGURES THAT SAY THEY HAVE NOTHING, for a scope where no area runs
-     * this module. A row of none where the page draws five is a different page,
-     * and a reader cannot tell a missing topic from a quiet month.
+     * THE EARLIEST ANY OF THESE DEPARTMENTS COULD HAVE BEEN ASKED — what dates
+     * the holes in a figure about the whole page rather than about one row.
+     *
+     * @param list<DepartmentEntry> $entries
+     */
+    private function runningSince(array $entries): ?\DateTimeImmutable
+    {
+        $earliest = null;
+        foreach ($entries as $entry) {
+            $since = $entry->runningSince[$this->slug] ?? null;
+            if (null === $since) {
+                continue;
+            }
+
+            $earliest = null === $earliest || $since < $earliest ? $since : $earliest;
+        }
+
+        return $earliest;
+    }
+
+    /**
+     * FIVE FIGURES THAT SAY THEY HAVE NOTHING, for a scope where no department
+     * can be asked about this module. A row of none where the page draws five
+     * is a different page, and a reader cannot tell a missing topic from a
+     * quiet month.
      *
      * @return list<TopicKpi>
      */
     private function nothingRunsHere(PerformanceScope $scope): array
     {
-        $why = \sprintf('no area of %s runs the %s module', mb_strtolower($scope->label), $this->name);
+        $why = \sprintf('no department of %s is asked about the %s module', mb_strtolower($scope->label), $this->name);
 
         return [
             new TopicKpi('patrols.patrols', 'Patrols', null, caption: $why, polarity: ColumnPolarity::Up),

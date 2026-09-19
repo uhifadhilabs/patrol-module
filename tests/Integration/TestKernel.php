@@ -315,6 +315,9 @@ final class TestKernel extends Kernel
             // proved is that the TAG reached the page — a provider nobody
             // collected is a perfect class the page never mentions.
             \Uhifadhi\Bundle\TeamBundle\Service\PerformanceTopics::class => 'team.performance_topics',
+            // Who the departments are, what they attach, and since when they
+            // could have been asked — the one read a topic starts with.
+            \Uhifadhi\Contracts\Performance\DepartmentDirectoryInterface::class => 'team.department_directory',
         ] as $class => $serviceId) {
             $container->services()->alias('test_public.'.$class, $serviceId)->public();
         }

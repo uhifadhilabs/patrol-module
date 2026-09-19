@@ -80,11 +80,24 @@ All four judge upwards: every one of them measures more of the work this module
 exists to record. Each cell carries its value, its movement and six periods of
 history.
 
-The rows are **only the departments that attach this module**, in name order. A
-department that attaches nothing of this module's is not a row of dashes, it is
-not a row — which is the whole difference between a topic and the board it
-replaces, where one module's columns were imposed on every department and half
-the cells were about departments that had never attached it.
+The rows come from the host, in one read:
+`Contracts\Performance\DepartmentDirectoryInterface::forScope($scope)
+->answeringFor('patrols')`. That is the published way to enumerate departments
+— who they are, what each is placed among, what each attaches, and since when
+each of those modules has been running somewhere that department can see it —
+and it is why this module reads neither the team bundle's entities nor the
+registry's ledger.
+
+`answeringFor()` is the row set by definition: the departments that attach this
+module **and** can be asked about it. A department that attaches nothing of
+this module's, and one that attaches it in an area nobody runs it in, are both
+absent — not rows of dashes, not rows. That is the whole difference between a
+topic and the board it replaces, where one module's columns were imposed on
+every department and half the cells were about departments that had never
+attached it.
+
+The row's two letters (`mark`) and the band it is placed among come from the
+same read, so this module invents neither.
 
 ## A department is a lens over ground
 
@@ -125,8 +138,8 @@ module" into "no work".
 | Absence | Here it means |
 |---|---|
 | a null **value** | this module cannot measure that figure for that ground in that period — coverage where no track was recorded, and every figure of a scope where no area runs the module |
-| a hole in a **history** | the module was not yet installed over that ground in that period, read from the registry's area × module ledger: nobody was recording, and a nought there would draw a collapse that never happened |
-| `MatrixCell::notMine()` | the department attaches Patrols in the register while no area it reads actually runs it — the columns are not its to answer, and no publishing by this module will make them so |
+| a hole in a **history** | the period falls before the entry's `runningSince`: the module was not yet switched on anywhere that department reads, so nobody was recording, and a nought there would draw a collapse that never happened. Running since nobody knows when (the contract's epoch) dates no holes |
+| `MatrixCell::notMine()` | ground that has gone — the directory said a department could be asked and the areas behind it were not there to measure. A department nobody ever asked is filtered out by `answeringFor()` instead, so this is the only way a row reaches a cell unanswerable |
 
 A measured nought is none of the three: an area that ran the module and
 recorded no patrol reads zero, because the month was measured there.
@@ -139,7 +152,7 @@ recorded no patrol reads zero, because the month was measured there.
   drawn. A target belongs with whoever records the commitment — the department
   goals the host already owns are the likeliest home — and this topic will
   publish it the day there is one to read.
-- **No row mark and no row URL.** `MatrixRow` carries a department's two
-  letters and the destination of its `Open →`; both are the host's to draw from
-  its own department records, and this module leaves them empty rather than
-  inventing initials or building a route it does not own.
+- **No row URL.** `MatrixRow` carries the destination of its `Open →`; it is a
+  host route, and this module leaves it null rather than building a path it
+  does not own. The row's `mark` is no longer empty — the directory publishes
+  it.

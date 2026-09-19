@@ -19,6 +19,7 @@ use Uhifadhi\Bundle\RegistryBundle\Entity\Module;
 use Uhifadhi\Bundle\TeamBundle\Entity\Department;
 use Uhifadhi\Bundle\TeamBundle\Service\PerformanceTopics;
 use Uhifadhi\Contracts\Kpi\FigurePeriod;
+use Uhifadhi\Contracts\Performance\DepartmentDirectoryInterface;
 use Uhifadhi\Contracts\Performance\MatrixRow;
 use Uhifadhi\Contracts\Performance\PerformanceScope;
 use Uhifadhi\Contracts\Performance\TopicKpi;
@@ -68,7 +69,7 @@ final class PatrolPerformanceTopicTest extends IntegrationTestCase
         self::assertSame(1.0, $figures['patrols.out_now'], 'One patrol is still open.');
     }
 
-    public function testAScopeWhereNothingRunsTheModuleStillPublishesFive(): void
+    public function testAScopeNoDepartmentIsAskedInStillPublishesFive(): void
     {
         $world = $this->world();
         $elsewhere = $this->area('Unserved reserve', -31.6, -1.3);
@@ -79,7 +80,7 @@ final class PatrolPerformanceTopicTest extends IntegrationTestCase
         self::assertCount(5, $kpis);
         foreach ($kpis as $kpi) {
             self::assertNull($kpi->value, \sprintf('%s is not a nought where no area runs the module.', $kpi->key));
-            self::assertStringContainsString('runs the Patrols module', $kpi->caption);
+            self::assertStringContainsString('is asked about the Patrols module', $kpi->caption);
         }
         self::assertNotSame([], $world);
     }
@@ -180,23 +181,35 @@ final class PatrolPerformanceTopicTest extends IntegrationTestCase
         self::assertSame([null, null, null, null, null, null], $coverage->history);
     }
 
-    public function testADepartmentWhoseGroundRunsNothingAnswersNotMine(): void
+    public function testADepartmentWhoseGroundRunsNothingIsNotARow(): void
     {
         $world = $this->world();
 
-        // It attaches Patrols in the register, but its area never installed it.
+        // It attaches Patrols in the register, but its area never installed
+        // it, so nobody ever asked it about patrols.
         $unserved = $this->area('Unserved reserve', -31.6, -1.3);
         $orphan = $this->department('Orphan', $unserved);
         $orphan->attachModule($world['module']);
         $this->em->flush();
 
-        $row = self::rows($this->topic()->matrix(PerformanceScope::organisation(), self::period()))['Orphan'];
+        $names = self::names($this->topic()->matrix(PerformanceScope::organisation(), self::period())->rows);
 
-        foreach ($row->cells as $key => $cell) {
-            self::assertTrue($cell->notMine, \sprintf('%s is not this department\'s column to answer.', $key));
-            self::assertFalse($cell->isKnown());
-            self::assertNull($cell->value);
-        }
+        self::assertNotContains(
+            'Orphan',
+            $names,
+            'Attaching a module in an area nobody runs it in is not a row of empties — it is not a row.',
+        );
+        self::assertSame(['Ecology', 'Protection Service'], $names);
+    }
+
+    public function testEveryRowCarriesTheTwoLettersEverySurfaceDrawsItBy(): void
+    {
+        $this->world();
+
+        $rows = self::rows($this->topic()->matrix(PerformanceScope::organisation(), self::period()));
+
+        self::assertSame('EC', $rows['Ecology']->mark);
+        self::assertSame('PS', $rows['Protection Service']->mark);
     }
 
     public function testTheMatrixColumnsCarryTheirPolarityIntoTheAnswer(): void
@@ -360,7 +373,10 @@ final class PatrolPerformanceTopicTest extends IntegrationTestCase
         $repository = $this->em->getRepository(Patrol::class);
         \assert($repository instanceof PatrolRepository);
 
-        return new PatrolPerformanceTopic($this->em, new PatrolFigureService($repository), 'patrols', 'Patrols');
+        $directory = static::getContainer()->get('test_public.'.DepartmentDirectoryInterface::class);
+        \assert($directory instanceof DepartmentDirectoryInterface);
+
+        return new PatrolPerformanceTopic($this->em, $directory, new PatrolFigureService($repository), 'patrols', 'Patrols');
     }
 
     private static function period(): FigurePeriod
