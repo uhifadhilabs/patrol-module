@@ -21,8 +21,9 @@ use Uhifadhi\Contracts\Kpi\DepartmentKpiProviderInterface;
 use Uhifadhi\Contracts\Kpi\DepartmentRef;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
-use Uhifadhi\Patrol\Repository\PatrolRepository;
+use Uhifadhi\Patrol\Model\PatrolTally;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\PatrolFigureService;
 
 /**
  * What the Patrols module recorded this month IN THE SCOPE A DEPARTMENT READS.
@@ -40,7 +41,7 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
     private const int SPARK_MONTHS = 6;
 
     public function __construct(
-        private readonly PatrolRepository $patrols,
+        private readonly PatrolFigureService $figures,
         private readonly EntityManagerInterface $entityManager,
         /** The slug this module is registered under in the registry's catalogue. */
         private readonly string $slug,
@@ -62,7 +63,7 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
      *
      * COVERAGE ROLLS UP AS ONE SHARE OF ONE SURFACE — the ground covered across the areas that
      * recorded a track, over those areas' boundaries added together; see
-     * {@see PatrolRepository::coverageFractionAcrossAreas()}.
+     * {@see \Uhifadhi\Patrol\Repository\PatrolRepository::coverageFractionAcrossAreas()}.
      *
      * No patrol recorded in the scope this month or last month reports NOTHING rather than four
      * zeros: absent is not zero, and the host draws a dashed labelled slot instead.
@@ -121,58 +122,24 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
     }
 
     /**
-     * One window's figures over the given areas. The window is HALF-OPEN [$from, $until) — the
-     * convention {@see PatrolDashboardService::monthRange()} hands out.
+     * One window's figures over the given areas — made by
+     * {@see PatrolFigureService}, which is where "does this patrol count" is
+     * written, so these plates and the performance topic's cannot drift.
      *
      * @param list<AreaOfInterest> $areas
      */
-    private function tally(array $areas, \DateTimeImmutable $from, \DateTimeImmutable $until): PatrolDepartmentTally
+    private function tally(array $areas, \DateTimeImmutable $from, \DateTimeImmutable $until): PatrolTally
     {
-        $patrols = 0;
-        $distanceKm = 0.0;
-        $observations = 0;
-
-        foreach ($areas as $area) {
-            foreach ($this->patrols->findByAreaStartedBetween($area, $from, $until) as $patrol) {
-                /*
-                 * A DISCARDED or still-RECORDING patrol contributes nothing — not its count, not
-                 * its kilometres, and not the observations logged on it: a discard withdraws the
-                 * whole outing, and a patrol still arriving is not all here yet.
-                 *
-                 * The repository is asked for the month's patrols unfiltered on purpose — the
-                 * calendar reads through the same method and DOES show discards — so the
-                 * exclusion is stated here, where the figures are made.
-                 */
-                if (!$patrol->getStatus()->countsTowardsStatistics()) {
-                    continue;
-                }
-
-                ++$patrols;
-                $distanceKm += $patrol->getDistanceKm() ?? 0.0;
-                $observations += $patrol->getObservations()->count();
-            }
-        }
-
-        return new PatrolDepartmentTally($patrols, $distanceKm, $observations);
+        return $this->figures->tally($areas, $from, $until);
     }
 
     /**
-     * PL·03 over one window, IN POINTS — 54.0 for 54 %.
-     *
-     * The repository answers a fraction of 1; the contract carries a share as the number a plate
-     * prints, because {@see DepartmentKpi::display()} formats the value it is given and
-     * {@see DepartmentKpi::delta()} moves a share in POINTS.
-     *
-     * `$within` null asks across every area as ONE ratio. Null stays null the whole way: no track
-     * recorded in the window is not zero coverage, and the host draws it as a dash.
+     * PL·03 over one window, IN POINTS — 54.0 for 54 %, as
+     * {@see PatrolFigureService::coverage()} makes it.
      */
     private function coverage(?AreaOfInterest $within, \DateTimeImmutable $from, \DateTimeImmutable $until): ?float
     {
-        $fraction = null === $within
-            ? $this->patrols->coverageFractionAcrossAreas(PatrolDashboardService::COVERAGE_BUFFER_M, $from, $until)
-            : $this->patrols->coverageFractionWithin($within, PatrolDashboardService::COVERAGE_BUFFER_M, $from, $until);
-
-        return null === $fraction ? null : $fraction * 100.0;
+        return $this->figures->coverage($within, $from, $until);
     }
 
     /**
@@ -256,19 +223,5 @@ final class PatrolDepartmentKpiProvider implements DepartmentKpiProviderInterfac
         $areas = $query->getQuery()->getResult();
 
         return $areas;
-    }
-}
-
-/**
- * One window's three figures. A tiny value object rather than an array because it is passed
- * between four methods here and a mistyped key would be a silent wrong number.
- */
-final readonly class PatrolDepartmentTally
-{
-    public function __construct(
-        public int $patrols,
-        public float $distanceKm,
-        public int $observations,
-    ) {
     }
 }

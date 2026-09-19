@@ -310,6 +310,11 @@ final class TestKernel extends Kernel
             // token through it, so the requests they make cross the same
             // authenticator an installation's do.
             \Uhifadhi\Bundle\TeamBundle\Service\ApiTokenManager::class => 'team.api_token.manager',
+            // The host's collector for performance topics. A topic test asks it
+            // rather than the container's service list, because what has to be
+            // proved is that the TAG reached the page — a provider nobody
+            // collected is a perfect class the page never mentions.
+            \Uhifadhi\Bundle\TeamBundle\Service\PerformanceTopics::class => 'team.performance_topics',
         ] as $class => $serviceId) {
             $container->services()->alias('test_public.'.$class, $serviceId)->public();
         }

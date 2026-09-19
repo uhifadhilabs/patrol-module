@@ -25,6 +25,7 @@ use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 use Uhifadhi\Patrol\Module\PatrolDepartmentKpiProvider;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
+use Uhifadhi\Patrol\Service\PatrolFigureService;
 use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 use Uhifadhi\Patrol\Tests\Integration\IntegrationTestCase;
 
@@ -405,7 +406,7 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         $repository = $this->em->getRepository(Patrol::class);
         \assert($repository instanceof PatrolRepository);
 
-        return new PatrolDepartmentKpiProvider($repository, $this->em, 'patrols', 'Patrols');
+        return new PatrolDepartmentKpiProvider(new PatrolFigureService($repository), $this->em, 'patrols', 'Patrols');
     }
 
     private function department(string $name): Department

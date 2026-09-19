@@ -29,6 +29,7 @@ use Uhifadhi\Bundle\ShellBundle\Widget\Registry\WidgetSurfaceInterface;
 use Uhifadhi\Contracts\Kpi\DepartmentKpiProviderInterface;
 use Uhifadhi\Contracts\Kpi\StationFigureProviderInterface;
 use Uhifadhi\Contracts\Kpi\ZoneFigureProviderInterface;
+use Uhifadhi\Contracts\Performance\PerformanceTopicProviderInterface;
 use Uhifadhi\Patrol\Api\PatrolApiContext;
 use Uhifadhi\Patrol\Api\State\AppendEventsProcessor;
 use Uhifadhi\Patrol\Api\State\AppendFlightsProcessor;
@@ -51,6 +52,7 @@ use Uhifadhi\Patrol\Devkit\PatrolCommandProvider;
 use Uhifadhi\Patrol\Devkit\PatrolContentProvider;
 use Uhifadhi\Patrol\Module\PatrolDepartmentKpiProvider;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
+use Uhifadhi\Patrol\Module\PatrolPerformanceTopic;
 use Uhifadhi\Patrol\Module\PatrolStationFigureProvider;
 use Uhifadhi\Patrol\Module\PatrolZoneFigureProvider;
 use Uhifadhi\Patrol\Overview\PatrolAttention;
@@ -82,6 +84,7 @@ use Uhifadhi\Patrol\Service\Api\PhotoSyncService;
 use Uhifadhi\Patrol\Service\Api\RangerResolver;
 use Uhifadhi\Patrol\Service\Api\TrackBatchService;
 use Uhifadhi\Patrol\Service\Api\VocabularySyncService;
+use Uhifadhi\Patrol\Service\PatrolFigureService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
 use Uhifadhi\Patrol\Service\PhotoThumbnailBackfillService;
 use Uhifadhi\Patrol\Storage\PatrolFileSource;
@@ -790,9 +793,13 @@ final class UhifadhiPatrolBundle extends AbstractBundle
         // the module of that slug, and captions the plates with that name. They are literals here
         // rather than constants because the provider exposes them as methods and a scalar is what
         // a service argument can carry; PatrolDepartmentKpiProviderTest pins the two together.
+        $services->set('patrol.figure_service', PatrolFigureService::class)
+            ->args([service(PatrolRepository::class)]);
+        $services->alias(PatrolFigureService::class, 'patrol.figure_service');
+
         $services->set('patrol.department_kpi_provider', PatrolDepartmentKpiProvider::class)
             ->args([
-                service(PatrolRepository::class),
+                service('patrol.figure_service'),
                 service('doctrine.orm.entity_manager'),
                 'patrols',
                 'Patrols',
@@ -840,6 +847,36 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 'Patrols',
             ])
             ->tag(StationFigureProviderInterface::TAG);
+
+        /*
+         * THE PERFORMANCE TOPIC — this module's whole section of the
+         * organisation's performance page: five headline figures, two charts
+         * and a matrix of only the departments that read it.
+         *
+         * A TOPIC, NOT A COLUMN, which is why nothing in the host changes when
+         * this is added: adding a module adds a topic and touches no shared
+         * list.
+         *
+         * Tagged EXPLICITLY for the reason every tag above is: a reusable
+         * bundle is not autoconfigured (symfony.com/doc/current/bundles/
+         * best_practices.html), so the host's autoconfiguration never fires for
+         * it — and an #[AutoconfigureTag] written on the interface would be
+         * silently dead, because Symfony reads that attribute off the
+         * definition's own class only.
+         *
+         * The slug and the name are the scalars PatrolModuleProvider::slug()/
+         * name() return and they must MATCH: the page orders the module topics
+         * by the order the organisation arranged its modules, and finds this
+         * one by that slug.
+         */
+        $services->set('patrol.performance_topic', PatrolPerformanceTopic::class)
+            ->args([
+                service('doctrine.orm.entity_manager'),
+                service('patrol.figure_service'),
+                'patrols',
+                'Patrols',
+            ])
+            ->tag(PerformanceTopicProviderInterface::TAG);
 
         /*
          * THE AREA OVERVIEW CONTRIBUTION POINTS — the module's contribution to /areas/{uuid}.

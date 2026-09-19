@@ -300,6 +300,55 @@ final class PatrolRepository extends ServiceEntityRepository
     }
 
     /**
+     * HOW MANY PATROLS WERE OUT AT ONE INSTANT, over a set of areas — the live
+     * "out right now" figure, and the same question asked of a moment that has
+     * passed.
+     *
+     * "OUT AT `$at`" IS READ FROM THE CLOCK, NOT FROM THE STATUS, because a
+     * status only ever describes now: a patrol that closed in March is
+     * `complete` today and was nonetheless out on the fourth of March. So the
+     * test is the one the record itself supports — it had opened, and it had
+     * not closed:
+     *
+     * - it started at or before `$at`;
+     * - and either it closed after `$at`, or it has no close at all AND is
+     *   still `recording`, which is the one state in which a missing `endedAt`
+     *   means "still out" rather than "never written down".
+     *
+     * A DISCARDED PATROL WAS NEVER OUT. A discard withdraws the whole outing,
+     * exactly as it does for every other figure this module publishes, so it is
+     * excluded here too rather than counted as somebody in the field.
+     *
+     * Asked at `$at = now`, this is precisely the set
+     * {@see self::findByAreaRecording()} returns, counted over several areas at
+     * once.
+     *
+     * @param list<AreaOfInterest> $areas
+     */
+    public function countOutAt(array $areas, \DateTimeImmutable $at): int
+    {
+        if ([] === $areas) {
+            return 0;
+        }
+
+        $total = $this->createQueryBuilder('p')
+            ->select('COUNT(p.id)')
+            ->andWhere('p.area IN (:areas)')
+            ->andWhere('p.status != :discarded')
+            ->andWhere('p.startedAt IS NOT NULL')
+            ->andWhere('p.startedAt <= :at')
+            ->andWhere('p.endedAt > :at OR (p.endedAt IS NULL AND p.status = :recording)')
+            ->setParameter('areas', $areas)
+            ->setParameter('at', $at)
+            ->setParameter('discarded', PatrolStatusEnum::Discarded)
+            ->setParameter('recording', PatrolStatusEnum::Recording)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (int) $total;
+    }
+
+    /**
      * Every discarded patrol whose retention clock is RUNNING — the purge
      * command's working set.
      *
