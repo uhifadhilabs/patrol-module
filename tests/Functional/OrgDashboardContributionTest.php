@@ -149,6 +149,23 @@ final class OrgDashboardContributionTest extends WebTestCase
         self::assertStringContainsString('3 out right now', $labels[1]);
     }
 
+    /**
+     * THE PREVIEW IS THE WIDGET. The organisation's widget library renders
+     * every contributed partial on real data at full size, so what somebody
+     * arranges there is exactly what they get — and a cell that fataled off
+     * the dashboard would take the library with it.
+     */
+    public function testTheLibraryOffersTheCellAndDrawsTheRealThing(): void
+    {
+        $this->aLiveOrganisation();
+
+        $crawler = $this->client->request('GET', '/widgets');
+
+        self::assertResponseIsSuccessful();
+        self::assertGreaterThan(0, $crawler->filter('[data-w="patrols"]')->count());
+        self::assertStringContainsString('96 km walked today', $crawler->filter('[data-w="patrols"]')->eq(0)->text());
+    }
+
     /** A contributed cell brings its own stylesheet, and the page links it. */
     public function testThePageLinksThisModulesSheet(): void
     {
