@@ -98,7 +98,10 @@ final class PatrolOverviewTemplatesTest extends PatrolOverviewTestCase
         self::assertStringNotContainsString("PL\u{00B7}A1", $html);
         self::assertStringContainsString('Out right now', $html);
         // Provenance has to survive a screenshot.
-        self::assertStringContainsString('<span class="ao-by patrols"><i></i>patrols</span>', $html);
+        // The host's contributor tag, unqualified: a module has no hue, so there
+        // is no `.patrols` class to carry one and the dot stays the quiet fog
+        // every contributor's dot is.
+        self::assertStringContainsString('<span class="ao-by"><i></i>patrols</span>', $html);
         self::assertStringContainsString('<span class="ao-live"><i></i>live</span>', $html);
         self::assertStringContainsString('2 open patrols', $html);
     }
@@ -245,7 +248,7 @@ final class PatrolOverviewTemplatesTest extends PatrolOverviewTestCase
         $column = $this->render('pl_column');
 
         self::assertStringContainsString('<div class="ao-col">', $column);
-        self::assertStringContainsString('<i class="patrols"></i>', $column);
+        self::assertStringContainsString('<i></i>', $column);
         self::assertStringContainsString('2 out · 1 closed today', $column);
         self::assertStringContainsString('Open the module →', $column);
 

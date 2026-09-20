@@ -33,8 +33,16 @@ use Uhifadhi\Storage\Registry\FileSourceInterface;
  * photograph patrol holds is handed over here, already carrying the one thing
  * that makes it a file on this platform — the record it belongs to.
  *
- * The contract this implements is uhifadhi/storage-module's
- * {@see FileSourceInterface}, and this class answers only what patrol knows:
+ * TWO CONTRACTS, ONE IMPLEMENTS CLAUSE. The CORE asks the two questions the
+ * hub cannot work out — which module this is, and what it calls a file — and
+ * uhifadhi/storage-module's {@see FileSourceInterface} extends the core's to
+ * add how the hub gets at them. Only the storage one is named here, because
+ * naming both is a fatal while the two still declare their own `TAG`: PHP
+ * refuses a class inheriting one constant from two interfaces. The core's
+ * questions are answered all the same — `moduleSlug()` and `fileWord()` are
+ * right here — and PatrolFileSourceRegistrationTest holds them to it.
+ *
+ * This class answers only what patrol knows:
  * which keys are ours, what each photograph belongs to, and what may be done to
  * it. It deliberately does NOT answer where the bytes are or whether the small
  * picture was made — the storage bundle adds those two from its own
@@ -66,6 +74,13 @@ final class PatrolFileSource implements FileSourceInterface
     public const string LABEL = 'Patrols';
 
     /**
+     * The one phrase, said once: the sources register and the "modules holding
+     * files" widget ask two questions and patrol has one answer, and two
+     * spellings of it would eventually differ by a word.
+     */
+    public const string FILE_WORD = 'an observation’s photographs';
+
+    /**
      * THE ONE TOKEN PATROL PUTS ON THE WIRE for itself, singular: the value of
      * `source` in the File-as-incident contract
      * ({@see \Uhifadhi\Patrol\Controller\PatrolDetailController::fileAsIncidentUrl()})
@@ -95,9 +110,30 @@ final class PatrolFileSource implements FileSourceInterface
         return self::LABEL;
     }
 
+    /**
+     * WHAT PATROL CALLS A FILE, in its own words — the design's own phrase on
+     * the sources register (files/sources.html). The hub has no word of its own
+     * for somebody else's files and must not invent one, so this is printed
+     * verbatim.
+     *
+     * A PHRASE AND NOT A NOUN: "photographs" alone does not say whose they are,
+     * and whose is the half that tells a reader where to go and change one.
+     */
+    public function fileWord(): string
+    {
+        return self::FILE_WORD;
+    }
+
+    /**
+     * The same phrase, answering the widget's question rather than the
+     * register's — and the same answer while patrol attaches files to exactly
+     * one kind of record. When patrol stores its exports too, this grows a
+     * second half ("· a patrol's own track") and {@see fileWord()} does not:
+     * one is a list of what files hang off, the other is what one file is.
+     */
     public function attachesTo(): string
     {
-        return 'an observation’s photographs';
+        return self::FILE_WORD;
     }
 
     public function claimsKey(string $key): bool

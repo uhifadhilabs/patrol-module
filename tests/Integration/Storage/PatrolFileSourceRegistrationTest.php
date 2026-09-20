@@ -15,6 +15,7 @@ namespace Uhifadhi\Patrol\Tests\Integration\Storage;
 
 use Symfony\Component\Uid\Uuid;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Contracts\Storage\FileSourceInterface as DeclaresFiles;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
@@ -36,6 +37,61 @@ use Uhifadhi\Storage\Registry\FileRegistry;
  */
 final class PatrolFileSourceRegistrationTest extends IntegrationTestCase
 {
+    /**
+     * THE TAG IS NAMED BY CONSTANT, NEVER BY LITERAL.
+     *
+     * A module declaring that it stores files is a fact the whole platform
+     * reads, and the tag it travels on moved from the storage bundle's own
+     * `storage.file_source` to the core's `uhifadhi.file_source`. That move
+     * cost this module nothing, and this is why: one line in the bundle names
+     * the interface's constant and follows it wherever it points. A literal
+     * would have made patrol vanish from /files on the day it changed, with
+     * nothing thrown and nothing logged — a missing source looks exactly like
+     * a module nobody installed.
+     *
+     * Asserted as TEXT because the guarantee is about what is written in the
+     * bundle, not about which value the installed storage bundle resolves to
+     * this week; the registry test below proves the container really collected
+     * patrol under whatever that constant says.
+     */
+    public function testTheFileTagIsAppliedByConstantAndNeverAsALiteral(): void
+    {
+        $bundle = (string) file_get_contents(\dirname(__DIR__, 3).'/src/UhifadhiPatrolBundle.php');
+
+        self::assertStringContainsString('->tag(FileSourceInterface::TAG)', $bundle);
+        foreach (['storage.file_source', 'uhifadhi.file_source'] as $literal) {
+            self::assertStringNotContainsString(
+                "'".$literal."'",
+                $bundle,
+                \sprintf('the file tag is the interface\'s constant, not the literal "%s"', $literal),
+            );
+        }
+    }
+
+    /**
+     * AND THE SOURCE ANSWERS THE CORE CONTRACT — the two questions the hub
+     * cannot work out for itself: which module this is, and what that module
+     * calls a file. Held to by NAME rather than by `instanceof`: the class
+     * names only the storage bundle's interface, because naming the core's
+     * beside it is a fatal until the two stop declaring a `TAG` each, and a
+     * method that is not there is exactly what this has to catch.
+     */
+    public function testTheSourceAnswersTheCoreContract(): void
+    {
+        $source = $this->service(PatrolFileSource::class);
+        self::assertInstanceOf(PatrolFileSource::class, $source);
+
+        foreach (new \ReflectionClass(DeclaresFiles::class)->getMethods() as $asked) {
+            self::assertTrue(
+                method_exists($source, $asked->getName()),
+                \sprintf('the core asks every file source for %s()', $asked->getName()),
+            );
+        }
+
+        self::assertSame(PatrolFileSource::SLUG, $source->moduleSlug());
+        self::assertSame('an observation’s photographs', $source->fileWord());
+    }
+
     public function testTheSourceIsCollectedByTheRegistryTheHubReads(): void
     {
         $sources = [];

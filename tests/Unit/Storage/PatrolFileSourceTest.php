@@ -20,6 +20,7 @@ use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\ObservationPhoto;
 use Uhifadhi\Patrol\Entity\Patrol;
+use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Service\PhotoEvidenceKey;
 use Uhifadhi\Patrol\Storage\PatrolFileSource;
 use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
@@ -36,6 +37,29 @@ use Uhifadhi\Storage\Enum\ThumbStateEnum;
  */
 final class PatrolFileSourceTest extends TestCase
 {
+    /**
+     * WHAT PATROL CALLS A FILE, in the design's own words. The hub prints the
+     * phrase verbatim on the sources register beside the module's package name
+     * (files/sources.html), so a word changed here is a word changed on that
+     * page — and the register and the "modules holding files" widget read one
+     * answer, never two.
+     */
+    public function testPatrolNamesItsFilesInItsOwnWords(): void
+    {
+        // Built without its collaborators on purpose: what a module calls its
+        // files is a statement about the module, not about anything it reads,
+        // and a repository double here would only be scaffolding.
+        $source = new \ReflectionClass(PatrolFileSource::class)->newInstanceWithoutConstructor();
+
+        self::assertSame('an observation’s photographs', $source->fileWord());
+        // One phrase, two seams: the widget's line is the register's word while
+        // patrol attaches files to exactly one kind of record.
+        self::assertSame($source->fileWord(), $source->attachesTo());
+        // And it is the module's OWN slug, which is how the declaration
+        // disappears with the module.
+        self::assertSame(PatrolModuleProvider::SLUG, $source->moduleSlug());
+    }
+
     public function testAPhotographIsHandedOverWithTheObservationItBelongsTo(): void
     {
         $photo = $this->photo();
