@@ -1,85 +1,32 @@
 import { Controller } from '@hotwired/stimulus';
 
 /*
- * The patrol calendar's month navigation (PL·11 ‹ ›).
+ * DEPRECATED SINCE 0.7, AND EMPTY — REMOVED IN 0.8.
  *
- * A month is a different QUERY, not a different view of data the browser holds:
- * the ‹ › buttons fetch the month fragment from patrol_calendar and swap it in,
- * so every day cell keeps real patrols with real refs, colours and links. The
- * swapped-in fragment carries the same buttons, so the walk is unbounded in both
- * directions with no state kept here beyond "a request is in flight".
+ * The patrols month was this module's own grid once, and stepping it was a
+ * fetch: ‹ › asked patrol_calendar for a bare month fragment and this swapped
+ * it into the card, keeping the card's caption in step. The month is the
+ * atlas's `atlas_calendar()` now — one component, drawn the same way on every
+ * calendar in the product — and its stepper draws real links, so stepping a
+ * month is a navigation like every other and there is nothing left to fetch.
  *
- * The hover popovers are pure CSS on server-rendered markup — this controller
- * knows nothing about them, and they work in the fragment the moment it lands.
+ * THE FILE STAYS FOR ONE RELEASE ANYWAY, and that is the rule rather than a
+ * courtesy. `assets/controllers.json` is the INSTALLATION's file: Flex seeded
+ * it from this package and the installation keeps it under its own version
+ * control, so an entry naming this controller survives whatever this package
+ * does next. StimulusBundle resolves each entry against the package directory
+ * when it builds the controllers map, and a name with no file behind it throws
+ * `Controller "calendar" does not exist in the "@uhifadhi/patrol-module"
+ * package.` — at render, on every page, which is a 500 an installation gets
+ * for doing nothing but updating.
+ *
+ * So: emptied here, disabled by default in `assets/package.json` for fresh
+ * installations, and named in the upgrade notes (`docs/development.md`) so an
+ * installation can drop its own entry. The file goes in 0.8, by which time an
+ * installation has had a release in which to do it.
  */
 export default class extends Controller {
-    static targets = ['body', 'label'];
-    static values = { url: String };
-
-    initialize() {
-        this.pending = null;
-    }
-
-    disconnect() {
-        // A month that lands after the widget is gone must not be applied.
-        this.pending?.abort();
-        this.pending = null;
-    }
-
-    async go(event) {
-        event.preventDefault();
-
-        const month = event.currentTarget.dataset.patrolCalGoto;
-        if (!month) {
-            return;
-        }
-
-        // Rapid clicks: the newest month wins, and the one in flight is dropped
-        // rather than allowed to overwrite it when it arrives late.
-        this.pending?.abort();
-        const controller = new AbortController();
-        this.pending = controller;
-        this.element.classList.add('patrol-cal-busy');
-
-        try {
-            const url = new URL(this.urlValue, window.location.href);
-            url.searchParams.set('month', month);
-
-            const response = await fetch(url, {
-                // X-Requested-With marks this as the widget's own fetch, so the
-                // endpoint returns the BARE month grid to swap in — a direct
-                // browser visit to the same URL (no such header) gets the whole
-                // framed calendar page instead.
-                headers: { Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest' },
-                credentials: 'same-origin',
-                signal: controller.signal,
-            });
-            if (!response.ok) {
-                return;
-            }
-
-            this.bodyTarget.innerHTML = await response.text();
-            this.relabel();
-        } catch (error) {
-            // An aborted fetch is the expected outcome of a newer click, not a
-            // failure; anything else leaves the month on screen untouched.
-            if (error.name !== 'AbortError') {
-                console.error('patrol calendar: could not load', month, error);
-            }
-        } finally {
-            if (this.pending === controller) {
-                this.pending = null;
-                this.element.classList.remove('patrol-cal-busy');
-            }
-        }
-    }
-
-    /* The card's caption follows the grid. The label is read off the fragment —
-       the server already formatted it, so this never formats a date itself. */
-    relabel() {
-        const month = this.bodyTarget.querySelector('[data-patrol-cal-label]');
-        if (month && this.hasLabelTarget) {
-            this.labelTarget.textContent = month.dataset.patrolCalLabel;
-        }
+    connect() {
+        // Nothing: the month is the atlas's, and its stepper is links.
     }
 }

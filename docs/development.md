@@ -5,6 +5,7 @@
 - [The one command](#the-one-command)
 - [The test database](#the-test-database)
 - [Migrations](#migrations)
+- [Upgrading to 0.7](#upgrading-to-07)
 - [Upgrading to 0.6](#upgrading-to-06)
 
 ## The one command
@@ -98,6 +99,48 @@ services survive a further migrate and the history round-trips, and the lint
 reads the SQL each version plans and rejects rules 1 and 3 being broken. The
 lint's own fixtures live in `tests/Integration/Migrations/Fixtures/Migrations` —
 two that break one rule each, two that keep them.
+
+## Upgrading to 0.7
+
+**The patrols month is the atlas's component now.** `atlas_calendar()` draws
+the grid, the day heads, the cells and their fixed height, the day numbers, the
+marks, the "+N more" and the month stepper; this module says only what happened
+on which day (`Uhifadhi\Patrol\Service\PatrolCalendar`). Nothing in an
+installation changes for it — the calendar's stylesheet travels with the
+component through the shell's head contract — but two things follow.
+
+**`/areas/{uuid}/modules/patrols/calendar` serves one shape, not two.** It used
+to answer a bare month fragment to an XHR request and a framed page to a
+browser; the stepper is links now, so there is no fetch and the route always
+renders the page. A caller that asked for the fragment gets the page.
+
+**Drop the `calendar` Stimulus controller from `assets/controllers.json`.** It
+fetched and swapped those month fragments and has nothing left to do. It still
+ships in 0.7 — emptied, and disabled for fresh installations — because
+`assets/controllers.json` is the INSTALLATION's file and keeps naming whatever
+it was given: StimulusBundle resolves every name in it against the package and
+throws `Controller "calendar" does not exist in the "@uhifadhi/patrol-module"
+package.` at render, on every page, when the file behind a name is gone.
+
+Delete this block from `assets/controllers.json`:
+
+```json
+"@uhifadhi/patrol-module": {
+    "calendar": { "enabled": true, "fetch": "eager" }
+}
+```
+
+(keeping the package's other controllers — `disclose`, `point` — and the
+surrounding JSON valid), then `php bin/console asset-map:compile` and
+`cache:clear`. **The file is removed in 0.8**, so an installation that has not
+dropped the entry by then gets the 500 this release exists to prevent.
+
+**A patrol type is one of the house's nine categories.** The module no longer
+names a colour anywhere: a type carries `data-cat` and the shell decides what
+that category looks like, in the page and again on imagery. Map layers name
+`PlatePalette` tokens. Nothing to do in an installation, but a deployment that
+overrode `--patrol-track` in its own sheet is overriding a property nothing
+reads any more — the category tokens are `--cat-1` … `--cat-9`.
 
 ## Upgrading to 0.6
 

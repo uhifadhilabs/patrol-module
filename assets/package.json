@@ -12,7 +12,7 @@
             "calendar": {
                 "main": "controllers/calendar_controller.js",
                 "fetch": "eager",
-                "enabled": true
+                "enabled": false
             },
             "disclose": {
                 "main": "controllers/disclose_controller.js",
