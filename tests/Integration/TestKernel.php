@@ -295,6 +295,11 @@ final class TestKernel extends Kernel
             \Uhifadhi\Patrol\Overview\PatrolMapLayers::class => 'patrol.overview.map_layers',
             \Uhifadhi\Patrol\Overview\PatrolPulse::class => 'patrol.overview.pulse',
             \Uhifadhi\Patrol\Overview\PatrolOverviewCopy::class => 'patrol.overview.copy',
+            // And the ONE contribution this module makes to the organisation
+            // dashboard, with the reading behind it — reached by a host through
+            // its tag; these aliases only let a test hold them directly.
+            \Uhifadhi\Patrol\Service\PatrolOrgOverviewService::class => 'patrol.org_overview',
+            \Uhifadhi\Patrol\Org\PatrolOrgWidgets::class => 'patrol.org_widgets',
             // The widget framework, by the ids ShellBundle publishes,
             // plus the registry a surface has to be findable in.
             \Uhifadhi\Patrol\Service\PatrolRecordingService::class => 'patrol.recording',

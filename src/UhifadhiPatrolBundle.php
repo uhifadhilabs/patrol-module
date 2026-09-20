@@ -21,6 +21,7 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 use Uhifadhi\Bundle\AreaBundle\Overview\AttentionProviderInterface;
 use Uhifadhi\Bundle\AreaBundle\Overview\MapLayerProviderInterface;
 use Uhifadhi\Bundle\AreaBundle\Overview\NowTileProviderInterface;
+use Uhifadhi\Bundle\AreaBundle\Overview\OrgOverviewContributorInterface;
 use Uhifadhi\Bundle\AreaBundle\Overview\OverviewContributorInterface;
 use Uhifadhi\Bundle\AreaBundle\Overview\OverviewCopyProviderInterface;
 use Uhifadhi\Bundle\AreaBundle\Overview\PulseProviderInterface;
@@ -58,6 +59,7 @@ use Uhifadhi\Patrol\Module\PatrolPerformanceGeo;
 use Uhifadhi\Patrol\Module\PatrolPerformanceTopic;
 use Uhifadhi\Patrol\Module\PatrolStationFigureProvider;
 use Uhifadhi\Patrol\Module\PatrolZoneFigureProvider;
+use Uhifadhi\Patrol\Org\PatrolOrgWidgets;
 use Uhifadhi\Patrol\Overview\PatrolAttention;
 use Uhifadhi\Patrol\Overview\PatrolMapLayers;
 use Uhifadhi\Patrol\Overview\PatrolNowTiles;
@@ -88,6 +90,7 @@ use Uhifadhi\Patrol\Service\Api\RangerResolver;
 use Uhifadhi\Patrol\Service\Api\TrackBatchService;
 use Uhifadhi\Patrol\Service\Api\VocabularySyncService;
 use Uhifadhi\Patrol\Service\PatrolFigureService;
+use Uhifadhi\Patrol\Service\PatrolOrgOverviewService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
 use Uhifadhi\Patrol\Service\PhotoThumbnailBackfillService;
 use Uhifadhi\Patrol\Storage\PatrolFileSource;
@@ -996,5 +999,32 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 param('patrol.observation_categories'),
             ])
             ->tag(PulseProviderInterface::TAG);
+
+        /*
+         * THE ORGANISATION DASHBOARD CONTRIBUTION POINT — the module's
+         * contribution to `/`.
+         *
+         * A SECOND SEAM BESIDE THE AREA'S, opted into deliberately. The area
+         * contract is answered against an area ENTITY and is asked only where
+         * an area runs this module; this one is answered against a SCOPE and
+         * is asked once. Both carry the same slug, so the figure and the cell
+         * leave together the day the module is uninstalled.
+         *
+         * ONE READING BEHIND BOTH HALVES. 'patrol.org_overview' resolves the
+         * scope to areas and adds up the readings 'patrol.overview' and
+         * 'patrol.figure_service' already make per area — so the organisation's
+         * answer IS the areas' answers, which is the rule the contract is
+         * built on, rather than a second aggregate nobody could reconcile.
+         */
+        $services->set('patrol.org_overview', PatrolOrgOverviewService::class)
+            ->args([
+                service(AreaOfInterestRepository::class),
+                service('patrol.overview'),
+                service('patrol.figure_service'),
+            ]);
+
+        $services->set('patrol.org_widgets', PatrolOrgWidgets::class)
+            ->args([service('patrol.org_overview')])
+            ->tag(OrgOverviewContributorInterface::TAG);
     }
 }

@@ -252,6 +252,8 @@ them rides a later one. See [docs/development.md](docs/development.md).
   upgrade path from per-module storage, and patrol's entries on the Files hub.
 - [docs/discarded-patrols.md](docs/discarded-patrols.md) — what a discard means,
   what it is counted in, the retention clock and how a review hold stops it.
+- [docs/organisation-dashboard.md](docs/organisation-dashboard.md) — the one
+  contribution point on `/`, the figure and the cell it puts there.
 - [docs/area-overview.md](docs/area-overview.md) — the five contribution points
   patrols fills on an area's overview page, the three figures it publishes for
   every zone, the headline it publishes for every station, and the one thing it

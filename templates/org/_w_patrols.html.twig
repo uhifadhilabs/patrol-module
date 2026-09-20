@@ -1,0 +1,63 @@
+{# "Patrols out right now" — the module's cell on the HOST's organisation
+   dashboard (`/`). Design: org.widgets.js, the `patrols` cell.
+
+   Rendered by the host with `with_context: false`, so everything readable here
+   arrives in one map: this module's own reading under `by.patrols`, plus the
+   shared `scope` and `now` the host composes. Nothing in this file may reach
+   for a global.
+
+   THE SAME CONTRACT AS THE AREA OVERVIEW'S PARTIALS, one scope wider. The
+   `.c`, `.tab`, `.src`, `.more`, `.tbl` and `.ao-by` vocabulary is the HOST's
+   — it owns the surface these cells sit on — and this module defines none of
+   it.
+
+   NO WIDGET INDEX. The design prints PL·G2 in the tab; that is the workspace's
+   referencing system and not product (tests/Unit/Template/NoWorkshopLabelsTest).
+
+   BOUNDED. A dashboard cell's height may not grow with its data, so the table
+   stops at `by.patrols.rows` and the foot states the total rather than hiding
+   it. #}
+{% set pl = by.patrols %}
+<div class="c" data-w="patrols">
+    <span class="tab">Patrols out right now<span class="src">&middot; {{ pl.outTotal }} &middot; {% if pl.walkedTodayKm is null %}&mdash;{% else %}{{ pl.walkedTodayKm|number_format }}{% endif %} km walked today</span></span>
+    {# WHOSE FIGURE THIS IS. The day this module is uninstalled the cell goes
+       with it, and the tag is what makes that read as the system working. #}
+    <span class="ao-by"><i></i>patrols</span>
+    {% if pl.dashboardUrl %}<a class="more" href="{{ pl.dashboardUrl }}">Patrols &rarr;</a>{% endif %}
+
+    {% if pl.out is not empty %}
+        <table class="tbl">
+            <tr><th>patrol</th><th>area</th><th>out since</th><th>kind</th><th>last ping</th></tr>
+            {% for row in pl.out %}
+                <tr>
+                    <td><a href="{{ row.url }}"><b>{{ row.ref }}</b></a></td>
+                    <td>{{ row.areaName }}</td>
+                    {# AN UNRECORDED START IS NOT MIDNIGHT. #}
+                    <td>{% if row.startedAt %}<time datetime="{{ row.startedAt|date('c') }}" data-localtime-format="time">{{ row.startedAt|date('H:i') }}</time>{% else %}<span class="fog">&mdash;</span>{% endif %}</td>
+                    <td>{{ row.kindLabel|lower }}{% if row.rangers %} &middot; {{ row.rangers }} {{ row.rangers == 1 ? 'ranger' : 'rangers' }}{% endif %}</td>
+                    {# A patrol that has never pinged has not reported at all —
+                       it is not "0 min ago", and it is not GOOD either: only a
+                       measured silence inside the threshold earns the green. #}
+                    {% if row.pingLabel is null %}
+                        <td class="{{ row.stale ? 'r' : 'fog' }}">no ping yet</td>
+                    {% else %}
+                        <td class="{{ row.stale ? 'r' : 'g' }}">{{ row.pingLabel }}</td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </table>
+
+        {# THE BOUND, SAID OUT LOUD. A cell that quietly showed five of thirty
+           would be a wrong reading rather than a short one. #}
+        {% if pl.outTotal > pl.rows %}
+            <div class="rln">
+                <span class="fog">Showing the {{ pl.rows }} longest out</span>
+                <span class="mono">{{ pl.rows }} of {{ pl.outTotal }} &middot; {{ pl.areaPhrase }}</span>
+            </div>
+        {% endif %}
+    {% elseif pl.measured %}
+        <p class="patrol-empty">No patrol is out right now, in any of the {{ pl.areaPhrase }} that patrol.</p>
+    {% else %}
+        <p class="patrol-empty">No area has opened a patrol yet &mdash; there is nothing to measure, which is not the same as nobody being out.</p>
+    {% endif %}
+</div>
