@@ -38,15 +38,6 @@
 
 {% block stylesheets %}
     {{ parent() }}
-    {# THE MAP STYLESHEET — the atlas's ONE map.css: the plate column, the imagery
-       frame, the zoom pills, the base-layer menu, the live scale bar, the
-       scroll-bargain hint, the legend and the fullscreen layout that every plate
-       in the product wears. render_map() emits the markup those rules dress, so
-       without this sheet a patrol map is an unstyled box. Leaflet's own sheet is
-       not linked beside it: the UX Map Leaflet bridge's controller imports it,
-       so there is one Leaflet and one copy of its styles. Loaded BEFORE
-       patrol.css so the module's own rules still win where they must. #}
-    <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Bundle\\AtlasBundle\\AtlasBundle::STYLESHEET')) }}">
     {# The dashboard grid's own vocabulary, from the bundle that owns it. #}
     <link rel="stylesheet" href="{{ asset(constant('Uhifadhi\\Bundle\\ShellBundle\\ShellBundle::WIDGET_STYLESHEET')) }}">
     {# The FILE PREVIEW's vocabulary, from the bundle that owns it. A patrol
