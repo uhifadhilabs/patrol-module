@@ -160,7 +160,6 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
         $distance = [];
         $observations = [];
         $coverage = [];
-        $out = [];
         foreach ($run as $past) {
             $tally = $ground->measured($past) ? $this->figures->tally($ground->areas, $past->from, $past->until) : null;
 
@@ -168,15 +167,12 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
             $distance[] = $tally?->distanceKm;
             $observations[] = null === $tally ? null : (float) $tally->observations;
             $coverage[] = $ground->measured($past) ? $this->figures->coverage($ground->within, $past->from, $past->until) : null;
-            $out[] = $ground->measured($past) ? (float) $this->figures->outAt($ground->areas, $past->until) : null;
         }
 
         $now = $this->figures->tally($ground->areas, $period->from, $period->until);
         $was = $this->figures->tally($ground->areas, $previous->from, $previous->until);
         $share = $this->figures->coverage($ground->within, $period->from, $period->until);
         $wasShare = $this->figures->coverage($ground->within, $previous->from, $previous->until);
-        $outNow = $this->figures->outAt($ground->areas, $period->until);
-        $wasOut = $this->figures->outAt($ground->areas, $previous->until);
         $rows = \count($entries);
 
         return [
@@ -216,15 +212,6 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
                 delta: (float) ($now->observations - $was->observations),
                 history: $observations,
                 caption: 0 === $now->patrols ? '' : \sprintf('%s a patrol', self::plainly($now->observations / $now->patrols, 1)),
-                polarity: ColumnPolarity::Up,
-            ),
-            new TopicKpi(
-                key: 'patrols.out_now',
-                label: 'Out right now',
-                value: (float) $outNow,
-                delta: (float) ($outNow - $wasOut),
-                history: $out,
-                caption: $this->outCaption($ground, $period),
                 polarity: ColumnPolarity::Up,
             ),
         ];
@@ -533,7 +520,6 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
             new TopicKpi('patrols.distance', 'Distance', null, 'km', caption: $why, polarity: ColumnPolarity::Up),
             new TopicKpi('patrols.coverage', 'Coverage', null, '%', caption: $why, polarity: ColumnPolarity::Up),
             new TopicKpi('patrols.observations', 'Observations', null, caption: $why, polarity: ColumnPolarity::Up),
-            new TopicKpi('patrols.out_now', 'Out right now', null, caption: $why, polarity: ColumnPolarity::Up),
         ];
     }
 
@@ -551,24 +537,6 @@ final readonly class PatrolPerformanceTopic implements PerformanceTopicProviderI
             $buffer,
             null === $ground->within && \count($ground->areas) > 1 ? ', as one share of those boundaries combined' : '',
         );
-    }
-
-    /**
-     * WHERE THE OPEN PATROLS ARE, named area by area — and WHEN it was asked,
-     * because "right now" on a page about a period that has closed means the
-     * instant that period ended.
-     */
-    private function outCaption(PatrolTopicGround $ground, FigurePeriod $period): string
-    {
-        $where = [];
-        foreach ($ground->areas as $area) {
-            $out = $this->figures->outAt([$area], $period->until);
-            if (0 !== $out) {
-                $where[] = \sprintf('%d %s', $out, (string) $area->getName());
-            }
-        }
-
-        return [] === $where ? \sprintf('nobody out at the close of %s', $period->label) : implode(' · ', $where);
     }
 
     /**

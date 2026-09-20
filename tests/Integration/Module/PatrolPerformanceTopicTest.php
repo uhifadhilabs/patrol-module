@@ -47,17 +47,47 @@ final class PatrolPerformanceTopicTest extends IntegrationTestCase
 {
     private const string NOW = '2026-08-20 09:00:00';
 
-    public function testFiveFiguresAreAlwaysPublished(): void
+    /**
+     * FOUR, AND ALWAYS FOUR — ruled 2026-09-21, pinned by KEY and by LABEL in
+     * the design's order. The count alone would pass on a row of four
+     * different figures, and the labels are what a reader recognises the
+     * topic by.
+     */
+    public function testFourFiguresAreAlwaysPublished(): void
     {
         $this->world();
 
+        $kpis = $this->topic()->kpis(PerformanceScope::organisation(), self::period());
+
         self::assertSame(
-            ['patrols.patrols', 'patrols.distance', 'patrols.coverage', 'patrols.observations', 'patrols.out_now'],
+            ['patrols.patrols', 'patrols.distance', 'patrols.coverage', 'patrols.observations'],
+            self::keys($kpis),
+        );
+
+        self::assertSame(
+            ['Patrols', 'Distance', 'Coverage', 'Observations'],
+            array_map(static fn (TopicKpi $kpi): string => $kpi->label, $kpis),
+        );
+    }
+
+    /**
+     * AND `Out right now` IS NOT ONE OF THEM. It is the one figure of the
+     * five that is not a reading of the PERIOD at all — it is a reading of
+     * this instant, which is a different question from how a department did
+     * over a month, and it is answered on the patrol dashboard where somebody
+     * is watching. The four-to-a-row ruling dropped it from the topic.
+     */
+    public function testOutRightNowIsNoLongerAHeadlineFigure(): void
+    {
+        $this->world();
+
+        self::assertNotContains(
+            'patrols.out_now',
             self::keys($this->topic()->kpis(PerformanceScope::organisation(), self::period())),
         );
     }
 
-    public function testTheFiveFiguresAreTheOrganisationsOwn(): void
+    public function testTheFourFiguresAreTheOrganisationsOwn(): void
     {
         $this->world();
 
@@ -67,10 +97,9 @@ final class PatrolPerformanceTopicTest extends IntegrationTestCase
         self::assertSame(6.0, $figures['patrols.patrols']);
         self::assertSame(119.0, $figures['patrols.distance']);
         self::assertSame(3.0, $figures['patrols.observations']);
-        self::assertSame(1.0, $figures['patrols.out_now'], 'One patrol is still open.');
     }
 
-    public function testAScopeNoDepartmentIsAskedInStillPublishesFive(): void
+    public function testAScopeNoDepartmentIsAskedInStillPublishesFour(): void
     {
         $world = $this->world();
         $elsewhere = $this->area('Unserved reserve', -31.6, -1.3);
@@ -78,7 +107,7 @@ final class PatrolPerformanceTopicTest extends IntegrationTestCase
 
         $kpis = $this->topic()->kpis(PerformanceScope::area((string) $elsewhere->getUuidString(), 'Unserved reserve'), self::period());
 
-        self::assertCount(5, $kpis);
+        self::assertCount(4, $kpis);
         foreach ($kpis as $kpi) {
             self::assertNull($kpi->value, \sprintf('%s is not a nought where no area runs the module.', $kpi->key));
             self::assertStringContainsString('is asked about the Patrols module', $kpi->caption);
