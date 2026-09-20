@@ -259,11 +259,11 @@ final class CalendarTabTest extends WebTestCase
         self::assertCount(1, $discarded);
         // Withdrawn: quiet, and hollow because the recording is finished.
         self::assertStringContainsString('done', (string) $discarded->attr('class'));
-        self::assertStringContainsString('--pill-hue:var(--c-fog)', (string) $discarded->filter('i')->attr('style'));
+        self::assertStringContainsString('--pill-hue:var(--fog)', (string) $discarded->filter('i')->attr('style'));
 
         $complete = $crawler->filter('.cal a.cal-mark[href$="'.$this->manual->getUuid()->toRfc4122().'"]');
         self::assertStringNotContainsString('done', (string) $complete->attr('class'));
-        self::assertStringContainsString('--pill-hue:var(--c-acc)', (string) $complete->filter('i')->attr('style'));
+        self::assertStringContainsString('--pill-hue:var(--acc)', (string) $complete->filter('i')->attr('style'));
     }
 
     /** What the removed hover card said now rides on the mark itself. */
