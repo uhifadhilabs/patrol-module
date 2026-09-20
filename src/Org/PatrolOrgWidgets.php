@@ -171,9 +171,12 @@ final class PatrolOrgWidgets implements ContributesStylesheetInterface, OrgOverv
                 ? \sprintf('%d out right now · %s', \count($reading->out), self::areaPhrase($reading->areasWithRegister))
                 : 'nothing measured · no patrol recorded yet',
             url: $reading->dashboardUrl,
-            // Third on the strip, where the design puts it: after the
-            // organisation's own count of its areas and the roster's people,
-            // before what the incidents module has open.
+            // WHERE THE DESIGN PUTS IT IN THE ROW OF MODULE FIGURES: after
+            // the roster's people on duty, before what the incidents module
+            // has open and what the files module is keeping. The row is the
+            // modules' and the host only fills what is left of it, so this
+            // number is read against the other modules and against nothing
+            // else.
             priority: 30,
         );
     }

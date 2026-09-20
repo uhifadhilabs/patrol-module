@@ -78,12 +78,26 @@ final class PatrolWeekFigureTest extends TestCase
     }
 
     /**
-     * Third in the row, where the design puts it: after the organisation's own
-     * count of its areas, before what the incidents module has open.
+     * WHERE THE DESIGN PUTS IT AMONG THE OTHER MODULES' FIGURES: after the
+     * roster's people on duty, before the incidents module's open count.
+     *
+     * The row is assembled from every module that publishes one and sorted on
+     * this number, so it is read against the siblings and against nothing
+     * else — never against a position, which depends on what an installation
+     * happens to run.
      */
-    public function testItSitsAfterTheOrganisationsOwnFigure(): void
+    public function testItSortsBetweenTheRostersFigureAndTheIncidentsOne(): void
     {
-        self::assertGreaterThan(10, PatrolOrgWidgets::weekTile(self::reading(1, 1, 1))->priority);
+        $mine = PatrolOrgWidgets::weekTile(self::reading(1, 1, 1))->priority;
+
+        self::assertGreaterThan(self::sibling(20)->priority, $mine, 'After who is on duty.');
+        self::assertLessThan(self::sibling(40)->priority, $mine, 'Before what is open.');
+    }
+
+    /** A figure some other module publishes, at the priority the design gives it. */
+    private static function sibling(int $priority): NowTile
+    {
+        return new NowTile('XX·G1', 'somebody-else', 'Something else', '1', priority: $priority);
     }
 
     /** A workshop index is carried, never rendered — the strip's own rule. */

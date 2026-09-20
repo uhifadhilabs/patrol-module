@@ -38,6 +38,11 @@ The cell's template is this bundle's:
 | Figure (the four-to-a-row strip) | `PL·G1` | **Patrols this week** — how many the organisation has logged since monday, with how many are out right now beside it. |
 | Cell | `patrols` | **Patrols out right now** — who is out, in which area, since when, on what kind of round, and how old their last ping is. |
 
+The row is the **modules'** — the host's own "Areas" tile only fills a slot no
+module wanted — so this module states the priority the design gives its figure
+(after the roster's people on duty, before the incidents module's open count)
+and never assumes a position in the row.
+
 Both are absent-honest. An installation where no area has ever opened a patrol
 has not walked nought patrols: the figure keeps its slot, reads `—` and says
 *nothing measured*, and the cell says no area has opened a patrol yet rather

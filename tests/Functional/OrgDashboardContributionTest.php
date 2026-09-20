@@ -135,18 +135,25 @@ final class OrgDashboardContributionTest extends WebTestCase
         self::assertStringContainsString('no ping yet', $rows->eq(2)->text());
     }
 
-    /** THE MODULE'S FIGURE JOINS THE HOST'S FOUR-TO-A-ROW STRIP. */
+    /**
+     * THE MODULE'S FIGURE JOINS THE HOST'S FOUR-TO-A-ROW STRIP.
+     *
+     * FOUND BY ITS LABEL, NEVER BY ITS POSITION. The row is assembled from
+     * every module that publishes one, in priority order, and the host's own
+     * tile only fills a slot nobody wanted — so which index this module lands
+     * at is a fact about the OTHER modules an installation runs. Asserting it
+     * would make this suite fail the day somebody installs a sibling, which
+     * is a test of the fleet rather than of patrols.
+     */
     public function testTheFigureLandsInTheStrip(): void
     {
         $this->aLiveOrganisation();
 
-        $strip = $this->dashboard()->filter('[data-w="kpis"] .kpi');
+        $tile = $this->figure();
 
-        self::assertCount(4, $strip, 'Four to a row, always.');
-        $labels = $strip->each(static fn (Crawler $tile): string => $tile->text());
-        self::assertStringContainsString('Areas', $labels[0], 'The organisation’s own is first.');
-        self::assertStringContainsString('Patrols this week', $labels[1], 'Then this module’s.');
-        self::assertStringContainsString('3 out right now', $labels[1]);
+        self::assertSame('2', $tile->filter('.disp')->text(), 'The week’s count, by this module’s own counting rule.');
+        self::assertStringContainsString('3 out right now', $tile->filter('.sub')->text());
+        self::assertStringContainsString('2 areas', $tile->filter('.sub')->text());
     }
 
     /**
@@ -184,10 +191,29 @@ final class OrgDashboardContributionTest extends WebTestCase
      */
     public function testAnUnmeasuredInstallationSaysSoInBothPlaces(): void
     {
-        $crawler = $this->dashboard();
+        $tile = $this->figure();
 
-        self::assertStringContainsString('nothing measured', $crawler->filter('[data-w="kpis"] .kpi')->eq(1)->text());
-        self::assertStringContainsString('No area has opened a patrol yet', $crawler->filter('[data-w="patrols"]')->text());
+        self::assertSame('—', $tile->filter('.disp')->text(), 'Nothing measured is not nought.');
+        self::assertStringContainsString('nothing measured', $tile->filter('.sub')->text());
+        self::assertStringContainsString('No area has opened a patrol yet', $this->dashboard()->filter('[data-w="patrols"]')->text());
+    }
+
+    /**
+     * THIS MODULE'S TILE ON THE STRIP, found by the label it publishes.
+     *
+     * A filler slot the host draws where nobody published carries the same
+     * markup, so the search is over the tab's text and the result is asserted
+     * to be exactly one — a tile published twice is as wrong as one missing.
+     */
+    private function figure(): Crawler
+    {
+        $mine = $this->dashboard()->filter('[data-w="kpis"] .kpi')->reduce(
+            static fn (Crawler $tile): bool => 'Patrols this week' === trim($tile->filter('.tab')->text()),
+        );
+
+        self::assertCount(1, $mine, 'This module publishes exactly one figure, and it is on the strip.');
+
+        return $mine;
     }
 
     private function dashboard(): Crawler
