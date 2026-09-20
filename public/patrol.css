@@ -10,19 +10,12 @@
 
    Colours come from the shell's tokens (rgb(var(--c-*))) so the module flips with
    the theme; the imagery viewer keeps fixed dark chrome because it sits on
-   satellite tiles, and per-type track colours arrive as the inline custom
-   property --patrol-track (the deployment configures its own types, so the
-   colour cannot be a static class).
+   satellite tiles, and a patrol TYPE is one of the house's nine categories —
+   the element carries `data-cat` and spends `var(--cat)`, so the deployment
+   configures the types and the shell decides what each one looks like.
 
    Shipped with the bundle and linked only where the module renders (see
    templates/base.html.twig), so the shell's stylesheet never mentions patrol. */
-
-/* The per-type track colour. Elements that have one carry it as an inline
-   custom property, because a deployment configures its own patrol types and a
-   colour that is configuration cannot be a static class. This is what paints
-   where nothing has set one — without it every rule spending the token inherits
-   instead. */
-:root { --patrol-track: rgb(var(--c-fog)); }
 
 /* ---- widget grid ------------------------------------------------------ */
 /* Twelve columns; each widget declares its span. The span class comes from the
@@ -80,17 +73,17 @@
    must be keyboard reachable); the host's .mchip is an inline span, so they
    restate only the font and the pointer. */
 .patrol-chiprow > button.mchip { font-family: inherit; cursor: pointer; }
-/* A type pill wears the colour of the tracks it filters. --patrol-track is set
+/* A type pill wears the hue of the category it filters. `data-cat` is set
    inline from typeColors(), so a palette change sweeps from that ONE map — the
    legend, the chips, the charts and the tracks can never disagree. */
 .patrol-tfilter { display: inline-flex; align-items: center; gap: 6px; }
-.patrol-tfilter i { width: 7px; height: 7px; border-radius: 50%; background: var(--patrol-track); flex: none; }
-.patrol-tfilter:hover { border-color: color-mix(in srgb, var(--patrol-track) 55%, transparent); }
+.patrol-tfilter i { width: 7px; height: 7px; border-radius: 50%; background: var(--cat); flex: none; }
+.patrol-tfilter:hover { border-color: color-mix(in srgb, var(--cat) 55%, transparent); }
 .patrol-tfilter.on,
 .patrol-tfilter.on:hover {
-    color: var(--patrol-track);
-    border-color: var(--patrol-track);
-    background: color-mix(in srgb, var(--patrol-track) 12%, transparent);
+    color: var(--cat);
+    border-color: var(--cat);
+    background: color-mix(in srgb, var(--cat) 12%, transparent);
 }
 /* ---- the filter bar's own mark ---------------------------------------- --
    The grouped dropdown itself — .i-dd, its .i-ddt chip, the .i-ddmenu panel and
@@ -110,9 +103,10 @@
 .patrol-monthchip { cursor: default; }
 
 /* ---- per-type chips, legends, notes ------------------------------------ */
-/* --patrol-track is set inline per element: the type vocabulary is deployment
-   config, so its colour cannot be a fixed class. */
-.patrol-tchip { color: var(--patrol-track); border-color: color-mix(in srgb, var(--patrol-track) 45%, transparent); }
+/* `data-cat` is set per element: the type vocabulary is deployment config, so
+   which category a type is can only be answered per element — and the hue that
+   category wears is the shell's, never this sheet's. */
+.patrol-tchip { color: var(--cat); border-color: color-mix(in srgb, var(--cat) 45%, transparent); }
 /* The legend's station key wears the marker's own square, so the legend and the
    map cannot describe stations differently. */
 /* The chart legends' row of type chips. The MAP's legend is the atlas's and is
@@ -254,7 +248,7 @@
 .patrol-ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .patrol-ph i {
     position: absolute; left: 6px; bottom: 6px; font: 600 8.5px var(--font-mono); font-style: normal;
-    color: #EAF2EC; background: rgba(10, 14, 11, .72); padding: 2px 6px; border-radius: 4px;
+    color: var(--plate-ink); background: var(--plate-veil); padding: 2px 6px; border-radius: 4px;
 }
 /* Where the shutter fired — the photograph's OWN place, opposite the frame
    number so the two facts about the tile sit on the same line and neither has
@@ -263,7 +257,7 @@
 .patrol-phpos {
     position: absolute; right: 6px; bottom: 6px; max-width: 62%;
     font: 500 8.5px var(--font-mono); font-style: normal; text-align: right;
-    color: #D6E2D9; background: rgba(10, 14, 11, .72); padding: 2px 6px; border-radius: 4px;
+    color: var(--plate-dim); background: var(--plate-veil); padding: 2px 6px; border-radius: 4px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 @media (max-width: 720px) {
@@ -595,24 +589,16 @@
 /* ---- the area overview, where this module is a GUEST ------------------- */
 /* /areas/{uuid} is the HOST's surface: it owns the grid, the plates, the
    right-now strip, the needs-attention list, the operational map's legend and
-   the whole `.ao-*` vocabulary. Nothing of it is redefined below.
+   the whole `.ao-*` vocabulary. Nothing of it is redefined here.
 
-   THE ONE THING THE HOST CANNOT WRITE IS THIS MODULE'S COLOUR. It paints every
-   contributor dot the quiet fog and leaves each module to paint its own, for the
-   same reason it names no module in a template: a rule reading `.patrols` in
-   app.css would be the host knowing what a patrol is. So the six selectors below
-   are this module's half of that contract — the contributor tag on a plate, the
-   dot on an attention row, the column heading, the legend group, the duty-board
-   tile and the generic contributor dot. The colour is the module's own accent,
-   which is PatrolDashboardService::TRACK_COLORS[0]: a colour is DATA, so it is
-   the same hex the tracks, the chips and the map legend already wear, and the
-   same in light and dark. */
-.ao-by.patrols i,
-.ao-att .m i.patrols,
-.ao-col i.patrols,
-.ao-legend .grp > b i.patrols,
-.ao-dot.patrols { background: #3ed9a8; }
-.ao-board a.dot-patrols .k::before { background: #3ed9a8; }
+   AND THE MODULE HAS NO HUE OF ITS OWN. Six selectors used to paint every
+   contributor dot this module's green, on the reasoning that a colour is data
+   the host cannot know. It is not: a module identity colour is a tenth palette
+   nobody declared, it collides with the nine categories and the department
+   hues, and the house paints a contributor dot the quiet fog on purpose — so
+   the dots on the area overview all read as the same KIND of thing and
+   selection is the one accent. Removed rather than re-tokened: there is no
+   token for "the patrols colour" because there is no patrols colour. */
 
 /* WHAT MOVED, in this module's words. `.ao-move` is the host's neutral chip and
    the state vocabulary inside it is ours, so the colours are ours too. Only the

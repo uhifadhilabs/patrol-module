@@ -5,19 +5,22 @@
 
    Every binding comes from PatrolDashboard (src/Model/PatrolDashboard.php); the
    patrol type vocabulary comes from the deployment's patrol.types config, never
-   from code, and the per-type colour from PatrolDashboardService::typeColors()
-   so PHP and Twig cannot disagree about it. #}
+   from code, and which CATEGORY each type is from
+   PatrolDashboardService::typePositions(), so PHP and Twig cannot disagree
+   about it. This module names a position and never a colour: the shell
+   resolves `data-cat` to a hue, in the page and again on imagery. #}
 
 {# Macros here call each other through `_self`, not through an import: a
    top-level {% import %} only runs when a template is RENDERED, and this one
    never is — the partials import its macros instead. #}
 
-{# The one fallback hex in the templates: a patrol whose type the deployment has
-   since dropped still gets drawn. Mirrors PatrolDashboardService::TRACK_COLORS[0]. #}
-{% macro color(typeColor, key) %}{{ typeColor[key]|default('#3ED9A8') }}{% endmacro %}
+{# A patrol type's CATEGORY, 1 to 9. A type the deployment has since dropped is
+   in none of them, and `[data-cat]` with no number is the shell's own "not one
+   of the set" — drawn in the muted ink rather than in a colour invented here. #}
+{% macro cat(typeCat, key) %}{{ typeCat[key]|default('') }}{% endmacro %}
 
-{% macro type_chip(key, types, typeColor) %}
-    <span class="chip patrol-tchip" style="--patrol-track: {{ _self.color(typeColor, key) }}">{{ types[key].label|default(key)|lower }}</span>
+{% macro type_chip(key, types, typeCat) %}
+    <span class="chip patrol-tchip" data-cat="{{ _self.cat(typeCat, key) }}">{{ types[key].label|default(key)|lower }}</span>
 {% endmacro %}
 
 {# Explicit, lowercase, like the design's tables: "sat 22 aug · 06:10". The
@@ -56,9 +59,9 @@
    THE DASHBOARD CARRIES NO SEARCH BOX. Searching is what the full log is for;
    a card capped at its latest rows would answer a search with the rows it had
    room for, which is worse than not offering one. #}
-{% macro filters(dashboard, types, typeColor, now, area, filter) %}
+{% macro filters(dashboard, types, typeCat, now, area, filter) %}
     {% import '@UhifadhiPatrol/_filters.html.twig' as row %}
-    {{ row.row('patrol_dashboard', area, filter, types, typeColor, now, {
+    {{ row.row('patrol_dashboard', area, filter, types, typeCat, now, {
         allCount: dashboard.totalCount,
         typeCounts: dashboard.typeCounts,
         stations: dashboard.stations,

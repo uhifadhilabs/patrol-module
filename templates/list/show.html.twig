@@ -36,7 +36,7 @@
 <div class="c">
     <span class="tab">Every patrol<span class="src">· {{ month|date('F Y')|lower }} · {{ list.totalCount }} {{ list.totalCount == 1 ? 'patrol' : 'patrols' }}</span></span>
 
-    {{ filters.row('patrol_list', area, filter, types, typeColor, now, {
+    {{ filters.row('patrol_list', area, filter, types, typeCat, now, {
         allCount: list.allCount,
         typeCounts: list.typeCounts,
         stations: list.stations,
@@ -67,7 +67,7 @@
                     <span class="mono patrol-ref">{{ patrol.ref }}</span>
                     <em class="patrol-rowsub">{{ ui.started(patrol) }}</em>
                 </td>
-                <td>{{ ui.type_chip(patrol.type, types, typeColor) }}</td>
+                <td>{{ ui.type_chip(patrol.type, types, typeCat) }}</td>
                 <td>{{ patrol.station ?: '—' }}</td>
                 <td>{{ ui.lead_name(patrol.lead) }}</td>
                 <td class="num">{{ patrol.teamRangerIds|length ?: '—' }}</td>

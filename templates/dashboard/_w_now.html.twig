@@ -16,7 +16,7 @@
         <div class="patrol-feed-row patrol-ao-row">
             <span class="patrol-avatar">{{ ui.initials(row.patrol.lead) }}</span>
             <span class="patrol-who">{{ row.patrol.ref }}<em>{{ row.patrol.station ?: '—' }} · {{ ui.lead_name(row.patrol.lead) }}</em></span>
-            {{ ui.type_chip(row.patrol.type, types, typeColor) }}
+            {{ ui.type_chip(row.patrol.type, types, typeCat) }}
             <span class="patrol-n">{% if row.patrol.startedAt %}opened <time datetime="{{ row.patrol.startedAt|date('c') }}" data-localtime-format="time">{{ row.patrol.startedAt|date('H:i') }}</time>{% else %}opened at an unrecorded time{% endif %}{% if row.outLabel %} · out {{ row.outLabel }}{% endif %}</span>
             {# The ping, in the module's own words. A patrol that has never pinged
                says so — it is not "0 min ago". #}

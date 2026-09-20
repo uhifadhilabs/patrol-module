@@ -22,7 +22,7 @@
              data-atlas-highlight="patrol.tracks.{{ patrol.type }}:{{ patrol.ref }}">
             <span class="patrol-avatar">{{ ui.initials(patrol.lead) }}</span>
             <span class="patrol-who">{{ patrol.ref }}<em>{{ patrol.station ?: '—' }} · {{ ui.lead_name(patrol.lead) }}</em></span>
-            {{ ui.type_chip(patrol.type, types, typeColor) }}
+            {{ ui.type_chip(patrol.type, types, typeCat) }}
             <span class="patrol-n">{{ ui.started(patrol) }} · {{ ui.distance(patrol) }}</span>
             {% if patrol.observations|length %}<span class="chip warn">{{ patrol.observations|length }} obs</span>{% endif %}
             {% if patrol.discarded %}

@@ -27,6 +27,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
+use Uhifadhi\Contracts\Atlas\PlatePalette;
 use Uhifadhi\Contracts\Entity\UserInterface;
 use Uhifadhi\Patrol\DependencyInjection\PatrolConfiguration;
 use Uhifadhi\Patrol\Entity\Observation;
@@ -502,9 +503,9 @@ final class PatrolDetailController
      */
     private function trackColor(Patrol $patrol): string
     {
-        $colors = PatrolDashboardService::typeColors($this->types->findVocabularyByArea($patrol->getArea()));
+        $swatches = PatrolDashboardService::typeSwatches($this->types->findVocabularyByArea($patrol->getArea()));
 
-        return $colors[$patrol->getType()] ?? PatrolDashboardService::TRACK_COLORS[0];
+        return $swatches[$patrol->getType()] ?? PlatePalette::ACCENT;
     }
 
     /** The deployment's word for a category — never the stored key. */

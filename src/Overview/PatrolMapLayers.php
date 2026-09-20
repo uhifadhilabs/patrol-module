@@ -16,6 +16,7 @@ namespace Uhifadhi\Patrol\Overview;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\AreaBundle\Overview\MapLayer;
 use Uhifadhi\Bundle\AreaBundle\Overview\MapLayerProviderInterface;
+use Uhifadhi\Contracts\Atlas\PlatePalette;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
 use Uhifadhi\Patrol\Repository\PatrolTypeRepository;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
@@ -37,7 +38,7 @@ use Uhifadhi\Patrol\Service\PatrolOverviewService;
  * exactly where it was.
  *
  * A COLOUR IS DATA, so it is stated once and is the same in light and dark. The
- * per-type track colours are {@see PatrolDashboardService::typeColors()} — the
+ * per-type track swatches are {@see PatrolDashboardService::typeSwatches()} — the
  * one map the module's own coverage plate, legend, charts and calendar all read,
  * so a foot patrol is the same green here as it is on the module's own screen.
  * The legend's swatch is the first of them, exactly as the design's is.
@@ -67,8 +68,8 @@ final readonly class PatrolMapLayers implements MapLayerProviderInterface
 
     public function mapLayersFor(AreaOfInterest $area, \DateTimeImmutable $now): array
     {
-        $colors = PatrolDashboardService::typeColors($this->types->findVocabularyByArea($area));
-        $accent = PatrolDashboardService::TRACK_COLORS[0];
+        $colors = PatrolDashboardService::typeSwatches($this->types->findVocabularyByArea($area));
+        $accent = PlatePalette::ACCENT;
 
         return [
             $this->live($area, $now, $colors, $accent),
@@ -160,7 +161,7 @@ final readonly class PatrolMapLayers implements MapLayerProviderInterface
                 'station' => $patrol->getStation(),
                 'type' => $patrol->getType(),
                 'typeLabel' => $patrol->getTypeLabel(),
-                'color' => $colors[$patrol->getType()] ?? PatrolDashboardService::TRACK_COLORS[0],
+                'color' => $colors[$patrol->getType()] ?? PlatePalette::ACCENT,
                 'url' => $this->overview->patrolUrl($area, $patrol),
             ]);
         }
@@ -170,9 +171,10 @@ final readonly class PatrolMapLayers implements MapLayerProviderInterface
             PatrolOverviewContributor::SLUG,
             self::GROUP,
             'Closed today',
-            // The design's quiet grey: a closed patrol is not the subject of this
-            // morning, and colouring it as loudly as a live one would say it was.
-            '#B9C8BD',
+            // Context, not the subject: a closed patrol is not what this
+            // morning is about, and colouring it as loudly as a live one
+            // would say it was.
+            PlatePalette::DIM,
             $this->collection($features),
             MapLayer::STYLE_LINE,
             $drawn,

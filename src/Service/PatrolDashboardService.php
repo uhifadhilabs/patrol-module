@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Service;
 
+use Uhifadhi\Contracts\Atlas\PlatePalette;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Model\PatrolDashboard;
 use Uhifadhi\Patrol\Model\PatrolFilter;
@@ -43,14 +44,15 @@ use Uhifadhi\Patrol\Model\PatrolFilter;
 final class PatrolDashboardService
 {
     /**
-     * Track colours are FIXED hexes, not theme tokens: tracks are drawn over
-     * satellite imagery, and a type must read identically on the map, in the
-     * legend, in the charts and on the calendar. The design's three, cycled when
-     * a deployment configures more than three types.
+     * A PATROL TYPE IS A CATEGORY, and the house has nine of them.
      *
-     * @var list<string>
+     * The module names a type's POSITION in the area's declared order and
+     * nothing else; the host resolves that position to a hue — `--cat-n` in
+     * the page and `--cat-p-n` on imagery, which are deliberately two
+     * different colours. A tenth type wraps to the first, which is the
+     * caller's to do and is done here.
      */
-    public const array TRACK_COLORS = ['#3ED9A8', '#5FA8E0', '#E0954F'];
+    public const int CATEGORIES = 9;
 
     /**
      * PL·03's buffer, in metres: the design's KPI is "% of area within 2 km of a
@@ -84,22 +86,45 @@ final class PatrolDashboardService
     }
 
     /**
-     * The colour every screen draws a patrol type in. Computed once per request
-     * and handed to the templates, so the dashboard and the widget library can
-     * never colour the same type differently.
+     * WHICH CATEGORY EACH PATROL TYPE IS — its position in the area's declared
+     * order, 1 to 9. Computed once per request and handed to the templates, so
+     * the dashboard, the widget library and the map can never put the same type
+     * in two different categories.
+     *
+     * A template writes it as `data-cat`, and the shell resolves the hue: this
+     * module decides which types there are and in what order, and nothing at
+     * all about what a colour is.
      *
      * @param array<string, array{label: string}> $types the deployment's patrol.types map
      *
-     * @return array<string, string>
+     * @return array<string, int>
      */
-    public static function typeColors(array $types): array
+    public static function typePositions(array $types): array
     {
-        $colors = [];
+        $positions = [];
         foreach (array_keys($types) as $index => $key) {
-            $colors[$key] = self::TRACK_COLORS[$index % \count(self::TRACK_COLORS)];
+            $positions[$key] = ($index % self::CATEGORIES) + 1;
         }
 
-        return $colors;
+        return $positions;
+    }
+
+    /**
+     * THE SAME ANSWER FOR A PLATE — the token each type's position resolves to
+     * on imagery, which is not the token the same category wears in the page.
+     * Every layer, legend row and marker this module draws names one of these
+     * and never a colour.
+     *
+     * @param array<string, array{label: string}> $types
+     *
+     * @return array<string, string>
+     */
+    public static function typeSwatches(array $types): array
+    {
+        return array_map(
+            static fn (int $position): string => PlatePalette::category($position),
+            self::typePositions($types),
+        );
     }
 
     /**
@@ -138,7 +163,7 @@ final class PatrolDashboardService
      */
     public function coveragePayload(?string $boundary, PatrolDashboard $dashboard, array $types, array $patrolZones = []): array
     {
-        $colors = self::typeColors($types);
+        $swatches = self::typeSwatches($types);
 
         $tracks = [];
         /** @var array<string, array{name: string, lon: float, lat: float}> $stations */
@@ -166,7 +191,7 @@ final class PatrolDashboardService
                 'type' => $patrol->getType(),
                 'station' => $station,
                 'zone' => $patrolZones[$uuid] ?? '',
-                'color' => $colors[$patrol->getType()] ?? self::TRACK_COLORS[0],
+                'color' => $swatches[$patrol->getType()] ?? PlatePalette::ACCENT,
                 'track' => $track,
             ];
 

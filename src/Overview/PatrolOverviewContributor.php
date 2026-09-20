@@ -153,7 +153,7 @@ final readonly class PatrolOverviewContributor implements ContributesStylesheetI
             // patrol surface reads, so a walking round is the same word and the
             // same green here as on the module's dashboard.
             'types' => $types = $this->types->findVocabularyByArea($area),
-            'typeColors' => PatrolDashboardService::typeColors($types),
+            'typeCat' => PatrolDashboardService::typePositions($types),
             'stalePingMinutes' => intdiv(PatrolOverviewService::PING_STALE_AFTER_SECONDS, 60),
             'coverageBufferKm' => PatrolDashboardService::COVERAGE_BUFFER_M / 1000,
             'dashboardUrl' => $this->overview->dashboardUrl($area),

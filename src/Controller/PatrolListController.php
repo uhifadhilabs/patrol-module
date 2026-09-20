@@ -74,7 +74,7 @@ final readonly class PatrolListController
         return new Response($this->twig->render('@UhifadhiPatrol/list/show.html.twig', [
             'area' => $area,
             'types' => $types,
-            'typeColor' => PatrolDashboardService::typeColors($types),
+            'typeCat' => PatrolDashboardService::typePositions($types),
             'now' => $now,
             'month' => $monthStart,
             'filter' => $filter,

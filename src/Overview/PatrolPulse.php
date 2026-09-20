@@ -16,10 +16,10 @@ namespace Uhifadhi\Patrol\Overview;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\AreaBundle\Overview\PulseEvent;
 use Uhifadhi\Bundle\AreaBundle\Overview\PulseProviderInterface;
+use Uhifadhi\Contracts\Atlas\PlatePalette;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Repository\ObservationRepository;
 use Uhifadhi\Patrol\Repository\PatrolRepository;
-use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolOverviewService;
 
 /**
@@ -169,7 +169,7 @@ final readonly class PatrolPulse implements PulseProviderInterface
                 'observation logged',
                 null === $note || '' === $note ? $category : \sprintf('%s — %s', $category, $note),
                 $this->overview->patrolUrl($area, $patrol),
-                PatrolDashboardService::TRACK_COLORS[0],
+                PlatePalette::ACCENT,
                 meta: array_values(array_filter([$patrol->getStation(), $patrol->getRef()])),
             );
         }
@@ -180,9 +180,9 @@ final readonly class PatrolPulse implements PulseProviderInterface
     /**
      * One row, with the module's own colour on it.
      *
-     * The swatch is {@see PatrolDashboardService::TRACK_COLORS}[0] — the same
-     * accent the module's tracks, chips and legend wear — because a colour is
-     * data and this module states it once.
+     * The swatch is {@see PlatePalette::ACCENT} — the subject of the plate,
+     * the same reading the module's tracks and legend wear. A module names the
+     * meaning and the host resolves the hue.
      */
     private function event(AreaOfInterest $area, Patrol $patrol, \DateTimeImmutable $at, string $move, string $summary, ?string $state, ?string $stateClass): PulseEvent
     {
@@ -194,7 +194,7 @@ final readonly class PatrolPulse implements PulseProviderInterface
             $move,
             $summary,
             $this->overview->patrolUrl($area, $patrol),
-            PatrolDashboardService::TRACK_COLORS[0],
+            PlatePalette::ACCENT,
             $state,
             $stateClass,
             array_values(array_filter([

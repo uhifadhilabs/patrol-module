@@ -21,13 +21,13 @@
             {% set x0 = 60 + 82 * loop.index0 %}
             {% for key, count in week.counts %}
                 {% set h = (count / weekAxis * 128)|round(1) %}
-                <rect x="{{ x0 + pitch * loop.index0 }}" y="{{ (152 - h)|round(1) }}" width="{{ barW }}" height="{{ h }}" rx="1.2" fill="{{ ui.color(typeColor, key) }}"><title>{{ week.label }} · {{ types[key].label|default(key)|lower }}: {{ count }}</title></rect>
+                <rect x="{{ x0 + pitch * loop.index0 }}" y="{{ (152 - h)|round(1) }}" width="{{ barW }}" height="{{ h }}" rx="1.2" data-cat="{{ ui.cat(typeCat, key) }}" style="fill: var(--cat)"><title>{{ week.label }} · {{ types[key].label|default(key)|lower }}: {{ count }}</title></rect>
             {% endfor %}
             <text x="{{ (x0 + (types|length * pitch - 4) / 2)|round(1) }}" y="168" text-anchor="middle">{{ week.label }}</text>
         {% endfor %}
         <line class="ax" x1="44" y1="152" x2="460" y2="152"/>
     </svg>
     <div class="patrol-legend">
-        {% for key in types|keys %}{{ ui.type_chip(key, types, typeColor) }}{% endfor %}
+        {% for key in types|keys %}{{ ui.type_chip(key, types, typeCat) }}{% endfor %}
     </div>
 </div>

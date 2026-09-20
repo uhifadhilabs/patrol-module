@@ -153,7 +153,7 @@ final class PatrolWidgetsController
             'widgetContext' => [
                 'area' => $area,
                 'types' => $types,
-                'typeColor' => PatrolDashboardService::typeColors($types),
+                'typeCat' => PatrolDashboardService::typePositions($types),
                 'now' => $now,
                 'month' => $monthStart,
                 'filter' => $filter,
@@ -168,7 +168,7 @@ final class PatrolWidgetsController
                 'map' => $this->plates->coverage(
                     $this->dashboard->coveragePayload($area->getGeom(), $dashboard, $types, $patrolZones),
                     $types,
-                    PatrolDashboardService::typeColors($types),
+                    PatrolDashboardService::typeSwatches($types),
                     // The real coverage layer, so the previewed plate is the plate.
                     $this->coverage->bufferFor($area, $monthStart, $nextMonth, $now),
                 ),

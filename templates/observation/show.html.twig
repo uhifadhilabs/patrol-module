@@ -13,11 +13,6 @@
    its shell — see the photos card below. #}
 {% import '@UhifadhiStorage/overlay/_preview.html.twig' as preview %}
 
-{# The parent patrol's track colour, cycled exactly as on the dashboard and the
-   patrol detail plate — the same track must never change colour between them. #}
-{% set trackColors = ['#3ED9A8', '#5FA8E0', '#E0954F'] %}
-{% set typeColor = types|keys|reduce((carry, key) => carry|merge({(key): trackColors[carry|length % trackColors|length]}), {}) %}
-{% set trackColor = typeColor[patrol.type]|default(trackColors[0]) %}
 {% set typeLabel = types[patrol.type].label|default(patrol.type) %}
 {% set categoryLabel = categories[observation.category].label|default(observation.category) %}
 {# The photographs actually HELD, never the number the phone promised: a page

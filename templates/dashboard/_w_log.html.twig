@@ -9,7 +9,7 @@
 {% set patrolLogLimit = 8 %}
 <div class="c" data-patrol-log>
     <span class="tab">Patrol log<span class="src">· patrol · latest {{ min(dashboard.patrols|length, patrolLogLimit) }} of {{ dashboard.totalCount }}</span></span>
-    {{ ui.filters(dashboard, types, typeColor, now, area, filter) }}
+    {{ ui.filters(dashboard, types, typeCat, now, area, filter) }}
     <table class="tbl">
         <thead>
             <tr>
@@ -40,7 +40,7 @@
             <tr class="{{ patrol.discarded ? 'patrol-abandoned' }}" data-patrol="{{ patrol.uuid.toRfc4122 }}"
                 data-atlas-highlight="patrol.tracks.{{ patrol.type }}:{{ patrol.ref }}">
                 <td><span class="mono patrol-ref">{{ patrol.ref }}</span></td>
-                <td>{{ ui.type_chip(patrol.type, types, typeColor) }}</td>
+                <td>{{ ui.type_chip(patrol.type, types, typeCat) }}</td>
                 <td>{{ patrol.station ?: '—' }}</td>
                 <td>{{ ui.lead_name(patrol.lead) }}</td>
                 <td data-patrol-start>{{ ui.started(patrol) }}</td>

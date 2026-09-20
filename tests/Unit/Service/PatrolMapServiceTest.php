@@ -17,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 use Uhifadhi\Bundle\AtlasBundle\Map\MapBuilder;
 use Uhifadhi\Bundle\AtlasBundle\Model\AtlasMap;
 use Uhifadhi\Bundle\AtlasBundle\Model\LegendItem;
+use Uhifadhi\Contracts\Atlas\PlatePalette;
 use Uhifadhi\Patrol\Service\PatrolMapService;
 
 /**
@@ -44,8 +45,8 @@ final class PatrolMapServiceTest extends TestCase
             [PatrolMapService::COVERAGE_LAYER, 'patrol.tracks.foot', 'patrol.tracks.vehicle', 'patrol.endpoints', 'patrol.stations'],
             array_column($layers, 'id'),
         );
-        self::assertSame('#3ED9A8', $layers[1]['swatch']);
-        self::assertSame('#5FA8E0', $layers[2]['swatch']);
+        self::assertSame(PlatePalette::category(1), $layers[1]['swatch']);
+        self::assertSame(PlatePalette::category(2), $layers[2]['swatch']);
         self::assertSame('line', $layers[1]['shape']);
     }
 
@@ -89,7 +90,7 @@ final class PatrolMapServiceTest extends TestCase
         $features = self::features(self::map()->coverage(self::coveragePayload(), self::types(), self::colors()), 1);
 
         self::assertSame(
-            ['ref' => 'PT-0001', 'color' => '#3ED9A8', PatrolMapService::TOOLTIP_PROPERTY => 'PT-0001 · foot'],
+            ['ref' => 'PT-0001', 'color' => PlatePalette::category(1), PatrolMapService::TOOLTIP_PROPERTY => 'PT-0001 · foot'],
             \is_array($features[0]) ? $features[0]['properties'] : null,
         );
     }
@@ -249,7 +250,7 @@ final class PatrolMapServiceTest extends TestCase
     public function testATrackThatWillNotParseIsSimplyNotDrawn(): void
     {
         $map = self::map()->coverage(
-            ['boundary' => 'not json', 'patrols' => [['uuid' => 'u', 'ref' => 'PT-0003', 'type' => 'foot', 'station' => '', 'zone' => '', 'color' => '#3ED9A8', 'track' => '{']], 'stations' => []],
+            ['boundary' => 'not json', 'patrols' => [['uuid' => 'u', 'ref' => 'PT-0003', 'type' => 'foot', 'station' => '', 'zone' => '', 'color' => PlatePalette::category(1), 'track' => '{']], 'stations' => []],
             self::types(),
             self::colors(),
         );
@@ -262,7 +263,7 @@ final class PatrolMapServiceTest extends TestCase
 
     public function testTheDetailPlateDrawsTheTrackAndItsEnds(): void
     {
-        $map = self::map()->track(['boundary' => self::BOUNDARY, 'track' => self::TRACK, 'color' => '#3ED9A8']);
+        $map = self::map()->track(['boundary' => self::BOUNDARY, 'track' => self::TRACK, 'color' => PlatePalette::category(1)]);
 
         self::assertSame(['patrol.track', 'patrol.endpoints'], array_column($map->toArray()['layers'], 'id'));
         self::assertCount(2, self::features($map, 1));
@@ -384,9 +385,9 @@ final class PatrolMapServiceTest extends TestCase
         return [
             'boundary' => self::BOUNDARY,
             'patrols' => [
-                ['uuid' => 'a', 'ref' => 'PT-0001', 'type' => 'foot', 'station' => 'North gate', 'zone' => '', 'color' => '#3ED9A8', 'track' => self::TRACK],
-                ['uuid' => 'b', 'ref' => 'PT-0002', 'type' => 'foot', 'station' => 'North gate', 'zone' => '', 'color' => '#3ED9A8', 'track' => self::TRACK],
-                ['uuid' => 'c', 'ref' => 'PT-0003', 'type' => 'vehicle', 'station' => '', 'zone' => '', 'color' => '#5FA8E0', 'track' => self::TRACK],
+                ['uuid' => 'a', 'ref' => 'PT-0001', 'type' => 'foot', 'station' => 'North gate', 'zone' => '', 'color' => PlatePalette::category(1), 'track' => self::TRACK],
+                ['uuid' => 'b', 'ref' => 'PT-0002', 'type' => 'foot', 'station' => 'North gate', 'zone' => '', 'color' => PlatePalette::category(1), 'track' => self::TRACK],
+                ['uuid' => 'c', 'ref' => 'PT-0003', 'type' => 'vehicle', 'station' => '', 'zone' => '', 'color' => PlatePalette::category(2), 'track' => self::TRACK],
             ],
             'stations' => [['name' => 'North gate', 'lon' => -29.48, 'lat' => -3.18]],
         ];
@@ -401,11 +402,15 @@ final class PatrolMapServiceTest extends TestCase
     }
 
     /**
+     * The two types' PLATE TOKENS — what their positions in the area's
+     * declared order resolve to. A test that handed hexes would be testing a
+     * module that decides colours, which this one deliberately does not.
+     *
      * @return array<string, string>
      */
     private static function colors(): array
     {
-        return ['foot' => '#3ED9A8', 'vehicle' => '#5FA8E0'];
+        return ['foot' => PlatePalette::category(1), 'vehicle' => PlatePalette::category(2)];
     }
 
     private static function map(): PatrolMapService

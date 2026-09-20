@@ -191,10 +191,13 @@ final class DashboardPageTest extends WebTestCase
         self::assertCount(2, $crawler->filter('[data-patrol-stations] svg rect'));
         self::assertStringContainsString('North post', (string) $crawler->filter('[data-patrol-stations]')->text());
 
-        // Calendar: 42 cells, today ringed, a pill per patrol on its day.
-        self::assertCount(42, $crawler->filter('[data-patrol-calendar] .patrol-dc'));
-        self::assertCount(1, $crawler->filter('[data-patrol-calendar] .patrol-dc.patrol-today'));
-        self::assertCount(3, $crawler->filter('[data-patrol-calendar] .patrol-daypill'));
+        // Calendar: the HOUSE month — whole weeks, today ringed, one mark per
+        // patrol on its day. The grid is the atlas's `atlas_calendar()`, so what
+        // is asserted here is what this module puts IN it.
+        $cells = $crawler->filter('[data-w="cal"] .cal .dc');
+        self::assertContains($cells->count(), [35, 42]);
+        self::assertCount(1, $crawler->filter('[data-w="cal"] .cal .dc.today'));
+        self::assertCount(3, $crawler->filter('[data-w="cal"] .cal .cal-mark'));
 
         // Coverage map: the shipped dashboard carries ONE plate, and what is on
         // it is stated in PHP — the area's boundary, and one layer per patrol

@@ -14,7 +14,7 @@
    HOW TALL: .patrol-coverage-plate carries this screen's --map-plate-height.
    The plate's layout is the atlas's; only the number is ours. #}
 {% import '@UhifadhiPatrol/dashboard/_ui.html.twig' as ui %}
-{% set patrolFilters %}{{ ui.filters(dashboard, types, typeColor, now, area, filter) }}{% endset %}
+{% set patrolFilters %}{{ ui.filters(dashboard, types, typeCat, now, area, filter) }}{% endset %}
 <div class="c patrol-coverage-plate">
     <span class="tab">Coverage<span class="src">· one filter drives map AND log</span></span>
     {{ render_map(map, {'role': 'img', 'aria-label': 'Patrol tracks'}, patrolFilters) }}

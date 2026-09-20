@@ -26,6 +26,7 @@ use Uhifadhi\Bundle\AreaBundle\Overview\OverviewCopyProviderInterface;
 use Uhifadhi\Bundle\AreaBundle\Overview\PulseEvent;
 use Uhifadhi\Bundle\AreaBundle\Overview\PulseProviderInterface;
 use Uhifadhi\Bundle\ShellBundle\Widget\Model\Widget;
+use Uhifadhi\Contracts\Atlas\PlatePalette;
 use Uhifadhi\Patrol\Enum\PatrolStatusEnum;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 use Uhifadhi\Patrol\Overview\PatrolAttention;
@@ -178,7 +179,7 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
         $context = $this->contributor()->context($this->area, $this->now());
 
         self::assertSame(
-            ['out', 'handsets', 'today', 'gaps', 'observations', 'types', 'typeColors', 'stalePingMinutes', 'coverageBufferKm', 'dashboardUrl'],
+            ['out', 'handsets', 'today', 'gaps', 'observations', 'types', 'typeCat', 'stalePingMinutes', 'coverageBufferKm', 'dashboardUrl'],
             array_keys($context),
         );
         self::assertSame(1, is_countable($context['out']) ? \count($context['out']) : -1);
@@ -401,9 +402,9 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
         self::assertStringContainsString('"kind":"ping"', $json);
         self::assertLessThan(mb_strpos($json, '"kind":"ping"'), (int) mb_strpos($json, '"kind":"trail"'));
         self::assertStringContainsString('"LineString"', $json);
-        // The module's own type colour, so a walking patrol is the same green
-        // here as on the module's own coverage map.
-        self::assertStringContainsString('"color":"#3ED9A8"', $json);
+        // The type's own CATEGORY, so a walking patrol wears the same hue here
+        // as on the module's own coverage map.
+        self::assertStringContainsString('"color":"'.PlatePalette::category(1).'"', $json);
     }
 
     public function testAHandLoggedPatrolIsCountedAndNotDrawn(): void
@@ -444,7 +445,7 @@ final class PatrolContributionsTest extends PatrolOverviewTestCase
         self::assertSame($patrol->getRef(), $closed->recordRef);
         self::assertSame('Closed at River Post — 41.8 km, 1 observation', $closed->summary);
         self::assertSame('closed', $closed->state);
-        self::assertSame('#3ED9A8', $closed->swatch);
+        self::assertSame(PlatePalette::ACCENT, $closed->swatch);
     }
 
     public function testAPatrolThatRecordedNoDistanceSaysSoRatherThanZero(): void

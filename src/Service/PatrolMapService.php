@@ -24,6 +24,7 @@ use Uhifadhi\Bundle\AtlasBundle\Model\GeoJsonLayer;
 use Uhifadhi\Bundle\AtlasBundle\Model\LayerShape;
 use Uhifadhi\Bundle\AtlasBundle\Model\LayerStyle;
 use Uhifadhi\Bundle\AtlasBundle\Model\LegendItem;
+use Uhifadhi\Contracts\Atlas\PlatePalette;
 
 /**
  * PATROL'S PLATES, STATED IN PHP.
@@ -37,8 +38,8 @@ use Uhifadhi\Bundle\AtlasBundle\Model\LegendItem;
  * sit, what fullscreen does or how a legend is laid out; it says what is on its
  * maps and the platform draws them the one way it draws every map.
  *
- * A TYPE IS A LAYER: one per patrol type, in the deployment's own colour for
- * that type, each with a legend row that switches it. So a type can be taken off
+ * A TYPE IS A LAYER: one per patrol type, in the category the area's own order
+ * puts that type in, each with a legend row that switches it. So a type can be taken off
  * the plate alone, while the filter row above it narrows the whole screen.
  *
  * @see vendor/uhifadhi/uhifadhi/src/Uhifadhi/Bundle/AtlasBundle/docs/components.md
@@ -52,13 +53,16 @@ final readonly class PatrolMapService
     public const string AREA_GROUP = 'the area';
 
     /**
-     * Fixed hexes, not theme tokens: these are drawn over imagery, which is dark
-     * in both themes. The track colours are the deployment's own, from
-     * {@see PatrolDashboardService::typeColors()}, so PHP and the legend cannot
-     * disagree about them.
+     * TOKENS, NEVER COLOURS. A plate's palette is picked to survive satellite
+     * ground and turns over with the theme, so this module names a MEANING and
+     * the plate resolves it where it draws: an observation is something to look
+     * at, and a station is context the reader did not come for. The per-type
+     * track swatches are the deployment's own categories, from
+     * {@see PatrolDashboardService::typeSwatches()}, so PHP and the legend
+     * cannot disagree about them.
      */
-    public const string OBSERVATION_SWATCH = '#DBA33F';
-    public const string STATION_SWATCH = '#B9C8BD';
+    public const string OBSERVATION_SWATCH = PlatePalette::WARN;
+    public const string STATION_SWATCH = PlatePalette::DIM;
 
     /**
      * The feature property a track's hover label is read from — "ref · type",
@@ -88,8 +92,8 @@ final readonly class PatrolMapService
      */
     public const string COVERAGE_LABEL = '2 km coverage buffer';
 
-    /** The quiet green the covered ground is drawn in — the atlas's own line colour. */
-    public const string COVERAGE_SWATCH = '#3ED9A8';
+    /** Ground that WAS reached: the plate's "good", not a green this module picked. */
+    public const string COVERAGE_SWATCH = PlatePalette::OK;
 
     /**
      * The pane the covered ground is drawn in. Leaflet's overlay pane is 400, so
@@ -102,8 +106,11 @@ final readonly class PatrolMapService
      */
     public const int COVERAGE_Z_INDEX = 390;
 
-    /** The fallback for a patrol whose type the deployment has since dropped. */
-    private const string DEFAULT_SWATCH = '#3ED9A8';
+    /**
+     * THE SUBJECT OF THE PLATE — what a route, an endpoint, the boundary and a
+     * patrol whose type the deployment has since dropped are drawn as.
+     */
+    private const string DEFAULT_SWATCH = PlatePalette::ACCENT;
 
     public function __construct(
         private MapBuilderInterface $maps,
@@ -115,11 +122,11 @@ final readonly class PatrolMapService
      * grouped by the type it was patrolled as.
      *
      * @param array{boundary: string|null, patrols: list<array{uuid: string, ref: string, type: string, station: string, zone: string, color: string, track: string}>, stations: list<array{name: string, lon: float, lat: float}>} $payload
-     * @param array<string, array{label: string, bufferM?: int|null}>                                                                                                                                                               $types     key → the word the legend prints, and the coverage width that type carries (null where it carries none)
-     * @param array<string, string>                                                                                                                                                                                                 $typeColor
-     * @param string|null                                                                                                                                                                                                           $coverage  the covered ground as GeoJSON text, from {@see \Uhifadhi\Patrol\Repository\PatrolRepository::coverageBufferGeoJson()}; null where the month recorded no track
+     * @param array<string, array{label: string, bufferM?: int|null}>                                                                                                                                                               $types      key → the word the legend prints, and the coverage width that type carries (null where it carries none)
+     * @param array<string, string>                                                                                                                                                                                                 $typeSwatch each type's plate token, from {@see PatrolDashboardService::typeSwatches()}
+     * @param string|null                                                                                                                                                                                                           $coverage   the covered ground as GeoJSON text, from {@see \Uhifadhi\Patrol\Repository\PatrolRepository::coverageBufferGeoJson()}; null where the month recorded no track
      */
-    public function coverage(array $payload, array $types, array $typeColor, ?string $coverage = null): AtlasMap
+    public function coverage(array $payload, array $types, array $typeSwatch, ?string $coverage = null): AtlasMap
     {
         $map = $this->maps->createMap();
         $this->drawBoundary($map, $payload['boundary'], scrim: true);
@@ -153,7 +160,7 @@ final readonly class PatrolMapService
                 id: 'patrol.tracks.'.$key,
                 label: mb_strtolower($types[$key]['label'] ?? $key),
                 features: self::collection($features),
-                swatch: $typeColor[$key] ?? self::DEFAULT_SWATCH,
+                swatch: $typeSwatch[$key] ?? self::DEFAULT_SWATCH,
                 shape: LayerShape::Line,
                 visible: [] !== $features,
                 count: \count($features),

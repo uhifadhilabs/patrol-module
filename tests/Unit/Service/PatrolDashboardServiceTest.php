@@ -16,6 +16,7 @@ namespace Uhifadhi\Patrol\Tests\Unit\Service;
 use PHPUnit\Framework\TestCase;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\TeamBundle\Entity\User;
+use Uhifadhi\Contracts\Atlas\PlatePalette;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
@@ -454,8 +455,10 @@ final class PatrolDashboardServiceTest extends TestCase
         self::assertSame($walk->getUuid()->toRfc4122(), $payload['patrols'][0]['uuid']);
         self::assertSame($walk->getRef(), $payload['patrols'][0]['ref']);
         self::assertSame('walk', $payload['patrols'][0]['type']);
-        // The colour is the SAME one the chips, charts and legend use.
-        self::assertSame(PatrolDashboardService::typeColors(self::TYPES)['walk'], $payload['patrols'][0]['color']);
+        // The swatch is the plate token this type's CATEGORY resolves to — the
+        // same category the chips, charts and legend put it in.
+        self::assertSame(PlatePalette::category(1), $payload['patrols'][0]['color']);
+        self::assertSame(PatrolDashboardService::typeSwatches(self::TYPES)['walk'], $payload['patrols'][0]['color']);
         self::assertSame($walk->getTrack(), $payload['patrols'][0]['track']);
         self::assertSame('boat', $payload['patrols'][1]['type']);
     }

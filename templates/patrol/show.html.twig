@@ -9,11 +9,6 @@
 
 {% import '@UhifadhiPatrol/_ui.html.twig' as ui %}
 
-{# Same cycled palette, same order as the dashboard: this patrol's type reads
-   in the identical colour on the coverage map and on this plate. #}
-{% set trackColors = ['#3ED9A8', '#5FA8E0', '#E0954F'] %}
-{% set typeColor = types|keys|reduce((carry, key) => carry|merge({(key): trackColors[carry|length % trackColors|length]}), {}) %}
-{% set trackColor = typeColor[patrol.type]|default(trackColors[0]) %}
 {% set typeLabel = types[patrol.type].label|default(patrol.type) %}
 {# The ranger's own name for the patrol where they gave one, else the station,
    else the type — Patrol::getDisplayName() decides the first two, and the type

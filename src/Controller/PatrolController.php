@@ -151,7 +151,7 @@ final class PatrolController
         return new Response($this->twig->render('@UhifadhiPatrol/dashboard/show.html.twig', [
             'area' => $area,
             'types' => $types,
-            'typeColor' => PatrolDashboardService::typeColors($types),
+            'typeCat' => PatrolDashboardService::typePositions($types),
             'now' => $now,
             // The month on screen — the filter's choice, so the bar can name it
             // and mark the chosen option, and the page can read one month.
@@ -191,7 +191,7 @@ final class PatrolController
             'map' => $this->plates->coverage(
                 $this->dashboard->coveragePayload($area->getGeom(), $dashboard, $types, $patrolZones),
                 $types,
-                PatrolDashboardService::typeColors($types),
+                PatrolDashboardService::typeSwatches($types),
                 // The ground the MONTH's routes covered — PL·03's own set
                 // operation, drawn. Not narrowed by the chips, exactly as the
                 // KPI beside it is not: the shape and the number are the same
