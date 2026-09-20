@@ -55,17 +55,17 @@
    and a hover fill over an outline is not this module's to add. */
 .mchip.add { border-style: dashed; border-color: rgb(var(--c-acc)); color: rgb(var(--c-acc)); cursor: pointer; }
 
-/* The two dashboard charts ("Patrols per week", "Patrols by station"). Bars carry
-   an inline fill (the per-type track colour / the accent), so only the SVG text and
-   the grid/axis lines need the shared palette: annotations read in ink (--c-tx),
-   the "patrols" caption + axis numerals + station labels in fog (--c-fog). */
-.ch { width: 100%; height: auto; display: block; }
-.ch text { font-family: var(--font-mono); font-size: 7.5px; fill: rgb(var(--c-fog)); }
+/* The two dashboard charts ("Patrols per week", "Patrols by station").
+
+   THE FURNITURE IS THE SHELL'S. The frame, the tick labels, the gridlines and
+   the axis were restated here while the chain did not ship them; core f77b375
+   collected them, so the four rules that said the same thing are gone. What is
+   left is the three kinds of LABEL this module's charts add on top of the
+   shared ones — a chart title, an annotation in ink, and its smaller second
+   line. Bars carry an inline fill, so nothing here colours a series. */
 .ch text.ttl { font-size: 8px; fill: rgb(var(--c-tx)); font-weight: 600; }
 .ch text.anno { fill: rgb(var(--c-tx)); font-size: 7.5px; }
 .ch text.annoS { fill: rgb(var(--c-fog)); font-size: 6.9px; }
-.ch line.grid { stroke: color-mix(in srgb, rgb(var(--c-fog)) 22%, transparent); stroke-width: .6; }
-.ch line.ax { stroke: color-mix(in srgb, rgb(var(--c-fog)) 55%, transparent); stroke-width: .8; }
 
 /* ---- filter chip row + station menu ----------------------------------- */
 .patrol-chiprow { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 12px; align-items: center; }
