@@ -54,12 +54,15 @@ final readonly class VocabularyProvider implements ProviderInterface
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): Response
     {
         try {
-            $this->api->requireRecorder();
-
             $query = $this->requests->getCurrentRequest()?->query;
+            $areaId = $query?->getString('areaId') ?? '';
+
+            // The ground first: the gate is about the area whose words are
+            // being asked for, not about "some area, any area".
+            $this->api->requireRecorder($this->api->findArea($areaId));
 
             return new JsonResponse($this->vocabulary->forArea(
-                $query?->getString('areaId') ?? '',
+                $areaId,
                 $query?->getString('since') ?: null,
             ));
         } catch (PatrolApiException $problem) {

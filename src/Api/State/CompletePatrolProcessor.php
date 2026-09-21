@@ -32,9 +32,10 @@ final class CompletePatrolProcessor extends PatrolSyncProcessor
 
     protected function handle(array $uriVariables): Response
     {
-        $this->api->requireRecorder();
+        $uuid = $this->api->uriUuid($uriVariables);
+        $this->api->requireRecorder($this->api->findPatrol($uuid)?->getArea());
 
-        $patrol = $this->api->patrol($this->api->uriUuid($uriVariables));
+        $patrol = $this->api->patrol($uuid);
 
         // The body is optional here — empty for an ordinary complete, and
         // carrying the discard when the ranger threw the patrol away instead.

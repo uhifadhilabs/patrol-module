@@ -18,8 +18,12 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Uid\Uuid;
+use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
+use Uhifadhi\Bundle\AreaBundle\Repository\AreaOfInterestRepository;
+use Uhifadhi\Contracts\Access\Grant;
+use Uhifadhi\Contracts\Access\Verb;
 use Uhifadhi\Contracts\Entity\UserInterface;
-use Uhifadhi\Patrol\Controller\PatrolRecordController;
+use Uhifadhi\Patrol\Access\PatrolConcerns;
 use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Repository\ObservationRepository;
@@ -43,11 +47,26 @@ final class PatrolApiContext
         private readonly AuthorizationCheckerInterface $authorizationChecker,
         private readonly PatrolRepository $patrols,
         private readonly ObservationRepository $observations,
+        private readonly AreaOfInterestRepository $areas,
     ) {
     }
 
     /**
-     * The signed-in field worker, once confirmed they may record patrols.
+     * The signed-in field worker, once confirmed they may record patrols
+     * ON THIS GROUND.
+     *
+     * THE AREA IS A REQUIRED ARGUMENT, and it is the whole point of the
+     * method's shape. `patrols.record` asked with no subject means "no area
+     * in context", which any placement reaching any ground at all satisfies —
+     * so a handset whose ranger is placed at one area could write a patrol
+     * into another. Every caller resolves the ground first and names it here.
+     *
+     * NULL IS ALLOWED AND MEANS "THERE IS NO SUCH GROUND": the uri named a
+     * patrol this server does not have, or the body named an area it does not
+     * know. The gate is still asked, and is still the first thing to refuse,
+     * because a caller who may not record must be told 403 rather than handed
+     * a 404 that says which uuids exist. The caller then throws the 404 or the
+     * 422 it was going to throw anyway.
      *
      * 403, not 401: the token is valid and the caller is known — they simply do
      * not hold this permission, and the app shows a different thing for each
@@ -55,7 +74,7 @@ final class PatrolApiContext
      *
      * @throws PatrolApiException
      */
-    public function requireRecorder(): UserInterface
+    public function requireRecorder(?AreaOfInterest $area): UserInterface
     {
         $user = $this->tokenStorage->getToken()?->getUser();
 
@@ -63,11 +82,35 @@ final class PatrolApiContext
             throw new PatrolApiException(401, 'unauthorized', 'Sign in again.');
         }
 
-        if (!$this->authorizationChecker->isGranted(PatrolRecordController::RECORD_PERMISSION)) {
+        if (!$this->authorizationChecker->isGranted((string) Grant::of(PatrolConcerns::PATROLS, Verb::Record), $area)) {
             throw PatrolApiException::forbidden();
         }
 
         return $user;
+    }
+
+    /**
+     * The patrol a URI names, or null where this server has never seen that
+     * uuid — so a caller can name the ground before it asks the gate, and
+     * still answer 404 afterwards.
+     */
+    public function findPatrol(string $uuid): ?Patrol
+    {
+        return Uuid::isValid($uuid)
+            ? $this->patrols->findOneByClientUuid(Uuid::fromString($uuid))
+            : null;
+    }
+
+    /**
+     * The area an id names, or null where it is not one this server issued.
+     * It does not throw: the services that consume the id own the 422 and its
+     * wording, and this exists only so the gate can be asked with the ground.
+     */
+    public function findArea(string $areaId): ?AreaOfInterest
+    {
+        return Uuid::isValid($areaId)
+            ? $this->areas->findOneBy(['uuid' => Uuid::fromString($areaId)])
+            : null;
     }
 
     /**
@@ -78,23 +121,21 @@ final class PatrolApiContext
      */
     public function patrol(string $uuid): Patrol
     {
-        if (!Uuid::isValid($uuid)) {
-            throw PatrolApiException::unknownPatrol($uuid);
-        }
-
-        return $this->patrols->findOneByClientUuid(Uuid::fromString($uuid))
-            ?? throw PatrolApiException::unknownPatrol($uuid);
+        return $this->findPatrol($uuid) ?? throw PatrolApiException::unknownPatrol($uuid);
     }
 
     /** @throws PatrolApiException */
     public function observation(string $uuid): Observation
     {
-        if (!Uuid::isValid($uuid)) {
-            throw PatrolApiException::unknownObservation($uuid);
-        }
+        return $this->findObservation($uuid) ?? throw PatrolApiException::unknownObservation($uuid);
+    }
 
-        return $this->observations->findOneByClientUuid(Uuid::fromString($uuid))
-            ?? throw PatrolApiException::unknownObservation($uuid);
+    /** The same, without the refusal — see {@see self::findPatrol()}. */
+    public function findObservation(string $uuid): ?Observation
+    {
+        return Uuid::isValid($uuid)
+            ? $this->observations->findOneByClientUuid(Uuid::fromString($uuid))
+            : null;
     }
 
     /**

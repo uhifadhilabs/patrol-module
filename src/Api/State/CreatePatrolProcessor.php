@@ -16,6 +16,7 @@ namespace Uhifadhi\Patrol\Api\State;
 use Symfony\Component\HttpFoundation\Response;
 use Uhifadhi\Patrol\Api\ContractResponse;
 use Uhifadhi\Patrol\Api\PatrolApiContext;
+use Uhifadhi\Patrol\Api\Payload;
 use Uhifadhi\Patrol\Service\Api\PatrolUpsertService;
 
 /**
@@ -31,9 +32,14 @@ final class CreatePatrolProcessor extends PatrolSyncProcessor
 
     protected function handle(array $uriVariables): Response
     {
-        $recorder = $this->api->requireRecorder();
+        // THE GROUND FIRST, so the gate is asked about the area the phone
+        // named rather than about no area at all. An id this server never
+        // issued resolves to null, the gate still refuses a caller who may
+        // not record, and the upsert then answers the 422 it owns.
+        $body = $this->api->body();
+        $recorder = $this->api->requireRecorder($this->api->findArea(Payload::string($body, 'areaId') ?? ''));
 
-        [$patrol, $duplicate] = $this->upsert->upsert($this->api->body(), $recorder);
+        [$patrol, $duplicate] = $this->upsert->upsert($body, $recorder);
 
         // 201 the first time, 200 on a re-send — the contract draws that line
         // and the app reads it.

@@ -31,9 +31,10 @@ final class AppendTrackProcessor extends PatrolSyncProcessor
 
     protected function handle(array $uriVariables): Response
     {
-        $this->api->requireRecorder();
+        $uuid = $this->api->uriUuid($uriVariables);
+        $this->api->requireRecorder($this->api->findPatrol($uuid)?->getArea());
 
-        $patrol = $this->api->patrol($this->api->uriUuid($uriVariables));
+        $patrol = $this->api->patrol($uuid);
 
         [$accepted, $duplicate] = $this->track->append($patrol, $this->api->body());
 

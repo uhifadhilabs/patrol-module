@@ -31,9 +31,10 @@ final class AppendEventsProcessor extends PatrolSyncProcessor
 
     protected function handle(array $uriVariables): Response
     {
-        $recorder = $this->api->requireRecorder();
+        $uuid = $this->api->uriUuid($uriVariables);
+        $recorder = $this->api->requireRecorder($this->api->findPatrol($uuid)?->getArea());
 
-        $patrol = $this->api->patrol($this->api->uriUuid($uriVariables));
+        $patrol = $this->api->patrol($uuid);
 
         [$accepted, $duplicate] = $this->events->append($patrol, $this->api->body(), $recorder);
 
