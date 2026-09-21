@@ -22,8 +22,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Requirement\Requirement;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
@@ -40,6 +40,7 @@ use Uhifadhi\Patrol\Service\GeoService;
 use Uhifadhi\Patrol\Service\GpxWriter;
 use Uhifadhi\Patrol\Service\PatrolDashboardService;
 use Uhifadhi\Patrol\Service\PatrolMapService;
+use Uhifadhi\Patrol\Service\PatrolScreenAccessService;
 use Uhifadhi\Patrol\Storage\PatrolFileSource;
 
 /**
@@ -66,8 +67,7 @@ final class PatrolDetailController
     /**
      * @param array<string, array{label: string}> $categories           the deployment's patrol.observation_categories vocabulary
      * @param int                                 $discardRetentionDays patrol.discard_retention_days — what the purge-window line states
-     * @param AuthorizationCheckerInterface|null  $authorizationChecker null in a host with no security: the hold action is then offered to nobody
-     * @param CsrfTokenManagerInterface|null      $csrfTokenManager     null for the same reason — a write with no token to protect it is not rendered
+     * @param CsrfTokenManagerInterface|null      $csrfTokenManager     null in a kernel with no CSRF protection — a write with no token to protect it is not rendered
      */
     public function __construct(
         private readonly Environment $twig,
@@ -78,8 +78,11 @@ final class PatrolDetailController
         private readonly ObservationAmendmentRepository $amendments,
         private readonly PatrolTypeRepository $types,
         private readonly array $categories,
+        // WHETHER TO DRAW A DOOR, asked in the one place that answers it for
+        // this module — and asked WITH the area, because that is the question
+        // the gate behind the control asks.
+        private readonly PatrolScreenAccessService $screens,
         private readonly int $discardRetentionDays = PatrolConfiguration::DEFAULT_DISCARD_RETENTION_DAYS,
-        private readonly ?AuthorizationCheckerInterface $authorizationChecker = null,
         private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
     ) {
     }
@@ -90,6 +93,7 @@ final class PatrolDetailController
         requirements: ['uuid' => Requirement::UUID, 'patrol' => Requirement::UUID],
         methods: ['GET'],
     )]
+    #[IsGranted('patrols.read', subject: 'area')]
     public function show(
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
         #[MapEntity(mapping: ['patrol' => 'uuid'])] Patrol $patrol,
@@ -119,7 +123,7 @@ final class PatrolDetailController
             // The hold action, or nothing at all. Absent rather than disabled
             // for whoever may not use it: a greyed control advertises a power
             // the reader does not have.
-            'holdToken' => $this->holdToken($patrol),
+            'holdToken' => $this->holdToken($area, $patrol),
             // The plate payload: the recorded track plus the positioned
             // observations, which the controller draws as numbered rings.
             'map' => $this->plates->track([
@@ -161,6 +165,7 @@ final class PatrolDetailController
         requirements: ['uuid' => Requirement::UUID, 'patrol' => Requirement::UUID],
         methods: ['GET'],
     )]
+    #[IsGranted('patrols.export', subject: 'area')]
     public function exportGpx(
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
         #[MapEntity(mapping: ['patrol' => 'uuid'])] Patrol $patrol,
@@ -213,6 +218,7 @@ final class PatrolDetailController
         requirements: ['uuid' => Requirement::UUID, 'patrol' => Requirement::UUID, 'observation' => Requirement::UUID],
         methods: ['GET'],
     )]
+    #[IsGranted('patrols.read', subject: 'area')]
     public function observationShow(
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
         #[MapEntity(mapping: ['patrol' => 'uuid'])] Patrol $patrol,
@@ -268,7 +274,7 @@ final class PatrolDetailController
             'amendmentKinds' => ObservationAmendmentKindEnum::cases(),
             // The affordance is offered only to somebody who could actually use
             // it — a button that 403s is a worse answer than no button.
-            'canAmend' => $canAmend = $this->canAmend(),
+            'canAmend' => $canAmend = $this->canAmend($area),
             'amending' => $canAmend && $request->query->getBoolean('amend'),
             // Null where there is no token manager at all, which is the same
             // hosts where canAmend() is false — but stated separately, because
@@ -411,16 +417,14 @@ final class PatrolDetailController
     }
 
     /**
-     * Whether THIS caller may append a correction — the module's one recording
-     * permission, the same one that gates the hold and the entry flow
-     * ("anyone who may edit the patrol", PL·09).
-     *
-     * False wherever the host runs no security: there is nobody to sign an
-     * amendment, and the route to post one was never registered.
+     * Whether THIS caller may append a correction — `patrols.manage` on THIS
+     * area, which is the pair the amendment route enforces. Appending a
+     * signed correction to somebody else's observation is acting on a record
+     * they made, not making one, and the two are separable now.
      */
-    private function canAmend(): bool
+    private function canAmend(AreaOfInterest $area): bool
     {
-        return $this->authorizationChecker?->isGranted(PatrolRecordController::RECORD_PERMISSION) ?? false;
+        return $this->screens->mayManage($area);
     }
 
     /**
@@ -536,17 +540,17 @@ final class PatrolDetailController
      * learns not to draw the form at all.
      *
      * Null in three situations, and they collapse to one rule: the action is
-     * offered only where it can be both performed and protected. No security
-     * bundle (the route does not exist), no `patrols.record` (this reader may
-     * not), or a patrol that was never discarded (there is no clock to stop).
+     * offered only where it can be both performed and protected. No CSRF token
+     * manager, no `patrols.manage` ON THIS AREA (this reader may not), or a
+     * patrol that was never discarded (there is no clock to stop).
      */
-    private function holdToken(Patrol $patrol): ?string
+    private function holdToken(AreaOfInterest $area, Patrol $patrol): ?string
     {
-        if (!$patrol->isDiscarded() || null === $this->csrfTokenManager || null === $this->authorizationChecker) {
+        if (!$patrol->isDiscarded() || null === $this->csrfTokenManager) {
             return null;
         }
 
-        if (!$this->authorizationChecker->isGranted(PatrolRecordController::RECORD_PERMISSION)) {
+        if (!$this->screens->mayManage($area)) {
             return null;
         }
 

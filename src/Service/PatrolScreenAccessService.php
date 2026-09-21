@@ -13,20 +13,26 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Service;
 
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
-use Uhifadhi\Patrol\Controller\PatrolRecordController;
-use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
+use Uhifadhi\Bundle\TeamBundle\Access\Door;
+use Uhifadhi\Contracts\Access\Verb;
+use Uhifadhi\Contracts\Entity\AreaInterface;
+use Uhifadhi\Patrol\Access\PatrolConcerns;
 
 /**
- * WHETHER TO DRAW A DOOR — asked in one place, because it is TWO questions and
- * a screen that asks only one of them hands people a link they cannot open.
+ * WHETHER TO DRAW A DOOR — asked in one place, so no screen of this module
+ * asks a different question from the gate behind the link it is drawing.
  *
- * The first is about the INSTALLATION: the screens that create patrols are
- * registered only where SecurityBundle is, so where it is absent there is no
- * route to link at. That is decided at compile time and arrives as a flag.
+ * IT GOES THROUGH THE CORE'S {@see Door}. Every door in the product names the
+ * pair the thing behind it enforces, and a test can then walk the doors and
+ * hold them against the routes. A module that asked the authorization checker
+ * itself would be outside that proof.
  *
- * The second is about THE VIEWER: those screens enforce their permission in
- * code, so somebody without it who follows the link gets a 403.
+ * EVERY QUESTION CARRIES ITS AREA, and that is not a convenience. A pair
+ * asked with no subject means "no area in context", which any placement
+ * reaching any ground at all satisfies — so a door asked without the ground
+ * would be answering a different question from the gate, and would draw
+ * somebody a control that then refuses. Every screen of this module is drawn
+ * under one area, so every one of these takes it.
  *
  * A CONTROL THE VIEWER MAY NOT HAVE IS ABSENT, never greyed out — a disabled
  * button tells a ranger a screen exists and they are not trusted with it, and a
@@ -34,37 +40,53 @@ use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
  */
 final readonly class PatrolScreenAccessService
 {
-    /**
-     * @param bool                               $recordScreens whether the entry flow EXISTS in this installation
-     * @param AuthorizationCheckerInterface|null $authorization null where the installation runs no security, which is also where the screens do not exist
-     * @param bool                               $manageScreens whether the configuring screens EXIST in this installation
-     */
     public function __construct(
-        private bool $recordScreens = false,
-        private ?AuthorizationCheckerInterface $authorization = null,
-        private bool $manageScreens = false,
+        private Door $door,
     ) {
     }
 
-    public function mayRecord(): bool
+    /** The entry flow: importing a track, logging a patrol by hand. */
+    public function mayRecord(AreaInterface $area): bool
     {
-        return $this->granted($this->recordScreens, PatrolRecordController::RECORD_PERMISSION);
+        return $this->door->opensFor(PatrolConcerns::PATROLS, Verb::Record, $area);
     }
 
     /**
-     * The same two questions for the screens that CHANGE what an area runs on —
-     * the observation kinds and the Settings section's two word-lists. They
-     * enforce `patrols.manage` in code and exist only where SecurityBundle can.
+     * Acting on a record somebody else made: holding a discarded patrol back
+     * from the purge, appending a signed correction to an observation.
      */
-    public function mayManage(): bool
+    public function mayManage(AreaInterface $area): bool
     {
-        return $this->granted($this->manageScreens, PatrolTaxonomyController::MANAGE_PERMISSION);
+        return $this->door->opensFor(PatrolConcerns::PATROLS, Verb::Manage, $area);
     }
 
-    private function granted(bool $mounted, string $permission): bool
+    /** The two thresholds this area runs patrols on. */
+    public function mayConfigure(AreaInterface $area): bool
     {
-        return $mounted
-            && null !== $this->authorization
-            && $this->authorization->isGranted($permission);
+        return $this->door->opensFor(PatrolConcerns::PATROLS, Verb::Configure, $area);
+    }
+
+    /** Naming the types an area patrols by. */
+    public function mayConfigureTypes(AreaInterface $area): bool
+    {
+        return $this->door->opensFor(PatrolConcerns::TYPES, Verb::Configure, $area);
+    }
+
+    /** Naming the places an area patrols from. */
+    public function mayConfigureStations(AreaInterface $area): bool
+    {
+        return $this->door->opensFor(PatrolConcerns::STATIONS, Verb::Configure, $area);
+    }
+
+    /** Naming the words a ranger logs an observation against. */
+    public function mayConfigureObservationKinds(AreaInterface $area): bool
+    {
+        return $this->door->opensFor(PatrolConcerns::OBSERVATION_KINDS, Verb::Configure, $area);
+    }
+
+    /** Carrying the log or a track out of the building. */
+    public function mayExport(AreaInterface $area): bool
+    {
+        return $this->door->opensFor(PatrolConcerns::PATROLS, Verb::Export, $area);
     }
 }

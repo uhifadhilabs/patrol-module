@@ -22,10 +22,10 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
 use Uhifadhi\Contracts\Entity\UserInterface;
@@ -75,7 +75,6 @@ final class PatrolHoldController
 {
     public function __construct(
         private readonly UrlGeneratorInterface $urls,
-        private readonly AuthorizationCheckerInterface $authorizationChecker,
         private readonly TokenStorageInterface $tokenStorage,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly PatrolHoldService $holds,
@@ -93,6 +92,7 @@ final class PatrolHoldController
         requirements: ['uuid' => Requirement::UUID, 'patrol' => Requirement::UUID],
         methods: ['POST'],
     )]
+    #[IsGranted('patrols.manage', subject: 'area')]
     public function toggle(
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
         #[MapEntity(mapping: ['patrol' => 'uuid'])] Patrol $patrol,
@@ -105,7 +105,6 @@ final class PatrolHoldController
             throw new NotFoundHttpException('That patrol belongs to another area.');
         }
 
-        $this->denyUnlessRecorder();
         $this->denyUnlessCsrfValid($patrol, $request);
 
         // Only a discarded patrol has a clock to stop, and the write says so.
@@ -131,18 +130,6 @@ final class PatrolHoldController
     public static function csrfTokenId(Patrol $patrol): string
     {
         return 'patrol_hold_'.$patrol->getUuid()->toRfc4122();
-    }
-
-    /**
-     * Checked in code rather than with #[IsGranted]: that attribute is honoured
-     * by a listener in symfony/security-http, which this bundle does not
-     * require — see PatrolRecordController for the full reasoning.
-     */
-    private function denyUnlessRecorder(): void
-    {
-        if (!$this->authorizationChecker->isGranted(PatrolRecordController::RECORD_PERMISSION)) {
-            throw new AccessDeniedException('Holding a patrol for review requires "'.PatrolRecordController::RECORD_PERMISSION.'".');
-        }
     }
 
     private function denyUnlessCsrfValid(Patrol $patrol, Request $request): void

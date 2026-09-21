@@ -19,6 +19,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
@@ -102,6 +103,7 @@ final class PatrolController
     }
 
     #[Route('/areas/{uuid}/modules/patrols', name: 'patrol_dashboard', requirements: ['uuid' => Requirement::UUID], methods: ['GET'])]
+    #[IsGranted('patrols.read', subject: 'area')]
     public function dashboard(
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
         Request $request,
@@ -168,8 +170,8 @@ final class PatrolController
             // patrol id → zone name: the log rows name the zone each patrol set
             // out in, which is what the ZONE options are chosen from.
             'patrolZones' => $patrolZones,
-            'recordScreens' => $this->screens->mayRecord(),
-            'manageScreens' => $this->screens->mayManage(),
+            'recordScreens' => $this->screens->mayRecord($area),
+            'manageScreens' => $this->screens->mayConfigureObservationKinds($area),
             'retentionDays' => $this->retentionDays,
             // The read-only kinds card: what a ranger may log here, and how
             // often each was logged this month. Editing is one click away in

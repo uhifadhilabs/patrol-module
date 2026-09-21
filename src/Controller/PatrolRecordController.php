@@ -27,6 +27,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
@@ -101,12 +102,6 @@ use Uhifadhi\Patrol\Upload\PatrolTrackTarget;
 #[Route(defaults: [RegistryBundle::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class PatrolRecordController
 {
-    /**
-     * The permission the screen requires. Declared by the module; the host's
-     * voter decides which positions actually hold it.
-     */
-    public const string RECORD_PERMISSION = 'patrols.record';
-
     /** The token the one submit carries — the design names it. */
     public const string CSRF_TOKEN_ID = 'patrol_log';
 
@@ -127,7 +122,6 @@ final class PatrolRecordController
         private readonly PatrolMapService $plates,
         private readonly PatrolDraftService $drafts,
         private readonly PatrolRecordingService $recording,
-        private readonly AuthorizationCheckerInterface $authorizationChecker,
         private readonly TokenStorageInterface $tokenStorage,
         private readonly CsrfTokenManagerInterface $csrf,
     ) {
@@ -145,6 +139,7 @@ final class PatrolRecordController
         requirements: ['uuid' => Requirement::UUID],
         methods: ['GET'],
     )]
+    #[IsGranted('patrols.record', subject: 'area')]
     public function import(
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
     ): RedirectResponse {
@@ -164,12 +159,11 @@ final class PatrolRecordController
         requirements: ['uuid' => Requirement::UUID],
         methods: ['GET', 'POST'],
     )]
+    #[IsGranted('patrols.record', subject: 'area')]
     public function log(
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
         Request $request,
     ): Response {
-        $this->denyUnlessRecorder();
-
         $draft = $this->drafts->reopen(
             $request->isMethod('POST') ? $request->request->getString('draft') : null,
             $area,
@@ -377,14 +371,6 @@ final class PatrolRecordController
         }
 
         return null;
-    }
-
-    /** Recording patrols is the privilege; nothing here runs without it. */
-    private function denyUnlessRecorder(): void
-    {
-        if (!$this->authorizationChecker->isGranted(self::RECORD_PERMISSION)) {
-            throw new AccessDeniedException('Recording a patrol needs the patrols.record permission.');
-        }
     }
 
     /**

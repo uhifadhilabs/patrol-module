@@ -21,6 +21,7 @@ use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Requirement\Requirement;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Uid\Uuid;
 use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
@@ -103,6 +104,7 @@ final class PatrolWidgetsController
         requirements: ['uuid' => Requirement::UUID],
         methods: ['GET'],
     )]
+    #[IsGranted('patrols.read', subject: 'area')]
     public function library(
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
     ): Response {
@@ -192,6 +194,7 @@ final class PatrolWidgetsController
     }
 
     #[Route('/areas/{uuid}/modules/patrols/widgets/save', name: 'patrol_widgets_save', requirements: ['uuid' => Requirement::UUID], methods: ['POST'])]
+    #[IsGranted('patrols.read', subject: 'area')]
     public function save(
         Request $request,
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
@@ -200,6 +203,7 @@ final class PatrolWidgetsController
     }
 
     #[Route('/areas/{uuid}/modules/patrols/widgets/reset', name: 'patrol_widgets_reset', requirements: ['uuid' => Requirement::UUID], methods: ['POST'])]
+    #[IsGranted('patrols.read', subject: 'area')]
     public function reset(
         Request $request,
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
@@ -213,6 +217,7 @@ final class PatrolWidgetsController
     }
 
     #[Route('/areas/{uuid}/modules/patrols/widgets/preset/{presetId}', name: 'patrol_widgets_preset', requirements: ['uuid' => Requirement::UUID, 'presetId' => '[a-z0-9_-]+'], methods: ['POST'])]
+    #[IsGranted('patrols.read', subject: 'area')]
     public function applyPreset(
         Request $request,
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
@@ -232,6 +237,7 @@ final class PatrolWidgetsController
     }
 
     #[Route('/areas/{uuid}/modules/patrols/widgets/preset/{presetId}/copy', name: 'patrol_widgets_preset_copy', requirements: ['uuid' => Requirement::UUID, 'presetId' => '[a-z0-9_-]+'], methods: ['POST'], priority: 1)]
+    #[IsGranted('patrols.read', subject: 'area')]
     public function copyPreset(
         Request $request,
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
@@ -246,6 +252,7 @@ final class PatrolWidgetsController
     }
 
     #[Route('/areas/{uuid}/modules/patrols/widgets/presets', name: 'patrol_widgets_preset_create', requirements: ['uuid' => Requirement::UUID], methods: ['POST'])]
+    #[IsGranted('patrols.read', subject: 'area')]
     public function createPreset(
         Request $request,
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
@@ -259,6 +266,7 @@ final class PatrolWidgetsController
     }
 
     #[Route('/areas/{uuid}/modules/patrols/widgets/presets/{presetUuid}/apply', name: 'patrol_widgets_preset_apply', requirements: ['uuid' => Requirement::UUID, 'presetUuid' => Requirement::UUID], methods: ['POST'])]
+    #[IsGranted('patrols.read', subject: 'area')]
     public function applyCustomPreset(
         Request $request,
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
@@ -273,6 +281,7 @@ final class PatrolWidgetsController
     }
 
     #[Route('/areas/{uuid}/modules/patrols/widgets/presets/{presetUuid}/rename', name: 'patrol_widgets_preset_rename', requirements: ['uuid' => Requirement::UUID, 'presetUuid' => Requirement::UUID], methods: ['POST'])]
+    #[IsGranted('patrols.read', subject: 'area')]
     public function renameCustomPreset(
         Request $request,
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
@@ -287,6 +296,7 @@ final class PatrolWidgetsController
     }
 
     #[Route('/areas/{uuid}/modules/patrols/widgets/presets/{presetUuid}/delete', name: 'patrol_widgets_preset_delete', requirements: ['uuid' => Requirement::UUID, 'presetUuid' => Requirement::UUID], methods: ['POST'])]
+    #[IsGranted('patrols.read', subject: 'area')]
     public function deleteCustomPreset(
         Request $request,
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,

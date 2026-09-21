@@ -394,18 +394,10 @@ final class UhifadhiPatrolBundle extends AbstractBundle
             ->args([service(ObservationPhotoRepository::class), service('router')])
             ->tag(FileSourceInterface::TAG);
 
-        // The dashboard offers "Log patrol" only where that route exists, so a
-        // host without security shows no link into nowhere.
-        $builder->setParameter('patrol.record_screens', $hasSecurity);
         // The widget library edits ONE PERSON's layout, so it needs a signed-in
         // user for the same reason and lives under the same guard; a host without
         // security simply renders the design's default layout for everyone.
         $builder->setParameter('patrol.widget_screens', $hasSecurity);
-        // The observation-taxonomy admin enforces patrols.manage on every route,
-        // so like the entry flow it exists only where SecurityBundle can;
-        // the dashboard links it only where that route is, and only for a viewer
-        // who holds the permission (PatrolController::mayManage()).
-        $builder->setParameter('patrol.manage_screens', $hasSecurity);
 
         /*
          * THE PATROLS DASHBOARD IS A DECLARED WIDGET SURFACE, tagged by hand
@@ -464,7 +456,6 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service('patrol.map'),
                     service('patrol.drafts'),
                     service('patrol.recording'),
-                    service('security.authorization_checker'),
                     service('security.token_storage'),
                     service('security.csrf.token_manager'),
                 ])
@@ -514,7 +505,6 @@ final class UhifadhiPatrolBundle extends AbstractBundle
             $services->set('patrol.controller.hold', PatrolHoldController::class)
                 ->args([
                     service('router'),
-                    service('security.authorization_checker'),
                     service('security.token_storage'),
                     service('security.csrf.token_manager'),
                     service('patrol.hold'),
@@ -530,7 +520,6 @@ final class UhifadhiPatrolBundle extends AbstractBundle
             $services->set('patrol.controller.observation_amend', ObservationAmendmentController::class)
                 ->args([
                     service('router'),
-                    service('security.authorization_checker'),
                     service('security.token_storage'),
                     service('security.csrf.token_manager'),
                     service('patrol.observation_amendments'),
@@ -551,7 +540,6 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service('patrol.taxonomy_admin'),
                     service(TaxonomyKindRepository::class),
                     service(TaxonomySubcategoryRepository::class),
-                    service('security.authorization_checker'),
                     service('security.csrf.token_manager'),
                     service('patrol.screen_access'),
                 ])
@@ -569,7 +557,6 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                 ->args([
                     service('router'),
                     service('patrol.settings'),
-                    service('security.authorization_checker'),
                     service('security.csrf.token_manager'),
                 ])
                 ->public();
@@ -594,7 +581,6 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service(PatrolTypeRepository::class),
                     service(StationRepository::class),
                     service('patrol.screen_access'),
-                    service('security.authorization_checker'),
                     service('security.csrf.token_manager'),
                 ])
                 ->public();
@@ -639,6 +625,10 @@ final class UhifadhiPatrolBundle extends AbstractBundle
                     service('security.authorization_checker'),
                     service(PatrolRepository::class),
                     service(ObservationRepository::class),
+                    // The GROUND an endpoint is about, so `patrols.record` is
+                    // asked with the area the phone named rather than with
+                    // none — see PatrolApiContext::requireRecorder().
+                    service(AreaOfInterestRepository::class),
                 ]);
 
             $services->set('patrol.api.patrol_upsert', PatrolUpsertService::class)

@@ -22,10 +22,10 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Requirement\Requirement;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
@@ -88,9 +88,6 @@ use Uhifadhi\Patrol\Service\PatrolVocabularyService;
 #[Route(defaults: [RegistryBundle::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final readonly class PatrolVocabularyController
 {
-    /** Changing the words everybody else must use rides on the kinds' authority. */
-    public const string MANAGE_PERMISSION = PatrolTaxonomyController::MANAGE_PERMISSION;
-
     /**
      * The token id every form on this module's configure page carries — the
      * Settings section's included, because one page with two ids is a page where
@@ -125,7 +122,6 @@ final readonly class PatrolVocabularyController
         private PatrolTypeRepository $types,
         private StationRepository $stations,
         private PatrolScreenAccessService $screens,
-        private AuthorizationCheckerInterface $authorization,
         private CsrfTokenManagerInterface $csrfTokenManager,
     ) {
     }
@@ -145,6 +141,7 @@ final readonly class PatrolVocabularyController
         methods: ['GET'],
         priority: 2,
     )]
+    #[IsGranted('patrol-types.read', subject: 'area')]
     public function types(#[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area): Response
     {
         /*
@@ -173,7 +170,7 @@ final readonly class PatrolVocabularyController
             'maxPaceKmh' => PatrolBaseDefaults::MAX_PACE_KMH,
             'minBufferM' => PatrolBaseDefaults::MIN_BUFFER_M,
             'maxBufferM' => PatrolBaseDefaults::MAX_BUFFER_M,
-            ...$this->chrome(),
+            ...$this->chrome($area, $this->screens->mayConfigureTypes($area)),
         ]));
     }
 
@@ -183,6 +180,7 @@ final readonly class PatrolVocabularyController
         requirements: ['uuid' => Requirement::UUID],
         methods: ['POST'],
     )]
+    #[IsGranted('patrol-types.configure', subject: 'area')]
     public function saveTypes(
         Request $request,
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
@@ -244,6 +242,7 @@ final readonly class PatrolVocabularyController
         requirements: ['uuid' => Requirement::UUID, 'type' => Requirement::UUID],
         methods: ['POST'],
     )]
+    #[IsGranted('patrol-types.configure', subject: 'area')]
     public function actOnType(
         Request $request,
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
@@ -292,6 +291,7 @@ final readonly class PatrolVocabularyController
         methods: ['GET'],
         priority: 2,
     )]
+    #[IsGranted('patrol-stations.read', subject: 'area')]
     public function stations(
         Request $request,
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
@@ -338,7 +338,7 @@ final readonly class PatrolVocabularyController
             // The two the marker's position travels in, and what a save reads back.
             'plateLat' => $lat,
             'plateLng' => $lon,
-            ...$this->chrome(),
+            ...$this->chrome($area, $this->screens->mayConfigureStations($area)),
         ]));
     }
 
@@ -348,6 +348,7 @@ final readonly class PatrolVocabularyController
         requirements: ['uuid' => Requirement::UUID],
         methods: ['POST'],
     )]
+    #[IsGranted('patrol-stations.configure', subject: 'area')]
     public function saveStations(
         Request $request,
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
@@ -405,6 +406,7 @@ final readonly class PatrolVocabularyController
         requirements: ['uuid' => Requirement::UUID, 'station' => Requirement::UUID],
         methods: ['POST'],
     )]
+    #[IsGranted('patrol-stations.configure', subject: 'area')]
     public function actOnStation(
         Request $request,
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
@@ -436,15 +438,17 @@ final readonly class PatrolVocabularyController
     /**
      * @return array{recordScreens: bool, mayManage: bool, csrfToken: string}
      */
-    private function chrome(): array
+    private function chrome(AreaOfInterest $area, bool $mayConfigure): array
     {
         return [
             // The one page action either screen draws. The way back is the strip,
             // the lit Configure and the crumb — never a button of its own.
-            'recordScreens' => $this->screens->mayRecord(),
+            'recordScreens' => $this->screens->mayRecord($area),
             // WHETHER THE FORM IS DRAWN AT ALL. A reader gets the section read-only
-            // rather than controls that answer 403 when pressed.
-            'mayManage' => $this->screens->mayManage(),
+            // rather than controls that answer 403 when pressed — and it is THIS
+            // section's own pair, because the types and the stations are two
+            // things an organization may hand over separately.
+            'mayManage' => $mayConfigure,
             'csrfToken' => $this->csrfTokenManager->getToken(self::CSRF_TOKEN_ID)->getValue(),
         ];
     }
@@ -519,10 +523,6 @@ final readonly class PatrolVocabularyController
 
     private function guard(Request $request): void
     {
-        if (!$this->authorization->isGranted(self::MANAGE_PERMISSION)) {
-            throw new AccessDeniedException('Changing what this area runs patrols on needs "'.self::MANAGE_PERMISSION.'".');
-        }
-
         if (!$this->csrfTokenManager->isTokenValid(new CsrfToken(self::CSRF_TOKEN_ID, $request->request->getString('_token')))) {
             throw new AccessDeniedException('Invalid CSRF token for the patrols configure page.');
         }

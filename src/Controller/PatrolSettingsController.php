@@ -20,10 +20,10 @@ use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Requirement\Requirement;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
 use Uhifadhi\Bundle\ShellBundle\Frame\Controller\ConfigureController;
@@ -49,9 +49,6 @@ use Uhifadhi\Patrol\Service\PatrolSettingsService;
 #[Route(defaults: [RegistryBundle::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final readonly class PatrolSettingsController
 {
-    /** Changing what the area runs on rides on the same authority the kinds do. */
-    public const string MANAGE_PERMISSION = PatrolTaxonomyController::MANAGE_PERMISSION;
-
     /** The token id every form on the Settings section carries. */
     public const string CSRF_TOKEN_ID = 'patrol_settings';
 
@@ -66,7 +63,6 @@ final readonly class PatrolSettingsController
     public function __construct(
         private UrlGeneratorInterface $router,
         private PatrolSettingsService $settings,
-        private AuthorizationCheckerInterface $authorization,
         private CsrfTokenManagerInterface $csrfTokenManager,
     ) {
     }
@@ -77,6 +73,7 @@ final readonly class PatrolSettingsController
         requirements: ['uuid' => Requirement::UUID],
         methods: ['POST'],
     )]
+    #[IsGranted('patrols.configure', subject: 'area')]
     public function save(
         Request $request,
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
@@ -129,14 +126,10 @@ final readonly class PatrolSettingsController
         return false === $value ? null : $value;
     }
 
-    // ── the two things every action does ──────────────────────────────────────
+    // ── the one thing every action does ───────────────────────────────────────
 
     private function guard(Request $request): void
     {
-        if (!$this->authorization->isGranted(self::MANAGE_PERMISSION)) {
-            throw new AccessDeniedException('Changing what this area runs patrols on needs "'.self::MANAGE_PERMISSION.'".');
-        }
-
         if (!$this->csrfTokenManager->isTokenValid(new CsrfToken(self::CSRF_TOKEN_ID, $request->request->getString('_token')))) {
             throw new AccessDeniedException('Invalid CSRF token for the patrols settings.');
         }

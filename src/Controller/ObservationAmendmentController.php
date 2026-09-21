@@ -23,10 +23,10 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
 use Uhifadhi\Contracts\Entity\UserInterface;
@@ -71,7 +71,6 @@ final class ObservationAmendmentController
 {
     public function __construct(
         private readonly UrlGeneratorInterface $urls,
-        private readonly AuthorizationCheckerInterface $authorizationChecker,
         private readonly TokenStorageInterface $tokenStorage,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ObservationAmendmentService $amendments,
@@ -88,6 +87,7 @@ final class ObservationAmendmentController
         ],
         methods: ['POST'],
     )]
+    #[IsGranted('patrols.manage', subject: 'area')]
     public function append(
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
         #[MapEntity(mapping: ['patrol' => 'uuid'])] Patrol $patrol,
@@ -102,7 +102,6 @@ final class ObservationAmendmentController
             throw new NotFoundHttpException('That observation belongs to another patrol.');
         }
 
-        $this->denyUnlessRecorder();
         $this->denyUnlessCsrfValid($observation, $request);
 
         $kind = ObservationAmendmentKindEnum::tryFromSubmitted($request->request->getString('kind'));
@@ -184,17 +183,6 @@ final class ObservationAmendmentController
         $file = $request->files->get('photo');
 
         return $file instanceof UploadedFile ? $file : null;
-    }
-
-    /**
-     * Checked in code rather than with #[IsGranted] — see
-     * {@see PatrolRecordController} for the full reasoning.
-     */
-    private function denyUnlessRecorder(): void
-    {
-        if (!$this->authorizationChecker->isGranted(PatrolRecordController::RECORD_PERMISSION)) {
-            throw new AccessDeniedException('Amending an observation requires "'.PatrolRecordController::RECORD_PERMISSION.'".');
-        }
     }
 
     private function denyUnlessCsrfValid(Observation $observation, Request $request): void

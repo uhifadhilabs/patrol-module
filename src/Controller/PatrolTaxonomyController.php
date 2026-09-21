@@ -22,10 +22,10 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Requirement\Requirement;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
@@ -70,9 +70,6 @@ use Uhifadhi\Patrol\Service\TaxonomyAdminService;
 #[Route(defaults: [RegistryBundle::MODULE_ROUTE_DEFAULT => PatrolModuleProvider::SLUG])]
 final class PatrolTaxonomyController
 {
-    /** Managing the observation vocabulary rides on its own authority — not `patrols.record`. */
-    public const string MANAGE_PERMISSION = 'patrols.manage';
-
     /** The token id every taxonomy write carries. */
     public const string CSRF_TOKEN_ID = 'patrol_taxonomy';
 
@@ -82,7 +79,6 @@ final class PatrolTaxonomyController
         private readonly TaxonomyAdminService $admin,
         private readonly TaxonomyKindRepository $kinds,
         private readonly TaxonomySubcategoryRepository $subcategories,
-        private readonly AuthorizationCheckerInterface $authorization,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly PatrolScreenAccessService $screens,
     ) {
@@ -95,12 +91,11 @@ final class PatrolTaxonomyController
         methods: ['GET'],
         priority: 2,
     )]
+    #[IsGranted('observation-kinds.configure', subject: 'area')]
     public function show(
         Request $request,
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
     ): Response {
-        $this->denyUnlessGranted();
-
         $kinds = $this->kinds->forArea($area);
         $selected = $this->selectedKind($kinds, $request->query->getString('kind'));
 
@@ -110,7 +105,7 @@ final class PatrolTaxonomyController
             'selected' => $selected,
             // The one page action this screen draws. The way back is the strip,
             // the lit Configure and the crumb — never a button of its own.
-            'recordScreens' => $this->screens->mayRecord(),
+            'recordScreens' => $this->screens->mayRecord($area),
             'csrfToken' => $this->csrfTokenManager->getToken(self::CSRF_TOKEN_ID)->getValue(),
         ]));
     }
@@ -127,6 +122,7 @@ final class PatrolTaxonomyController
         methods: ['GET'],
         priority: 2,
     )]
+    #[IsGranted('observation-kinds.configure', subject: 'area')]
     public function legacyTaxonomyAddress(#[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area): RedirectResponse
     {
         return new RedirectResponse(
@@ -138,6 +134,7 @@ final class PatrolTaxonomyController
     // ── kinds ────────────────────────────────────────────────────────────────
 
     #[Route('/areas/{uuid}/modules/patrols/kinds', name: 'patrol_kinds_kind_create', requirements: ['uuid' => Requirement::UUID], methods: ['POST'])]
+    #[IsGranted('observation-kinds.configure', subject: 'area')]
     public function createKind(Request $request, #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area): Response
     {
         $this->guardWrite($request);
@@ -152,6 +149,7 @@ final class PatrolTaxonomyController
     }
 
     #[Route('/areas/{uuid}/modules/patrols/kinds/{kind}/rename', name: 'patrol_kinds_kind_rename', requirements: ['uuid' => Requirement::UUID, 'kind' => Requirement::UUID], methods: ['POST'])]
+    #[IsGranted('observation-kinds.configure', subject: 'area')]
     public function renameKind(Request $request, #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area, string $kind): Response
     {
         $this->guardWrite($request);
@@ -167,6 +165,7 @@ final class PatrolTaxonomyController
     }
 
     #[Route('/areas/{uuid}/modules/patrols/kinds/{kind}/deactivate', name: 'patrol_kinds_kind_deactivate', requirements: ['uuid' => Requirement::UUID, 'kind' => Requirement::UUID], methods: ['POST'])]
+    #[IsGranted('observation-kinds.configure', subject: 'area')]
     public function deactivateKind(Request $request, #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area, string $kind): Response
     {
         $this->guardWrite($request);
@@ -177,6 +176,7 @@ final class PatrolTaxonomyController
     }
 
     #[Route('/areas/{uuid}/modules/patrols/kinds/{kind}/reactivate', name: 'patrol_kinds_kind_reactivate', requirements: ['uuid' => Requirement::UUID, 'kind' => Requirement::UUID], methods: ['POST'])]
+    #[IsGranted('observation-kinds.configure', subject: 'area')]
     public function reactivateKind(Request $request, #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area, string $kind): Response
     {
         $this->guardWrite($request);
@@ -189,6 +189,7 @@ final class PatrolTaxonomyController
     // ── sub-categories ─────────────────────────────────────────────────────────
 
     #[Route('/areas/{uuid}/modules/patrols/kinds/{kind}/subcategories', name: 'patrol_kinds_sub_create', requirements: ['uuid' => Requirement::UUID, 'kind' => Requirement::UUID], methods: ['POST'])]
+    #[IsGranted('observation-kinds.configure', subject: 'area')]
     public function createSubcategory(Request $request, #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area, string $kind): Response
     {
         $this->guardWrite($request);
@@ -204,6 +205,7 @@ final class PatrolTaxonomyController
     }
 
     #[Route('/areas/{uuid}/modules/patrols/kinds/subcategories/{sub}/rename', name: 'patrol_kinds_sub_rename', requirements: ['uuid' => Requirement::UUID, 'sub' => Requirement::UUID], methods: ['POST'])]
+    #[IsGranted('observation-kinds.configure', subject: 'area')]
     public function renameSubcategory(Request $request, #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area, string $sub): Response
     {
         $this->guardWrite($request);
@@ -219,6 +221,7 @@ final class PatrolTaxonomyController
     }
 
     #[Route('/areas/{uuid}/modules/patrols/kinds/subcategories/{sub}/deactivate', name: 'patrol_kinds_sub_deactivate', requirements: ['uuid' => Requirement::UUID, 'sub' => Requirement::UUID], methods: ['POST'])]
+    #[IsGranted('observation-kinds.configure', subject: 'area')]
     public function deactivateSubcategory(Request $request, #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area, string $sub): Response
     {
         $this->guardWrite($request);
@@ -229,6 +232,7 @@ final class PatrolTaxonomyController
     }
 
     #[Route('/areas/{uuid}/modules/patrols/kinds/subcategories/{sub}/reactivate', name: 'patrol_kinds_sub_reactivate', requirements: ['uuid' => Requirement::UUID, 'sub' => Requirement::UUID], methods: ['POST'])]
+    #[IsGranted('observation-kinds.configure', subject: 'area')]
     public function reactivateSubcategory(Request $request, #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area, string $sub): Response
     {
         $this->guardWrite($request);
@@ -330,16 +334,8 @@ final class PatrolTaxonomyController
 
     private function guardWrite(Request $request): void
     {
-        $this->denyUnlessGranted();
         if (!$this->csrfTokenManager->isTokenValid(new CsrfToken(self::CSRF_TOKEN_ID, $request->request->getString('_token')))) {
             throw new AccessDeniedException('Invalid CSRF token for the taxonomy admin.');
-        }
-    }
-
-    private function denyUnlessGranted(): void
-    {
-        if (!$this->authorization->isGranted(self::MANAGE_PERMISSION)) {
-            throw new AccessDeniedException('Managing the observation taxonomy needs "'.self::MANAGE_PERMISSION.'".');
         }
     }
 }

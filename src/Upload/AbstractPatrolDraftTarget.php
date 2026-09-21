@@ -15,8 +15,10 @@ namespace Uhifadhi\Patrol\Upload;
 
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Uhifadhi\Contracts\Access\Grant;
+use Uhifadhi\Contracts\Access\Verb;
 use Uhifadhi\Contracts\Entity\UserInterface as PersonInterface;
-use Uhifadhi\Patrol\Controller\PatrolRecordController;
+use Uhifadhi\Patrol\Access\PatrolConcerns;
 use Uhifadhi\Patrol\Entity\PatrolDraft;
 use Uhifadhi\Patrol\Entity\PatrolDraftFile;
 use Uhifadhi\Patrol\Service\PatrolDraftService;
@@ -109,7 +111,7 @@ abstract readonly class AbstractPatrolDraftTarget implements UploadTargetInterfa
             && null !== $owner->getId()
             && $owner->getId() === $user->getId()
             && $this->authorization->isGranted(
-                PatrolRecordController::RECORD_PERMISSION,
+                (string) Grant::of(PatrolConcerns::PATROLS, Verb::Record),
                 $draft->getArea(),
             );
     }

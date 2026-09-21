@@ -18,6 +18,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Twig\Environment;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
@@ -60,6 +61,7 @@ final readonly class PatrolListController
     }
 
     #[Route('/areas/{uuid}/modules/patrols/patrols', name: 'patrol_list', requirements: ['uuid' => Requirement::UUID], methods: ['GET'])]
+    #[IsGranted('patrols.read', subject: 'area')]
     public function list(
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
         Request $request,
@@ -81,7 +83,7 @@ final readonly class PatrolListController
             'retentionDays' => $this->retentionDays,
             // The design's Log patrol action. Drawn only where the screen exists
             // AND this viewer may open it — never a door that answers with 403.
-            'recordScreens' => $this->screens->mayRecord(),
+            'recordScreens' => $this->screens->mayRecord($area),
             'list' => $this->list->build(
                 $this->patrols->findByAreaStartedBetweenLatestFirst($area, $monthStart, $nextMonth),
                 // The ZONE each patrol set out in — the same live spatial join

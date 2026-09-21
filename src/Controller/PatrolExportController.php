@@ -20,6 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\RegistryBundle\RegistryBundle;
 use Uhifadhi\Patrol\Entity\Patrol;
@@ -74,6 +75,7 @@ final readonly class PatrolExportController
         requirements: ['uuid' => Requirement::UUID, '_format' => 'csv|gpx'],
         methods: ['GET'],
     )]
+    #[IsGranted('patrols.export', subject: 'area')]
     public function export(
         #[MapEntity(mapping: ['uuid' => 'uuid'])] AreaOfInterest $area,
         Request $request,
