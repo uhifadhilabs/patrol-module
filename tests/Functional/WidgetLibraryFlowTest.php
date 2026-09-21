@@ -38,6 +38,7 @@ use Uhifadhi\Patrol\Widget\PatrolWidgets;
 final class WidgetLibraryFlowTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
+    use SomebodyIsSignedIn;
 
     /** The shipped composition, in the design's own order — the feed is off the
      * default (owner ruling 2026-09-08), so it is not among the rendered widgets. */
@@ -81,6 +82,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
         $this->em->flush();
 
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
     }
 
     protected function tearDown(): void
@@ -364,6 +366,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
         $this->em->persist($other);
         $this->em->flush();
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
 
         $this->client->loginUser($this->ranger);
         $crawler = $this->client->request('GET', '/areas/'.$other->getUuidString().'/modules/patrols/widgets');
@@ -386,6 +389,8 @@ final class WidgetLibraryFlowTest extends WebTestCase
     /** The library is one person's, so it needs one — anonymous gets nothing. */
     public function testTheLibraryNeedsSomebodySignedIn(): void
     {
+        $this->signOut($this->client);
+
         $this->client->request('GET', $this->libraryUrl());
 
         self::assertResponseStatusCodeSame(401);
@@ -398,6 +403,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
         $this->em->persist($other);
         $this->em->flush();
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
 
         $this->client->loginUser($this->ranger);
         $this->client->request('POST', $this->libraryUrl().'/preset/default/copy', [
@@ -423,6 +429,7 @@ final class WidgetLibraryFlowTest extends WebTestCase
         $this->em->persist($other);
         $this->em->flush();
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
 
         $this->client->loginUser($this->ranger);
         $this->client->request('POST', $this->libraryUrl().'/preset/default/copy', [

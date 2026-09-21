@@ -21,6 +21,7 @@ use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
+use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 
 /**
  * THE DESIGN'S `Export` ACTION — the filtered log as CSV, the filtered tracks as
@@ -35,6 +36,7 @@ use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 final class PatrolExportTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
+    use SomebodyIsSignedIn;
 
     private const string MONTH = '2026-03';
 
@@ -83,6 +85,10 @@ final class PatrolExportTest extends WebTestCase
             ->setEndedAt(new \DateTimeImmutable('2026-03-08 08:00')));
 
         $this->everyAreaRunsPatrols($this->em);
+        // Exporting is its own act: the bystander reads the register and
+        // cannot carry it out of the building, so these sign in as the tier
+        // that may.
+        $this->signIn($this->client, $this->em, FixedRecordVoter::RECORDER_EMAIL);
     }
 
     private function exportUrl(string $format, string $query = ''): string

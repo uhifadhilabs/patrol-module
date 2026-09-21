@@ -285,6 +285,10 @@ final class TestKernel extends Kernel
             \Uhifadhi\Patrol\Storage\PatrolFileSource::class => 'patrol.file_source',
             \Uhifadhi\Patrol\Security\PatrolEvidenceVoter::class => 'patrol.evidence_voter',
             \Uhifadhi\Storage\Registry\FileRegistry::class => 'storage.file_registry',
+            // The installation's live catalogue of concerns — every pair every
+            // installed package declares. A test that composes a real position
+            // needs it, because writing grants onto one validates against it.
+            \Uhifadhi\Bundle\TeamBundle\Access\ConcernCatalogue::class => 'team.access.catalogue',
             // The module's six contributions to the host's area overview, and
             // the one reading behind all of them. A host reaches them through
             // their TAGS; these aliases only let a test hold one directly.

@@ -32,6 +32,7 @@ use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 final class PatrolListPageTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
+    use SomebodyIsSignedIn;
 
     private const int PATROL_COUNT = 25;
 
@@ -81,6 +82,7 @@ final class PatrolListPageTest extends WebTestCase
         $this->em->persist(new Observation($searchable, 'maintenance')->setNote('culvert washed out'));
 
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
     }
 
     /** @param array<string, scalar> $query */

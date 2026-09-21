@@ -41,6 +41,7 @@ use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 final class ParkedModuleTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
+    use SomebodyIsSignedIn;
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
@@ -64,6 +65,7 @@ final class ParkedModuleTest extends WebTestCase
         $this->em->persist($this->area);
 
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
     }
 
     protected function tearDown(): void

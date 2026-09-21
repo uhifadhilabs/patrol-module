@@ -15,6 +15,7 @@ namespace Uhifadhi\Patrol\Tests\Integration\Module;
 
 use Uhifadhi\Bundle\AreaBundle\Entity\AreaOfInterest;
 use Uhifadhi\Bundle\TeamBundle\Entity\Department;
+use Uhifadhi\Bundle\TeamBundle\Entity\Placement;
 use Uhifadhi\Bundle\TeamBundle\Entity\Position;
 use Uhifadhi\Bundle\TeamBundle\Entity\User;
 use Uhifadhi\Contracts\Kpi\DepartmentKpi;
@@ -54,7 +55,7 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
     {
         $world = $this->world();
 
-        $unseated = $this->user('Neema', 'Mollel', null);
+        $unseated = $this->unseated('Neema', 'Mollel');
         $this->em->persist(new Observation($this->patrol($world['area'], $unseated, 8.0), 'sighting')->setRecordedBy($unseated));
         $this->patrol($world['area'], null, 4.0);
         $this->em->flush();
@@ -241,7 +242,7 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
     {
         $world = $this->world();
 
-        $this->tracked($world['area'], $this->user('Neema', 'Mollel', null), '{"type":"LineString","coordinates":[[-29.6,-3.25],[-29.4,-3.25]]}');
+        $this->tracked($world['area'], $this->unseated('Neema', 'Mollel'), '{"type":"LineString","coordinates":[[-29.6,-3.25],[-29.4,-3.25]]}');
         $this->tracked($world['area'], $world['ranger'], '{"type":"LineString","coordinates":[[-29.6,-3.15],[-29.4,-3.15]]}');
         $this->em->flush();
 
@@ -350,8 +351,8 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         $ecology = $this->department('Ecology');
         $protection = $this->department('Protection Service');
 
-        $analyst = $this->user('Grace', 'Shirima', $this->position('Analyst', $ecology));
-        $ranger = $this->user('Juma', 'Kileo', $this->position('Ranger', $protection));
+        $analyst = $this->user('Grace', 'Shirima', $this->position('Analyst'), $ecology);
+        $ranger = $this->user('Juma', 'Kileo', $this->position('Ranger'), $protection);
 
         // Ecology's two.
         $this->patrol($area, $analyst, 10.0);
@@ -417,21 +418,51 @@ final class PatrolDepartmentKpiProviderTest extends IntegrationTestCase
         return $department;
     }
 
-    private function position(string $name, ?Department $department): Position
+    /**
+     * A POSITION CARRIES NO DEPARTMENT. Its name is unique across the whole
+     * organization, and which department somebody works for is one of the two
+     * dimensions of where they are PLACED — see {@see self::user()}.
+     */
+    private function position(string $name): Position
     {
-        $position = new Position()->setName($name)->setDepartment($department);
+        $position = new Position()->setName($name);
         $this->em->persist($position);
 
         return $position;
     }
 
-    private function user(string $first, string $last, ?Position $position): User
+    /**
+     * Somebody holding no position and placed nowhere — the figures still
+     * count their patrols, because a department's figures follow the SCOPE
+     * and never the recorder.
+     */
+    private function unseated(string $first, string $last): User
     {
         $user = new User()->setPassword('x')
             ->setEmail(strtolower($first.'.'.$last).'@example.test')
             ->setFirstName($first)
+            ->setLastName($last);
+        $this->em->persist($user);
+
+        return $user;
+    }
+
+    /**
+     * Somebody holding a position, placed across the organization and against
+     * one named department. The placement is what makes them a member of it,
+     * and it is written on the person rather than on the position.
+     */
+    private function user(string $first, string $last, Position $position, Department $department): User
+    {
+        $placement = new Placement()->acrossTheOrganization()->inDepartments([$department]);
+        $this->em->persist($placement);
+
+        $user = new User()->setPassword('x')
+            ->setEmail(strtolower($first.'.'.$last).'@example.test')
+            ->setFirstName($first)
             ->setLastName($last)
-            ->setPosition($position);
+            ->setPosition($position)
+            ->setPlacement($placement);
         $this->em->persist($user);
 
         return $user;

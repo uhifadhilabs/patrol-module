@@ -14,8 +14,6 @@ declare(strict_types=1);
 namespace Uhifadhi\Patrol\Tests\Unit\Module;
 
 use PHPUnit\Framework\TestCase;
-use Uhifadhi\Patrol\Controller\PatrolRecordController;
-use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
 use Uhifadhi\Patrol\Module\PatrolModuleProvider;
 
 final class PatrolModuleProviderTest extends TestCase
@@ -32,41 +30,17 @@ final class PatrolModuleProviderTest extends TestCase
         self::assertSame('patrol_dashboard', $provider->entryRoute());
     }
 
-    public function testDeclaresTheRecordAndManagePermissionsForTheHostToAssign(): void
-    {
-        $permissions = new PatrolModuleProvider('operations')->permissions();
-
-        // Two tiers, declared here and granted to nobody by the bundle: recording
-        // a patrol, and managing this area's observation taxonomy.
-        self::assertCount(2, $permissions);
-
-        // The exact attribute the entry flow checks.
-        self::assertSame(PatrolRecordController::RECORD_PERMISSION, $permissions[0]->value);
-        self::assertSame('patrols.record', $permissions[0]->value);
-        self::assertSame('Patrols', $permissions[0]->umbrella);
-        self::assertSame('Record', $permissions[0]->action);
-
-        // The exact attribute the taxonomy admin checks.
-        self::assertSame(PatrolTaxonomyController::MANAGE_PERMISSION, $permissions[1]->value);
-        self::assertSame('patrols.manage', $permissions[1]->value);
-        self::assertSame('Patrols', $permissions[1]->umbrella);
-        self::assertSame('Manage', $permissions[1]->action);
-    }
-
     /**
-     * The sentence the host's permission matrix prints under the name. "Patrols ·
-     * Record" says which words this module chose; the sentence says what ticking
-     * the box hands over, and it is the only part of the row an administrator can
-     * actually decide from.
+     * THE MODULE DECLARES NO FLAT PERMISSIONS ANY MORE. What it lets somebody
+     * act on is declared as concerns, through the access seam
+     * ({@see \Uhifadhi\Patrol\Access\PatrolConcerns}) — a thing to act on
+     * with the verbs it supports, instead of one string per action. Two
+     * catalogues naming the same power would let an organization grant it
+     * twice and revoke it once, so this one is empty on purpose.
      */
-    public function testTheDeclaredPermissionCarriesTheSentenceTheMatrixPrints(): void
+    public function testDeclaresNoFlatPermissionsBecauseItDeclaresConcerns(): void
     {
-        $permissions = new PatrolModuleProvider('operations')->permissions();
-
-        self::assertSame(
-            'Record patrols: import a GPS track or log one by hand, and add the observations made along the way.',
-            $permissions[0]->description,
-        );
+        self::assertSame([], new PatrolModuleProvider('operations')->permissions());
     }
 
     public function testCategoryIsDeploymentConfigured(): void

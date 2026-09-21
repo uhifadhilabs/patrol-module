@@ -34,6 +34,8 @@ use Uhifadhi\Patrol\Entity\ObservationPhoto;
  */
 final class FieldSyncPhotoPositionTest extends FieldSyncTestCase
 {
+    use SomebodyIsSignedIn;
+
     private const string OBSERVATION = 'c3a10000-0000-4000-8000-0000000000a1';
 
     #[Test]
@@ -158,6 +160,7 @@ final class FieldSyncPhotoPositionTest extends FieldSyncTestCase
         $observation = $photo->getObservation();
         $patrol = $observation->getPatrol();
 
+        $this->signIn($this->client, $this->em);
         $this->client->request('GET', \sprintf(
             '/areas/%s/modules/patrols/%s/observations/%s',
             $this->area->getUuidString(),
@@ -186,6 +189,7 @@ final class FieldSyncPhotoPositionTest extends FieldSyncTestCase
         $photo = $this->reloadPhoto('0a000000-0000-4000-8000-000000000008');
         $observation = $photo->getObservation();
 
+        $this->signIn($this->client, $this->em);
         $this->client->request('GET', \sprintf(
             '/areas/%s/modules/patrols/%s/observations/%s',
             $this->area->getUuidString(),

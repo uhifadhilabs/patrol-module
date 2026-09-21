@@ -16,39 +16,63 @@ namespace Uhifadhi\Patrol\Tests\Integration\Fixtures;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
+use Uhifadhi\Bundle\AreaBundle\Access\AreaConcerns;
 use Uhifadhi\Bundle\TeamBundle\Entity\User;
-use Uhifadhi\Patrol\Controller\PatrolRecordController;
-use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
+use Uhifadhi\Contracts\Access\Grant;
+use Uhifadhi\Contracts\Access\Verb;
+use Uhifadhi\Patrol\Access\PatrolConcerns;
 
 /**
- * Test stand-in for the HOST's permission voter: the bundle only DECLARES
- * "patrols.record" (PatrolRecordController::RECORD_PERMISSION) and
- * "patrols.manage" (PatrolTaxonomyController::MANAGE_PERMISSION); deciding who
- * holds them is the host's job.
+ * THE INSTALLATION'S END OF THE ACCESS MODEL, played by a fixture.
  *
- * Here that decision is fixed and DIFFERENT FOR THE TWO TIERS, on purpose: one
- * account may record and not manage, another may manage. That is the split the
- * taxonomy admin rests on — logging a patrol (`patrols.record`) is not enough to
- * name the words everybody else must use (`patrols.manage`) — so the tests have
- * to be able to exercise a person who has one and not the other, which a single
- * blanket "may do everything" stub could never show.
+ * This bundle DECLARES its concerns ({@see PatrolConcerns}) and grants them to
+ * nobody: which positions hold which pairs is an organization's business, and
+ * the core's own `GrantVoter` answers it from a position and a placement. Most
+ * of this suite is about what a screen DOES once somebody may open it, so it
+ * would rather say "this person may record here" in one line than compose a
+ * position, a grant set and a placement per test.
+ *
+ * THREE TIERS, AND THE SPLIT IS THE POINT. A blanket "may do everything" stub
+ * could never show that logging a patrol is not enough to name the words
+ * everybody else must use, nor that reading the register is not enough to
+ * carry it out of the building. So:
+ *
+ *   - THE BYSTANDER reads, and only reads.
+ *   - THE RECORDER reads, records, and exports what they can read.
+ *   - THE MANAGER reads, exports, acts on records somebody else made, and
+ *     names the words: the types, the stations, the observation kinds and the
+ *     two thresholds the area runs on.
+ *
+ * THE PAIRS COME FROM THE DECLARATIONS, never from a typed string — this
+ * module's from {@see PatrolConcerns} and the ground's from
+ * {@see AreaConcerns}. A fixture that spelled them by hand would keep passing
+ * after a rename and prove nothing.
+ *
+ * THE GROUND QUESTION IS NOT ASKED HERE, deliberately. This decides by tier
+ * and ignores the subject, so the area a gate is asked with is proved
+ * somewhere it can be proved properly: {@see \Uhifadhi\Patrol\Tests\Functional\RouteByComposedPositionTest}
+ * composes a real position and a real placement and drives the routes as
+ * somebody holding exactly the right pairs at a DIFFERENT area.
  *
  * @extends Voter<string, mixed>
  */
 final class FixedRecordVoter extends Voter
 {
-    /** May record a patrol, and may NOT manage the taxonomy. */
+    /** Reads the module, and nothing else. */
+    public const string BYSTANDER_EMAIL = 'bystander@example.test';
+
+    /** May record a patrol, and may NOT name the words or act on other people's records. */
     public const string RECORDER_EMAIL = 'recorder@example.test';
 
-    /** May manage this area's observation taxonomy. */
+    /** May configure this area's patrol vocabulary, and manage records somebody else made. */
     public const string MANAGER_EMAIL = 'manager@example.test';
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return \in_array($attribute, [
-            PatrolRecordController::RECORD_PERMISSION,
-            PatrolTaxonomyController::MANAGE_PERMISSION,
-        ], true);
+        return [] !== array_filter(
+            self::tiers(),
+            static fn (array $pairs): bool => \in_array($attribute, $pairs, true),
+        );
     }
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token, ?Vote $vote = null): bool
@@ -58,10 +82,79 @@ final class FixedRecordVoter extends Voter
             return false;
         }
 
-        return match ($attribute) {
-            PatrolRecordController::RECORD_PERMISSION => self::RECORDER_EMAIL === $user->getEmail(),
-            PatrolTaxonomyController::MANAGE_PERMISSION => self::MANAGER_EMAIL === $user->getEmail(),
-            default => false,
-        };
+        /*
+         * SOMEBODY THE TEST ACTUALLY COMPOSED IS THE REAL VOTER'S BUSINESS.
+         * A user holding a position was given one on purpose, with grants and
+         * a placement, so that the core's GrantVoter can answer for them —
+         * this fixture stands aside rather than handing them a tier they were
+         * never meant to have and masking the answer under test.
+         */
+        if (null !== $user->getPosition()) {
+            return false;
+        }
+
+        $email = (string) $user->getEmail();
+
+        // ANYBODY SIGNED IN READS. This installation lets its whole team read
+        // the module and reserves the decisions; a suite full of ad-hoc people
+        // - a lead, a ranger, somebody else's account - would otherwise have to
+        // be enrolled one by one before a page would open. What a READ gate
+        // actually costs is proved where it can be proved properly, against a
+        // real position and a real placement.
+        return \in_array($attribute, self::tiers()[$email] ?? self::reads(), true);
+    }
+
+    /**
+     * What each tier holds, spelt from the declarations.
+     *
+     * @return array<string, list<string>>
+     */
+    private static function tiers(): array
+    {
+        $reads = self::reads();
+
+        $recorder = [
+            ...$reads,
+            self::pair(PatrolConcerns::PATROLS, Verb::Record),
+            self::pair(PatrolConcerns::PATROLS, Verb::Export),
+        ];
+
+        $manager = [
+            ...$reads,
+            self::pair(PatrolConcerns::PATROLS, Verb::Manage),
+            self::pair(PatrolConcerns::PATROLS, Verb::Configure),
+            self::pair(PatrolConcerns::PATROLS, Verb::Export),
+            self::pair(PatrolConcerns::TYPES, Verb::Configure),
+            self::pair(PatrolConcerns::STATIONS, Verb::Configure),
+            self::pair(PatrolConcerns::OBSERVATION_KINDS, Verb::Configure),
+        ];
+
+        return [
+            self::BYSTANDER_EMAIL => $reads,
+            self::RECORDER_EMAIL => $recorder,
+            self::MANAGER_EMAIL => $manager,
+        ];
+    }
+
+    /**
+     * What anybody signed in holds: every read this module declares, and the
+     * ground's own - the pairs spelt from {@see PatrolConcerns} and
+     * {@see AreaConcerns} rather than typed out.
+     *
+     * @return list<string>
+     */
+    private static function reads(): array
+    {
+        return [
+            self::pair(PatrolConcerns::PATROLS, Verb::Read),
+            self::pair(PatrolConcerns::TYPES, Verb::Read),
+            self::pair(PatrolConcerns::STATIONS, Verb::Read),
+            self::pair(AreaConcerns::AREAS, Verb::Read),
+        ];
+    }
+
+    private static function pair(string $concern, Verb $verb): string
+    {
+        return (string) Grant::of($concern, $verb);
     }
 }

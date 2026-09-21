@@ -39,6 +39,7 @@ use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 final class CalendarTabTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
+    use SomebodyIsSignedIn;
 
     /**
      * A month safely in the past: "today" then falls outside it whenever the
@@ -122,6 +123,7 @@ final class CalendarTabTest extends WebTestCase
         $this->em->flush();
 
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
     }
 
     protected function tearDown(): void

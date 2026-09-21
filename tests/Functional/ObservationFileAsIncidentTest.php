@@ -46,6 +46,7 @@ use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 final class ObservationFileAsIncidentTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
+    use SomebodyIsSignedIn;
 
     /**
      * A point whose two halves cannot be confused for each other: different
@@ -106,6 +107,7 @@ final class ObservationFileAsIncidentTest extends WebTestCase
         $this->em->flush();
 
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
     }
 
     protected function tearDown(): void

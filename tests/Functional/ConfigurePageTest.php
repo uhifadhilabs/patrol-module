@@ -37,6 +37,7 @@ use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 final class ConfigurePageTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
+    use SomebodyIsSignedIn;
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
@@ -65,6 +66,7 @@ final class ConfigurePageTest extends WebTestCase
             ->setEndedAt(new \DateTimeImmutable('today 09:10')));
 
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
     }
 
     private function configureUrl(?string $section = null): string

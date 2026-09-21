@@ -47,6 +47,7 @@ use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 final class ObservationAmendmentTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
+    use SomebodyIsSignedIn;
 
     private const string ORIGINAL_NOTE = 'Fresh lion tracks 400 m from River Post, heading south-east. Two sets, likely adult + subadult.';
 
@@ -56,6 +57,8 @@ final class ObservationAmendmentTest extends WebTestCase
     private Patrol $patrol;
     private Observation $observation;
     private User $recorder;
+    /** Somebody who may act on records other people made — `patrols.manage`, which is what an amendment is. */
+    private User $keeper;
     private User $bystander;
 
     protected function setUp(): void
@@ -77,9 +80,12 @@ final class ObservationAmendmentTest extends WebTestCase
 
         $this->recorder = new User()->setPassword('x')->setEmail(FixedRecordVoter::RECORDER_EMAIL)
             ->setFirstName('Sara')->setLastName('Laizer');
+        $this->keeper = new User()->setPassword('x')->setEmail(FixedRecordVoter::MANAGER_EMAIL)
+            ->setFirstName('Mary')->setLastName('Mollel');
         $this->bystander = new User()->setPassword('x')->setEmail('bystander@example.test')
             ->setFirstName('Ben')->setLastName('Bystander');
         $this->em->persist($this->recorder);
+        $this->em->persist($this->keeper);
         $this->em->persist($this->bystander);
 
         $this->patrol = new Patrol($this->area, Vocabulary::type($this->em, $this->area, 'walk'))
@@ -102,6 +108,7 @@ final class ObservationAmendmentTest extends WebTestCase
         $this->em->flush();
 
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
     }
 
     protected function tearDown(): void
@@ -126,7 +133,7 @@ final class ObservationAmendmentTest extends WebTestCase
      */
     public function testTheEmptyStateSaysNothingHasBeenCorrected(): void
     {
-        $this->client->loginUser($this->recorder);
+        $this->client->loginUser($this->keeper);
         $crawler = $this->client->request('GET', $this->observationUrl());
 
         self::assertResponseIsSuccessful();
@@ -149,7 +156,7 @@ final class ObservationAmendmentTest extends WebTestCase
         // The correction, underneath.
         self::assertStringContainsString('Three sets of tracks, not two.', $html);
         // Signed and filed under what it corrects.
-        self::assertStringContainsString('S. Laizer', $html);
+        self::assertStringContainsString('M. Mollel', $html);
         self::assertStringContainsString('the note', $html);
 
         // And in the database the note itself was never written to.
@@ -204,7 +211,7 @@ final class ObservationAmendmentTest extends WebTestCase
         $history = $this->client->request('GET', $this->observationUrl())
             ->filter('[data-patrol-history]')->text();
 
-        self::assertStringContainsString('amended by S. Laizer', $history);
+        self::assertStringContainsString('amended by M. Mollel', $history);
         self::assertStringContainsString('the note', $history);
     }
 
@@ -215,7 +222,7 @@ final class ObservationAmendmentTest extends WebTestCase
      */
     public function testTheAmendFormOpensInPlaceAndIsNotAModal(): void
     {
-        $this->client->loginUser($this->recorder);
+        $this->client->loginUser($this->keeper);
         $crawler = $this->client->request('GET', $this->observationUrl().'?amend=1');
 
         self::assertResponseIsSuccessful();
@@ -243,11 +250,11 @@ final class ObservationAmendmentTest extends WebTestCase
     /** The form says whose name goes on it, before it is signed. */
     public function testTheFormSaysWhatItWillNotTouchAndWhoSignsIt(): void
     {
-        $this->client->loginUser($this->recorder);
+        $this->client->loginUser($this->keeper);
         $text = $this->client->request('GET', $this->observationUrl().'?amend=1')
             ->filter('form[data-patrol-amend-form]')->text();
 
-        self::assertStringContainsString('S. Laizer', $text);
+        self::assertStringContainsString('M. Mollel', $text);
         self::assertStringContainsString('are not touched', $text);
     }
 
@@ -290,6 +297,8 @@ final class ObservationAmendmentTest extends WebTestCase
      */
     public function testAnAmendmentCannotGoInUnsigned(): void
     {
+        $this->signOut($this->client);
+
         $this->client->request('POST', $this->amendUrl(), [
             'kind' => 'note',
             'body' => 'Anonymous correction.',
@@ -299,40 +308,49 @@ final class ObservationAmendmentTest extends WebTestCase
         self::assertCount(0, $this->reloadObservation()->getAmendments());
     }
 
-    /** PL·09 — "who may amend: anyone who may edit the patrol", and nobody else. */
-    public function testSomebodyWhoMayNotRecordMayNotAmend(): void
+    /**
+     * PL·09 — "who may amend: anyone who may edit the patrol", and nobody
+     * else. An amendment is `patrols.manage`: acting on a record, which is
+     * not the same power as making one. So the RANGER WHO RECORDED IT is a
+     * refusal here too, and that is the sharper half of the proof.
+     */
+    public function testSomebodyWhoMayNotManageMayNotAmend(): void
     {
         // A VALID token, minted for somebody who may. The point is that holding
         // a good token is not the same as holding the permission — this must be
         // refused by the permission check, not incidentally by CSRF.
-        $this->client->loginUser($this->recorder);
+        $this->client->loginUser($this->keeper);
         $token = $this->token();
 
-        $this->client->loginUser($this->bystander);
-        $this->client->request('POST', $this->amendUrl(), [
-            'kind' => 'note',
-            'body' => 'Not mine to correct.',
-            '_token' => $token,
-        ]);
+        foreach ([$this->bystander, $this->recorder] as $refused) {
+            $this->client->loginUser($refused);
+            $this->client->request('POST', $this->amendUrl(), [
+                'kind' => 'note',
+                'body' => 'Not mine to correct.',
+                '_token' => $token,
+            ]);
 
-        self::assertResponseStatusCodeSame(403);
-        self::assertCount(0, $this->reloadObservation()->getAmendments());
+            self::assertResponseStatusCodeSame(403);
+            self::assertCount(0, $this->reloadObservation()->getAmendments());
+        }
     }
 
     /** And the affordance is not offered to somebody who may not use it. */
     public function testTheAmendButtonIsOfferedOnlyToSomebodyWhoMayAmend(): void
     {
-        $this->client->loginUser($this->recorder);
+        $this->client->loginUser($this->keeper);
         self::assertCount(1, $this->client->request('GET', $this->observationUrl())->filter('[data-patrol-amend]'));
 
-        $this->client->loginUser($this->bystander);
-        self::assertCount(0, $this->client->request('GET', $this->observationUrl())->filter('[data-patrol-amend]'));
+        foreach ([$this->bystander, $this->recorder] as $withoutIt) {
+            $this->client->loginUser($withoutIt);
+            self::assertCount(0, $this->client->request('GET', $this->observationUrl())->filter('[data-patrol-amend]'));
+        }
     }
 
     /** Every write on this page carries a token. */
     public function testAnAmendmentWithoutACsrfTokenIsRefused(): void
     {
-        $this->client->loginUser($this->recorder);
+        $this->client->loginUser($this->keeper);
         $this->client->request('POST', $this->amendUrl(), ['kind' => 'note', 'body' => 'No token.']);
 
         self::assertResponseStatusCodeSame(403);
@@ -342,7 +360,7 @@ final class ObservationAmendmentTest extends WebTestCase
     /** An amendment with nothing written in it corrects nothing, and is refused. */
     public function testAnEmptyAmendmentIsRefused(): void
     {
-        $this->client->loginUser($this->recorder);
+        $this->client->loginUser($this->keeper);
         $this->client->request('POST', $this->amendUrl(), [
             'kind' => 'note',
             'body' => '   ',
@@ -356,7 +374,7 @@ final class ObservationAmendmentTest extends WebTestCase
     /** A kind the module does not ship is refused rather than filed under a guess. */
     public function testAnUnknownKindIsRefused(): void
     {
-        $this->client->loginUser($this->recorder);
+        $this->client->loginUser($this->keeper);
         $this->client->request('POST', $this->amendUrl(), [
             'kind' => 'nonsense',
             'body' => 'A correction.',
@@ -375,8 +393,9 @@ final class ObservationAmendmentTest extends WebTestCase
         $this->em->persist($other);
         $this->em->flush();
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
 
-        $this->client->loginUser($this->recorder);
+        $this->client->loginUser($this->keeper);
         $this->client->request('POST', \sprintf(
             '/areas/%s/modules/patrols/%s/observations/%s/amendments',
             $other->getUuidString(),
@@ -454,7 +473,7 @@ final class ObservationAmendmentTest extends WebTestCase
      */
     public function testAPhotoAttachedToAnAmendmentIsNotAFieldPhotograph(): void
     {
-        $this->client->loginUser($this->recorder);
+        $this->client->loginUser($this->keeper);
         $this->client->request(
             'POST',
             $this->amendUrl(),
@@ -493,7 +512,7 @@ final class ObservationAmendmentTest extends WebTestCase
 
     private function amend(string $kind, string $body, ?string $supersedes = null): void
     {
-        $this->client->loginUser($this->recorder);
+        $this->client->loginUser($this->keeper);
         $this->client->request('POST', $this->amendUrl(), array_filter([
             'kind' => $kind,
             'body' => $body,

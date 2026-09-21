@@ -33,6 +33,7 @@ use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 final class PatrolDetailPageTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
+    use SomebodyIsSignedIn;
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
@@ -107,6 +108,7 @@ final class PatrolDetailPageTest extends WebTestCase
         $this->em->flush();
 
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
     }
 
     protected function tearDown(): void

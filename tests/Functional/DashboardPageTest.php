@@ -37,6 +37,7 @@ use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 final class DashboardPageTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
+    use SomebodyIsSignedIn;
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
@@ -100,6 +101,7 @@ final class DashboardPageTest extends WebTestCase
         $this->em->flush();
 
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
     }
 
     protected function tearDown(): void
@@ -390,6 +392,7 @@ final class DashboardPageTest extends WebTestCase
         $this->em->flush();
         // The new area must be running the module, exactly as an install would.
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
 
         $base = '/areas/'.$area->getUuidString().'/modules/patrols';
 
@@ -436,6 +439,7 @@ final class DashboardPageTest extends WebTestCase
             ->setDistanceKm(9.4));
         $this->em->flush();
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
 
         $this->client->request('GET', '/areas/'.$bare->getUuidString().'/modules/patrols');
 
@@ -461,11 +465,9 @@ final class DashboardPageTest extends WebTestCase
      */
     public function testSomebodyWhoMayNotRecordIsNotOfferedTheEntryFlow(): void
     {
-        $bystander = new User()->setPassword('x')->setEmail('bystander@example.test')
-            ->setFirstName('Ben')->setLastName('Bystander');
-        $this->em->persist($bystander);
-        $this->em->flush();
-        $this->client->loginUser($bystander);
+        // The bystander the suite signs in with: somebody who may read this
+        // module and record nothing.
+        $this->signIn($this->client, $this->em);
 
         $crawler = $this->client->request('GET', '/areas/'.$this->area->getUuidString().'/modules/patrols');
 

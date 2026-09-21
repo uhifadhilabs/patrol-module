@@ -33,6 +33,7 @@ use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 final class TaxonomyAdminPageTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
+    use SomebodyIsSignedIn;
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
@@ -312,6 +313,7 @@ final class TaxonomyAdminPageTest extends WebTestCase
         );
         $this->em->persist($area);
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
 
         return $area;
     }

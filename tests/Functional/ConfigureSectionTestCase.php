@@ -41,6 +41,7 @@ use Uhifadhi\Patrol\UhifadhiPatrolBundle;
 abstract class ConfigureSectionTestCase extends WebTestCase
 {
     use EveryAreaRunsPatrols;
+    use SomebodyIsSignedIn;
 
     protected KernelBrowser $client;
     protected EntityManagerInterface $em;
@@ -72,6 +73,7 @@ abstract class ConfigureSectionTestCase extends WebTestCase
             ->setEndedAt(new \DateTimeImmutable('today 09:10')));
 
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
     }
 
     protected function configureUrl(?string $section = null): string

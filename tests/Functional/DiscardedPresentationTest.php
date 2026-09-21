@@ -41,6 +41,7 @@ use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 final class DiscardedPresentationTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
+    use SomebodyIsSignedIn;
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
@@ -48,6 +49,8 @@ final class DiscardedPresentationTest extends WebTestCase
     private Patrol $discarded;
     private Patrol $kept;
     private User $recorder;
+    /** Somebody who may act on records other people made — `patrols.manage`, which is what a hold is. */
+    private User $keeper;
     private User $bystander;
 
     protected function setUp(): void
@@ -71,7 +74,10 @@ final class DiscardedPresentationTest extends WebTestCase
             ->setFirstName('Rita')->setLastName('Recorder');
         $this->bystander = new User()->setPassword('x')->setEmail('bystander@example.test')
             ->setFirstName('Ben')->setLastName('Bystander');
+        $this->keeper = new User()->setPassword('x')->setEmail(FixedRecordVoter::MANAGER_EMAIL)
+            ->setFirstName('Mary')->setLastName('Mollel');
         $this->em->persist($this->recorder);
+        $this->em->persist($this->keeper);
         $this->em->persist($this->bystander);
 
         $this->kept = $this->patrol('North post', 10.0);
@@ -86,6 +92,7 @@ final class DiscardedPresentationTest extends WebTestCase
         $this->em->flush();
 
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
     }
 
     protected function tearDown(): void
@@ -170,18 +177,22 @@ final class DiscardedPresentationTest extends WebTestCase
         self::assertCount(0, $crawler->filter('.patrol-discard'));
     }
 
-    /** The hold is offered to whoever may record, and to nobody else. */
-    public function testTheHoldActionIsOfferedOnlyToSomebodyWhoMayRecord(): void
+    /**
+     * The hold is offered to whoever may MANAGE a patrol — act on a record
+     * somebody else made — and to nobody else. The ranger who logs patrols is
+     * a refusal here as squarely as a reader is: pulling the brake on a
+     * discard is not the same power as recording a day.
+     */
+    public function testTheHoldActionIsOfferedOnlyToSomebodyWhoMayManage(): void
     {
-        $anonymous = $this->client->request('GET', $this->detailUrl());
-        self::assertResponseIsSuccessful();
-        self::assertCount(0, $anonymous->filter('.patrol-discard-act'), 'Nobody is signed in.');
+        foreach ([$this->bystander, $this->recorder] as $withoutIt) {
+            $this->client->loginUser($withoutIt);
+            $denied = $this->client->request('GET', $this->detailUrl());
+            self::assertResponseIsSuccessful();
+            self::assertCount(0, $denied->filter('.patrol-discard-act'), 'Absent, not disabled — a greyed control advertises a power the reader has not got.');
+        }
 
-        $this->client->loginUser($this->bystander);
-        $denied = $this->client->request('GET', $this->detailUrl());
-        self::assertCount(0, $denied->filter('.patrol-discard-act'), 'Absent, not disabled — a greyed control advertises a power the reader has not got.');
-
-        $this->client->loginUser($this->recorder);
+        $this->client->loginUser($this->keeper);
         $allowed = $this->client->request('GET', $this->detailUrl());
         self::assertCount(1, $allowed->filter('.patrol-discard-act'));
         self::assertStringContainsString('Hold for review', $allowed->filter('.patrol-discard-act')->text());
@@ -190,7 +201,7 @@ final class DiscardedPresentationTest extends WebTestCase
     /** Raising and releasing the hold, through the form the page renders. */
     public function testHoldingAndReleasingThroughThePage(): void
     {
-        $this->client->loginUser($this->recorder);
+        $this->client->loginUser($this->keeper);
 
         $crawler = $this->client->request('GET', $this->detailUrl());
         $this->client->submit($crawler->filter('form.patrol-discard-act')->form());
@@ -198,7 +209,7 @@ final class DiscardedPresentationTest extends WebTestCase
 
         $held = $this->reload();
         self::assertTrue($held->isHeld());
-        self::assertSame($this->recorder->getId(), $held->getHeldBy()?->getId());
+        self::assertSame($this->keeper->getId(), $held->getHeldBy()?->getId());
         // Holding is not editing: the phone must keep being able to deliver the
         // parts somebody raised the hold in order to look at.
         self::assertTrue($held->acceptsFieldUploads());
@@ -213,9 +224,9 @@ final class DiscardedPresentationTest extends WebTestCase
         self::assertFalse($this->reload()->isHeld());
     }
 
-    public function testTheHoldRouteRefusesSomebodyWhoMayNotRecord(): void
+    public function testTheHoldRouteRefusesSomebodyWhoMayNotManage(): void
     {
-        $this->client->loginUser($this->recorder);
+        $this->client->loginUser($this->keeper);
         $crawler = $this->client->request('GET', $this->detailUrl());
         $form = $crawler->filter('form.patrol-discard-act')->form();
 
@@ -228,7 +239,7 @@ final class DiscardedPresentationTest extends WebTestCase
 
     public function testTheHoldRouteRefusesAMissingCsrfToken(): void
     {
-        $this->client->loginUser($this->recorder);
+        $this->client->loginUser($this->keeper);
         $this->client->request('POST', $this->detailUrl().'/hold', ['hold' => '1']);
 
         self::assertResponseStatusCodeSame(403);
@@ -238,7 +249,7 @@ final class DiscardedPresentationTest extends WebTestCase
     /** Only a discarded patrol has a clock to stop. */
     public function testAPatrolThatWasNeverDiscardedCannotBeHeld(): void
     {
-        $this->client->loginUser($this->recorder);
+        $this->client->loginUser($this->keeper);
         $crawler = $this->client->request('GET', $this->detailUrl());
         $token = $crawler->filter('form.patrol-discard-act input[name="_token"]')->attr('value');
 

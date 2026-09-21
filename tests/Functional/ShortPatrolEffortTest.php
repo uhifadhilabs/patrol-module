@@ -39,6 +39,7 @@ use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 final class ShortPatrolEffortTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
+    use SomebodyIsSignedIn;
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
@@ -77,6 +78,7 @@ final class ShortPatrolEffortTest extends WebTestCase
         $this->em->flush();
 
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
     }
 
     protected function tearDown(): void

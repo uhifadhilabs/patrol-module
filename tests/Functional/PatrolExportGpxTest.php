@@ -23,6 +23,7 @@ use Uhifadhi\Patrol\Entity\Observation;
 use Uhifadhi\Patrol\Entity\Patrol;
 use Uhifadhi\Patrol\Enum\PatrolSourceEnum;
 use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
+use Uhifadhi\Patrol\Tests\Integration\Fixtures\FixedRecordVoter;
 
 /**
  * "Export GPX" on the patrol detail page: the recorded track back out as a
@@ -33,6 +34,7 @@ use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 final class PatrolExportGpxTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
+    use SomebodyIsSignedIn;
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
@@ -93,6 +95,10 @@ final class PatrolExportGpxTest extends WebTestCase
         $this->em->flush();
 
         $this->everyAreaRunsPatrols($this->em);
+        // Exporting is its own act: the bystander reads the register and
+        // cannot carry it out of the building, so these sign in as the tier
+        // that may.
+        $this->signIn($this->client, $this->em, FixedRecordVoter::RECORDER_EMAIL);
     }
 
     protected function tearDown(): void

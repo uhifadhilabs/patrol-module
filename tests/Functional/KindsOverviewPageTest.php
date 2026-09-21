@@ -32,6 +32,7 @@ use Uhifadhi\Patrol\Tests\Fixtures\Vocabulary;
 final class KindsOverviewPageTest extends WebTestCase
 {
     use EveryAreaRunsPatrols;
+    use SomebodyIsSignedIn;
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
@@ -204,6 +205,7 @@ final class KindsOverviewPageTest extends WebTestCase
         );
         $this->em->persist($area);
         $this->everyAreaRunsPatrols($this->em);
+        $this->signIn($this->client, $this->em);
 
         return $area;
     }
