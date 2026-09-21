@@ -52,7 +52,9 @@ came back to.
 ## The review hold
 
 Unless it is **held for review** — a web-side action on the patrol's detail page,
-gated by `patrols.record`, which stops the retention clock indefinitely. Nothing
+gated by `patrols.manage` — acting on a record somebody else made, which is
+not the same power as making one — and it stops the retention clock
+indefinitely. Nothing
 on the phone can raise a hold, clear one, or shorten the window. Releasing a hold
 resumes the clock from the ORIGINAL discard: a hold pauses the deletion, it does
 not grant a fresh lifetime.

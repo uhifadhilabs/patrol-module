@@ -103,7 +103,8 @@ Patrols' maps are the atlas's, not a second copy of a map layer (see
 `RegistryBundle` holds the catalogue an area switches modules on in, and reconciles
 it on a cache warm-up — there is no command to run. This bundle registers one
 `ModuleProviderInterface` (`uhifadhi.module`) declaring the slug `patrols`, its
-category, its icon, its one permission and its entry route. The registry resolves
+category, its icon and its entry route — and, through the access seam
+(`uhifadhi.access.concerns`), the four concerns it enforces. The registry resolves
 that route, so an area's module grid opens the patrol dashboard directly rather
 than a generic module page.
 

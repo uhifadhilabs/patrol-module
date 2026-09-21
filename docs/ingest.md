@@ -115,8 +115,9 @@ release:
   still has to be able to print it.
 - **`updatedAt` makes a delta possible.** Pass the newest one held back as
   `&since=<ISO-8601>` and only what has changed since comes back.
-- It requires `patrols.record`, like every other endpoint here, and refuses an
-  unknown `areaId` with the contract's `unknown_area`.
+- It requires `patrols.record` **on the area it names**, like every other
+  endpoint here, and refuses an unknown `areaId` with the contract's
+  `unknown_area`.
 
 **A word the handset sends that this area has never heard of is never a
 refusal.** The contract names no error code for an unknown type or an unknown

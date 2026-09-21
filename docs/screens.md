@@ -66,7 +66,7 @@ file against it.
 It is a ROW rather than a keyed prefix with nothing behind it, because a bare id
 answers neither question the seam has to answer:
 
-- **Who may.** The permission is `patrols.record` **on an area**, and an id with
+- **Who may.** The pair is `patrols.record` **on an area**, and an id with
   no row behind it names no area. The target would have to trust the browser for
   the one fact the decision rests on.
 - **What is abandoned.** Most drafts are never saved — a page opened and closed
@@ -188,7 +188,7 @@ caption needs a verdict before that is closed.
 `patrol_types` (`/areas/{uuid}/modules/patrols/types`), saved by one POST to the
 same address. Reading it is open to anybody the installation lets onto the
 configure page — reading what an area patrols on is not a privilege — and the
-write controls are drawn only for somebody who may `patrols.manage`, so a reader
+write controls are drawn only for somebody who may `patrol-types.configure`, so a reader
 gets the section read-only rather than a form that answers 403. One row per type
 the area keeps: its label, its wire key, what it RECORDS, how many patrols are
 filed under it, and Rename / Retire — or Reactivate on a retired one, drawn
@@ -274,10 +274,12 @@ a fine, the right control is "File as incident".
   in the area, sub in its parent kind); a wire-code is unique within the area and
   never changes across renames, so a saved filter, an export column and an offline
   handset can hold it.
-- **Gated by `patrols.manage` + CSRF:** managing the vocabulary is a separate
-  authority from `patrols.record` — logging a patrol is not enough to name the
-  words everybody else uses. The controller exists only where SecurityBundle can
-  enforce it; its logic (`patrol.taxonomy_admin`) is unconditional.
+- **Gated by `observation-kinds.configure` + CSRF:** naming the words everybody
+  else logs against is a separate authority from `patrols.record` — logging a
+  patrol is not enough to choose them — and separate again from naming the types
+  and the stations, which an organization may hand to different people. The
+  controller exists only where SecurityBundle can enforce it; its logic
+  (`patrol.taxonomy_admin`) is unconditional.
 
 **This is a parallel model.** `Observation::$category` still reads the flat
 `patrol.observation_categories` deployment config; wiring observation capture (the
@@ -301,8 +303,11 @@ clamped on the way in. The words a ranger picks from — the types, the stations
 the observation kinds — each keep a section of their own in the strip, so none of
 them is restated here and nothing here links out to them: the strip is the way.
 
-Every POST behind every section rides on `patrols.manage` and a CSRF token, and
-each exists only where SecurityBundle can enforce the permission:
+Every POST behind every section rides on the pair its own section names and a
+CSRF token, and each exists only where SecurityBundle can enforce it —
+`patrol-types.configure` for the types, `patrol-stations.configure` for the
+stations, `observation-kinds.configure` for the kinds, and `patrols.configure`
+for the two thresholds:
 
 | Route | Method | Path |
 |---|---|---|

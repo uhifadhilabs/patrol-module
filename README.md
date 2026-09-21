@@ -196,6 +196,12 @@ in [docs/what-it-stands-on.md](docs/what-it-stands-on.md).
 
 ## Upgrading
 
+**Upgrading from 0.5 to 0.6 changes who may do what.** Every gate in this
+module is a `<concern>.<verb>` pair now, reading included, and no migration
+re-ticks anybody's grants. Read [UPGRADE-0.6.md](UPGRADE-0.6.md) before the
+update — it carries the route-by-route mapping and the table of what each
+existing position must also be granted.
+
 ```bash
 # 1. back up the database first — a migration is not a transaction on every engine
 pg_dump ... > backup.sql

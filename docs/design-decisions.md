@@ -211,7 +211,7 @@ prefix with nothing behind it.
 they arrive before the patrol exists, and the thing they file against has to
 answer two questions a bare id cannot:
 
-- **Who may.** `patrols.record` is a permission about an AREA. An id with no row
+- **Who may.** `patrols.record` is a pair about an AREA. An id with no row
   names no area, so the target would either trust the browser for the one fact
   the decision rests on, or fall back to a global check that lets a recorder in
   one area file evidence against another's.

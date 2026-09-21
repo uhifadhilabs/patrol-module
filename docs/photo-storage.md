@@ -63,8 +63,8 @@ controller, no route, no JavaScript, no stylesheet.
 Both file against a `PatrolDraft`, because a file arrives before the patrol it
 belongs to exists; the shared half of the contract — which record, who may, who
 may take it back off — is `AbstractPatrolDraftTarget`, written once so two
-targets cannot drift apart on "who may". The permission is `patrols.record` **on
-the draft's area**, and the draft's own owner.
+targets cannot drift apart on "who may". The pair is `patrols.record` **on the
+draft's area**, and the draft's own owner.
 
 **The kinds are separate from `patrol/` on purpose.** The prefix is a key's first
 segment and the thing a removal, a voter and the Files hub route on. A photograph
