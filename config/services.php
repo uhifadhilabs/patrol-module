@@ -15,8 +15,11 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Uhifadhi\Bundle\AreaBundle\Repository\AreaOfInterestRepository;
 use Uhifadhi\Bundle\AtlasBundle\Map\MapBuilderInterface;
+use Uhifadhi\Bundle\TeamBundle\Access\Door;
+use Uhifadhi\Contracts\Access\ConcernSourceInterface;
 use Uhifadhi\Contracts\Shell\ConfigurationSectionsInterface;
 use Uhifadhi\Contracts\Shell\ModuleTabsInterface;
+use Uhifadhi\Patrol\Access\PatrolConcerns;
 use Uhifadhi\Patrol\Controller\PatrolCalendarController;
 use Uhifadhi\Patrol\Controller\PatrolController;
 use Uhifadhi\Patrol\Controller\PatrolDetailController;
@@ -339,16 +342,27 @@ return static function (ContainerConfigurator $container): void {
         ]);
 
     /*
-     * WHETHER TO DRAW A DOOR. Two questions — does the screen exist in this
-     * installation, and may this viewer open it — asked in one place so no
-     * screen answers only half of them.
+     * WHAT THIS MODULE LETS SOMEBODY ACT ON, declared to the installation's
+     * catalogue of concerns. Tagged BY HAND with the interface's own constant:
+     * a reusable bundle is not autoconfigured, so the platform's
+     * registerForAutoconfiguration never fires for it, and a module that
+     * forgot this tag would simply have no rows on the positions page — which
+     * looks exactly like a module nobody granted anything on.
+     *
+     * DECLARING GRANTS NOBODY ANYTHING. Installing this module must never
+     * hand an existing person a new power; it only gives an organization the
+     * rows to tick.
+     */
+    $services->set('patrol.access.concerns', PatrolConcerns::class)
+        ->tag(ConcernSourceInterface::TAG);
+
+    /*
+     * WHETHER TO DRAW A DOOR — asked in one place, through the core's Door
+     * helper, so every control this module draws names the same pair as the
+     * gate behind it and asks it about the same area.
      */
     $services->set('patrol.screen_access', PatrolScreenAccessService::class)
-        ->args([
-            param('patrol.record_screens'),
-            service('security.authorization_checker')->nullOnInvalid(),
-            param('patrol.manage_screens'),
-        ]);
+        ->args([service(Door::class)]);
 
     /*
      * THE MODULE'S DATA PLACES. Tagged BY HAND: a reusable bundle does not
@@ -498,10 +512,10 @@ return static function (ContainerConfigurator $container): void {
             service(ObservationAmendmentRepository::class),
             service(PatrolTypeRepository::class),
             param('patrol.observation_categories'),
+            // Whether to draw the hold and the amend controls — the module's
+            // one door service, which asks the core's Door with this area.
+            service('patrol.screen_access'),
             param('patrol.discard_retention_days'),
-            // Null where the host runs no security: the hold action then exists
-            // for nobody, and the route it would post to was never registered.
-            service('security.authorization_checker')->nullOnInvalid(),
             service('security.csrf.token_manager')->nullOnInvalid(),
         ])
         ->public();

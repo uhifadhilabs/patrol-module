@@ -13,11 +13,8 @@ declare(strict_types=1);
 
 namespace Uhifadhi\Patrol\Module;
 
-use Uhifadhi\Contracts\ModulePermission;
 use Uhifadhi\Contracts\ModuleProviderInterface;
 use Uhifadhi\Contracts\ModuleProviderTrait;
-use Uhifadhi\Patrol\Controller\PatrolRecordController;
-use Uhifadhi\Patrol\Controller\PatrolTaxonomyController;
 
 /**
  * Declares the one module this bundle contributes — "Patrols". It owns its
@@ -71,33 +68,14 @@ final class PatrolModuleProvider implements ModuleProviderInterface
         return 'patrol_dashboard';
     }
 
-    /**
-     * Declared, never granted: the host folds this into its permission
-     * catalogue for admins to assign, and it vanishes with the module on
-     * uninstall. The value is the exact attribute the entry flow checks.
-     *
-     * THE SENTENCE IS THE ROW. "Patrols · Record" names the words this module
-     * chose; the description says what ticking the box hands over, and it is
-     * printed under the name in the host's matrix — where somebody is deciding
-     * whether this person should be able to put field effort on the record.
-     *
-     * @return list<ModulePermission>
+    /*
+     * NO permissions() HERE. What this module lets somebody act on is
+     * declared as CONCERNS — {@see \Uhifadhi\Patrol\Access\PatrolConcerns},
+     * tagged `uhifadhi.access.concerns` — a thing to act on with the verbs it
+     * supports and the scopes it offers, rather than one flat permission
+     * string per action. The trait answers the deprecated question with an
+     * empty list so this module declares its powers in exactly one place: two
+     * catalogues naming the same power would let an administrator grant it
+     * twice and revoke it once.
      */
-    public function permissions(): array
-    {
-        return [
-            new ModulePermission(
-                PatrolRecordController::RECORD_PERMISSION,
-                'Patrols',
-                'Record',
-                'Record patrols: import a GPS track or log one by hand, and add the observations made along the way.',
-            ),
-            new ModulePermission(
-                PatrolTaxonomyController::MANAGE_PERMISSION,
-                'Patrols',
-                'Manage',
-                'Manage this area\'s observation taxonomy: the kinds a ranger logs against and the sub-categories under them.',
-            ),
-        ];
-    }
 }
